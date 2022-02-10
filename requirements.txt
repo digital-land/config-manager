@@ -1,0 +1,8 @@
+black
+CacheControl
+flake8
+Flask
+-e git+https://github.com/digital-land/digital-land-frontend.git#egg=digital-land-frontend
+gunicorn
+python-dotenv
+Werkzeug
