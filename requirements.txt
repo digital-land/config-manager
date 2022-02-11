@@ -1,8 +1,4 @@
-black
-CacheControl
-flake8
-Flask
--e git+https://github.com/digital-land/digital-land-frontend.git#egg=digital-land-frontend
-gunicorn
-python-dotenv
-Werkzeug
+# this is just for heroku. to add requirements use
+# requirements/requirements.in or requirements/dev-requirements.in
+
+-c requirements/requirements.txt

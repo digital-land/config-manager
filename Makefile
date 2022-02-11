@@ -1,7 +1,8 @@
 init::
-	pip install --upgrade pip setuptools
-	pip install -r requirements.txt
-	npm install
+	python -m pip install --upgrade pip
+	python -m pip install pip-tools
+	python -m piptools sync requirements/requirements.txt requirements/dev-requirements.txt
+	python -m pip install -r requirements/dev-requirements.txt
 
 black:
 	black .
