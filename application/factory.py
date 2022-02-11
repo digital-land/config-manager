@@ -2,9 +2,8 @@
 """
 Flask app factory class
 """
-import os
 
-from flask import Flask, render_template, session
+from flask import Flask
 from flask.cli import load_dotenv
 
 load_dotenv()
@@ -35,7 +34,6 @@ def register_blueprints(app):
     from application.blueprints.base.views import base
 
     app.register_blueprint(base)
-
 
 
 def register_context_processors(app):
