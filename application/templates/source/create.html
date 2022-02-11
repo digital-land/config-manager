@@ -1,0 +1,42 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<h1 class="govuk-heading-xl">Create a source entry</h1>
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <form method="POST" action="" class="govuk-form">
+      {{ form.hidden_tag() }}
+      <div class='govuk-form-group{% if form.endpoint.errors %} govuk-form-group--error{% endif %}'>
+        <label class='govuk-label' for='endpoint'>URL</label>
+        {% if form.endpoint.errors %}
+        <p class="govuk-error-message">
+          {% for error in form.endpoint.errors %}<span class="govuk-visually-hidden">Error:</span> {{ error }}{% endfor %}
+        </p>
+        {% endif %}
+        {{ form.endpoint(required=False, class="govuk-input")}}
+      </div>
+      <div class='govuk-form-group{% if form.dataset.errors %} govuk-form-group--error{% endif %}'>
+        <label class='govuk-label' for='dataset'>Dataset</label>
+        {% if form.dataset.errors %}
+        <p class='govuk-error-message'>
+          {% for error in form.dataset.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
+        </p>
+        {{ form.dataset(required=False, class="govuk-input")}}
+        {% endif %}
+      </div>
+      <div class='govuk-form-group{% if form.organisation.errors %} govuk-form-group--error{% endif %}'>
+        <label class='govuk-label' for='organisation'>Organisation</label>
+        {% if form.organisation.errors %}
+        <p class='govuk-error-message'>
+          {% for error in form.organisation.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
+        </p>
+        {{ form.organisation(required=False, class="govuk-input")}}
+        {% endif %}
+      </div>
+      <button class='govuk-button' data-module='govuk-button'>
+      Create
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock content %}

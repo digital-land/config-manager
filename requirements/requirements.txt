@@ -11,19 +11,27 @@ decorator==5.1.1
 digital_land_frontend @ git+https://github.com/digital-land/digital-land-frontend.git
     # via -r requirements/requirements.in
 flask==2.0.2
+    # via
+    #   -r requirements/requirements.in
+    #   flask-wtf
+flask-wtf==1.0.0
     # via -r requirements/requirements.in
 govuk-frontend-jinja==2.0.0
     # via digital-land-frontend
 gunicorn==20.1.0
     # via -r requirements/requirements.in
 itsdangerous==2.0.1
-    # via flask
+    # via
+    #   flask
+    #   flask-wtf
 jinja2==3.0.3
     # via
     #   flask
     #   govuk-frontend-jinja
 markupsafe==2.0.1
-    # via jinja2
+    # via
+    #   jinja2
+    #   wtforms
 python-dotenv==0.19.2
     # via -r requirements/requirements.in
 six==1.16.0
@@ -32,6 +40,8 @@ validators==0.18.2
     # via digital-land-frontend
 werkzeug==2.0.3
     # via flask
+wtforms==3.0.1
+    # via flask-wtf
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
