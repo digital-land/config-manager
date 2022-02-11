@@ -16,3 +16,6 @@ lint: black-check flake8
 
 run::
 	flask run
+
+watch:
+	npm run watch
