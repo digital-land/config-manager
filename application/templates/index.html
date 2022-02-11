@@ -28,3 +28,7 @@
   </div>
 </header>
 {% endblock mastHead %}
+
+{% block content %}
+<h1 class="govuk-heading-xl">{{ title|default('Index') }}</h1>
+{% endblock content %}
