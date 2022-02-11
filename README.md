@@ -11,17 +11,24 @@ in requirements and dev-requirements files.
 
 These instructions are only for when you add new libraries to the project.
 
-To add a production dependency to the main aapplication, add the package to [requirements.in](requirements.in)
+To add a production dependency to the main aapplication, add the package to the [requirements.in](requirements.in)
+file. 
+
+Then run the piptools compile command on the "in" file:
 
     python -m piptools compile requirements/requirements.in
 
-That will generate a new requirements.txt file
+That will generate a new requirements.txt file in the requirements directory.
 
-To add a development library, add a line to [dev-requirements.in](dev-requirements.in). Note that the first line of that file is:
+
+To add a development library, add a line to [dev-requirements.in](dev-requirements.in). 
+
+Note that the first line of that file is:
+
 "-c requirements.txt" which constrains the versions of dependencies in the requirements.txt file generated in previous step.
 
     python -m piptools compile requirements/dev-requirements.in
 
-Then run
+Then to install all the packages run:
 
     python -m piptools sync requirements/requirements.txt requirements/dev-requirements.txt
