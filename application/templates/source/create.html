@@ -21,8 +21,8 @@
         <p class='govuk-error-message'>
           {% for error in form.dataset.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
         </p>
-        {{ form.dataset(required=False, class="govuk-input")}}
         {% endif %}
+        {{ form.dataset(required=False, class="govuk-input")}}
       </div>
       <div class='govuk-form-group{% if form.organisation.errors %} govuk-form-group--error{% endif %}'>
         <label class='govuk-label' for='organisation'>Organisation</label>
@@ -30,8 +30,8 @@
         <p class='govuk-error-message'>
           {% for error in form.organisation.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
         </p>
-        {{ form.organisation(required=False, class="govuk-input")}}
         {% endif %}
+        {{ form.organisation(required=False, class="govuk-input")}}
       </div>
       <button class='govuk-button' data-module='govuk-button'>
       Create
