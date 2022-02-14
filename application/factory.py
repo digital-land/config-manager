@@ -5,6 +5,7 @@ Flask app factory class
 
 from flask import Flask
 from flask.cli import load_dotenv
+from application.models import *  # noqa
 
 load_dotenv()
 
@@ -92,6 +93,6 @@ def register_templates(app):
 
 def register_commands(app):
 
-    from application.commands import manage_cli
+    from application.commands import management_cli
 
-    app.cli.add_command(manage_cli)
+    app.cli.add_command(management_cli)

@@ -9,11 +9,15 @@ attrs==21.4.0
 black==22.1.0
     # via -r requirements/dev-requirements.in
 certifi==2021.10.8
-    # via requests
+    # via
+    #   -c requirements/requirements.txt
+    #   requests
 cfgv==3.3.1
     # via pre-commit
-charset-normalizer==2.0.11
-    # via requests
+charset-normalizer==2.0.12
+    # via
+    #   -c requirements/requirements.txt
+    #   requests
 click==8.0.3
     # via
     #   -c requirements/requirements.txt
@@ -25,11 +29,15 @@ filelock==3.4.2
 flake8==4.0.1
     # via -r requirements/dev-requirements.in
 greenlet==1.1.2
-    # via playwright
+    # via
+    #   -c requirements/requirements.txt
+    #   playwright
 identify==2.4.9
     # via pre-commit
 idna==3.3
-    # via requests
+    # via
+    #   -c requirements/requirements.txt
+    #   requests
 iniconfig==1.1.1
     # via pytest
 mccabe==0.6.1
@@ -78,7 +86,9 @@ python-slugify==5.0.2
 pyyaml==6.0
     # via pre-commit
 requests==2.27.1
-    # via pytest-base-url
+    # via
+    #   -c requirements/requirements.txt
+    #   pytest-base-url
 six==1.16.0
     # via
     #   -c requirements/requirements.txt
@@ -94,7 +104,9 @@ tomli==2.0.1
 typing-extensions==4.0.1
     # via black
 urllib3==1.26.8
-    # via requests
+    # via
+    #   -c requirements/requirements.txt
+    #   requests
 virtualenv==20.13.1
     # via pre-commit
 websockets==10.1

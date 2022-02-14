@@ -6,6 +6,10 @@
 #
 alembic==1.7.6
     # via flask-migrate
+certifi==2021.10.8
+    # via requests
+charset-normalizer==2.0.12
+    # via requests
 click==8.0.3
     # via flask
 decorator==5.1.1
@@ -32,6 +36,8 @@ greenlet==1.1.2
     # via sqlalchemy
 gunicorn==20.1.0
     # via -r requirements/requirements.in
+idna==3.3
+    # via requests
 itsdangerous==2.0.1
     # via
     #   flask
@@ -51,12 +57,16 @@ psycopg2==2.9.3
     # via -r requirements/requirements.in
 python-dotenv==0.19.2
     # via -r requirements/requirements.in
+requests==2.27.1
+    # via -r requirements/requirements.in
 six==1.16.0
     # via validators
 sqlalchemy==1.4.31
     # via
     #   alembic
     #   flask-sqlalchemy
+urllib3==1.26.8
+    # via requests
 validators==0.18.2
     # via digital-land-frontend
 werkzeug==2.0.3

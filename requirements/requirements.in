@@ -6,3 +6,4 @@ python-dotenv
 Flask-SQLAlchemy
 Flask-Migrate
 psycopg2
+requests
