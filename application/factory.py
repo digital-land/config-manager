@@ -63,8 +63,10 @@ def register_extensions(app):
     Import and register flask extensions and initialize with app object
     """
     from application.extensions import db
+    from application.extensions import migrate
 
     db.init_app(app)
+    migrate.init_app(app=app)
 
 
 def register_templates(app):
