@@ -4,6 +4,8 @@
 #
 #    pip-compile requirements/requirements.in
 #
+alembic==1.7.6
+    # via flask-migrate
 click==8.0.3
     # via flask
 decorator==5.1.1
@@ -13,11 +15,21 @@ digital_land_frontend @ git+https://github.com/digital-land/digital-land-fronten
 flask==2.0.2
     # via
     #   -r requirements/requirements.in
+    #   flask-migrate
+    #   flask-sqlalchemy
     #   flask-wtf
+flask-migrate==3.1.0
+    # via -r requirements/requirements.in
+flask-sqlalchemy==2.5.1
+    # via
+    #   -r requirements/requirements.in
+    #   flask-migrate
 flask-wtf==1.0.0
     # via -r requirements/requirements.in
 govuk-frontend-jinja==2.0.0
     # via digital-land-frontend
+greenlet==1.1.2
+    # via sqlalchemy
 gunicorn==20.1.0
     # via -r requirements/requirements.in
 itsdangerous==2.0.1
@@ -28,14 +40,23 @@ jinja2==3.0.3
     # via
     #   flask
     #   govuk-frontend-jinja
+mako==1.1.6
+    # via alembic
 markupsafe==2.0.1
     # via
     #   jinja2
+    #   mako
     #   wtforms
+psycopg2==2.9.3
+    # via -r requirements/requirements.in
 python-dotenv==0.19.2
     # via -r requirements/requirements.in
 six==1.16.0
     # via validators
+sqlalchemy==1.4.31
+    # via
+    #   alembic
+    #   flask-sqlalchemy
 validators==0.18.2
     # via digital-land-frontend
 werkzeug==2.0.3
