@@ -27,7 +27,6 @@ class Organisation(db.Model):
     entry_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
     start_date = db.Column(db.Date)
-    sources = db.relationship("Source", backref="organisation", lazy=True)
 
     def __repr__(self):
         return f"<{self.__class__.__name__}> organisation: {self.organisation} entry_date: {self.entry_date}"
@@ -44,20 +43,17 @@ class Source(db.Model):
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
 
-    endpoint_id = db.Column(db.TEXT, db.ForeignKey("endpoint.endpoint"), nullable=False)
-    organisation_id = db.Column(
-        db.TEXT, db.ForeignKey("organisation.organisation"), nullable=False
-    )
-    # TODO add collection
+    endpoint = db.Column(db.TEXT, db.ForeignKey("endpoint.endpoint"))
+    organisation = db.Column(db.TEXT, db.ForeignKey("organisation.organisation"))
+    collection = db.Column(db.TEXT)
 
 
 class Endpoint(db.Model):
 
     endpoint = db.Column(db.TEXT, primary_key=True, nullable=False)
-    endpoint_url = db.Column(db.TEXT, nullable=False)
+    endpoint_url = db.Column(db.TEXT)
     parameters = db.Column(db.TEXT)
     plugin = db.Column(db.TEXT)
     entry_date = db.Column(db.Date)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
-    sources = db.relationship("Source", backref="endpoint", lazy=True)

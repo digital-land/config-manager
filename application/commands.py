@@ -7,16 +7,14 @@ from application.models import Organisation, Source, Endpoint
 management_cli = AppGroup("manage")
 
 digital_land_datasette = "https://datasette.digital-land.info/digital-land"
-tables = ["organisation"]
-
 model_classes = {"organisation": Organisation, "source": Source, "endpoint": Endpoint}
+ordered_tables = ["organisation", "endpoint", "source"]
 
 
 @management_cli.command("load-data")
 def load_data():
 
-    for table in tables:
-
+    for table in ordered_tables:
         url = f"{digital_land_datasette}/{table}.json"
         print(f"loading from {url}")
 
@@ -35,15 +33,20 @@ def load_data():
 
             _load_data(columns, table, rows)
             url = data.get("next_url")
+            if url is None:
+                has_next = False
 
 
 @management_cli.command("drop-data")
 def drop_data():
     from application.extensions import db
-    from application.models import Organisation
 
-    db.session.query(Organisation).delete()
-    db.session.commit()
+    for table in reversed(ordered_tables):
+
+        model_class = model_classes.get(table)
+        if model_class is not None:
+            db.session.query(model_class).delete()
+            db.session.commit()
 
 
 def _load_data(columns, table, rows):

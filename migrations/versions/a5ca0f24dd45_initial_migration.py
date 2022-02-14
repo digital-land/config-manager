@@ -1,8 +1,8 @@
 """initial migration
 
-Revision ID: ed9ad9bd139a
+Revision ID: a5ca0f24dd45
 Revises:
-Create Date: 2022-02-14 15:38:57.441644
+Create Date: 2022-02-14 16:55:29.099961
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "ed9ad9bd139a"
+revision = "a5ca0f24dd45"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,7 +21,7 @@ def upgrade():
     op.create_table(
         "endpoint",
         sa.Column("endpoint", sa.TEXT(), nullable=False),
-        sa.Column("endpoint_url", sa.TEXT(), nullable=False),
+        sa.Column("endpoint_url", sa.TEXT(), nullable=True),
         sa.Column("parameters", sa.TEXT(), nullable=True),
         sa.Column("plugin", sa.TEXT(), nullable=True),
         sa.Column("entry_date", sa.Date(), nullable=True),
@@ -66,14 +66,15 @@ def upgrade():
         sa.Column("entry_date", sa.Date(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("endpoint_id", sa.TEXT(), nullable=False),
-        sa.Column("organisation_id", sa.TEXT(), nullable=False),
+        sa.Column("endpoint", sa.TEXT(), nullable=True),
+        sa.Column("organisation", sa.TEXT(), nullable=True),
+        sa.Column("collection", sa.TEXT(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["endpoint_id"],
+            ["endpoint"],
             ["endpoint.endpoint"],
         ),
         sa.ForeignKeyConstraint(
-            ["organisation_id"],
+            ["organisation"],
             ["organisation.organisation"],
         ),
         sa.PrimaryKeyConstraint("source"),
