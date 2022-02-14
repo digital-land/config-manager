@@ -22,6 +22,7 @@ def create_app(config_filename):
     register_templates(app)
     register_filters(app)
     register_extensions(app)
+    register_commands(app)
 
     return app
 
@@ -62,7 +63,11 @@ def register_extensions(app):
     """
     Import and register flask extensions and initialize with app object
     """
-    pass
+    from application.extensions import db
+    from application.extensions import migrate
+
+    db.init_app(app)
+    migrate.init_app(app=app)
 
 
 def register_templates(app):
@@ -83,3 +88,10 @@ def register_templates(app):
         ]
     )
     app.jinja_loader = multi_loader
+
+
+def register_commands(app):
+
+    from application.commands import manage_cli
+
+    app.cli.add_command(manage_cli)

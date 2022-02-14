@@ -3,3 +3,6 @@ Flask
 Flask-WTF
 gunicorn
 python-dotenv
+Flask-SQLAlchemy
+Flask-Migrate
+psycopg2
