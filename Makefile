@@ -21,3 +21,12 @@ run::
 
 watch:
 	npm run watch
+
+upgrade-db:
+	flask db upgrade
+
+load-data:
+	flask manage load-data
+
+drop-data:
+	flask manage drop-data
