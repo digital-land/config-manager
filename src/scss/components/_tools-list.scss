@@ -1,0 +1,19 @@
+.app-tools-list {
+  margin-bottom: govuk-spacing(9);
+}
+
+.app-tools-list__item {
+  display: inline-block;
+  background: govuk-colour('light-grey');
+  border-top: 4px solid govuk-colour('blue');
+  padding: govuk-spacing(5);
+  text-decoration: none;
+
+  &:hover {
+    background: darken(govuk-colour('light-grey'), 2);
+
+    .app-tools-list__item__heading {
+      text-decoration: underline;
+    }
+  }
+}
