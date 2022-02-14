@@ -2,6 +2,7 @@
 @import "digital-land-frontend/dl-frontend";
 
 // app specific component scss
+@import "components/accessible-autocomplete";
 @import "components/header-bar";
 @import "components/hero";
 @import "components/tools-list";

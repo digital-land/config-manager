@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField
+from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired, URL
 
 
@@ -14,7 +14,7 @@ class SourceForm(FlaskForm):
     dataset = StringField(
         "Dataset", validators=[DataRequired(message="Please provide a dataset")]
     )
-    organisation = StringField(
-        "Organisation ID",
+    organisation = SelectField(
+        "Organisation",
         validators=[DataRequired(message="Please provide an organisation ID")],
     )
