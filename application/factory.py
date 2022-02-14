@@ -22,6 +22,7 @@ def create_app(config_filename):
     register_templates(app)
     register_filters(app)
     register_extensions(app)
+    register_commands(app)
 
     return app
 
@@ -87,3 +88,10 @@ def register_templates(app):
         ]
     )
     app.jinja_loader = multi_loader
+
+
+def register_commands(app):
+
+    from application.commands import manage_cli
+
+    app.cli.add_command(manage_cli)
