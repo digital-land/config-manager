@@ -11,7 +11,7 @@ class SourceForm(FlaskForm):
             URL(message="Please provide a valid URL"),
         ],
     )
-    dataset = StringField(
+    dataset = SelectField(
         "Dataset", validators=[DataRequired(message="Please provide a dataset")]
     )
     organisation = SelectField(

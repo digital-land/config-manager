@@ -31,7 +31,7 @@
           {% for error in form.dataset.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
         </p>
         {% endif %}
-        {{ form.dataset(required=False, class="govuk-input")}}
+        {{ form.dataset(required=False, class="govuk-select")}}
       </div>
       <div class='govuk-form-group{% if form.organisation.errors %} govuk-form-group--error{% endif %}'>
         <label class='govuk-label' for='organisation'>Organisation</label>
@@ -65,6 +65,11 @@
 accessibleAutocomplete.enhanceSelectElement({
   defaultValue: 'Start typing organisation name',
   selectElement: document.querySelector('#organisation')
+})
+
+accessibleAutocomplete.enhanceSelectElement({
+  defaultValue: 'Start typing dataset name',
+  selectElement: document.querySelector('#dataset')
 })
 </script>
 {% endblock pageScripts %}
