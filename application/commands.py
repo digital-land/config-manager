@@ -3,6 +3,7 @@ import json
 import requests
 
 from flask.cli import AppGroup
+from sqlalchemy import select, and_
 
 from application.models import (
     Organisation,
@@ -11,6 +12,8 @@ from application.models import (
     Typology,
     Collection,
     Dataset,
+    Resource,
+    resource_endpoint,
 )
 
 management_cli = AppGroup("manage")
@@ -24,7 +27,10 @@ model_classes = {
     "typology": Typology,
     "collection": Collection,
     "dataset": Dataset,
+    "resource": Resource,
+    "resource_endpoint": resource_endpoint,
 }
+
 
 ordered_tables = [
     "organisation",
@@ -33,6 +39,8 @@ ordered_tables = [
     "dataset",
     "endpoint",
     "source",
+    "resource",
+    "resource_endpoint",
 ]
 
 
@@ -97,14 +105,33 @@ def _load_data(columns, table, rows):
                     else None
                 )
 
+    if table == "resource_endpoint":
+        for insert in inserts:
+            del insert["rowid"]
+
     for i in inserts:
-        obj = model_class(**i)
-        if db.session.query(model_class).get(i[table]) is None:
-            db.session.add(obj)
-            try:
-                db.session.commit()
-            except Exception as e:
-                print(f"error loading {obj}")
-                print(e)
+        if table == "resource_endpoint":
+            ins = model_class.insert().values(**i)
+            conn = db.engine.connect()
+            s = select(model_class).where(
+                and_(
+                    model_class.c.resource == i["resource"],
+                    model_class.c.endpoint == i["endpoint"],
+                )
+            )
+            result = conn.execute(s).fetchone()
+            if not result:
+                conn.execute(ins)
+            else:
+                print(f"{i} already in db")
         else:
-            print(f"Row for {table}: {i[table]} already in db")
+            obj = model_class(**i)
+            if db.session.query(model_class).get(i[table]) is None:
+                db.session.add(obj)
+                try:
+                    db.session.commit()
+                except Exception as e:
+                    print(f"error loading {obj}")
+                    print(e)
+            else:
+                print(f"{table}: {i[table]} already in db")
