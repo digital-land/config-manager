@@ -61,15 +61,5 @@
 
 {% block pageScripts %}
 <script src="{{ assetPath | default('/assets') }}/javascripts/vendor/govuk-accessible-autocomplete.min.js"></script>
-<script>
-accessibleAutocomplete.enhanceSelectElement({
-  defaultValue: 'Start typing organisation name',
-  selectElement: document.querySelector('#organisation')
-})
-
-accessibleAutocomplete.enhanceSelectElement({
-  defaultValue: 'Start typing dataset name',
-  selectElement: document.querySelector('#dataset')
-})
-</script>
+<script src="{{ assetPath | default('/assets') }}/javascripts/application-add-source.js"></script>
 {% endblock pageScripts %}
