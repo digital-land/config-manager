@@ -1,3 +1,5 @@
+from sqlalchemy.dialects.postgresql import JSON
+
 from application.extensions import db
 
 
@@ -54,6 +56,50 @@ class Endpoint(db.Model):
     endpoint_url = db.Column(db.TEXT)
     parameters = db.Column(db.TEXT)
     plugin = db.Column(db.TEXT)
+    entry_date = db.Column(db.Date)
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
+
+
+class Collection(db.Model):
+
+    collection = db.Column(db.TEXT, primary_key=True, nullable=False)
+    name = db.Column(db.TEXT)
+    entry_date = db.Column(db.Date)
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
+
+
+class Dataset(db.Model):
+
+    dataset = db.Column(db.TEXT, primary_key=True, nullable=False)
+    description = db.Column(db.TEXT)
+    key_field = db.Column(db.TEXT)
+    entity_minimum = db.Column(db.BIGINT)
+    entity_maximum = db.Column(db.BIGINT)
+    name = db.Column(db.TEXT)
+    paint_options = db.Column(JSON)
+    plural = db.Column(db.TEXT)
+    prefix = db.Column(db.TEXT)
+    text = db.Column(db.TEXT)
+    typology = db.Column(db.TEXT)
+    wikidata = db.Column(db.TEXT)
+    wikipedia = db.Column(db.TEXT)
+    collection = db.Column(db.TEXT, db.ForeignKey("collection.collection"))
+    typology = db.Column(db.TEXT, db.ForeignKey("typology.typology"))
+    entry_date = db.Column(db.Date)
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
+
+
+class Typology(db.Model):
+    typology = db.Column(db.TEXT, primary_key=True, nullable=False)
+    name = db.Column(db.TEXT)
+    description = db.Column(db.TEXT)
+    text = db.Column(db.TEXT)
+    plural = db.Column(db.TEXT)
+    wikidata = db.Column(db.TEXT)
+    wikipedia = db.Column(db.TEXT)
     entry_date = db.Column(db.Date)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)

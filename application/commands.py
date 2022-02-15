@@ -1,14 +1,39 @@
+import json
+
 import requests
 
 from flask.cli import AppGroup
 
-from application.models import Organisation, Source, Endpoint
+from application.models import (
+    Organisation,
+    Source,
+    Endpoint,
+    Typology,
+    Collection,
+    Dataset,
+)
 
 management_cli = AppGroup("manage")
 
 digital_land_datasette = "https://datasette.digital-land.info/digital-land"
-model_classes = {"organisation": Organisation, "source": Source, "endpoint": Endpoint}
-ordered_tables = ["organisation", "endpoint", "source"]
+
+model_classes = {
+    "organisation": Organisation,
+    "source": Source,
+    "endpoint": Endpoint,
+    "typology": Typology,
+    "collection": Collection,
+    "dataset": Dataset,
+}
+
+ordered_tables = [
+    "organisation",
+    "typology",
+    "collection",
+    "dataset",
+    "endpoint",
+    "source",
+]
 
 
 @management_cli.command("load-data")
@@ -63,11 +88,23 @@ def _load_data(columns, table, rows):
         r = [None if not item else item for item in row]
         inserts.append(dict(zip(columns, r)))
 
+    if table == "dataset":
+        for insert in inserts:
+            if "paint_options" in insert:
+                insert["paint_options"] = (
+                    json.loads(insert["paint_options"])
+                    if insert["paint_options"]
+                    else None
+                )
+
     for i in inserts:
         obj = model_class(**i)
-        db.session.add(obj)
-        try:
-            db.session.commit()
-        except Exception as e:
-            print(f"error loading {obj}")
-            print(e)
+        if db.session.query(model_class).get(i[table]) is None:
+            db.session.add(obj)
+            try:
+                db.session.commit()
+            except Exception as e:
+                print(f"error loading {obj}")
+                print(e)
+        else:
+            print(f"Row for {table}: {i[table]} already in db")

@@ -10,7 +10,7 @@ Create a local development postgres db
 
     createdb data_manager
 
-Create db schema
+Create or update db schema
 
     make upgrade-db
 
