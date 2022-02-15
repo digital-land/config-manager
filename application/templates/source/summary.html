@@ -1,0 +1,53 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+
+<h1 class="govuk-heading-xl">Check source details before submitting</h1>
+
+{% for source in sources %}
+<dl class="govuk-summary-list">
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Url
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.endpoint_url }}
+    </dd>
+    <dd class="govuk-summary-list__actions">
+      <a class="govuk-link" href="#">
+        Change<span class="govuk-visually-hidden"> Url</span>
+      </a>
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Dataset
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.dataset }}
+    </dd>
+    <dd class="govuk-summary-list__actions">
+      <a class="govuk-link" href="#">
+        Change<span class="govuk-visually-hidden"> dataset</span>
+      </a>
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Oganisation
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.organisation }}
+    </dd>
+    <dd class="govuk-summary-list__actions">
+      <a class="govuk-link" href="#">
+        Change<span class="govuk-visually-hidden"> organisation</span>
+      </a>
+    </dd>
+  </div>
+</dl>
+{% endfor %}
+
+<button class="govuk-button">Save source(s)</button>
+
+{% endblock content %}
