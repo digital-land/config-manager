@@ -26,6 +26,9 @@
     <div class="govuk-grid-column-one-half">
       <div class='govuk-form-group{% if form.dataset.errors %} govuk-form-group--error{% endif %}'>
         <label class='govuk-label' for='dataset'>Dataset</label>
+        <div id="organisation-hint" class="govuk-hint">
+          The dataset the source is for
+        </div>
         {% if form.dataset.errors %}
         <p class='govuk-error-message'>
           {% for error in form.dataset.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
@@ -35,6 +38,9 @@
       </div>
       <div class='govuk-form-group{% if form.organisation.errors %} govuk-form-group--error{% endif %}'>
         <label class='govuk-label' for='organisation'>Organisation</label>
+        <div id="organisation-hint" class="govuk-hint">
+          The name of the organisation the source belongs to
+        </div>
         {% if form.organisation.errors %}
         <p class='govuk-error-message'>
           {% for error in form.organisation.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
