@@ -13,8 +13,11 @@ def index():
     form.organisation.choices = [("", "")] + [
         (o.organisation, o.name) for o in organisations
     ]
-    datasets = Dataset.query.order_by(Dataset.name).all()
-    # To Do: remove the config datasets from list e.g. field-name
+    datasets = (
+        Dataset.query.filter(Dataset.typology != "specification")
+        .order_by(Dataset.name)
+        .all()
+    )
     form.dataset.choices = [("", "")] + [(d.dataset, d.name) for d in datasets]
 
     if form.validate_on_submit():
