@@ -6,7 +6,40 @@ from sqlalchemy.dialects.postgresql import JSON
 from application.extensions import db
 
 
-class Organisation(db.Model):
+class DateModel(db.Model):
+
+    __abstract__ = True
+
+    _entry_date = db.Column(db.Date)
+    _start_date = db.Column(db.Date)
+    _end_date = db.Column(db.Date)
+
+    @property
+    def entry_date(self):
+        return self._entry_date.isoformat() if self._entry_date else None
+
+    @entry_date.setter
+    def entry_date(self, entry_date):
+        self._entry_date = entry_date
+
+    @property
+    def start_date(self):
+        return self._start_date.isoformat() if self._start_date else None
+
+    @start_date.setter
+    def start_date(self, start_date):
+        self._start_date = start_date
+
+    @property
+    def end_date(self):
+        return self._end_date.isoformat() if self._end_date else None
+
+    @end_date.setter
+    def end_date(self, end_date):
+        self._end_date = end_date
+
+
+class Organisation(DateModel):
 
     organisation = db.Column(db.Text, primary_key=True, nullable=False)
     name = db.Column(db.Text)
@@ -29,16 +62,13 @@ class Organisation(db.Model):
     website = db.Column(db.Text)
     wikidata = db.Column(db.Text)
     wikipedia = db.Column(db.Text)
-    entry_date = db.Column(db.Date)
-    end_date = db.Column(db.Date)
-    start_date = db.Column(db.Date)
 
     def __repr__(self):
         return f"<{self.__class__.__name__}> organisation: {self.organisation} entry_date: {self.entry_date}"
 
 
 @dataclass
-class Source(db.Model):
+class Source(DateModel):
 
     source: str
     documentation_url: str
@@ -55,16 +85,13 @@ class Source(db.Model):
     documentation_url = db.Column(db.Text)
     attribution = db.Column(db.Text)
     licence = db.Column(db.Text)
-    entry_date = db.Column(db.Date)
-    start_date = db.Column(db.Date)
-    end_date = db.Column(db.Date)
     endpoint = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
     organisation = db.Column(db.Text, db.ForeignKey("organisation.organisation"))
     collection = db.Column(db.Text)
 
 
 @dataclass
-class Endpoint(db.Model):
+class Endpoint(DateModel):
 
     endpoint: str
     endpoint_url: str
@@ -79,21 +106,15 @@ class Endpoint(db.Model):
     endpoint_url = db.Column(db.Text)
     parameters = db.Column(db.Text)
     plugin = db.Column(db.Text)
-    entry_date = db.Column(db.Date)
-    start_date = db.Column(db.Date)
-    end_date = db.Column(db.Date)
     sources = db.relationship("Source", lazy=True)
 
 
-class Collection(db.Model):
+class Collection(DateModel):
     collection = db.Column(db.Text, primary_key=True, nullable=False)
     name = db.Column(db.Text)
-    entry_date = db.Column(db.Date)
-    start_date = db.Column(db.Date)
-    end_date = db.Column(db.Date)
 
 
-class Dataset(db.Model):
+class Dataset(DateModel):
     dataset = db.Column(db.Text, primary_key=True, nullable=False)
     description = db.Column(db.Text)
     key_field = db.Column(db.Text)
@@ -109,12 +130,9 @@ class Dataset(db.Model):
     wikipedia = db.Column(db.Text)
     collection = db.Column(db.Text, db.ForeignKey("collection.collection"))
     typology = db.Column(db.Text, db.ForeignKey("typology.typology"))
-    entry_date = db.Column(db.Date)
-    start_date = db.Column(db.Date)
-    end_date = db.Column(db.Date)
 
 
-class Typology(db.Model):
+class Typology(DateModel):
     typology = db.Column(db.Text, primary_key=True, nullable=False)
     name = db.Column(db.Text)
     description = db.Column(db.Text)
@@ -122,9 +140,6 @@ class Typology(db.Model):
     plural = db.Column(db.Text)
     wikidata = db.Column(db.Text)
     wikipedia = db.Column(db.Text)
-    entry_date = db.Column(db.Date)
-    start_date = db.Column(db.Date)
-    end_date = db.Column(db.Date)
 
 
 resource_endpoint = db.Table(
@@ -138,13 +153,11 @@ resource_endpoint = db.Table(
 )
 
 
-class Resource(db.Model):
+class Resource(DateModel):
     resource = db.Column(db.Text, primary_key=True, nullable=False)
     mime_type = db.Column(db.Text)
     bytes = db.Column(db.Integer)
-    entry_date = db.Column(db.Date)
-    start_date = db.Column(db.Date)
-    end_date = db.Column(db.Date)
+
     endpoints = db.relationship(
         "Endpoint",
         secondary=resource_endpoint,
