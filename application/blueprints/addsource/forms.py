@@ -3,6 +3,12 @@ from wtforms import SelectField, StringField
 from wtforms.validators import URL, DataRequired
 
 
+class SearchForm(FlaskForm):
+    source = StringField(
+        "Source", validators=[DataRequired(message="Enter a source hash")]
+    )
+
+
 class SourceForm(FlaskForm):
     endpoint = StringField(
         "Url",

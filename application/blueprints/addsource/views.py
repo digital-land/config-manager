@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, session, url_for
 
-from application.blueprints.addsource.forms import SourceForm
+from application.blueprints.addsource.forms import SearchForm, SourceForm
 from application.models import Dataset, Endpoint, Organisation, Source
 from application.utils import compute_hash
 
@@ -42,6 +42,18 @@ def summary():
     if session.get("form_data") is not None:
         return render_template("source/summary.html", sources=[session["form_data"]])
     return render_template("source/summary.html")
+
+
+@addsource.route("source", methods=["GET", "POST"])
+def search():
+    form = SearchForm()
+    if form.validate_on_submit():
+        source_hash = form.source.data
+        source = Source.query.get(source_hash)
+        if source:
+            return redirect(url_for("addsource.edit", source_hash=source.source))
+        form.source.errors.append("We don't recognise that hash, try another")
+    return render_template("source/search.html", form=form)
 
 
 @addsource.route("<source_hash>/edit")
