@@ -1,18 +1,17 @@
 import json
 
 import requests
-
 from flask.cli import AppGroup
-from sqlalchemy import select, and_
+from sqlalchemy import and_, select
 
 from application.models import (
-    Organisation,
-    Source,
-    Endpoint,
-    Typology,
     Collection,
     Dataset,
+    Endpoint,
+    Organisation,
     Resource,
+    Source,
+    Typology,
     resource_endpoint,
 )
 

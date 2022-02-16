@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField
-from wtforms.validators import DataRequired, URL
+from wtforms import SelectField, StringField
+from wtforms.validators import URL, DataRequired
 
 
 class SourceForm(FlaskForm):

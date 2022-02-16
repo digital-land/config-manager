@@ -1,3 +1,6 @@
+import datetime
+from dataclasses import dataclass
+
 from sqlalchemy.dialects.postgresql import JSON
 
 from application.extensions import db
@@ -34,23 +37,43 @@ class Organisation(db.Model):
         return f"<{self.__class__.__name__}> organisation: {self.organisation} entry_date: {self.entry_date}"
 
 
+@dataclass
 class Source(db.Model):
+
+    source: str
+    documentation_url: str
+    attribution: str
+    licence: str
+    entry_date: datetime.date
+    start_date: datetime.date
+    end_date: datetime.date
+    endpoint: str
+    organisation: str
+    collection: str
 
     source = db.Column(db.Text, primary_key=True, nullable=False)
     documentation_url = db.Column(db.Text)
     attribution = db.Column(db.Text)
     licence = db.Column(db.Text)
-
     entry_date = db.Column(db.Date)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
-
     endpoint = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
     organisation = db.Column(db.Text, db.ForeignKey("organisation.organisation"))
     collection = db.Column(db.Text)
 
 
+@dataclass
 class Endpoint(db.Model):
+
+    endpoint: str
+    endpoint_url: str
+    parameters: str
+    plugin: str
+    entry_date: datetime.date
+    start_date: datetime.date
+    end_date: datetime.date
+    sources: list
 
     endpoint = db.Column(db.Text, primary_key=True, nullable=False)
     endpoint_url = db.Column(db.Text)
@@ -59,10 +82,10 @@ class Endpoint(db.Model):
     entry_date = db.Column(db.Date)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
+    sources = db.relationship("Source", lazy=True)
 
 
 class Collection(db.Model):
-
     collection = db.Column(db.Text, primary_key=True, nullable=False)
     name = db.Column(db.Text)
     entry_date = db.Column(db.Date)
@@ -71,7 +94,6 @@ class Collection(db.Model):
 
 
 class Dataset(db.Model):
-
     dataset = db.Column(db.Text, primary_key=True, nullable=False)
     description = db.Column(db.Text)
     key_field = db.Column(db.Text)
@@ -117,7 +139,6 @@ resource_endpoint = db.Table(
 
 
 class Resource(db.Model):
-
     resource = db.Column(db.Text, primary_key=True, nullable=False)
     mime_type = db.Column(db.Text)
     bytes = db.Column(db.Integer)
