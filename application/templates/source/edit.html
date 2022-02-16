@@ -25,7 +25,8 @@
       Organisation
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.organisation }}
+      {{ source.organisation.name }}
+      <span class="govuk-!-margin-left-1 dl-data-reference">({{ source.organisation.organisation }})</span>
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -33,7 +34,8 @@
       Endpoint
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.endpoint }}
+      {{ source.endpoint.endpoint_url }}
+      <span class="govuk-!-margin-left-1 dl-data-reference" title="{{ source.endpoint.endpoint }}">({{ source.endpoint.endpoint|truncate(13) }})</span>
     </dd>
   </div>
   <div class="govuk-summary-list__row">
