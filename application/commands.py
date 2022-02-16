@@ -115,6 +115,7 @@ def _load_data(columns, table, rows):
             del insert["rowid"]
 
     for i in inserts:
+
         if table == "resource_endpoint":
             ins = model_class.insert().values(**i)
             conn = db.engine.connect()
@@ -147,7 +148,6 @@ def _load_data(columns, table, rows):
 
         else:
             try:
-
                 if table == "source":
                     endpoint_id = i.pop("endpoint")
                     if endpoint_id is not None:
@@ -157,10 +157,8 @@ def _load_data(columns, table, rows):
                     if organisation_id is not None:
                         organisation = Organisation.query.get(organisation_id)
                         i["organisation"] = organisation
-                    obj = model_class(**i)
-                else:
-                    obj = model_class(**i)
 
+                obj = model_class(**i)
                 db.session.add(obj)
                 db.session.commit()
 
