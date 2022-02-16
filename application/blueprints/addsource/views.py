@@ -31,7 +31,6 @@ def index():
             "organisation": form.organisation.data,
             "dataset": form.dataset.data,
         }
-        session.clear()
         return redirect(url_for("addsource.summary"))
     return render_template("source/create.html", form=form)
 
