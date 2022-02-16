@@ -1,0 +1,89 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<h1 class="govuk-heading-xl">Edit source</h1>
+{% if source %}
+<dl class="govuk-summary-list">
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Source
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.source }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Documentation url
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.documentation_url }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Organisation
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.organisation }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Endpoint
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.endpoint }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Collection
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.collection }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Attribution
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.attribution }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Licence
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.licence }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Entry date
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.entry_date }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Start date
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.start_date }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      End date
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.end_date }}
+    </dd>
+  </div>
+</dl>
+{% endif %}
+{% endblock content %}

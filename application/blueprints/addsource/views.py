@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, render_template, session, url_for
 
 from application.blueprints.addsource.forms import SourceForm
-from application.models import Dataset, Endpoint, Organisation
+from application.models import Dataset, Endpoint, Organisation, Source
 from application.utils import compute_hash
 
 addsource = Blueprint("addsource", __name__, url_prefix="/add-a-source")
@@ -42,6 +42,12 @@ def summary():
     if session.get("form_data") is not None:
         return render_template("source/summary.html", sources=[session["form_data"]])
     return render_template("source/summary.html")
+
+
+@addsource.route("<source_hash>/edit")
+def edit(source_hash):
+    source = Source.query.get(source_hash)
+    return render_template("source/edit.html", source=source)
 
 
 @addsource.route("/create-mappings")
