@@ -1,6 +1,3 @@
-import datetime
-from dataclasses import dataclass
-
 from sqlalchemy.dialects.postgresql import JSON
 
 from application.extensions import db
@@ -62,59 +59,81 @@ class Organisation(DateModel):
     website = db.Column(db.Text)
     wikidata = db.Column(db.Text)
     wikipedia = db.Column(db.Text)
+    sources = db.relationship("Source", backref="organisation", lazy=True)
 
     def __repr__(self):
         return f"<{self.__class__.__name__}> organisation: {self.organisation} entry_date: {self.entry_date}"
 
 
-@dataclass
 class Source(DateModel):
-
-    source: str
-    documentation_url: str
-    attribution: str
-    licence: str
-    entry_date: datetime.date
-    start_date: datetime.date
-    end_date: datetime.date
-    endpoint: str
-    organisation: str
-    collection: str
 
     source = db.Column(db.Text, primary_key=True, nullable=False)
     documentation_url = db.Column(db.Text)
     attribution = db.Column(db.Text)
     licence = db.Column(db.Text)
-    endpoint = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
-    organisation = db.Column(db.Text, db.ForeignKey("organisation.organisation"))
+    _endpoint = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    _organisation = db.Column(db.Text, db.ForeignKey("organisation.organisation"))
     collection = db.Column(db.Text)
 
+    @property
+    def endpoint(self):
+        return self._endpoint
 
-@dataclass
+    @endpoint.setter
+    def endpoint(self, endpoint):
+        self._endpoint = endpoint
+
+    @property
+    def organisation(self):
+        return self._organisation
+
+    @organisation.setter
+    def organisation(self, organisation):
+        self._organisation = organisation
+
+    def to_dict(self):
+        return {
+            "source": self.source,
+            "documentation_url": self.documentation_url,
+            "endpoint": self.endpoint.endpoint,
+            "endpoint_url": self.endpoint.endpoint_url,
+            "licence": self.licence,
+            "collection": self.collection,
+            "entry_date": self.entry_date,
+            "start_date": self.start_date,
+            "end_date": self.end_date,
+        }
+
+
 class Endpoint(DateModel):
-
-    endpoint: str
-    endpoint_url: str
-    parameters: str
-    plugin: str
-    entry_date: datetime.date
-    start_date: datetime.date
-    end_date: datetime.date
-    sources: list
 
     endpoint = db.Column(db.Text, primary_key=True, nullable=False)
     endpoint_url = db.Column(db.Text)
     parameters = db.Column(db.Text)
     plugin = db.Column(db.Text)
-    sources = db.relationship("Source", lazy=True)
+    sources = db.relationship("Source", backref="endpoint", lazy=True)
+
+    def to_dict(self):
+        return {
+            "endpoint": self.endpoint,
+            "endpoint_url": self.endpoint_url,
+            "parameters": self.parameters,
+            "plugin": self.plugin,
+            "sources": [s.to_dict() for s in self.sources],
+            "entry_date": self.entry_date,
+            "start_date": self.start_date,
+            "end_date": self.end_date,
+        }
 
 
 class Collection(DateModel):
+
     collection = db.Column(db.Text, primary_key=True, nullable=False)
     name = db.Column(db.Text)
 
 
 class Dataset(DateModel):
+
     dataset = db.Column(db.Text, primary_key=True, nullable=False)
     description = db.Column(db.Text)
     key_field = db.Column(db.Text)
@@ -133,6 +152,7 @@ class Dataset(DateModel):
 
 
 class Typology(DateModel):
+
     typology = db.Column(db.Text, primary_key=True, nullable=False)
     name = db.Column(db.Text)
     description = db.Column(db.Text)
@@ -154,6 +174,7 @@ resource_endpoint = db.Table(
 
 
 class Resource(DateModel):
+
     resource = db.Column(db.Text, primary_key=True, nullable=False)
     mime_type = db.Column(db.Text)
     bytes = db.Column(db.Integer)

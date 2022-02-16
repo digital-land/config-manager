@@ -7,6 +7,7 @@ from flask import Flask
 from flask.cli import load_dotenv
 
 from application.models import *  # noqa
+from application.utils import CustomJSONEncoder
 
 load_dotenv()
 
@@ -25,6 +26,8 @@ def create_app(config_filename):
     register_filters(app)
     register_extensions(app)
     register_commands(app)
+
+    app.json_encoder = CustomJSONEncoder
 
     return app
 
