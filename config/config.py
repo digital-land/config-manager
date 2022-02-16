@@ -4,7 +4,7 @@ import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
-class Config(object):
+class Config:
     APP_ROOT = os.path.abspath(os.path.dirname(__file__))
     PROJECT_ROOT = os.path.abspath(os.path.join(APP_ROOT, os.pardir))
     SECRET_KEY = os.getenv("SECRET_KEY")
@@ -17,6 +17,7 @@ class Config(object):
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    WTF_CSRF_ENABLED = False
 
 
 class TestConfig(Config):
