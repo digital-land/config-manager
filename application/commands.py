@@ -9,10 +9,12 @@ from application.models import (
     Dataset,
     Endpoint,
     Organisation,
+    Pipeline,
     Resource,
     Source,
     Typology,
     resource_endpoint,
+    source_pipeline,
 )
 
 management_cli = AppGroup("manage")
@@ -28,6 +30,8 @@ model_classes = {
     "dataset": Dataset,
     "resource": Resource,
     "resource_endpoint": resource_endpoint,
+    "pipeline": Pipeline,
+    "source_pipeline": source_pipeline,
 }
 
 
@@ -40,6 +44,8 @@ ordered_tables = [
     "source",
     "resource",
     "resource_endpoint",
+    "pipeline",
+    "source_pipeline",
 ]
 
 
@@ -104,7 +110,7 @@ def _load_data(columns, table, rows):
                     else None
                 )
 
-    if table == "resource_endpoint":
+    if table == "resource_endpoint" or table == "source_pipeline":
         for insert in inserts:
             del insert["rowid"]
 
@@ -123,14 +129,41 @@ def _load_data(columns, table, rows):
                 conn.execute(ins)
             else:
                 print(f"{i} already in db")
-        else:
-            obj = model_class(**i)
-            if db.session.query(model_class).get(i[table]) is None:
-                db.session.add(obj)
-                try:
-                    db.session.commit()
-                except Exception as e:
-                    print(f"error loading {obj}")
-                    print(e)
+
+        elif table == "source_pipeline":
+            ins = model_class.insert().values(**i)
+            conn = db.engine.connect()
+            s = select(model_class).where(
+                and_(
+                    model_class.c.source == i["source"],
+                    model_class.c.pipeline == i["pipeline"],
+                )
+            )
+            result = conn.execute(s).fetchone()
+            if not result:
+                conn.execute(ins)
             else:
-                print(f"{table}: {i[table]} already in db")
+                print(f"{i} already in db")
+
+        else:
+            try:
+
+                if table == "source":
+                    endpoint_id = i.pop("endpoint")
+                    if endpoint_id is not None:
+                        endpoint = Endpoint.query.get(endpoint_id)
+                        i["endpoint"] = endpoint
+                    organisation_id = i.pop("organisation")
+                    if organisation_id is not None:
+                        organisation = Organisation.query.get(organisation_id)
+                        i["organisation"] = organisation
+                    obj = model_class(**i)
+                else:
+                    obj = model_class(**i)
+
+                db.session.add(obj)
+                db.session.commit()
+
+            except Exception as e:
+                print(f"error loading {obj}")
+                print(e)

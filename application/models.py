@@ -173,6 +173,15 @@ resource_endpoint = db.Table(
 )
 
 
+source_pipeline = db.Table(
+    "source_pipeline",
+    db.Column("source", db.Text, db.ForeignKey("source.source"), primary_key=True),
+    db.Column(
+        "pipeline", db.Text, db.ForeignKey("pipeline.pipeline"), primary_key=True
+    ),
+)
+
+
 class Resource(DateModel):
 
     resource = db.Column(db.Text, primary_key=True, nullable=False)
@@ -184,4 +193,16 @@ class Resource(DateModel):
         secondary=resource_endpoint,
         lazy="subquery",
         backref=db.backref("resources", lazy=True),
+    )
+
+
+class Pipeline(DateModel):
+    pipeline = db.Column(db.Text, primary_key=True, nullable=False)
+    schema = db.Column(db.Text)
+
+    sources = db.relationship(
+        "Source",
+        secondary=source_pipeline,
+        lazy="subquery",
+        backref=db.backref("pipelines", lazy=True),
     )
