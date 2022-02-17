@@ -1,8 +1,12 @@
 // import all digital land and GOVUK Frontend scss
 @import "digital-land-frontend/dl-frontend";
 
+// app specific common styles
+@import "common/links";
+
 // app specific component scss
 @import "components/accessible-autocomplete";
+@import "components/actions-list";
 @import "components/header-bar";
 @import "components/hero";
 @import "components/tools-list";

@@ -1,0 +1,18 @@
+.app-actions-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  @include govuk-font($size: 19);
+}
+
+.app-actions-list--right {
+  @include govuk-media-query($from: tablet) {
+    text-align: right;
+    margin-right: -(govuk-spacing(3));
+  }
+}
+
+.app-actions-list__item {
+  display: inline;
+  padding: govuk-spacing(1) govuk-spacing(3);
+}

@@ -1,8 +1,19 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
-<h1 class="govuk-heading-xl">Edit source</h1>
+<h1 class="govuk-heading-xl">Source record</h1>
 {% if source %}
+<div class="app-source__actions app-actions-list--right">
+  <ul class="app-actions-list">
+    <li class="app-actions-list__item">
+      <a href="{{ url_for('addsource.edit', source_hash=source.source) }}" class="govuk-link">Edit<span class="govuk-visually-hidden"> source</span></a>
+    </li>
+    <li class="app-actions-list__item">
+      <a href="" class="govuk-link app-link--destructive">Archive<span class="govuk-visually-hidden"> source</span></a>
+    </li>
+  </ul>
+</div>
+
 <dl class="govuk-summary-list">
   <div class="govuk-summary-list__row">
     <dt class="govuk-summary-list__key">

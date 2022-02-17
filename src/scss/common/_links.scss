@@ -1,0 +1,8 @@
+.app-link--destructive {
+  color: darken(govuk-colour('red'), 10);
+
+  &:link,
+  &:visited {
+    color: darken(govuk-colour('red'), 10);
+  }
+}
