@@ -1,15 +1,20 @@
 from flask import Blueprint, redirect, render_template, session, url_for
 
-from application.blueprints.addsource.forms import SearchForm, SourceForm
+from application.blueprints.addsource.forms import NewSourceForm, SearchForm, SourceForm
 from application.models import Dataset, Endpoint, Organisation, Source
 from application.utils import compute_hash
 
 addsource = Blueprint("addsource", __name__, url_prefix="/add-a-source")
 
 
+def organisation_choices():
+    organisations = Organisation.query.order_by(Organisation.name).all()
+    return [("", "")] + [(o.organisation, o.name) for o in organisations]
+
+
 @addsource.route("/", methods=["GET", "POST"])
 def index():
-    form = SourceForm()
+    form = NewSourceForm()
     organisations = Organisation.query.order_by(Organisation.name).all()
     form.organisation.choices = [("", "")] + [
         (o.organisation, o.name) for o in organisations
@@ -56,10 +61,20 @@ def search():
     return render_template("source/search.html", form=form)
 
 
+@addsource.route("<source_hash>")
+def source(source_hash):
+    source = Source.query.get(source_hash)
+    return render_template("source/source.html", source=source)
+
+
 @addsource.route("<source_hash>/edit")
 def edit(source_hash):
     source = Source.query.get(source_hash)
-    return render_template("source/edit.html", source=source)
+    form = SourceForm(obj=source)
+    form.organisation.choices = organisation_choices()
+    form.organisation.data = source.organisation.organisation
+    form.endpoint.data = source.endpoint.endpoint_url
+    return render_template("source/edit.html", source=source, form=form)
 
 
 @addsource.route("/create-mappings")

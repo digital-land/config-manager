@@ -18,7 +18,6 @@
     </dt>
     <dd class="govuk-summary-list__value">
       {{ source.documentation_url }}
-      {{ form.documentation_url(required=False, class="govuk-input")}}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -28,7 +27,6 @@
     <dd class="govuk-summary-list__value">
       {{ source.organisation.name }}
       <span class="govuk-!-margin-left-1 dl-data-reference">({{ source.organisation.organisation }})</span>
-      {{ form.organisation(required=False, class="govuk-select")}}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -38,7 +36,6 @@
     <dd class="govuk-summary-list__value">
       {{ source.endpoint.endpoint_url }}
       <span class="govuk-!-margin-left-1 dl-data-reference" title="{{ source.endpoint.endpoint }}">({{ source.endpoint.endpoint|truncate(13) }})</span>
-      {{ form.endpoint(required=False, class="govuk-input")}}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -55,7 +52,6 @@
     </dt>
     <dd class="govuk-summary-list__value">
       {{ source.attribution }}
-      {{ form.attribution(required=False, class="govuk-input")}}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -64,7 +60,6 @@
     </dt>
     <dd class="govuk-summary-list__value">
       {{ source.licence }}
-      {{ form.licence(required=False, class="govuk-input")}}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -81,7 +76,6 @@
     </dt>
     <dd class="govuk-summary-list__value">
       {{ source.start_date }}
-      {{ form.start_date(required=False, class="govuk-input")}}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
