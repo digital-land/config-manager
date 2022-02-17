@@ -48,6 +48,16 @@
   </div>
   <div class="govuk-summary-list__row">
     <dt class="govuk-summary-list__key">
+      Pipeline
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {% for pipeline in source.pipelines %}
+      {{ pipeline.schema }}{{ ', ' if not loop.last else '' }}
+      {% endfor %}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
       Attribution
     </dt>
     <dd class="govuk-summary-list__value">
