@@ -3,95 +3,99 @@
 {% block content %}
 <h1 class="govuk-heading-xl">Edit source</h1>
 {% if source %}
-<dl class="govuk-summary-list">
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Source
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.source }}
-    </dd>
+
+{% if source.entry_date %}
+<p class="govuk-body">This source was created on {{ source.entry_date }}.</p>
+{% endif %}
+
+{% if source.end_date %}
+<p class="govuk-body">This source has been archived. It was archived on {{ source.end_date }}</p>
+{% endif %}
+
+<form method="POST" class="govuk-form">
+  {{ form.hidden_tag() }}
+  <dl class="govuk-summary-list">
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Source
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ source.source }}
+      </dd>
+    </div>
+
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Endpoint
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ form.endpoint(required=False, class="govuk-input")}}
+      </dd>
+    </div>
+
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Organisation
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ form.organisation(required=False, class="govuk-select")}}
+      </dd>
+    </div>
+
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Documentation url
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ form.documentation_url(required=False, class="govuk-input")}}
+      </dd>
+    </div>
+
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Collection
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ source.collection }}
+      </dd>
+    </div>
+
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Licence
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ form.licence(required=False, class="govuk-input govuk-!-width-one-half")}}
+      </dd>
+    </div>
+
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Attribution
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ form.attribution(required=False, class="govuk-input govuk-!-width-one-half")}}
+      </dd>
+    </div>
+
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Start date
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ form.start_date(required=False, class="govuk-input govuk-!-width-one-half")}}
+      </dd>
+    </div>
+
+  </dl>
+
+  <div class="govuk-button-group">
+    <button class="govuk-button" data-module="govuk-button">
+      Save changes
+    </button>
+
+    <a class="govuk-link" href="{{ url_for('addsource.source', source_hash=source.source) }}">Cancel</a>
   </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Documentation url
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.documentation_url }}
-      {{ form.documentation_url(required=False, class="govuk-input")}}
-    </dd>
-  </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Organisation
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.organisation.name }}
-      <span class="govuk-!-margin-left-1 dl-data-reference">({{ source.organisation.organisation }})</span>
-      {{ form.organisation(required=False, class="govuk-select")}}
-    </dd>
-  </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Endpoint
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.endpoint.endpoint_url }}
-      <span class="govuk-!-margin-left-1 dl-data-reference" title="{{ source.endpoint.endpoint }}">({{ source.endpoint.endpoint|truncate(13) }})</span>
-      {{ form.endpoint(required=False, class="govuk-input")}}
-    </dd>
-  </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Collection
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.collection }}
-    </dd>
-  </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Attribution
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.attribution }}
-      {{ form.attribution(required=False, class="govuk-input")}}
-    </dd>
-  </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Licence
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.licence }}
-      {{ form.licence(required=False, class="govuk-input")}}
-    </dd>
-  </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Entry date
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.entry_date }}
-    </dd>
-  </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Start date
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.start_date }}
-      {{ form.start_date(required=False, class="govuk-input")}}
-    </dd>
-  </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      End date
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.end_date }}
-    </dd>
-  </div>
-</dl>
+</form>
 {% endif %}
 {% endblock content %}
