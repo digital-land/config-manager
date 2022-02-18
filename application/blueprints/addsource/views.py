@@ -1,4 +1,12 @@
-from flask import Blueprint, redirect, render_template, request, session, url_for
+from flask import (
+    Blueprint,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
 from application.blueprints.addsource.forms import (
     ArchiveForm,
@@ -70,6 +78,12 @@ def search():
 def source(source_hash):
     source = Source.query.get(source_hash)
     return render_template("source/source.html", source=source)
+
+
+@addsource.route("<source_hash>.json")
+def source_json(source_hash):
+    source = Source.query.get(source_hash)
+    return jsonify(source)
 
 
 @addsource.route("<source_hash>/edit")

@@ -97,11 +97,14 @@ class Source(DateModel):
             "documentation_url": self.documentation_url,
             "endpoint": self.endpoint.endpoint,
             "endpoint_url": self.endpoint.endpoint_url,
+            "organisation": self.organisation.organisation,
+            "organisation_name": self.organisation.name,
             "licence": self.licence,
             "collection": self.collection,
             "entry_date": self.entry_date,
             "start_date": self.start_date,
             "end_date": self.end_date,
+            "pipelines": self.pipelines,
         }
 
 
@@ -206,3 +209,9 @@ class Pipeline(DateModel):
         lazy="subquery",
         backref=db.backref("pipelines", lazy=True),
     )
+
+    def to_dict(self):
+        return {
+            "pipeline": self.pipeline,
+            "schema": self.schema,
+        }
