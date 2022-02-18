@@ -1,0 +1,6 @@
+.app-input__warning {
+  @include govuk-font($size: 19);
+  background: govuk-tint(govuk-colour("yellow"), 75);
+  padding: 3px govuk-spacing(2);
+  border-left: 4px solid govuk-colour('yellow');
+}

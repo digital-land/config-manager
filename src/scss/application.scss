@@ -7,8 +7,16 @@
 // app specific component scss
 @import "components/accessible-autocomplete";
 @import "components/actions-list";
+@import "components/forms";
 @import "components/header-bar";
 @import "components/hero";
 @import "components/tools-list";
 
 // custom scss
+.app-input__warning {
+  display: none;
+
+  .js-enabled & {
+    display: block;
+  }
+}

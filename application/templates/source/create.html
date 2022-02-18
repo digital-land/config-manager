@@ -11,7 +11,7 @@
   {{ form.hidden_tag() }}
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
-      <div class='govuk-form-group{% if form.endpoint.errors %} govuk-form-group--error{% endif %}'>
+      <div class='govuk-form-group{% if form.endpoint.errors %} govuk-form-group--error{% endif %}' data-module="endpoint-input">
         <label class='govuk-label' for='endpoint'>URL</label>
         {% if form.endpoint.errors %}
         <p class="govuk-error-message">
@@ -19,6 +19,9 @@
         </p>
         {% endif %}
         {{ form.endpoint(required=False, class="govuk-input")}}
+        <div class="app-input__warning">
+        We have this endpoint url already. <span class="app-input__warning__endpoint-count" data-singular="source references" data-plural="sources reference"></span>
+        </div>
       </div>
     </div>
   </div>
