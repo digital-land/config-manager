@@ -8,7 +8,7 @@ from flask import (
     url_for,
 )
 
-from application.blueprints.addsource.forms import (
+from application.blueprints.source.forms import (
     ArchiveForm,
     NewSourceForm,
     SearchForm,
@@ -17,7 +17,7 @@ from application.blueprints.addsource.forms import (
 from application.models import Dataset, Endpoint, Organisation, Source
 from application.utils import compute_hash
 
-addsource = Blueprint("addsource", __name__, url_prefix="/add-a-source")
+source_bp = Blueprint("source", __name__, url_prefix="/source")
 
 
 def organisation_choices():
@@ -25,8 +25,8 @@ def organisation_choices():
     return [("", "")] + [(o.organisation, o.name) for o in organisations]
 
 
-@addsource.route("/", methods=["GET", "POST"])
-def index():
+@source_bp.route("/add", methods=["GET", "POST"])
+def add():
     form = NewSourceForm()
     organisations = Organisation.query.order_by(Organisation.name).all()
     form.organisation.choices = [("", "")] + [
@@ -49,11 +49,11 @@ def index():
             "organisation": form.organisation.data,
             "dataset": form.dataset.data,
         }
-        return redirect(url_for("addsource.summary"))
+        return redirect(url_for("source.summary"))
     return render_template("source/create.html", form=form)
 
 
-@addsource.route("/summary")
+@source_bp.route("/summary")
 def summary():
 
     # TODO - the session may also contain a key for existing_endpoint
@@ -62,31 +62,33 @@ def summary():
     return render_template("source/summary.html")
 
 
-@addsource.route("source", methods=["GET", "POST"])
+@source_bp.route("source", methods=["GET", "POST"])
 def search():
     form = SearchForm()
     if form.validate_on_submit():
         source_hash = form.source.data
         source = Source.query.get(source_hash)
         if source:
-            return redirect(url_for("addsource.edit", source_hash=source.source))
+            return redirect(url_for("source.edit", source_hash=source.source))
         form.source.errors.append("We don't recognise that hash, try another")
     return render_template("source/search.html", form=form)
 
 
-@addsource.route("<source_hash>")
+@source_bp.route("<source_hash>")
 def source(source_hash):
     source = Source.query.get(source_hash)
     return render_template("source/source.html", source=source)
 
 
-@addsource.route("<source_hash>.json")
+@source_bp.route("<source_hash>.json")
 def source_json(source_hash):
     source = Source.query.get(source_hash)
-    return jsonify(source)
+    if source:
+        return jsonify(source), 200
+    return {}, 404
 
 
-@addsource.route("<source_hash>/edit")
+@source_bp.route("<source_hash>/edit")
 def edit(source_hash):
     source = Source.query.get(source_hash)
     form = SourceForm(obj=source)
@@ -96,7 +98,7 @@ def edit(source_hash):
     return render_template("source/edit.html", source=source, form=form)
 
 
-@addsource.route("<source_hash>/archive")
+@source_bp.route("<source_hash>/archive")
 def archive(source_hash):
     source = Source.query.get(source_hash)
     form = ArchiveForm()
@@ -108,6 +110,6 @@ def archive(source_hash):
     )
 
 
-@addsource.route("/create-mappings")
+@source_bp.route("/create-mappings")
 def mappings():
     return render_template("source/mappings.html")

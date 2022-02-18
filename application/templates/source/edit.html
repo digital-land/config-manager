@@ -19,7 +19,7 @@
       <!-- doesn't need to be a list when single item -->
       <ul class="app-actions-list">
         <li class="app-actions-list__item">
-          <a href="{{ url_for('addsource.archive', source_hash=source.source) }}" class="govuk-link app-link--destructive">Archive<span class="govuk-visually-hidden"> source</span></a>
+          <a href="{{ url_for('source.archive', source_hash=source.source) }}" class="govuk-link app-link--destructive">Archive<span class="govuk-visually-hidden"> source</span></a>
         </li>
       </ul>
     </div>
@@ -109,7 +109,7 @@
       Save changes
     </button>
 
-    <a class="govuk-link" href="{{ url_for('addsource.source', source_hash=source.source) }}">Cancel</a>
+    <a class="govuk-link" href="{{ url_for('source.source', source_hash=source.source) }}">Cancel</a>
   </div>
 </form>
 {% endif %}

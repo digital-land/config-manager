@@ -41,9 +41,9 @@ def register_blueprints(app):
 
     app.register_blueprint(base)
 
-    from application.blueprints.addsource.views import addsource
+    from application.blueprints.source.views import source_bp
 
-    app.register_blueprint(addsource)
+    app.register_blueprint(source_bp)
 
     from application.blueprints.endpoint.views import endpoint_bp
 
