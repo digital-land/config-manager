@@ -49,6 +49,10 @@ def register_blueprints(app):
 
     app.register_blueprint(endpoint_bp)
 
+    from application.blueprints.resource.views import resource_bp
+
+    app.register_blueprint(resource_bp)
+
 
 def register_context_processors(app):
     """
