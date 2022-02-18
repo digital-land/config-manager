@@ -1,6 +1,11 @@
 from flask import Blueprint, redirect, render_template, session, url_for
 
-from application.blueprints.addsource.forms import NewSourceForm, SearchForm, SourceForm
+from application.blueprints.addsource.forms import (
+    ArchiveForm,
+    NewSourceForm,
+    SearchForm,
+    SourceForm,
+)
 from application.models import Dataset, Endpoint, Organisation, Source
 from application.utils import compute_hash
 
@@ -75,6 +80,16 @@ def edit(source_hash):
     form.organisation.data = source.organisation.organisation
     form.endpoint.data = source.endpoint.endpoint_url
     return render_template("source/edit.html", source=source, form=form)
+
+
+@addsource.route("<source_hash>/archive")
+def archive(source_hash):
+    source = Source.query.get(source_hash)
+    form = ArchiveForm()
+    if form.validate_on_submit():
+        # do something with the answer
+        pass
+    return render_template("source/archive.html", source=source, form=form)
 
 
 @addsource.route("/create-mappings")

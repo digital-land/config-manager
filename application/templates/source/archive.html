@@ -1,0 +1,26 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<h1 class="govuk-heading-xl">Are you sure you want to archive this source?</h1>
+
+<form class="govuk-form">
+  <div class="govuk-form-group">
+    <div class="govuk-radios" data-module="govuk-radios">
+      {% for radio_option in form.confirm %}
+      <div class="govuk-radios__item">
+        <!--<input class="govuk-radios__input" id="where-do-you-live" name="where-do-you-live" type="radio" value="">-->
+        {{ radio_option(required=False, class="govuk-radios__input") }}
+        <label class="govuk-label govuk-radios__label" for="{{ radio_option.id }}">
+          {{ radio_option.label }}
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="govuk-button-group">
+    <button class="govuk-button" data-module="govuk-button">
+      Submit
+    </button>
+  </div>
+</form>
+{% endblock content %}

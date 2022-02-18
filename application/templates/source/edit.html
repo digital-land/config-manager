@@ -4,13 +4,28 @@
 <h1 class="govuk-heading-xl">Edit source</h1>
 {% if source %}
 
-{% if source.entry_date %}
-<p class="govuk-body">This source was created on {{ source.entry_date }}.</p>
-{% endif %}
+<div class="govuk-grid-row app-source__summary">
+  <div class="govuk-grid-column-two-thirds">
+    {% if source.entry_date %}
+    <p class="govuk-body">This source was created on {{ source.entry_date }}.</p>
+    {% endif %}
 
-{% if source.end_date %}
-<p class="govuk-body">This source has been archived. It was archived on {{ source.end_date }}</p>
-{% endif %}
+    {% if source.end_date %}
+    <p class="govuk-body">This source has been archived. It was archived on {{ source.end_date }}</p>
+    {% endif %}
+  </div>
+  <div class="govuk-grid-column-one-third">
+    <div class="app-source__actions app-actions-list--right">
+      <!-- doesn't need to be a list when single item -->
+      <ul class="app-actions-list">
+        <li class="app-actions-list__item">
+          <a href="{{ url_for('addsource.archive', source_hash=source.source) }}" class="govuk-link app-link--destructive">Archive<span class="govuk-visually-hidden"> source</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 
 <form method="POST" class="govuk-form">
   {{ form.hidden_tag() }}

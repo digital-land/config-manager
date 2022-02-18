@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import SelectField, StringField
+from wtforms import RadioField, SelectField, StringField
 from wtforms.validators import URL, DataRequired
 
 
@@ -31,3 +31,14 @@ class SourceForm(NewSourceForm):
     attribution = StringField("Attribution")
     licence = StringField("Licence")
     start_date = StringField("Start date")
+
+
+class ArchiveForm(FlaskForm):
+    confirm = RadioField(
+        "Are you sure you want to archive the source",
+        validators=[DataRequired("You must select one")],
+        choices=[
+            ("Yes", "I want to archive this source"),
+            ("No", "I don't want to archive this source"),
+        ],
+    )

@@ -9,7 +9,7 @@
       <a href="{{ url_for('addsource.edit', source_hash=source.source) }}" class="govuk-link">Edit<span class="govuk-visually-hidden"> source</span></a>
     </li>
     <li class="app-actions-list__item">
-      <a href="" class="govuk-link app-link--destructive">Archive<span class="govuk-visually-hidden"> source</span></a>
+      <a href="{{ url_for('addsource.archive', source_hash=source.source) }}" class="govuk-link app-link--destructive">Archive<span class="govuk-visually-hidden"> source</span></a>
     </li>
   </ul>
 </div>
