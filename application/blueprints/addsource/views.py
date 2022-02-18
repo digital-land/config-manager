@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, render_template, session, url_for
+from flask import Blueprint, redirect, render_template, request, session, url_for
 
 from application.blueprints.addsource.forms import (
     ArchiveForm,
@@ -89,7 +89,9 @@ def archive(source_hash):
     if form.validate_on_submit():
         # do something with the answer
         pass
-    return render_template("source/archive.html", source=source, form=form)
+    return render_template(
+        "source/archive.html", source=source, form=form, referrer=request.referrer
+    )
 
 
 @addsource.route("/create-mappings")
