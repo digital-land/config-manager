@@ -1,93 +1,45 @@
 {% extends 'layouts/base.html' %}
+{% from 'components/source-card.html' import fullSourceCard %}
 
 {% block content %}
 
 <h1 class="govuk-heading-xl">Check source details before submitting</h1>
 
-{% macro summaryField(params) %}
-<dd class="govuk-summary-list__value{{ ' app-summary-list__value--warning' if not params.data[params.prop] or params.data[params.prop] == '' }}">
-  {% if not params.data[params.prop] or params.data[params.prop] == "" %}
-    <span class="app-summary-list__value__annotation">You should add a {{ params.prop }}</span>
-  {% else %}
-  {{ params.data[params.prop] }}
-  {% endif %}
-</dd>
-{% endmacro %}
+{% if existing_source %}
+  <p class="govuk-body app-body__alert">This source already exists.</p>
 
-{% for source in sources %}
-<article class="app-card app-card--result">
-  <div class="app-card__header">
-    <div class="app-card__header__secondary">
-      <h3 class="govuk-heading-s app-card__header__title">Source</h3>
-      <div class="app-card__header__actions">
-        <a href="{{ url_for('source.add', _change='true') }}" class="govuk-link">Change</a>
-      </div>
-    </div>
+  {% set existingSourceChangeHTML %}
+  <div class="app-card__header__actions">
+    <a href="{{ url_for('source.edit', source_hash=existing_source.source) }}" class="govuk-link">Edit</a>
   </div>
+  {% endset %}
 
-  <div class="app-card__body">
+  {{ fullSourceCard({
+    'source': existing_source,
+    'controls': {
+      'html': existingSourceChangeHTML
+    }
+  }) }}
 
-    <div class="app-card__row">
-      <div class="app-card__properties">
-        <dl class="govuk-summary-list govuk-!-margin-bottom-0">
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">
-              Url
-            </dt>
-            <dd class="govuk-summary-list__value">
-              {{ source.endpoint_url }}
-            </dd>
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">
-              Dataset
-            </dt>
-            <dd class="govuk-summary-list__value">
-              {{ source.dataset }}
-            </dd>
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">
-              Organisation
-            </dt>
-            <dd class="govuk-summary-list__value">
-              {{ source.organisation }}
-            </dd>
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">
-              Licence
-            </dt>
-            {{ summaryField({
-              "data": source,
-              "prop": "licence"
-            }) }}
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">
-              Attribution
-            </dt>
-            {{ summaryField({
-              "data": source,
-              "prop": "attribution"
-            }) }}
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">
-              Start date
-            </dt>
-            <dd class="govuk-summary-list__value">
-              {{ source.start_date }}
-            </dd>
-          </div>
-        </dl>
-      </div>
-    </div>
+{% else %}
+
+  {% set newSourceChangeHTML %}
+  <div class="app-card__header__actions">
+    <a href="{{ url_for('source.add', _change='true') }}" class="govuk-link">Change</a>
   </div>
-</article>
-<!-- /.app-card -->
-{% endfor %}
+  {% endset %}
 
-<a href="{{ url_for('source.finish') }}" class="govuk-button">Save source{{ "s" if sources|length > 1 }}</a>
+  {% for source in sources %}
+  {{ fullSourceCard({
+    'source': source,
+    'controls': {
+      'html': newSourceChangeHTML
+    }
+  }) }}
+  {% endfor %}
+
+  <a href="{{ url_for('source.finish') }}" class="govuk-button">Save source{{ "s" if sources|length > 1 }}</a>
+
+{% endif %}
 
 {% endblock content %}

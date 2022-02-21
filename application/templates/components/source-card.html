@@ -1,0 +1,83 @@
+{% macro summaryField(params) %}
+<dd class="govuk-summary-list__value{{ ' app-summary-list__value--warning' if not params.data[params.prop] or params.data[params.prop] == '' }}">
+  {% if not params.data[params.prop] or params.data[params.prop] == "" %}
+    <span class="app-summary-list__value__annotation">You should add a {{ params.prop }}</span>
+  {% else %}
+  {{ params.data[params.prop] }}
+  {% endif %}
+</dd>
+{% endmacro %}
+
+{% macro fullSourceCard(params) %}
+<article class="app-card app-card--result">
+  <div class="app-card__header">
+    <div class="app-card__header__secondary">
+      <h3 class="govuk-heading-s app-card__header__title">Source</h3>
+      {% if params.controls %}
+      {{ params.controls.html|safe }}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="app-card__body">
+
+    <div class="app-card__row">
+      <div class="app-card__properties">
+        <dl class="govuk-summary-list govuk-!-margin-bottom-0">
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Url
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ params.source.endpoint_url }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Dataset
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ params.source.dataset }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Organisation
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ params.source.organisation }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Licence
+            </dt>
+            {{ summaryField({
+              "data": params.source,
+              "prop": "licence"
+            }) }}
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Attribution
+            </dt>
+            {{ summaryField({
+              "data": params.source,
+              "prop": "attribution"
+            }) }}
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Start date
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ params.source.start_date }}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </div>
+</article>
+<!-- /.app-card -->
+{% endmacro %}

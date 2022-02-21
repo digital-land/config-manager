@@ -84,11 +84,13 @@ def add():
 
 @source_bp.route("/add/summary")
 def summary():
-
+    # if the source already exists then let user choose to edit it
     # TODO - the session may also contain a key for existing_endpoint
-    if session.get("form_data") is not None:
-        return render_template("source/summary.html", sources=[session["form_data"]])
-    return render_template("source/summary.html")
+    return render_template(
+        "source/summary.html",
+        sources=[session.get("form_data")],
+        existing_source=session.get("existing_source"),
+    )
 
 
 @source_bp.route("/add/finish")
