@@ -35,3 +35,7 @@
     color: govuk-shade(govuk-colour("yellow"), 65);
   }
 }
+
+.js-hidden {
+  display: none !important;
+}

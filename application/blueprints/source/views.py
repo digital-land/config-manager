@@ -8,12 +8,7 @@ from flask import (
     url_for,
 )
 
-from application.blueprints.source.forms import (
-    ArchiveForm,
-    NewSourceForm,
-    SearchForm,
-    SourceForm,
-)
+from application.blueprints.source.forms import ArchiveForm, SearchForm, SourceForm
 from application.models import Dataset, Endpoint, Organisation, Source
 from application.utils import compute_hash
 
@@ -29,6 +24,9 @@ def set_form_values(form, data):
     form.endpoint.data = data["endpoint_url"]
     form.organisation.data = data["organisation"]
     form.dataset.data = data["dataset"]
+    form.licence.data = data["licence"]
+    form.attribution.data = data["attribution"]
+    form.start_date.data = data["start_date"]
 
 
 @source_bp.route("/", methods=["GET", "POST"])
@@ -45,7 +43,7 @@ def search():
 
 @source_bp.route("/add", methods=["GET", "POST"])
 def add():
-    form = NewSourceForm()
+    form = SourceForm()
     if request.args.get("_change") and session["form_data"]:
         set_form_values(form, session["form_data"])
 
@@ -69,6 +67,9 @@ def add():
             "endpoint_url": form.endpoint.data,
             "organisation": form.organisation.data,
             "dataset": form.dataset.data,
+            "licence": form.licence.data,
+            "attribution": form.attribution.data,
+            "start_date": form.start_date.data,
         }
         # check if source already exists
         existing_source = endpoint.get_matching_source(
