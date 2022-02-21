@@ -116,6 +116,15 @@ class Endpoint(DateModel):
     plugin = db.Column(db.Text)
     sources = db.relationship("Source", backref="endpoint", lazy=True)
 
+    def get_matching_source(self, organisation, dataset):
+        for source in self.sources:
+            if source.organisation.organisation == organisation:
+                for ds in source.datasets:
+                    if ds.dataset == dataset:
+                        return source
+        else:
+            return None
+
     def to_dict(self):
         return {
             "endpoint": self.endpoint,
