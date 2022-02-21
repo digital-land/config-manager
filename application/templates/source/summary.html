@@ -5,49 +5,77 @@
 <h1 class="govuk-heading-xl">Check source details before submitting</h1>
 
 {% for source in sources %}
-<dl class="govuk-summary-list">
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Url
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.endpoint_url }}
-    </dd>
-    <dd class="govuk-summary-list__actions">
-      <a class="govuk-link" href="#">
-        Change<span class="govuk-visually-hidden"> Url</span>
-      </a>
-    </dd>
+<article class="app-card app-card--result">
+  <div class="app-card__header">
+    <div class="app-card__header__secondary">
+      <h3 class="govuk-heading-s app-card__header__title">Source</h3>
+      <div class="app-card__header__actions">
+        <a href="#" class="govuk-link">Change</a>
+      </div>
+    </div>
   </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Dataset
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.dataset }}
-    </dd>
-    <dd class="govuk-summary-list__actions">
-      <a class="govuk-link" href="#">
-        Change<span class="govuk-visually-hidden"> dataset</span>
-      </a>
-    </dd>
+
+  <div class="app-card__body">
+
+    <div class="app-card__row">
+      <div class="app-card__properties">
+        <dl class="govuk-summary-list govuk-!-margin-bottom-0">
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Url
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ source.endpoint_url }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Dataset
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ source.dataset }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Organisation
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ source.organisation }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Licence
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ source.licence }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Attribution
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ source.attribution }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Start date
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ source.start_date }}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </div>
   </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Oganisation
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.organisation }}
-    </dd>
-    <dd class="govuk-summary-list__actions">
-      <a class="govuk-link" href="#">
-        Change<span class="govuk-visually-hidden"> organisation</span>
-      </a>
-    </dd>
-  </div>
-</dl>
+</article>
+<!-- /.app-card -->
 {% endfor %}
 
-<button class="govuk-button">Save source(s)</button>
+<a href="#" class="govuk-button">Save source{{ "s" if sources|length > 1 }}</a>
 
 {% endblock content %}
