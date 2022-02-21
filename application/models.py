@@ -104,7 +104,7 @@ class Source(DateModel):
             "entry_date": self.entry_date,
             "start_date": self.start_date,
             "end_date": self.end_date,
-            "pipelines": self.pipelines,
+            "datasets": self.datasets,
         }
 
 
@@ -135,6 +135,13 @@ class Collection(DateModel):
     name = db.Column(db.Text)
 
 
+source_dataset = db.Table(
+    "source_dataset",
+    db.Column("source", db.Text, db.ForeignKey("source.source"), primary_key=True),
+    db.Column("dataset", db.Text, db.ForeignKey("dataset.dataset"), primary_key=True),
+)
+
+
 class Dataset(DateModel):
 
     dataset = db.Column(db.Text, primary_key=True, nullable=False)
@@ -152,6 +159,13 @@ class Dataset(DateModel):
     wikipedia = db.Column(db.Text)
     collection = db.Column(db.Text, db.ForeignKey("collection.collection"))
     typology = db.Column(db.Text, db.ForeignKey("typology.typology"))
+
+    sources = db.relationship(
+        "Source",
+        secondary=source_dataset,
+        lazy="subquery",
+        backref=db.backref("datasets", lazy=True),
+    )
 
 
 class Typology(DateModel):
@@ -176,15 +190,6 @@ resource_endpoint = db.Table(
 )
 
 
-source_pipeline = db.Table(
-    "source_pipeline",
-    db.Column("source", db.Text, db.ForeignKey("source.source"), primary_key=True),
-    db.Column(
-        "pipeline", db.Text, db.ForeignKey("pipeline.pipeline"), primary_key=True
-    ),
-)
-
-
 class Resource(DateModel):
 
     resource = db.Column(db.Text, primary_key=True, nullable=False)
@@ -204,22 +209,4 @@ class Resource(DateModel):
             "endpoints": [e.to_dict() for e in self.endpoints],
             "mime-type": self.mime_type,
             "bytes": self.bytes,
-        }
-
-
-class Pipeline(DateModel):
-    pipeline = db.Column(db.Text, primary_key=True, nullable=False)
-    schema = db.Column(db.Text)
-
-    sources = db.relationship(
-        "Source",
-        secondary=source_pipeline,
-        lazy="subquery",
-        backref=db.backref("pipelines", lazy=True),
-    )
-
-    def to_dict(self):
-        return {
-            "pipeline": self.pipeline,
-            "schema": self.schema,
         }

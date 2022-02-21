@@ -9,12 +9,11 @@ from application.models import (
     Dataset,
     Endpoint,
     Organisation,
-    Pipeline,
     Resource,
     Source,
     Typology,
     resource_endpoint,
-    source_pipeline,
+    source_dataset,
 )
 
 management_cli = AppGroup("manage")
@@ -30,8 +29,7 @@ model_classes = {
     "dataset": Dataset,
     "resource": Resource,
     "resource_endpoint": resource_endpoint,
-    "pipeline": Pipeline,
-    "source_pipeline": source_pipeline,
+    "source_pipeline": source_dataset,
 }
 
 
@@ -44,7 +42,6 @@ ordered_tables = [
     "source",
     "resource",
     "resource_endpoint",
-    "pipeline",
     "source_pipeline",
 ]
 
@@ -132,12 +129,14 @@ def _load_data(columns, table, rows):
                 print(f"{i} already in db")
 
         elif table == "source_pipeline":
+            # note source and destination table have different names
+            i["dataset"] = i.pop("pipeline")
             ins = model_class.insert().values(**i)
             conn = db.engine.connect()
             s = select(model_class).where(
                 and_(
                     model_class.c.source == i["source"],
-                    model_class.c.pipeline == i["pipeline"],
+                    model_class.c.dataset == i["dataset"],
                 )
             )
             result = conn.execute(s).fetchone()
@@ -158,10 +157,13 @@ def _load_data(columns, table, rows):
                         organisation = Organisation.query.get(organisation_id)
                         i["organisation"] = organisation
 
-                obj = model_class(**i)
-                db.session.add(obj)
-                db.session.commit()
+                if db.session.query(model_class).get(i[table]) is None:
+                    obj = model_class(**i)
+                    db.session.add(obj)
+                    db.session.commit()
+                else:
+                    print(f"{table}: {i[table]} already loaded")
 
             except Exception as e:
-                print(f"error loading {obj}")
+                print(f"error loading {i}")
                 print(e)
