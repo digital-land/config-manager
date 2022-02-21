@@ -60,13 +60,18 @@ def add():
     return render_template("source/create.html", form=form)
 
 
-@source_bp.route("/summary")
+@source_bp.route("/add/summary")
 def summary():
 
     # TODO - the session may also contain a key for existing_endpoint
     if session.get("form_data") is not None:
         return render_template("source/summary.html", sources=[session["form_data"]])
     return render_template("source/summary.html")
+
+
+@source_bp.route("/add/finish")
+def finish():
+    return render_template("source/finish.html")
 
 
 @source_bp.route("source", methods=["GET", "POST"])

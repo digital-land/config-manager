@@ -1,0 +1,28 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <div class="govuk-panel govuk-panel--confirmation">
+      <h1 class="govuk-panel__title">
+        Source(s) saved
+      </h1>
+    </div>
+
+    <p class="govuk-body">We have saved the sources you added.</p>
+
+    <h2 class="govuk-heading-m">What happens next</h2>
+
+    <p class="govuk-body">
+      The next time the collectors run it will collect from the source you added.
+    </p>
+    <p class="govuk-body">
+      If a resource is collected you might need to map the column names and values.
+    </p>
+
+    <p class="govuk-body">
+      <a href="#" class="govuk-link">Map fields for a resource</a>
+    </p>
+  </div>
+</div>
+{% endblock content %}

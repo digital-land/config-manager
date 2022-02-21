@@ -76,6 +76,6 @@
 <!-- /.app-card -->
 {% endfor %}
 
-<a href="#" class="govuk-button">Save source{{ "s" if sources|length > 1 }}</a>
+<a href="{{ url_for('source.finish') }}" class="govuk-button">Save source{{ "s" if sources|length > 1 }}</a>
 
 {% endblock content %}
