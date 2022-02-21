@@ -31,6 +31,18 @@ def set_form_values(form, data):
     form.dataset.data = data["dataset"]
 
 
+@source_bp.route("/", methods=["GET", "POST"])
+def search():
+    form = SearchForm()
+    if form.validate_on_submit():
+        source_hash = form.source.data
+        source = Source.query.get(source_hash)
+        if source:
+            return redirect(url_for("source.edit", source_hash=source.source))
+        form.source.errors.append("We don't recognise that hash, try another")
+    return render_template("source/search.html", form=form)
+
+
 @source_bp.route("/add", methods=["GET", "POST"])
 def add():
     form = NewSourceForm()
@@ -81,18 +93,6 @@ def summary():
 @source_bp.route("/add/finish")
 def finish():
     return render_template("source/finish.html")
-
-
-@source_bp.route("source", methods=["GET", "POST"])
-def search():
-    form = SearchForm()
-    if form.validate_on_submit():
-        source_hash = form.source.data
-        source = Source.query.get(source_hash)
-        if source:
-            return redirect(url_for("source.edit", source_hash=source.source))
-        form.source.errors.append("We don't recognise that hash, try another")
-    return render_template("source/search.html", form=form)
 
 
 @source_bp.route("<source_hash>")
