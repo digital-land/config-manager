@@ -49,6 +49,13 @@ def add():
             "organisation": form.organisation.data,
             "dataset": form.dataset.data,
         }
+        # check if source already exists
+        source = Source.query.filter(
+            Source._endpoint == endpoint.endpoint,
+            Source._organisation == form.organisation.data,
+        ).all()
+        if source:
+            session["existing_source"] = source
         return redirect(url_for("source.summary"))
     return render_template("source/create.html", form=form)
 
