@@ -25,9 +25,18 @@ def organisation_choices():
     return [("", "")] + [(o.organisation, o.name) for o in organisations]
 
 
+def set_form_values(form, data):
+    form.endpoint.data = data["endpoint_url"]
+    form.organisation.data = data["organisation"]
+    form.dataset.data = data["dataset"]
+
+
 @source_bp.route("/add", methods=["GET", "POST"])
 def add():
     form = NewSourceForm()
+    if request.args.get("_change") and session["form_data"]:
+        set_form_values(form, session["form_data"])
+
     organisations = Organisation.query.order_by(Organisation.name).all()
     form.organisation.choices = [("", "")] + [
         (o.organisation, o.name) for o in organisations
