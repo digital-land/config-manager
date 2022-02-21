@@ -74,7 +74,8 @@ def add():
         existing_source = endpoint.get_matching_source(
             form.organisation.data, form.dataset.data
         )
-        session["existing_source"] = existing_source
+        if existing_source is not None:
+            session["existing_source"] = existing_source
 
         return redirect(url_for("source.summary"))
     return render_template("source/create.html", form=form)
