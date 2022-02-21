@@ -198,6 +198,14 @@ class Resource(DateModel):
         backref=db.backref("resources", lazy=True),
     )
 
+    def to_dict(self):
+        return {
+            "resource": self.resource,
+            "endpoints": [e.to_dict() for e in self.endpoints],
+            "mime-type": self.mime_type,
+            "bytes": self.bytes,
+        }
+
 
 class Pipeline(DateModel):
     pipeline = db.Column(db.Text, primary_key=True, nullable=False)
