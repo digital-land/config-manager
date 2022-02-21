@@ -154,7 +154,6 @@ class Dataset(DateModel):
     plural = db.Column(db.Text)
     prefix = db.Column(db.Text)
     text = db.Column(db.Text)
-    typology = db.Column(db.Text)
     wikidata = db.Column(db.Text)
     wikipedia = db.Column(db.Text)
     collection = db.Column(db.Text, db.ForeignKey("collection.collection"))
@@ -166,6 +165,24 @@ class Dataset(DateModel):
         lazy="subquery",
         backref=db.backref("datasets", lazy=True),
     )
+
+    def to_dict(self):
+        return {
+            "dataset": self.dataset,
+            "description": self.description,
+            "key_field": self.key_field,
+            "entity_minimum": self.entity_minimum,
+            "entity_maximum": self.entity_maximum,
+            "name": self.name,
+            "paint_options": self.paint_options,
+            "plural": self.plural,
+            "prefix": self.prefix,
+            "text": self.text,
+            "wikidata": self.wikidata,
+            "wikipedia": self.wikipedia,
+            "collection": self.collection,
+            "typology": self.typology,
+        }
 
 
 class Typology(DateModel):

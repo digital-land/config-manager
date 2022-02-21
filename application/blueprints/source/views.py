@@ -72,8 +72,8 @@ def add():
         }
         # check if source already exists
         source = Source.query.filter(
-            Source.endpoint == endpoint.endpoint,
-            Source.organisation == form.organisation.data,
+            Source._endpoint == endpoint.endpoint,
+            Source._organisation == form.organisation.data,
         ).all()
         if source:
             session["existing_source"] = source
