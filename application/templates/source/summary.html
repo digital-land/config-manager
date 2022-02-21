@@ -4,6 +4,16 @@
 
 <h1 class="govuk-heading-xl">Check source details before submitting</h1>
 
+{% macro summaryField(params) %}
+<dd class="govuk-summary-list__value{{ ' app-summary-list__value--warning' if not params.data[params.prop] or params.data[params.prop] == '' }}">
+  {% if not params.data[params.prop] or params.data[params.prop] == "" %}
+    <span class="app-summary-list__value__annotation">You should add a {{ params.prop }}</span>
+  {% else %}
+  {{ params.data[params.prop] }}
+  {% endif %}
+</dd>
+{% endmacro %}
+
 {% for source in sources %}
 <article class="app-card app-card--result">
   <div class="app-card__header">
@@ -48,17 +58,19 @@
             <dt class="govuk-summary-list__key">
               Licence
             </dt>
-            <dd class="govuk-summary-list__value">
-              {{ source.licence }}
-            </dd>
+            {{ summaryField({
+              "data": source,
+              "prop": "licence"
+            }) }}
           </div>
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">
               Attribution
             </dt>
-            <dd class="govuk-summary-list__value">
-              {{ source.attribution }}
-            </dd>
+            {{ summaryField({
+              "data": source,
+              "prop": "attribution"
+            }) }}
           </div>
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">

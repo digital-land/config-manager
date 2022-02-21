@@ -21,3 +21,17 @@
     display: block;
   }
 }
+
+.app-summary-list__value__annotation {
+  color: govuk-colour("dark-grey");
+}
+
+.app-summary-list__value--warning {
+  padding-left: 10px;
+  background: govuk-tint(govuk-colour("yellow"), 75);
+  border-left: 4px solid govuk-colour('yellow');
+
+  .app-summary-list__value__annotation {
+    color: govuk-shade(govuk-colour("yellow"), 65);
+  }
+}
