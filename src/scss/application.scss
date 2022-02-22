@@ -37,7 +37,7 @@
 }
 
 .app-body__alert {
-  padding-left: 10px;
+  padding: 10px;
   color: govuk-shade(govuk-colour("red"), 30);
   background: govuk-tint(govuk-colour("red"), 80);
   border-left: 4px solid govuk-colour('red');
