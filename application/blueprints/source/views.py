@@ -20,6 +20,15 @@ def organisation_choices():
     return [("", "")] + [(o.organisation, o.name) for o in organisations]
 
 
+def dataset_choices():
+    datasets = (
+        Dataset.query.filter(Dataset.typology != "specification")
+        .order_by(Dataset.name)
+        .all()
+    )
+    return [("", "")] + [(d.dataset, d.name) for d in datasets]
+
+
 def get_datasets(s, sep=","):
     ids = s.split(sep)
     return Dataset.query.filter(Dataset.dataset.in_(ids)).all()
@@ -126,12 +135,32 @@ def source_json(source_hash):
     return {}, 404
 
 
-@source_bp.route("<source_hash>/edit")
+@source_bp.route("<source_hash>/edit", methods=["GET", "POST"])
 def edit(source_hash):
     source = Source.query.get(source_hash)
     form = SourceForm(obj=source)
     form.organisation.choices = organisation_choices()
+    form.dataset.choices = dataset_choices()
+    if form.validate_on_submit():
+        # if endpoint, org or dataset have changed then has the source changed or is it a new one
+        # so ignore those for now
+        session["url_reachable"] = True
+        session["existing_source"] = source
+        session["form_data"] = {
+            "endpoint_url": form.endpoint.data,
+            "organisation": form.organisation.data,
+            "datasets": get_datasets(form.dataset.data),
+            "documentation_url": form.documentation_url.data,
+            "licence": form.licence.data,
+            "attribution": form.attribution.data,
+            "start_date": form.start_date.data,
+        }
+        return redirect(url_for("source.summary"))
+
+    # add default values
     form.organisation.data = source.organisation.organisation
+    # to do: handle multiple datasets
+    form.dataset.data = source.datasets[0].dataset
     form.endpoint.data = source.endpoint.endpoint_url
     return render_template("source/edit.html", source=source, form=form)
 

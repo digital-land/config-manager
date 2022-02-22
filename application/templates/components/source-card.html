@@ -11,7 +11,7 @@
 {% macro summaryEditedField(params) %}
 {% set original = params.value.original if params.value.original is not none else '' %}
 <dd class="govuk-summary-list__value{{ ' app-summary-list__value--warning' if not params.value.edited or params.value.edited == '' }}">
-  {% if params.value.edited and original != params.value.edited %}
+  {% if original != params.value.edited %}
   <div class="app-summary-list__value__item">
     <span class="app-summary-list__value__type">Current:</span> {{ params.value.original if params.value.original }}
   </div>

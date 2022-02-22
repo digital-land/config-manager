@@ -100,6 +100,7 @@ class Source(DateModel):
             "organisation": self.organisation.organisation,
             "organisation_name": self.organisation.name,
             "licence": self.licence,
+            "attribution": self.attribution,
             "collection": self.collection,
             "entry_date": self.entry_date,
             "start_date": self.start_date,
