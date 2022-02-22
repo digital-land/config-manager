@@ -19,8 +19,11 @@
     'controls': {
       'html': existingSourceChangeHTML
     },
-    "reachable_url": url_reachable
+    "reachable_url": url_reachable,
+    "edits": sources[0]
   }) }}
+
+  <a href="{{ url_for('source.finish') }}" class="govuk-button">Save changes</a>
 
 {% else %}
 

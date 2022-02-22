@@ -58,6 +58,11 @@
   }
 }
 
+.app-summary-list__value__type {
+  @include govuk-font($size: 16);
+  color: govuk-colour("dark-grey");
+}
+
 .app-body__alert {
   padding: 10px;
   color: govuk-shade(govuk-colour("red"), 30);

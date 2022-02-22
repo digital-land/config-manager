@@ -1,9 +1,28 @@
 {% macro summaryField(params) %}
-<dd class="govuk-summary-list__value{{ ' app-summary-list__value--warning' if not params.data[params.prop] or params.data[params.prop] == '' }}">
-  {% if not params.data[params.prop] or params.data[params.prop] == "" %}
+<dd class="govuk-summary-list__value{{ ' app-summary-list__value--warning' if not params.value or params.value == '' }}">
+  {% if not params.value or params.value == "" %}
     <span class="app-summary-list__value__annotation">You should add a {{ params.prop }}</span>
   {% else %}
-  {{ params.data[params.prop] }}
+  {{ params.value }}
+  {% endif %}
+</dd>
+{% endmacro %}
+
+{% macro summaryEditedField(params) %}
+{% set original = params.value.original if params.value.original is not none else '' %}
+<dd class="govuk-summary-list__value{{ ' app-summary-list__value--warning' if not params.value.edited or params.value.edited == '' }}">
+  {% if params.value.edited and original != params.value.edited %}
+  <div class="app-summary-list__value__item">
+    <span class="app-summary-list__value__type">Current:</span> {{ params.value.original if params.value.original }}
+  </div>
+  <div class="app-summary-list__value__item">
+    <span class="app-summary-list__value__type">Your edit:</span> {{ params.value.edited if params.value.edited }}
+  </div>
+  {% else %}
+  {{ original }}
+  {% endif %}
+  {% if not params.value.edited or params.value.edited == "" %}
+    <span class="app-summary-list__value__annotation">You should add a {{ params.prop }}</span>
   {% endif %}
 </dd>
 {% endmacro %}
@@ -57,26 +76,56 @@
             <dt class="govuk-summary-list__key">
               Licence
             </dt>
-            {{ summaryField({
-              "data": params.source,
-              "prop": "licence"
-            }) }}
+            {% if params.edits %}
+              {{- summaryEditedField({
+                "value": {
+                  "original": params.source['licence'],
+                  "edited": params.edits['licence']
+                },
+                "prop": "licence"
+              }) -}}
+            {% else %}
+              {{- summaryField({
+                "value": params.source['licence'],
+                "prop": "licence"
+              }) -}}
+            {% endif %}
           </div>
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">
               Attribution
             </dt>
-            {{ summaryField({
-              "data": params.source,
-              "prop": "attribution"
-            }) }}
+            {% if params.edits %}
+              {{- summaryEditedField({
+                "value": {
+                  "original": params.source['attribution'],
+                  "edited": params.edits['attribution']
+                },
+                "prop": "attribution"
+              }) -}}
+            {% else %}
+              {{- summaryField({
+                "value": params.source['attribution'],
+                "prop": "attribution"
+              }) -}}
+            {% endif %}
           </div>
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">
               Start date
             </dt>
             <dd class="govuk-summary-list__value">
+            {% set original = params.source.start_date if params.source.start_date is not none else '' %}
+            {% if params.edits and original != params.edits.start_date %}
+              <div class="app-summary-list__value__item">
+                <span class="app-summary-list__value__type">Current:</span> {{ original }}
+              </div>
+              <div class="app-summary-list__value__item">
+                <span class="app-summary-list__value__type">Your edit:</span> {{ params.edits.start_date if params.edits.start_date }}
+              </div>
+            {% else %}
               {{ params.source.start_date if params.source.start_date }}
+            {% endif %}
             </dd>
           </div>
         </dl>

@@ -108,6 +108,7 @@ def summary():
 
 @source_bp.route("/add/finish")
 def finish():
+    # To do: save the new source or update existing source
     return render_template("source/finish.html")
 
 
