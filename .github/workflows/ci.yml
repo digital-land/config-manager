@@ -34,19 +34,23 @@ jobs:
     - name: Init
       run: |
         make init
+
     - name: Lint
       run: |
         make lint
+
     - name: Setup database
       run: |
         psql -h localhost -c "CREATE DATABASE data_manager WITH TEMPLATE postgres" -U postgres
       env:
         PGPASSWORD: postgres
+
     - name: Migration database
       run: |
         make upgrade-db
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost/data_manager
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost/data_manager
+
     - name: Test
       run: |
         make test
