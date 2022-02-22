@@ -10,7 +10,7 @@ from flask import (
 
 from application.blueprints.source.forms import ArchiveForm, SearchForm, SourceForm
 from application.models import Dataset, Endpoint, Organisation, Source
-from application.utils import compute_hash
+from application.utils import check_url_reachable, compute_hash
 
 source_bp = Blueprint("source", __name__, url_prefix="/source")
 
@@ -59,10 +59,18 @@ def add():
     form.dataset.choices = [("", "")] + [(d.dataset, d.name) for d in datasets]
 
     if form.validate_on_submit():
+        session["url_reachable"] = check_url_reachable(form.endpoint.data)
         endpoint_hash = compute_hash(form.endpoint.data)
         endpoint = Endpoint.query.get(endpoint_hash)
-        if endpoint:
+        if endpoint is not None:
             session["existing_endpoint"] = endpoint
+
+            existing_source = endpoint.get_matching_source(
+                form.organisation.data, form.dataset.data
+            )
+            if existing_source is not None:
+                session["existing_source"] = existing_source
+
         session["form_data"] = {
             "endpoint_url": form.endpoint.data,
             "organisation": form.organisation.data,
@@ -71,12 +79,6 @@ def add():
             "attribution": form.attribution.data,
             "start_date": form.start_date.data,
         }
-        # check if source already exists
-        existing_source = endpoint.get_matching_source(
-            form.organisation.data, form.dataset.data
-        )
-        if existing_source is not None:
-            session["existing_source"] = existing_source
 
         return redirect(url_for("source.summary"))
     return render_template("source/create.html", form=form)
@@ -86,6 +88,7 @@ def add():
 def summary():
     # if the source already exists then let user choose to edit it
     # TODO - the session may also contain a key for existing_endpoint
+    # at some point pop the relevant keys from session
     return render_template(
         "source/summary.html",
         sources=[session.get("form_data")],

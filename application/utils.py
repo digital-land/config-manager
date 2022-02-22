@@ -1,6 +1,8 @@
 import hashlib
 
+import requests
 from flask.json import JSONEncoder
+from requests import HTTPError
 from sqlalchemy.orm import DeclarativeMeta
 
 
@@ -13,3 +15,13 @@ class CustomJSONEncoder(JSONEncoder):
         if isinstance(obj.__class__, DeclarativeMeta):
             return obj.to_dict()
         return super(CustomJSONEncoder, self).default(obj)
+
+
+def check_url_reachable(url):
+    try:
+        resp = requests.head(url)
+        resp.raise_for_status()
+        return True
+    except HTTPError as e:
+        print(e)
+        return False

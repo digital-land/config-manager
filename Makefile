@@ -14,6 +14,9 @@ black-check:
 flake8:
 	flake8 .
 
+isort:
+	isort --profile black .
+
 lint: black-check flake8
 
 run::
