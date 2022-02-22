@@ -28,8 +28,11 @@
             <dt class="govuk-summary-list__key">
               Url
             </dt>
-            <dd class="govuk-summary-list__value">
+            <dd class="govuk-summary-list__value {{ 'app-summary-list__value--success' if params.reachable_url else 'app-summary-list__value--error' }}">
               {{ params.source.endpoint_url }}
+              <span class="app-summary-list__value__annotation">
+              {{ 'Url can be reached' if params.reachable_url else "Can't reach this url" }}
+              </span>
             </dd>
           </div>
           <div class="govuk-summary-list__row">

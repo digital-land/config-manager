@@ -18,7 +18,8 @@
     'source': existing_source,
     'controls': {
       'html': existingSourceChangeHTML
-    }
+    },
+    "reachable_url": url_reachable
   }) }}
 
 {% else %}
@@ -34,7 +35,8 @@
     'source': source,
     'controls': {
       'html': newSourceChangeHTML
-    }
+    },
+    "reachable_url": url_reachable
   }) }}
   {% endfor %}
 

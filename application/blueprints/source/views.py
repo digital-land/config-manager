@@ -59,6 +59,9 @@ def add():
     form.dataset.choices = [("", "")] + [(d.dataset, d.name) for d in datasets]
 
     if form.validate_on_submit():
+        session["existing_endpoint"] = None
+        session["existing_source"] = None
+
         session["url_reachable"] = check_url_reachable(form.endpoint.data)
         endpoint_hash = compute_hash(form.endpoint.data)
         endpoint = Endpoint.query.get(endpoint_hash)
@@ -93,6 +96,7 @@ def summary():
         "source/summary.html",
         sources=[session.get("form_data")],
         existing_source=session.get("existing_source"),
+        url_reachable=session["url_reachable"],
     )
 
 

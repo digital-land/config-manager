@@ -23,6 +23,8 @@
 }
 
 .app-summary-list__value__annotation {
+  display: block;
+  @include govuk-font($size: 16, $line-height: govuk-em(25, 16));
   color: govuk-colour("dark-grey");
 }
 
@@ -33,6 +35,26 @@
 
   .app-summary-list__value__annotation {
     color: govuk-shade(govuk-colour("yellow"), 65);
+  }
+}
+
+.app-summary-list__value--success {
+  padding-left: 10px;
+  background: govuk-tint(govuk-colour("green"), 80);
+  border-left: 4px solid govuk-shade(govuk-colour("green"), 20);
+
+  .app-summary-list__value__annotation {
+    color: govuk-shade(govuk-colour("green"), 20);
+  }
+}
+
+.app-summary-list__value--error {
+  padding-left: 10px;
+  background: govuk-tint(govuk-colour("red"), 80);
+  border-left: 4px solid govuk-colour('red');
+
+  .app-summary-list__value__annotation {
+    color: govuk-shade(govuk-colour("red"), 30);
   }
 }
 
