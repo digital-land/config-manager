@@ -42,11 +42,14 @@ jobs:
         psql -h localhost -c "CREATE DATABASE data_manager WITH TEMPLATE postgres" -U postgres
       env:
         PGPASSWORD: postgres
-
+    - name: DB
+      run: |
+        make upgrade-db
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost/data_manager
     - name: Test
       run: |
         make test
         make test-functional
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost/data_manager
-      
