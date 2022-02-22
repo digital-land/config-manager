@@ -20,10 +20,16 @@ def organisation_choices():
     return [("", "")] + [(o.organisation, o.name) for o in organisations]
 
 
+def get_datasets(s, sep=","):
+    ids = s.split(sep)
+    return Dataset.query.filter(Dataset.dataset.in_(ids)).all()
+
+
 def set_form_values(form, data):
     form.endpoint.data = data["endpoint_url"]
     form.organisation.data = data["organisation"]
-    form.dataset.data = data["dataset"]
+    # need to change this to work with multiple
+    form.dataset.data = data["datasets"][0]["dataset"]
     form.licence.data = data["licence"]
     form.attribution.data = data["attribution"]
     form.start_date.data = data["start_date"]
@@ -77,7 +83,7 @@ def add():
         session["form_data"] = {
             "endpoint_url": form.endpoint.data,
             "organisation": form.organisation.data,
-            "dataset": form.dataset.data,
+            "datasets": get_datasets(form.dataset.data),
             "licence": form.licence.data,
             "attribution": form.attribution.data,
             "start_date": form.start_date.data,
