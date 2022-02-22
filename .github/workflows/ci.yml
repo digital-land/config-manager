@@ -45,7 +45,7 @@ jobs:
       env:
         PGPASSWORD: postgres
 
-    - name: Migration database
+    - name: Migrate database
       run: |
         make upgrade-db
       env:
