@@ -33,3 +33,10 @@ load-data:
 
 drop-data:
 	flask manage drop-data
+
+test-functional:
+	python -m playwright install chromium
+	python -m pytest -p no:warnings tests/functional
+
+test:
+	python -m pytest --ignore=tests/functional
