@@ -37,7 +37,9 @@
               Dataset
             </dt>
             <dd class="govuk-summary-list__value">
-              {{ params.source.dataset }}
+              {% for dataset in params.source.datasets %}
+                {{ dataset.dataset}}{{ ', ' if not loop.last else '' }}
+              {% endfor %}
             </dd>
           </div>
           <div class="govuk-summary-list__row">
@@ -71,7 +73,7 @@
               Start date
             </dt>
             <dd class="govuk-summary-list__value">
-              {{ params.source.start_date }}
+              {{ params.source.start_date if params.source.start_date }}
             </dd>
           </div>
         </dl>
