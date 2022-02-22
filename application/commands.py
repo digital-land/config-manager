@@ -1,5 +1,6 @@
 import json
 
+import click
 import requests
 from flask.cli import AppGroup
 from sqlalchemy import and_, select
@@ -45,11 +46,15 @@ ordered_tables = [
     "source_pipeline",
 ]
 
+test_ordered_tables = ["organisation", "typology", "collection", "dataset"]
+
 
 @management_cli.command("load-data")
-def load_data():
+@click.option("--test", default=False, help="Use test ordered tables or ordered tables")
+def load_data(test):
 
-    for table in ordered_tables:
+    tables = ordered_tables if not test else test_ordered_tables
+    for table in tables:
         url = f"{digital_land_datasette}/{table}.json"
         print(f"loading from {url}")
 

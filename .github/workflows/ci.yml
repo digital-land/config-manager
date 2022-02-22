@@ -53,6 +53,7 @@ jobs:
 
     - name: Test
       run: |
+        make load-test-data
         make test
         make test-functional
       env:

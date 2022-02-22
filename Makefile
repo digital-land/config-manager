@@ -31,6 +31,9 @@ upgrade-db:
 load-data:
 	flask manage load-data
 
+load-test-data:
+	flask manage load-data --test=true
+
 drop-data:
 	flask manage drop-data
 
