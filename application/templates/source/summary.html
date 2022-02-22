@@ -23,7 +23,11 @@
     "edits": sources[0]
   }) }}
 
-  <a href="{{ url_for('source.finish') }}" class="govuk-button">Save changes</a>
+  <div class="govuk-button-group">
+    <a href="{{ url_for('source.finish') }}" class="govuk-button">Save changes</a>
+    <a class="govuk-link" href="{{ url_for('source.add') }}">Cancel</a>
+  </div>
+
 
 {% else %}
 
