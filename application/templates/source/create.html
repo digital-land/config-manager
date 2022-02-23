@@ -51,6 +51,18 @@
         {% endif %}
         {{ form.organisation(required=False, class="govuk-select govuk-!-width-two-thirds")}}
       </div>
+      <div class='govuk-form-group{% if form.documentation_url.errors %} govuk-form-group--error{% endif %}'>
+        <label class='govuk-label' for='documentation-url'>Documentation url</label>
+        <div id="documentation-url-hint" class="govuk-hint">
+          A link to a page explaining the data source
+        </div>
+        {% if form.documentation_url.errors %}
+        <p class='govuk-error-message'>
+          {% for error in form.documentation_url.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
+        </p>
+        {% endif %}
+        {{ form.documentation_url(required=False, class="govuk-input")}}
+      </div>
       <div class='govuk-form-group{% if form.licence.errors %} govuk-form-group--error{% endif %}'>
         <label class='govuk-label' for='licence'>Licence</label>
         <p id="organisation-hint" class="govuk-hint">

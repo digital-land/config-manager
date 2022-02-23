@@ -44,6 +44,18 @@ def set_form_values(form, data):
     form.start_date.data = data["start_date"]
 
 
+def create_source_obj(form):
+    return {
+        "endpoint_url": form.endpoint.data,
+        "organisation": form.organisation.data,
+        "datasets": get_datasets(form.dataset.data),
+        "documentation_url": form.documentation_url.data,
+        "licence": form.licence.data,
+        "attribution": form.attribution.data,
+        "start_date": form.start_date.data,
+    }
+
+
 @source_bp.route("/", methods=["GET", "POST"])
 def search():
     form = SearchForm()
@@ -89,14 +101,7 @@ def add():
             if existing_source is not None:
                 session["existing_source"] = existing_source
 
-        session["form_data"] = {
-            "endpoint_url": form.endpoint.data,
-            "organisation": form.organisation.data,
-            "datasets": get_datasets(form.dataset.data),
-            "licence": form.licence.data,
-            "attribution": form.attribution.data,
-            "start_date": form.start_date.data,
-        }
+        session["form_data"] = create_source_obj(form)
 
         return redirect(url_for("source.summary"))
     return render_template("source/create.html", form=form)
@@ -146,15 +151,7 @@ def edit(source_hash):
         # so ignore those for now
         session["url_reachable"] = True
         session["existing_source"] = source
-        session["form_data"] = {
-            "endpoint_url": form.endpoint.data,
-            "organisation": form.organisation.data,
-            "datasets": get_datasets(form.dataset.data),
-            "documentation_url": form.documentation_url.data,
-            "licence": form.licence.data,
-            "attribution": form.attribution.data,
-            "start_date": form.start_date.data,
-        }
+        session["form_data"] = create_source_obj(form)
         return redirect(url_for("source.summary"))
 
     # add default values

@@ -74,6 +74,24 @@
           </div>
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">
+             Documentation url
+            </dt>
+            <dd class="govuk-summary-list__value">
+            {% set original = params.source.documentation_url if params.source.documentation_url is not none else '' %}
+            {% if params.edits and original != params.edits.documentation_url %}
+              <div class="app-summary-list__value__item">
+                <span class="app-summary-list__value__type">Current:</span> {{ original }}
+              </div>
+              <div class="app-summary-list__value__item">
+                <span class="app-summary-list__value__type">Your edit:</span> {{ params.edits.documentation_url if params.edits.documentation_url }}
+              </div>
+            {% else %}
+              {{ params.source.documentation_url if params.source.documentation_url }}
+            {% endif %}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
               Licence
             </dt>
             {% if params.edits %}
