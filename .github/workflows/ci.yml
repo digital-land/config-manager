@@ -55,6 +55,5 @@ jobs:
       run: |
         make load-test-data
         make test
-        make test-functional
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost/data_manager
