@@ -3,6 +3,56 @@
 {% block content %}
 <h1 class="govuk-heading-xl">Resource record</h1>
 
-{{resource}}
+<dl class="govuk-summary-list">
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Resource
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ resource.resource }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Collected on
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ resource.start_date }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Bytes
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ resource.bytes }}
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Mime type
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ resource['mime-type'] }}
+    </dd>
+  </div>
+</dl>
+
+<p class="govuk-body">This resource was collected from</p>
+
+<ul class="govuk-list">
+  {% for endpoint in resource.endpoints %}
+    {% for source in endpoint.sources  %}
+    <li class="govuk-!-margin-bottom-3">
+      <h5 class="govuk-heading-xs govuk-!-margin-0">Source: {{ source.source }}</h5>
+      {{ source.endpoint.endpoint_url }}<br />
+      {{ source.organisation.name }}<br />
+      {% for dataset in source.datasets %}
+      {{ dataset.dataset }}{{ ', ' if not loop.last else '' }}
+      {% endfor %}
+    </li>
+    {% endfor %}
+  {% endfor %}
+</ul>
 
 {% endblock content %}
