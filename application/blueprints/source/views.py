@@ -159,7 +159,13 @@ def edit(source_hash):
     # to do: handle multiple datasets
     form.dataset.data = source.datasets[0].dataset
     form.endpoint.data = source.endpoint.endpoint_url
-    return render_template("source/edit.html", source=source, form=form)
+
+    cancel_href = url_for("source.source", source_hash=source.source)
+    if url_for("source.summary") in request.referrer:
+        cancel_href = request.referrer
+    return render_template(
+        "source/edit.html", source=source, form=form, cancel_href=cancel_href
+    )
 
 
 @source_bp.route("<source_hash>/archive")

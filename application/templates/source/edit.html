@@ -44,7 +44,7 @@
         Endpoint
       </dt>
       <dd class="govuk-summary-list__value">
-        {{ form.endpoint(required=False, class="govuk-input")}}
+        {{ source.endpoint.endpoint_url }}
       </dd>
     </div>
 
@@ -53,7 +53,19 @@
         Organisation
       </dt>
       <dd class="govuk-summary-list__value">
-        {{ form.organisation(required=False, class="govuk-select")}}
+        {{ source.organisation.name }}
+        <span class="govuk-!-margin-left-1 dl-data-reference">({{ source.organisation.organisation }})</span>
+      </dd>
+    </div>
+
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Datasets
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {% for dataset in source.datasets %}
+        {{ dataset.dataset }}{{ ', ' if not loop.last else '' }}
+        {% endfor %}
       </dd>
     </div>
 
@@ -63,15 +75,6 @@
       </dt>
       <dd class="govuk-summary-list__value">
         {{ form.documentation_url(required=False, class="govuk-input")}}
-      </dd>
-    </div>
-
-    <div class="govuk-summary-list__row">
-      <dt class="govuk-summary-list__key">
-        Datasets
-      </dt>
-      <dd class="govuk-summary-list__value">
-        {{ form.dataset(required=False, class="govuk-select")}}
       </dd>
     </div>
 
@@ -109,7 +112,7 @@
       Save changes
     </button>
 
-    <a class="govuk-link" href="{{ url_for('source.source', source_hash=source.source) }}">Cancel</a>
+    <a class="govuk-link" href="{{ cancel_href }}">Cancel</a>
   </div>
 </form>
 {% endif %}

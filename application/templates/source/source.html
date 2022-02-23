@@ -25,10 +25,11 @@
   </div>
   <div class="govuk-summary-list__row">
     <dt class="govuk-summary-list__key">
-      Documentation url
+      Endpoint
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.documentation_url }}
+      {{ source.endpoint.endpoint_url }}
+      <span class="govuk-!-margin-left-1 dl-data-reference" title="{{ source.endpoint.endpoint }}">({{ source.endpoint.endpoint|truncate(13) }})</span>
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -42,11 +43,10 @@
   </div>
   <div class="govuk-summary-list__row">
     <dt class="govuk-summary-list__key">
-      Endpoint
+      Documentation url
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.endpoint.endpoint_url }}
-      <span class="govuk-!-margin-left-1 dl-data-reference" title="{{ source.endpoint.endpoint }}">({{ source.endpoint.endpoint|truncate(13) }})</span>
+      {{ source.documentation_url }}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -59,11 +59,11 @@
   </div>
   <div class="govuk-summary-list__row">
     <dt class="govuk-summary-list__key">
-      Pipeline
+      Datasets
     </dt>
     <dd class="govuk-summary-list__value">
-      {% for pipeline in source.pipelines %}
-      {{ pipeline.schema }}{{ ', ' if not loop.last else '' }}
+      {% for dataset in source.datasets %}
+      {{ dataset.dataset }}{{ ', ' if not loop.last else '' }}
       {% endfor %}
     </dd>
   </div>
@@ -72,7 +72,7 @@
       Attribution
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.attribution }}
+      {{ source.attribution if source.attribution }}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -80,7 +80,7 @@
       Licence
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.licence }}
+      {{ source.licence if source.licence }}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -88,7 +88,7 @@
       Entry date
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.entry_date }}
+      {{ source.entry_date if source.entry_date }}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -96,7 +96,7 @@
       Start date
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.start_date }}
+      {{ source.start_date if source.start_date }}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -104,7 +104,7 @@
       End date
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.end_date }}
+      {{ source.end_date if source.end_date }}
     </dd>
   </div>
 </dl>
