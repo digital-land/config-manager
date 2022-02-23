@@ -3,26 +3,41 @@
 {% block content %}
 <h1 class="govuk-heading-xl">Are you sure you want to archive this source?</h1>
 
-<form class="govuk-form">
-  <div class="govuk-form-group">
-    <div class="govuk-radios" data-module="govuk-radios">
-      {% for radio_option in form.confirm %}
-      <div class="govuk-radios__item">
-        <!--<input class="govuk-radios__input" id="where-do-you-live" name="where-do-you-live" type="radio" value="">-->
-        {{ radio_option(required=False, class="govuk-radios__input") }}
-        <label class="govuk-label govuk-radios__label" for="{{ radio_option.id }}">
-          {{ radio_option.label }}
-        </label>
+<div class="govuk-grid-row">
+  <form class="govuk-form govuk-grid-column-two-thirds">
+    <div class="govuk-form-group">
+      <div class="govuk-radios" data-module="govuk-radios">
+        {% for radio_option in form.confirm %}
+        <div class="govuk-radios__item">
+          {% if radio_option.data == "Yes" %}
+          {{ radio_option(required=False, class="govuk-radios__input", data_aria_controls="conditional-notes") }}
+          {% else %}
+          {{ radio_option(required=False, class="govuk-radios__input") }}
+          {% endif %}
+          <label class="govuk-label govuk-radios__label" for="{{ radio_option.id }}">
+            {{ radio_option.label }}
+          </label>
+        </div>
+        {% if radio_option.data == "Yes" %}
+        <div class="govuk-radios__conditional govuk-radios__conditional--hidden" id="conditional-notes">
+          <div class="govuk-form-group">
+            <label class="govuk-label" for="notes">
+              {{ form.notes.label }}
+            </label>
+            {{ form.notes(required=False, class="govuk-textarea") }}
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
-  </div>
-  <div class="govuk-button-group">
-    <button class="govuk-button" data-module="govuk-button">
-      Submit
-    </button>
+    <div class="govuk-button-group">
+      <button class="govuk-button" data-module="govuk-button">
+        Submit
+      </button>
 
-    <a class="govuk-link" href="{{ referrer }}">Cancel</a>
-  </div>
-</form>
+      <a class="govuk-link" href="{{ referrer }}">Cancel</a>
+    </div>
+  </form>
+</div>
 {% endblock content %}

@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import RadioField, SelectField, StringField
+from wtforms import RadioField, SelectField, StringField, TextAreaField
 from wtforms.validators import URL, DataRequired
 
 
@@ -42,3 +42,4 @@ class ArchiveForm(FlaskForm):
             ("No", "I don't want to archive this source"),
         ],
     )
+    notes = TextAreaField("Why are you archiving this source?")
