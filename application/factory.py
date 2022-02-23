@@ -66,10 +66,15 @@ def register_context_processors(app):
 
 
 def register_filters(app):
-    from digital_land_frontend.filters import commanum_filter, hex_to_rgb_string_filter
+    from digital_land_frontend.filters import (
+        commanum_filter,
+        hex_to_rgb_string_filter,
+        make_link_filter,
+    )
 
     app.add_template_filter(commanum_filter, name="commanum")
     app.add_template_filter(hex_to_rgb_string_filter, name="hex_to_rgb")
+    app.add_template_filter(make_link_filter, name="makelink")
 
 
 def register_extensions(app):

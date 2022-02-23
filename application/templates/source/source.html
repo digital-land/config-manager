@@ -33,7 +33,7 @@
       Endpoint
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.endpoint.endpoint_url }}
+      {{ source.endpoint.endpoint_url|makelink }}
       <span class="govuk-!-margin-left-1 dl-data-reference" title="{{ source.endpoint.endpoint }}">({{ source.endpoint.endpoint|truncate(13) }})</span>
     </dd>
   </div>
@@ -51,7 +51,7 @@
       Documentation url
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.documentation_url }}
+      {{ source.documentation_url|makelink }}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
