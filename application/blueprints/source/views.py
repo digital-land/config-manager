@@ -9,8 +9,9 @@ from flask import (
 )
 
 from application.blueprints.source.forms import ArchiveForm, SearchForm, SourceForm
+from application.extensions import db
 from application.models import Dataset, Endpoint, Organisation, Source
-from application.utils import check_url_reachable, compute_hash
+from application.utils import check_url_reachable, compute_hash, compute_md5_hash
 
 source_bp = Blueprint("source", __name__, url_prefix="/source")
 
@@ -102,6 +103,14 @@ def add():
                 session["existing_source"] = existing_source
 
         session["form_data"] = create_source_obj(form)
+        session["form_data"] = {
+            "endpoint_url": form.endpoint.data,
+            "organisation": form.organisation.data,
+            "datasets": [form.dataset.data],
+            "licence": form.licence.data,
+            "attribution": form.attribution.data,
+            "start_date": form.start_date.data,
+        }
 
         return redirect(url_for("source.summary"))
     return render_template("source/create.html", form=form)
@@ -123,6 +132,32 @@ def summary():
 @source_bp.route("/add/finish")
 def finish():
     # To do: save the new source or update existing source
+    existing_source = session.pop("existing_source", None)
+    existing_endpoint = session.pop("existing_endpoint", None)
+    form_data = session.pop("form_data", None)
+    if not form_data:
+        return redirect(url_for("source.add"))
+    if existing_source is None and existing_endpoint is None:
+        endpoint_url = form_data.pop("endpoint_url")
+        hashed_url = compute_hash(endpoint_url)
+        endpoint = Endpoint(endpoint=hashed_url, endpoint_url=endpoint_url)
+        dataset_id = form_data.pop("datasets")[0]
+        dataset = Dataset.query.get(dataset_id)
+        collection = dataset_id
+        organisation_id = form_data["organisation"]
+        organisation = Organisation.query.get(organisation_id)
+        source_key = f"{collection}|{organisation.organisation}|{endpoint.endpoint}"
+        source_key = compute_md5_hash(source_key)
+        source = Source(
+            source=source_key,
+            collection=collection,
+            organisation=organisation,
+            datasets=[dataset],
+        )
+        endpoint.sources.append(source)
+        db.session.add(endpoint)
+        db.session.commit()
+
     return render_template("source/finish.html")
 
 
