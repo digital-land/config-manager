@@ -63,7 +63,7 @@ def search():
         source_hash = form.source.data
         source = Source.query.get(source_hash)
         if source:
-            return redirect(url_for("source.edit", source_hash=source.source))
+            return redirect(url_for("source.source", source_hash=source.source))
         form.source.errors.append("We don't recognise that hash, try another")
     return render_template("source/search.html", form=form)
 

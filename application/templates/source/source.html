@@ -1,5 +1,10 @@
 {% extends 'layouts/base.html' %}
 
+{% block beforeContent %}
+{{ super() }}
+<a href="{{ url_for('source.search') }}" class="govuk-back-link">Source search</a>
+{% endblock beforeContent %}
+
 {% block content %}
 <h1 class="govuk-heading-xl">Source record</h1>
 {% if source %}
