@@ -10,6 +10,10 @@ def compute_hash(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def compute_md5_hash(value):
+    return hashlib.md5(value.encode("utf-8")).hexdigest()
+
+
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj.__class__, DeclarativeMeta):

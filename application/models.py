@@ -138,6 +138,17 @@ class Endpoint(DateModel):
             "end_date": self.end_date,
         }
 
+    def factory(data):
+        endpoint = Endpoint()
+        source = Source()
+        for key, val in data.items():
+            if hasattr(endpoint, key) and val:
+                setattr(endpoint, key, val)
+            if hasattr(source, key):
+                setattr(source, key, val)
+        endpoint.sources.append(source)
+        print(endpoint)
+
 
 class Collection(DateModel):
 
