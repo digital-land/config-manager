@@ -31,8 +31,10 @@ def test_add_source(server_process, page):
         'input[name="endpoint"]',
         "http://www.nnjpu.org.uk/publications/docdetail.asp?docid=1593",
     )
-    page.select_option('select[name="dataset"]', "brownfield-land")
-    page.select_option('select[name="organisation"]', "local-authority-eng:KET")
+    page.select_option('select[name="dataset"]', "brownfield-land", force=True)
+    page.select_option(
+        'select[name="organisation"]', "local-authority-eng:KET", force=True
+    )
     page.click("text=Save and continue")
     assert page.url == f"{BASE_URL}/source/add/summary"
 
