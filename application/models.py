@@ -7,33 +7,9 @@ class DateModel(db.Model):
 
     __abstract__ = True
 
-    _entry_date = db.Column(db.Date)
-    _start_date = db.Column(db.Date)
-    _end_date = db.Column(db.Date)
-
-    @property
-    def entry_date(self):
-        return self._entry_date.isoformat() if self._entry_date else None
-
-    @entry_date.setter
-    def entry_date(self, entry_date):
-        self._entry_date = entry_date
-
-    @property
-    def start_date(self):
-        return self._start_date.isoformat() if self._start_date else None
-
-    @start_date.setter
-    def start_date(self, start_date):
-        self._start_date = start_date
-
-    @property
-    def end_date(self):
-        return self._end_date.isoformat() if self._end_date else None
-
-    @end_date.setter
-    def end_date(self, end_date):
-        self._end_date = end_date
+    entry_date = db.Column(db.Date)
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
 
 
 class Organisation(DateModel):
@@ -71,25 +47,13 @@ class Source(DateModel):
     documentation_url = db.Column(db.Text)
     attribution = db.Column(db.Text)
     licence = db.Column(db.Text)
-    _endpoint = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
-    _organisation = db.Column(db.Text, db.ForeignKey("organisation.organisation"))
-    collection = db.Column(db.Text)
-
-    @property
-    def endpoint(self):
-        return self._endpoint
-
-    @endpoint.setter
-    def endpoint(self, endpoint):
-        self._endpoint = endpoint
-
-    @property
-    def organisation(self):
-        return self._organisation
-
-    @organisation.setter
-    def organisation(self, organisation):
-        self._organisation = organisation
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
+    organisation_id = db.Column(
+        db.Text, db.ForeignKey("organisation.organisation"), nullable=True
+    )
+    collection_id = db.Column(
+        db.Text, db.ForeignKey("collection.collection"), nullable=True
+    )
 
     def to_dict(self):
         return {
@@ -138,22 +102,15 @@ class Endpoint(DateModel):
             "end_date": self.end_date,
         }
 
-    def factory(data):
-        endpoint = Endpoint()
-        source = Source()
-        for key, val in data.items():
-            if hasattr(endpoint, key) and val:
-                setattr(endpoint, key, val)
-            if hasattr(source, key):
-                setattr(source, key, val)
-        endpoint.sources.append(source)
-        print(endpoint)
-
 
 class Collection(DateModel):
 
     collection = db.Column(db.Text, primary_key=True, nullable=False)
     name = db.Column(db.Text)
+    sources = db.relationship("Source", backref="collection", lazy=True)
+
+    def to_dict(self):
+        return {"collection": self.collection, "name": self.name}
 
 
 source_dataset = db.Table(

@@ -15,7 +15,7 @@ from application.blueprints.source.forms import (
     SearchForm,
 )
 from application.extensions import db
-from application.models import Dataset, Endpoint, Organisation, Source
+from application.models import Collection, Dataset, Endpoint, Organisation, Source
 from application.utils import check_url_reachable, compute_hash, compute_md5_hash
 
 source_bp = Blueprint("source", __name__, url_prefix="/source")
@@ -68,6 +68,28 @@ def create_source_obj(form, _type="new"):
             "attribution": form.attribution.data,
             "start_date": form.start_date.data,
         }
+
+
+def create_endpoint(data):
+    endpoint_url = data.pop("endpoint_url")
+    hashed_url = compute_hash(endpoint_url)
+    endpoint = Endpoint(endpoint=hashed_url, endpoint_url=endpoint_url)
+    dataset_ids = data.pop("datasets")
+    datasets = Dataset.query.filter(Dataset.dataset.in_(dataset_ids)).all()
+    for ds in datasets:
+        collection = Collection.query.get(ds.collection)
+        organisation_id = data["organisation"]
+        organisation = Organisation.query.get(organisation_id)
+        source_key = f"{collection}|{organisation.organisation}|{endpoint.endpoint}"
+        source_key = compute_md5_hash(source_key)
+        source = Source(
+            source=source_key,
+            collection=collection,
+            organisation=organisation,
+        )
+        ds.sources.append(source)
+        endpoint.sources.append(source)
+    return endpoint
 
 
 @source_bp.route("/", methods=["GET", "POST"])
@@ -143,23 +165,7 @@ def finish():
     if not form_data:
         return redirect(url_for("source.add"))
     if existing_source is None and existing_endpoint is None:
-        endpoint_url = form_data.pop("endpoint_url")
-        hashed_url = compute_hash(endpoint_url)
-        endpoint = Endpoint(endpoint=hashed_url, endpoint_url=endpoint_url)
-        dataset_id = form_data.pop("datasets")[0]
-        dataset = Dataset.query.get(dataset_id)
-        collection = dataset_id
-        organisation_id = form_data["organisation"]
-        organisation = Organisation.query.get(organisation_id)
-        source_key = f"{collection}|{organisation.organisation}|{endpoint.endpoint}"
-        source_key = compute_md5_hash(source_key)
-        source = Source(
-            source=source_key,
-            collection=collection,
-            organisation=organisation,
-            datasets=[dataset],
-        )
-        endpoint.sources.append(source)
+        endpoint = create_endpoint(form_data)
         db.session.add(endpoint)
         db.session.commit()
 

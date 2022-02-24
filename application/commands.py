@@ -23,11 +23,11 @@ digital_land_datasette = "https://datasette.digital-land.info/digital-land"
 
 model_classes = {
     "organisation": Organisation,
-    "source": Source,
-    "endpoint": Endpoint,
     "typology": Typology,
     "collection": Collection,
     "dataset": Dataset,
+    "endpoint": Endpoint,
+    "source": Source,
     "resource": Resource,
     "resource_endpoint": resource_endpoint,
     "source_pipeline": source_dataset,
@@ -45,6 +45,8 @@ ordered_tables = [
     "resource_endpoint",
     "source_pipeline",
 ]
+
+source_foreign_key_columns = ["organisation", "endpoint", "collection"]
 
 test_ordered_tables = ["organisation", "typology", "collection", "dataset"]
 
@@ -72,6 +74,7 @@ def load_data(test):
             rows = data["rows"]
 
             _load_data(columns, table, rows)
+
             url = data.get("next_url")
             if url is None:
                 has_next = False
@@ -153,14 +156,13 @@ def _load_data(columns, table, rows):
         else:
             try:
                 if table == "source":
-                    endpoint_id = i.pop("endpoint")
-                    if endpoint_id is not None:
-                        endpoint = Endpoint.query.get(endpoint_id)
-                        i["endpoint"] = endpoint
-                    organisation_id = i.pop("organisation")
-                    if organisation_id is not None:
-                        organisation = Organisation.query.get(organisation_id)
-                        i["organisation"] = organisation
+                    for fk_col in source_foreign_key_columns:
+                        key = i.pop(fk_col, None)
+                        if key is not None:
+                            one_to_many_class = model_classes[fk_col]
+                            related_obj = one_to_many_class.query.get(key)
+                            if related_obj is not None:
+                                i[fk_col] = related_obj
 
                 if db.session.query(model_class).get(i[table]) is None:
                     obj = model_class(**i)
