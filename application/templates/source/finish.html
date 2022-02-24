@@ -5,20 +5,27 @@
   <div class="govuk-grid-column-two-thirds">
     <div class="govuk-panel govuk-panel--confirmation">
       <h1 class="govuk-panel__title">
-        Source(s) saved
+        Source saved
       </h1>
     </div>
 
-    <p class="govuk-body">We have saved the sources you added.</p>
+    <p class="govuk-body">We have saved the source.</p>
     <p class="govuk-body">
-      <a href="{{ url_for('source.source', source_hash=source_hash) }}" class="govuk-link">Saved source</a>
+      <a href="{{ url_for('source.source', source_hash=source.source) }}" class="govuk-link">See source record</a>
     </p>
 
     <h2 class="govuk-heading-m">What happens next</h2>
 
-    <p class="govuk-body">
-      <a href="#" class="govuk-link">Download the source.csv file</a>
-    </p>
+    <p class="govuk-body">For the collector to attempt to collect from this source you need to update the {{ source.collection.name }} collection repo on github.</p>
+
+    <p class="govuk-body">First download the endpoint and source csv files.</p>
+
+    <ul class="govuk-list">
+      <li><a href="#" class="govuk-link">Download the endpoint.csv file</a></li>
+      <li><a href="#" class="govuk-link">Download the source.csv file</a></li>
+    </ul>
+
+    <p class="govuk-body">Upload and commit these files to the {{ source.collection.name }} collection repo.</p>
 
     <p class="govuk-body">
       The next time the collectors run it will collect from the source you added.

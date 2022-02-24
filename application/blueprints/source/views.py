@@ -170,7 +170,7 @@ def finish():
     if existing_source is None and existing_endpoint is None:
         endpoint = create_endpoint(form_data)
         db.session.add(endpoint)
-        source_hash = endpoint.sources[-1].source
+        source = endpoint.sources[-1]
     else:
         source = Source.query.get(existing_source["source"])
         for key, val in form_data.items():
@@ -183,9 +183,8 @@ def finish():
                     val = None
                 setattr(source, key, val)
         db.session.add(source)
-        source_hash = source.source
     db.session.commit()
-    return render_template("source/finish.html", source_hash=source_hash)
+    return render_template("source/finish.html", source=source)
 
 
 @source_bp.route("<source_hash>")
