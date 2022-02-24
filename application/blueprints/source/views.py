@@ -74,9 +74,9 @@ def create_endpoint(data):
     endpoint_url = data.pop("endpoint_url")
     hashed_url = compute_hash(endpoint_url)
     endpoint = Endpoint(endpoint=hashed_url, endpoint_url=endpoint_url)
-    dataset_ids = data.pop("datasets")
-    datasets = Dataset.query.filter(Dataset.dataset.in_(dataset_ids)).all()
-    for ds in datasets:
+    datasets = data.pop("datasets")
+    for dataset in datasets:
+        ds = Dataset.query.get(dataset["dataset"])
         collection = Collection.query.get(ds.collection)
         organisation_id = data["organisation"]
         organisation = Organisation.query.get(organisation_id)
@@ -168,9 +168,22 @@ def finish():
     if existing_source is None and existing_endpoint is None:
         endpoint = create_endpoint(form_data)
         db.session.add(endpoint)
-        db.session.commit()
-
-    return render_template("source/finish.html")
+        source_hash = endpoint.sources[-1].source
+    else:
+        source = Source.query.get(existing_source["source"])
+        for key, val in form_data.items():
+            if hasattr(source, key) and key not in [
+                "datasets",
+                "organisation",
+                "collection",
+            ]:
+                if val == "":
+                    val = None
+                setattr(source, key, val)
+        db.session.add(source)
+        source_hash = source.source
+    db.session.commit()
+    return render_template("source/finish.html", source_hash=source_hash)
 
 
 @source_bp.route("<source_hash>")

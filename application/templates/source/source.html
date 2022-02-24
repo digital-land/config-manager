@@ -51,7 +51,9 @@
       Documentation url
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.documentation_url|makelink }}
+      {%  if source.documentation_url %}
+        {{ source.documentation_url|makelink }}
+      {%  endif %}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
@@ -59,7 +61,7 @@
       Collection
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.collection }}
+      {{ source.collection.collection }}
     </dd>
   </div>
   <div class="govuk-summary-list__row">

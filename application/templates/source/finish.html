@@ -10,8 +10,15 @@
     </div>
 
     <p class="govuk-body">We have saved the sources you added.</p>
+    <p class="govuk-body">
+      <a href="{{ url_for('source.source', source_hash=source_hash) }}" class="govuk-link">Saved source</a>
+    </p>
 
     <h2 class="govuk-heading-m">What happens next</h2>
+
+    <p class="govuk-body">
+      <a href="#" class="govuk-link">Download the source.csv file</a>
+    </p>
 
     <p class="govuk-body">
       The next time the collectors run it will collect from the source you added.
