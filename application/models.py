@@ -72,6 +72,17 @@ class Source(DateModel):
             "datasets": self.datasets,
         }
 
+    def update(self, data):
+        for key, val in data.items():
+            if hasattr(self, key) and key not in [
+                "datasets",
+                "organisation",
+                "collection",
+            ]:
+                if val == "":
+                    val = None
+                setattr(self, key, val)
+
 
 class Endpoint(DateModel):
 

@@ -87,6 +87,7 @@ def create_endpoint(data):
             collection=collection,
             organisation=organisation,
         )
+        source.update(data)
         ds.sources.append(source)
         endpoint.sources.append(source)
     return endpoint
@@ -173,15 +174,7 @@ def finish():
         source = endpoint.sources[-1]
     else:
         source = Source.query.get(existing_source["source"])
-        for key, val in form_data.items():
-            if hasattr(source, key) and key not in [
-                "datasets",
-                "organisation",
-                "collection",
-            ]:
-                if val == "":
-                    val = None
-                setattr(source, key, val)
+        source.update(form_data)
         db.session.add(source)
     db.session.commit()
     return render_template("source/finish.html", source=source)
