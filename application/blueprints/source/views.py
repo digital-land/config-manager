@@ -127,8 +127,8 @@ def add():
         session["existing_endpoint"] = None
         session["existing_source"] = None
 
-        session["url_reachable"] = check_url_reachable(form.endpoint_url.data)
-        endpoint_hash = compute_hash(form.endpoint_url.data)
+        session["url_reachable"] = check_url_reachable(form.endpoint_url.data.strip())
+        endpoint_hash = compute_hash(form.endpoint_url.data.strip())
         endpoint = Endpoint.query.get(endpoint_hash)
         if endpoint is not None:
             session["existing_endpoint"] = endpoint

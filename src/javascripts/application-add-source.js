@@ -51,7 +51,7 @@ function handleReturnedEndpoint (data) {
 $endpointInput.addEventListener('change', function (e) {
   console.log('on change check if seen endpoint url before')
   const url = e.target.value
-  appFetch(endpointSearchUrl, { endpoint_url: url }, handleReturnedEndpoint)
+  appFetch(endpointSearchUrl, { endpoint_url: url.trim() }, handleReturnedEndpoint)
 })
 console.log($endpointInput)
 
