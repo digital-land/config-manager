@@ -38,5 +38,5 @@ def test_add_source(server_process, page):
     page.click("text=Save and continue")
     assert page.url == f"{BASE_URL}/source/add/summary"
 
-    page.click("text=Save changes to source")
+    page.click("[href='/source/add/finish']")
     assert page.url == f"{BASE_URL}/source/add/finish"
