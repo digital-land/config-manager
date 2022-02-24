@@ -184,10 +184,7 @@ def source_json(source_hash):
 def edit(source_hash):
     source = Source.query.get(source_hash)
     form = EditSourceForm(obj=source)
-    # set the
-    # form.endpoint_url.data = source.endpoint.endpoint_url
-    # form.organisation.choices = organisation_choices()
-    # form.dataset.choices = dataset_choices()
+
     if form.validate_on_submit():
         # if endpoint, org or dataset have changed then has the source changed or is it a new one
         # so ignore those for now
@@ -195,13 +192,6 @@ def edit(source_hash):
         session["existing_source"] = source
         session["form_data"] = create_source_obj(form, _type="edit")
         return redirect(url_for("source.summary"))
-    else:
-        print("not valid")
-
-    # add default values
-    # form.organisation.data = source.organisation.organisation
-    # to do: handle multiple datasets
-    # form.dataset.data = source.datasets[0].dataset
 
     cancel_href = url_for("source.source", source_hash=source.source)
     if url_for("source.summary") in request.referrer:
