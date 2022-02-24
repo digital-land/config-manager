@@ -9,8 +9,15 @@ class SearchForm(FlaskForm):
     )
 
 
-class NewSourceForm(FlaskForm):
-    endpoint = StringField(
+class EditSourceForm(FlaskForm):
+    documentation_url = StringField("Documentation url")
+    attribution = StringField("Attribution")
+    licence = StringField("Licence")
+    start_date = StringField("Start date")
+
+
+class NewSourceForm(EditSourceForm):
+    endpoint_url = StringField(
         "Url",
         validators=[
             DataRequired(message="Please provide a url"),
@@ -24,13 +31,6 @@ class NewSourceForm(FlaskForm):
         "Organisation",
         validators=[DataRequired(message="Please provide an organisation ID")],
     )
-
-
-class SourceForm(NewSourceForm):
-    documentation_url = StringField("Documentation url")
-    attribution = StringField("Attribution")
-    licence = StringField("Licence")
-    start_date = StringField("Start date")
 
 
 class ArchiveForm(FlaskForm):

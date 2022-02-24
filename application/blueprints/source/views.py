@@ -8,7 +8,12 @@ from flask import (
     url_for,
 )
 
-from application.blueprints.source.forms import ArchiveForm, SearchForm, SourceForm
+from application.blueprints.source.forms import (
+    ArchiveForm,
+    EditSourceForm,
+    NewSourceForm,
+    SearchForm,
+)
 from application.extensions import db
 from application.models import Dataset, Endpoint, Organisation, Source
 from application.utils import check_url_reachable, compute_hash, compute_md5_hash
@@ -36,25 +41,33 @@ def get_datasets(s, sep=","):
 
 
 def set_form_values(form, data):
-    form.endpoint.data = data["endpoint_url"]
+    form.endpoint_url.data = data["endpoint_url"]
     form.organisation.data = data["organisation"]
     # need to change this to work with multiple
-    form.dataset.data = data["datasets"][0]["dataset"]
+    form.dataset.data = data["datasets"][0]
     form.licence.data = data["licence"]
     form.attribution.data = data["attribution"]
     form.start_date.data = data["start_date"]
 
 
-def create_source_obj(form):
-    return {
-        "endpoint_url": form.endpoint.data,
-        "organisation": form.organisation.data,
-        "datasets": get_datasets(form.dataset.data),
-        "documentation_url": form.documentation_url.data,
-        "licence": form.licence.data,
-        "attribution": form.attribution.data,
-        "start_date": form.start_date.data,
-    }
+def create_source_obj(form, _type="new"):
+    if _type == "new":
+        return {
+            "endpoint_url": form.endpoint_url.data,
+            "organisation": form.organisation.data,
+            "datasets": [form.dataset.data],
+            "documentation_url": form.documentation_url.data,
+            "licence": form.licence.data,
+            "attribution": form.attribution.data,
+            "start_date": form.start_date.data,
+        }
+    else:
+        return {
+            "documentation_url": form.documentation_url.data,
+            "licence": form.licence.data,
+            "attribution": form.attribution.data,
+            "start_date": form.start_date.data,
+        }
 
 
 @source_bp.route("/", methods=["GET", "POST"])
@@ -71,7 +84,7 @@ def search():
 
 @source_bp.route("/add", methods=["GET", "POST"])
 def add():
-    form = SourceForm()
+    form = NewSourceForm()
     if request.args.get("_change") and session["form_data"]:
         set_form_values(form, session["form_data"])
 
@@ -90,8 +103,8 @@ def add():
         session["existing_endpoint"] = None
         session["existing_source"] = None
 
-        session["url_reachable"] = check_url_reachable(form.endpoint.data)
-        endpoint_hash = compute_hash(form.endpoint.data)
+        session["url_reachable"] = check_url_reachable(form.endpoint_url.data)
+        endpoint_hash = compute_hash(form.endpoint_url.data)
         endpoint = Endpoint.query.get(endpoint_hash)
         if endpoint is not None:
             session["existing_endpoint"] = endpoint
@@ -103,14 +116,6 @@ def add():
                 session["existing_source"] = existing_source
 
         session["form_data"] = create_source_obj(form)
-        session["form_data"] = {
-            "endpoint_url": form.endpoint.data,
-            "organisation": form.organisation.data,
-            "datasets": [form.dataset.data],
-            "licence": form.licence.data,
-            "attribution": form.attribution.data,
-            "start_date": form.start_date.data,
-        }
 
         return redirect(url_for("source.summary"))
     return render_template("source/create.html", form=form)
@@ -178,22 +183,25 @@ def source_json(source_hash):
 @source_bp.route("<source_hash>/edit", methods=["GET", "POST"])
 def edit(source_hash):
     source = Source.query.get(source_hash)
-    form = SourceForm(obj=source)
-    form.organisation.choices = organisation_choices()
-    form.dataset.choices = dataset_choices()
+    form = EditSourceForm(obj=source)
+    # set the
+    # form.endpoint_url.data = source.endpoint.endpoint_url
+    # form.organisation.choices = organisation_choices()
+    # form.dataset.choices = dataset_choices()
     if form.validate_on_submit():
         # if endpoint, org or dataset have changed then has the source changed or is it a new one
         # so ignore those for now
         session["url_reachable"] = True
         session["existing_source"] = source
-        session["form_data"] = create_source_obj(form)
+        session["form_data"] = create_source_obj(form, _type="edit")
         return redirect(url_for("source.summary"))
+    else:
+        print("not valid")
 
     # add default values
-    form.organisation.data = source.organisation.organisation
+    # form.organisation.data = source.organisation.organisation
     # to do: handle multiple datasets
-    form.dataset.data = source.datasets[0].dataset
-    form.endpoint.data = source.endpoint.endpoint_url
+    # form.dataset.data = source.datasets[0].dataset
 
     cancel_href = url_for("source.source", source_hash=source.source)
     if url_for("source.summary") in request.referrer:
