@@ -26,9 +26,9 @@ def test_add_source(server_process, page):
     page.click("text=Add a source")
     assert page.url == f"{BASE_URL}/source/add"
 
-    page.click('input[name="endpoint"]')
+    page.click('input[name="endpoint_url"]')
     page.fill(
-        'input[name="endpoint"]',
+        'input[name="endpoint_url"]',
         "http://www.nnjpu.org.uk/publications/docdetail.asp?docid=1593",
     )
     page.select_option('select[name="dataset"]', "brownfield-land", force=True)
@@ -38,5 +38,5 @@ def test_add_source(server_process, page):
     page.click("text=Save and continue")
     assert page.url == f"{BASE_URL}/source/add/summary"
 
-    page.click("text=Save source")
+    page.click("text=Save changes to source")
     assert page.url == f"{BASE_URL}/source/add/finish"
