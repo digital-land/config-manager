@@ -1,0 +1,28 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<h1 class="govuk-heading-xl">Resources</h1>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <form action="" class="govuk-form" method="POST">
+      {{ form.hidden_tag() }}
+      <h2 class="govuk-heading-m">Find a resource</h2>
+      <div class='govuk-form-group{% if form.resource.errors %} govuk-form-group--error{% endif %}'>
+        <label class='govuk-label' for='source'>Resource</label>
+        {% if form.resource.errors %}
+        <p class='govuk-error-message'>
+          {% for error in form.resource.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
+        </p>
+        {% endif %}
+        {{ form.resource(required=False, class="govuk-input")}}
+      </div>
+      <div class="govuk-form-group">
+        <button class='govuk-button' data-module='govuk-button'>
+        Find
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock content %}
