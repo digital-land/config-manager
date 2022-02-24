@@ -44,7 +44,7 @@ def set_form_values(form, data):
     form.endpoint_url.data = data["endpoint_url"]
     form.organisation.data = data["organisation"]
     # need to change this to work with multiple
-    form.dataset.data = data["datasets"][0]
+    form.dataset.data = ", ".join([dataset["dataset"] for dataset in data["datasets"]])
     form.licence.data = data["licence"]
     form.attribution.data = data["attribution"]
     form.start_date.data = data["start_date"]
@@ -55,7 +55,7 @@ def create_source_obj(form, _type="new"):
         return {
             "endpoint_url": form.endpoint_url.data,
             "organisation": form.organisation.data,
-            "datasets": [form.dataset.data],
+            "datasets": get_datasets(form.dataset.data),
             "documentation_url": form.documentation_url.data,
             "licence": form.licence.data,
             "attribution": form.attribution.data,
@@ -109,6 +109,7 @@ def add():
         if endpoint is not None:
             session["existing_endpoint"] = endpoint
 
+            # will need to update when/if user can put multiple datasets
             existing_source = endpoint.get_matching_source(
                 form.organisation.data, form.dataset.data
             )
@@ -146,7 +147,7 @@ def finish():
         endpoint_url = form_data.pop("endpoint_url")
         hashed_url = compute_hash(endpoint_url)
         endpoint = Endpoint(endpoint=hashed_url, endpoint_url=endpoint_url)
-        dataset_id = form_data.pop("datasets")[0]
+        dataset_id = form_data.pop("datasets")[0]["dataset"]
         dataset = Dataset.query.get(dataset_id)
         collection = dataset_id
         organisation_id = form_data["organisation"]
