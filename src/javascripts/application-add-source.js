@@ -28,7 +28,7 @@ function appFetch (url, fetchParams, _callback) {
 const endpointSearchUrl = '/endpoint/search'
 
 const $endpointInputContainer = document.querySelector('[data-module="endpoint-input"]')
-const $endpointInput = $endpointInputContainer.querySelector('input[name="endpoint"]')
+const $endpointInput = $endpointInputContainer.querySelector('input[name="endpoint_url"]')
 const $endpointWarning = $endpointInputContainer.querySelector('.app-input__warning')
 const $endpointWarningCount = $endpointWarning.querySelector('.app-input__warning__endpoint-count')
 $endpointWarning.classList.add('js-hidden')
