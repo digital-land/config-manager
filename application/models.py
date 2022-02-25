@@ -1,3 +1,5 @@
+import datetime
+
 from sqlalchemy.dialects.postgresql import JSON
 
 from application.extensions import db
@@ -7,7 +9,7 @@ class DateModel(db.Model):
 
     __abstract__ = True
 
-    entry_date = db.Column(db.Date)
+    entry_date = db.Column(db.Date, default=datetime.datetime.now().isoformat())
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
 
@@ -35,7 +37,9 @@ class Organisation(DateModel):
     website = db.Column(db.Text)
     wikidata = db.Column(db.Text)
     wikipedia = db.Column(db.Text)
-    sources = db.relationship("Source", backref="organisation", lazy=True)
+    sources = db.relationship(
+        "Source", backref="organisation", lazy=True, order_by="Source.entry_date"
+    )
 
     def __repr__(self):
         return f"<{self.__class__.__name__}> organisation: {self.organisation} entry_date: {self.entry_date}"
@@ -59,17 +63,38 @@ class Source(DateModel):
         return {
             "source": self.source,
             "documentation_url": self.documentation_url,
-            "endpoint": self.endpoint.endpoint,
-            "endpoint_url": self.endpoint.endpoint_url,
-            "organisation": self.organisation.organisation,
-            "organisation_name": self.organisation.name,
+            "endpoint": self.endpoint.endpoint if self.endpoint else None,
+            "endpoint_url": self.endpoint.endpoint_url if self.endpoint else None,
+            "organisation": self.organisation.organisation
+            if self.organisation
+            else None,
+            "organisation_name": self.organisation.name if self.organisation else None,
             "licence": self.licence,
             "attribution": self.attribution,
-            "collection": self.collection,
+            "collection": self.collection if self.collection else None,
             "entry_date": self.entry_date,
             "start_date": self.start_date,
             "end_date": self.end_date,
-            "datasets": self.datasets,
+            "datasets": self.datasets if self.datasets else None,
+        }
+
+    # Only needed until csv output for existing data processing no longer required
+    def to_csv_dict(self):
+        return {
+            "attribution": self.attribution,
+            "collection": self.collection.collection if self.collection else None,
+            "documentation_url": self.documentation_url,
+            "endpoint": self.endpoint.endpoint if self.endpoint else None,
+            "licence": self.licence,
+            "organisation": self.organisation.organisation
+            if self.organisation
+            else None,
+            "pipelines": ";".join([ds.dataset for ds in self.datasets])
+            if self.datasets
+            else None,
+            "entry-date": self.entry_date,
+            "start-date": self.start_date,
+            "end-date": self.end_date,
         }
 
     def update(self, data):
@@ -90,7 +115,9 @@ class Endpoint(DateModel):
     endpoint_url = db.Column(db.Text)
     parameters = db.Column(db.Text)
     plugin = db.Column(db.Text)
-    sources = db.relationship("Source", backref="endpoint", lazy=True)
+    sources = db.relationship(
+        "Source", backref="endpoint", lazy=True, order_by="Source.entry_date"
+    )
 
     def get_matching_source(self, organisation, dataset):
         for source in self.sources:
@@ -118,7 +145,9 @@ class Collection(DateModel):
 
     collection = db.Column(db.Text, primary_key=True, nullable=False)
     name = db.Column(db.Text)
-    sources = db.relationship("Source", backref="collection", lazy=True)
+    sources = db.relationship(
+        "Source", backref="collection", lazy=True, order_by="Source.entry_date"
+    )
 
     def to_dict(self):
         return {"collection": self.collection, "name": self.name}
