@@ -1,0 +1,14 @@
+{% macro summaryResourceCard(params) %}
+<article class="app-card app-card--result">
+  <div class="app-card__header">
+    <div class="app-card__header__secondary">
+      <h3 class="govuk-heading-s app-card__header__title">Resource <a href="{{ url_for('resource.resource', resource_hash=params.resource.resource) }}" class="govuk-link">{{ params.resource.resource|truncate(25) }}</a></h3>
+    </div>
+  </div>
+
+  <div class="app-card__footer">
+    <span class="app-card__footer__meta">Resource collected on {{ params.resource.start_date }}</span>
+  </div>
+</article>
+<!-- /.app-card -->
+{% endmacro %}

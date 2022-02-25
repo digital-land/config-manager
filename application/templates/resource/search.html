@@ -1,11 +1,12 @@
 {% extends 'layouts/base.html' %}
+{% from 'components/resource-card.html' import summaryResourceCard %}
 
 {% block content %}
 <h1 class="govuk-heading-xl">Resources</h1>
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <form action="" class="govuk-form" method="POST">
+    <form action="" class="govuk-form">
       {{ form.hidden_tag() }}
       <h2 class="govuk-heading-m">Find a resource</h2>
       <div class='govuk-form-group{% if form.resource.errors %} govuk-form-group--error{% endif %}'>
@@ -23,6 +24,22 @@
         </button>
       </div>
     </form>
+    <hr class="govuk-section-break--visible govuk-section-break--l" />
+  </div>
+</div>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h2 class="govuk-heading-l">Recently added resources</h2>
+    <ol class="govuk-list">
+      {% for resource in resources %}
+      <li>
+        {{ summaryResourceCard({
+          "resource": resource
+        }) }}
+      </li>
+      {% endfor %}
+    </ol>
   </div>
 </div>
 {% endblock content %}
