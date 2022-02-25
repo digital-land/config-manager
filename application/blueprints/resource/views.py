@@ -40,3 +40,21 @@ def resource_json(resource_hash):
     if resource:
         return jsonify(resource), 200
     return {}, 404
+
+
+@resource_bp.route("/<resource_hash>/columns")
+def columns(resource_hash):
+    # To do: get columns/attr names from the original resource
+    # To do: get expected/allowable attributes from schema
+    # To do: get mappings between columns and expected columns
+    # To do: link to somewhere to edit mappings
+    return render_template("resource/columns.html")
+
+
+@resource_bp.route("/<resource_hash>/values")
+def values(resource_hash):
+    # To do: get expected/allowable attributes from schema and check if any contain specific values (category fields)
+    # To do: get allowable values
+    # To do: check values in resource against allowable values
+    # To do: link to somewhere to edit mappings
+    return render_template("resource/values.html")
