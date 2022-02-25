@@ -1,4 +1,5 @@
 {% extends 'layouts/base.html' %}
+{% from 'components/source-card.html' import summarySourceCard %}
 
 {% block content %}
 <h1 class="govuk-heading-xl">Resource record</h1>
@@ -38,21 +39,24 @@
   </div>
 </dl>
 
-<p class="govuk-body">This resource was collected from</p>
 
-<ul class="govuk-list">
-  {% for endpoint in resource.endpoints %}
-    {% for source in endpoint.sources  %}
-    <li class="govuk-!-margin-bottom-3">
-      <h5 class="govuk-heading-xs govuk-!-margin-0">Source: {{ source.source }}</h5>
-      {{ source.endpoint.endpoint_url }}<br />
-      {{ source.organisation.name }}<br />
-      {% for dataset in source.datasets %}
-      {{ dataset.dataset }}{{ ', ' if not loop.last else '' }}
+<div class="govuk-grid-row govuk-!-margin-top-9">
+  <div class="govuk-grid-column-two-thirds">
+    <h3 class="govuk-heading-m">This resource was collected from</h3>
+
+    <ul class="govuk-list">
+      {% for endpoint in resource.endpoints %}
+        {% for source in endpoint.sources  %}
+        <li>
+          {{ summarySourceCard({
+            "source": source
+          }) }}
+        </li>
+        {% endfor %}
       {% endfor %}
-    </li>
-    {% endfor %}
-  {% endfor %}
-</ul>
+    </ul>
+  </div>
+</div>
+
 
 {% endblock content %}
