@@ -1,3 +1,4 @@
+// based on https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
 // Example POST method implementation:
 export async function fetchWithArgs (url = '', data = {}) {
   // Default options are marked with *

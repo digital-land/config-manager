@@ -153,3 +153,53 @@
 </article>
 <!-- /.app-card -->
 {% endmacro %}
+
+
+{% macro summarySourceCard(params) %}
+<article class="app-card app-card--result">
+  <div class="app-card__header">
+    <div class="app-card__header__secondary">
+      <h3 class="govuk-heading-s app-card__header__title">Source <a href="{{ url_for('source.source', source_hash=params.source.source) }}" class="govuk-link">{{ params.source.source }}</a></h3>
+    </div>
+  </div>
+
+  <div class="app-card__body">
+
+    <div class="app-card__row">
+      <div class="app-card__properties">
+        <dl class="govuk-summary-list govuk-!-margin-bottom-0">
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Organisation
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ params.source.organisation.name }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Datasets
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ params.source.datasets[0].name }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Url
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ params.source.endpoint.endpoint_url }}
+            </dd>
+          </div>
+
+        </dl>
+      </div>
+    </div>
+  </div><!-- /.app-card__body -->
+  <div class="app-card__footer">
+    <span class="app-card__footer__meta">Source added on {{ params.source.entry_date }}</span>
+  </div>
+</article>
+<!-- /.app-card -->
+{% endmacro %}

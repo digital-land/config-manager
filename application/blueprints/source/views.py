@@ -104,7 +104,13 @@ def search():
         if source:
             return redirect(url_for("source.source", source_hash=source.source))
         form.source.errors.append("We don't recognise that hash, try another")
-    return render_template("source/search.html", form=form)
+    sources = (
+        Source.query.filter(Source.entry_date != None)  # noqa: E711
+        .order_by(Source.entry_date.desc())
+        .limit(5)
+        .all()
+    )
+    return render_template("source/search.html", form=form, sources=sources)
 
 
 @source_bp.route("/add", methods=["GET", "POST"])

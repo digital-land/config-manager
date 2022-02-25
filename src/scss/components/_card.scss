@@ -81,3 +81,17 @@
     border-bottom: none;
   }
 }
+
+.app-card__footer {
+  @include govuk-responsive-padding(2, "top");
+  @include govuk-responsive-padding(2, "bottom");
+  @include govuk-responsive-padding(3, "right");
+  @include govuk-responsive-padding(3, "left");
+  border-top: 1px solid $govuk-border-colour;
+	background: govuk-colour('light-grey');
+}
+
+.app-card__footer__meta {
+  @include govuk-font($size: 16);
+  color: $govuk-secondary-text-colour;
+}
