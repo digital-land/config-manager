@@ -22,7 +22,7 @@
 
     <ul class="govuk-list">
       <li><a href="#" class="govuk-link">Download the endpoint.csv file</a></li>
-      <li><a href="#" class="govuk-link">Download the source.csv file</a></li>
+      <li><a href="{{ url_for('source.source_csv', source_hash=source.source) }}" class="govuk-link">Download the source.csv file</a></li>
     </ul>
 
     <p class="govuk-body">Upload and commit these files to the {{ source.collection.name }} collection repo.</p>

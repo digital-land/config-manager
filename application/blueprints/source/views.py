@@ -1,9 +1,14 @@
+import csv
+import io
+
 from flask import (
     Blueprint,
+    abort,
     jsonify,
     redirect,
     render_template,
     request,
+    send_file,
     session,
     url_for,
 )
@@ -227,3 +232,30 @@ def archive(source_hash):
 @source_bp.route("/create-mappings")
 def mappings():
     return render_template("source/mappings.html")
+
+
+@source_bp.route("/<source_hash>/csv")
+def source_csv(source_hash):
+    source = Source.query.get(source_hash)
+    if source is None:
+        return abort(404)
+
+    csv_rows = []
+    for s in source.collection.sources:
+        csv_rows.append(s.to_csv_dict())
+    out = io.StringIO()
+    fieldnames = csv_rows[0].keys()
+    writer = csv.DictWriter(out, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+    writer.writeheader()
+    for row in csv_rows:
+        writer.writerow(row)
+    buffer = io.BytesIO()
+    buffer.write(out.getvalue().encode())
+    buffer.seek(0)
+    out.close()
+    return send_file(
+        buffer,
+        as_attachment=True,
+        attachment_filename="source.csv",
+        mimetype="text/csv",
+    )
