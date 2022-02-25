@@ -50,7 +50,7 @@ def set_form_values(form, data):
     form.start_date.data = data["start_date"]
 
 
-def create_source_obj(form, _type="new"):
+def create_source_data(form, _type="new"):
     if _type == "new":
         return {
             "endpoint_url": form.endpoint_url.data,
@@ -70,10 +70,12 @@ def create_source_obj(form, _type="new"):
         }
 
 
-def create_endpoint(data):
-    endpoint_url = data.pop("endpoint_url")
+def create_or_update_endpoint(data):
+    endpoint_url = data.pop("endpoint_url").strip()
     hashed_url = compute_hash(endpoint_url)
-    endpoint = Endpoint(endpoint=hashed_url, endpoint_url=endpoint_url)
+    endpoint = Endpoint.query.get(hashed_url)
+    if endpoint is None:
+        endpoint = Endpoint(endpoint=hashed_url, endpoint_url=endpoint_url)
     datasets = data.pop("datasets")
     for dataset in datasets:
         ds = Dataset.query.get(dataset["dataset"])
@@ -97,7 +99,7 @@ def create_endpoint(data):
 def search():
     form = SearchForm()
     if form.validate_on_submit():
-        source_hash = form.source.data
+        source_hash = form.source.data.strip()
         source = Source.query.get(source_hash)
         if source:
             return redirect(url_for("source.source", source_hash=source.source))
@@ -125,51 +127,40 @@ def add():
     form.dataset.choices = [("", "")] + [(d.dataset, d.name) for d in datasets]
 
     if form.validate_on_submit():
-        session["existing_endpoint"] = None
-        session["existing_source"] = None
-
         session["url_reachable"] = check_url_reachable(form.endpoint_url.data.strip())
         endpoint_hash = compute_hash(form.endpoint_url.data.strip())
         endpoint = Endpoint.query.get(endpoint_hash)
         if endpoint is not None:
-            session["existing_endpoint"] = endpoint
-
             # will need to update when/if user can put multiple datasets
             existing_source = endpoint.get_matching_source(
                 form.organisation.data, form.dataset.data
             )
             if existing_source is not None:
                 session["existing_source"] = existing_source
-
-        session["form_data"] = create_source_obj(form)
-
+        session["form_data"] = create_source_data(form)
         return redirect(url_for("source.summary"))
     return render_template("source/create.html", form=form)
 
 
 @source_bp.route("/add/summary")
 def summary():
-    # if the source already exists then let user choose to edit it
-    # TODO - the session may also contain a key for existing_endpoint
-    # at some point pop the relevant keys from session
+    url_reachable = session.pop("url_reachable", None)
     return render_template(
         "source/summary.html",
         sources=[session.get("form_data")],
         existing_source=session.get("existing_source"),
-        url_reachable=session["url_reachable"],
+        url_reachable=url_reachable,
     )
 
 
 @source_bp.route("/add/finish")
 def finish():
-    # To do: save the new source or update existing source
     existing_source = session.pop("existing_source", None)
-    existing_endpoint = session.pop("existing_endpoint", None)
     form_data = session.pop("form_data", None)
     if not form_data:
         return redirect(url_for("source.add"))
-    if existing_source is None and existing_endpoint is None:
-        endpoint = create_endpoint(form_data)
+    if existing_source is None:
+        endpoint = create_or_update_endpoint(form_data)
         db.session.add(endpoint)
         source = endpoint.sources[-1]
     else:
@@ -204,7 +195,7 @@ def edit(source_hash):
         # so ignore those for now
         session["url_reachable"] = True
         session["existing_source"] = source
-        session["form_data"] = create_source_obj(form, _type="edit")
+        session["form_data"] = create_source_data(form, _type="edit")
         return redirect(url_for("source.summary"))
 
     cancel_href = url_for("source.source", source_hash=source.source)

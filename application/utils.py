@@ -23,9 +23,9 @@ class CustomJSONEncoder(JSONEncoder):
 
 def check_url_reachable(url):
     try:
-        resp = requests.head(url)
+        resp = requests.get(url)
         resp.raise_for_status()
-        return True
+        return resp.ok
     except HTTPError as e:
         print(e)
         return False
