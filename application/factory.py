@@ -76,6 +76,10 @@ def register_filters(app):
     app.add_template_filter(hex_to_rgb_string_filter, name="hex_to_rgb")
     app.add_template_filter(make_link_filter, name="makelink")
 
+    from application.filters import datasets_string_filter
+
+    app.add_template_filter(datasets_string_filter, name="datasets_string")
+
 
 def register_extensions(app):
     """
