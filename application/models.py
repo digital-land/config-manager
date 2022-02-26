@@ -62,9 +62,9 @@ class Source(DateModel):
     def to_dict(self):
         return {
             "source": self.source,
-            "documentation_url": self.documentation_url,
+            "documentation-url": self.documentation_url,
             "endpoint": self.endpoint.endpoint if self.endpoint else None,
-            "endpoint_url": self.endpoint.endpoint_url if self.endpoint else None,
+            "endpoint-url": self.endpoint.endpoint_url if self.endpoint else None,
             "organisation": self.organisation.organisation
             if self.organisation
             else None,
@@ -72,9 +72,9 @@ class Source(DateModel):
             "licence": self.licence,
             "attribution": self.attribution,
             "collection": self.collection if self.collection else None,
-            "entry_date": self.entry_date,
-            "start_date": self.start_date,
-            "end_date": self.end_date,
+            "entry-date": self.entry_date,
+            "start-date": self.start_date,
+            "end-date": self.end_date,
             "datasets": self.datasets if self.datasets else None,
         }
 
@@ -131,13 +131,24 @@ class Endpoint(DateModel):
     def to_dict(self):
         return {
             "endpoint": self.endpoint,
-            "endpoint_url": self.endpoint_url,
+            "endpoint-url": self.endpoint_url,
             "parameters": self.parameters,
             "plugin": self.plugin,
             "sources": [s.to_dict() for s in self.sources],
-            "entry_date": self.entry_date,
-            "start_date": self.start_date,
-            "end_date": self.end_date,
+            "entry-date": self.entry_date,
+            "start-date": self.start_date,
+            "end-date": self.end_date,
+        }
+
+    def to_csv_dict(self):
+        return {
+            "endpoint": self.endpoint,
+            "endpoint-url": self.endpoint_url,
+            "parameters": self.parameters,
+            "plugin": self.plugin,
+            "entry-date": self.entry_date,
+            "start-date": self.start_date,
+            "end-date": self.end_date,
         }
 
 
@@ -188,11 +199,11 @@ class Dataset(DateModel):
         return {
             "dataset": self.dataset,
             "description": self.description,
-            "key_field": self.key_field,
-            "entity_minimum": self.entity_minimum,
-            "entity_maximum": self.entity_maximum,
+            "key-field": self.key_field,
+            "entity-minimum": self.entity_minimum,
+            "entity-maximum": self.entity_maximum,
             "name": self.name,
-            "paint_options": self.paint_options,
+            "paint-options": self.paint_options,
             "plural": self.plural,
             "prefix": self.prefix,
             "text": self.text,

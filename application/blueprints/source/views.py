@@ -234,15 +234,23 @@ def mappings():
     return render_template("source/mappings.html")
 
 
-@source_bp.route("/<source_hash>/csv")
-def source_csv(source_hash):
+@source_bp.route("/<source_hash>/<filename>.csv")
+def source_csv(source_hash, filename):
     source = Source.query.get(source_hash)
     if source is None:
         return abort(404)
 
     csv_rows = []
-    for s in source.collection.sources:
-        csv_rows.append(s.to_csv_dict())
+    if filename == "source":
+        items = source.collection.sources
+    elif filename == "endpoint":
+        items = set([s.endpoint for s in source.collection.sources])
+    else:
+        abort(404)
+
+    for item in items:
+        csv_rows.append(item.to_csv_dict())
+
     out = io.StringIO()
     fieldnames = csv_rows[0].keys()
     writer = csv.DictWriter(out, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
@@ -256,6 +264,6 @@ def source_csv(source_hash):
     return send_file(
         buffer,
         as_attachment=True,
-        attachment_filename="source.csv",
+        attachment_filename=f"{filename}.csv",
         mimetype="text/csv",
     )
