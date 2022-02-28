@@ -195,6 +195,8 @@ class Dataset(DateModel):
         backref=db.backref("datasets", lazy=True),
     )
 
+    columns = db.relationship("Column", backref="dataset", lazy=True)
+
     def to_dict(self):
         return {
             "dataset": self.dataset,
@@ -223,6 +225,7 @@ class Typology(DateModel):
     plural = db.Column(db.Text)
     wikidata = db.Column(db.Text)
     wikipedia = db.Column(db.Text)
+    fields = db.relationship("Field", backref="typology", lazy=True)
 
 
 resource_endpoint = db.Table(
@@ -249,6 +252,8 @@ class Resource(DateModel):
         backref=db.backref("resources", lazy=True),
     )
 
+    columns = db.relationship("Column", backref="resource", lazy=True)
+
     def to_dict(self):
         return {
             "resource": self.resource,
@@ -256,3 +261,37 @@ class Resource(DateModel):
             "mime-type": self.mime_type,
             "bytes": self.bytes,
         }
+
+
+class Column(DateModel):
+
+    column = db.Column(db.Text, primary_key=True, nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
+    resource_id = db.Column(db.Text, db.ForeignKey("resource.resource"), nullable=True)
+
+
+class Datatype(DateModel):
+
+    datatype = db.Column(db.Text, primary_key=True, nullable=False)
+    name = db.Column(db.Text)
+    text = db.Column(db.Text)
+    fields = db.relationship("Field", backref="datatype", lazy=True)
+
+
+class Field(DateModel):
+
+    field = db.Column(db.Text, primary_key=True, nullable=False)
+    cardinality = db.Column(db.Text)
+    description = db.Column(db.Text)
+    guidance = db.Column(db.Text)
+    hint = db.Column(db.Text)
+    name = db.Column(db.Text)
+    parent_field = db.Column(db.Text)
+    replacement_field = db.Column(db.Text)
+    text = db.Column(db.Text)
+    uri_template = db.Column(db.Text)
+    wikidata_property = db.Column(db.Text)
+    datatype_id = db.Column(db.Text, db.ForeignKey("datatype.datatype"), nullable=True)
+    typology_id = db.Column(db.Text, db.ForeignKey("typology.typology"), nullable=True)
+    columns = db.relationship("Column", backref="field", lazy=True)

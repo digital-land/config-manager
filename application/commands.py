@@ -7,8 +7,11 @@ from sqlalchemy import and_, select
 
 from application.models import (
     Collection,
+    Column,
     Dataset,
+    Datatype,
     Endpoint,
+    Field,
     Organisation,
     Resource,
     Source,
@@ -19,8 +22,7 @@ from application.models import (
 
 management_cli = AppGroup("manage")
 
-digital_land_datasette = "https://datasette.digital-land.info/digital-land"
-
+digital_land_datasette = "https://development-datasette.digital-land.info/digital-land"
 model_classes = {
     "organisation": Organisation,
     "typology": Typology,
@@ -31,22 +33,24 @@ model_classes = {
     "resource": Resource,
     "resource_endpoint": resource_endpoint,
     "source_pipeline": source_dataset,
+    "datatype": Datatype,
+    "field": Field,
+    "column": Column,
 }
 
 
-ordered_tables = [
-    "organisation",
-    "typology",
-    "collection",
-    "dataset",
-    "endpoint",
-    "source",
-    "resource",
-    "resource_endpoint",
-    "source_pipeline",
-]
+ordered_tables = model_classes.keys()
 
-source_foreign_key_columns = ["organisation", "endpoint", "collection"]
+foreign_key_columns = [
+    "organisation",
+    "endpoint",
+    "collection",
+    "resource",
+    "datatype",
+    "typology",
+    "dataset",
+    "field",
+]
 
 test_ordered_tables = ["organisation", "typology", "collection", "dataset"]
 
@@ -152,17 +156,17 @@ def _load_data(columns, table, rows):
                 conn.execute(ins)
             else:
                 print(f"{i} already in db")
-
         else:
             try:
-                if table == "source":
-                    for fk_col in source_foreign_key_columns:
-                        key = i.pop(fk_col, None)
-                        if key is not None:
-                            one_to_many_class = model_classes[fk_col]
-                            related_obj = one_to_many_class.query.get(key)
-                            if related_obj is not None:
-                                i[fk_col] = related_obj
+                if table in ["source", "field", "column"]:
+                    for fk_col in foreign_key_columns:
+                        if table != fk_col:
+                            key = i.pop(fk_col, None)
+                            if key is not None:
+                                one_to_many_class = model_classes[fk_col]
+                                related_obj = one_to_many_class.query.get(key)
+                                if related_obj is not None:
+                                    i[fk_col] = related_obj
 
                 if db.session.query(model_class).get(i[table]) is None:
                     obj = model_class(**i)
