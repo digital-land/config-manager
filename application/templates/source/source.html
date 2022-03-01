@@ -69,7 +69,9 @@
       Datasets
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.datasets|datasets_string }}
+      {% for dataset in params.source.datasets %}
+        {{ dataset.name }}{{ ', ' if not loop.last else '' }}
+      {% endfor %}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
