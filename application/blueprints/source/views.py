@@ -121,7 +121,7 @@ def search():
 @source_bp.route("/add", methods=["GET", "POST"])
 def add():
     form = NewSourceForm()
-    if request.args.get("_change") and session["form_data"]:
+    if request.args.get("_change") and session.get("form_data"):
         set_form_values(form, session["form_data"])
 
     organisations = Organisation.query.order_by(Organisation.name).all()
