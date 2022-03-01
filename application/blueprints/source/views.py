@@ -58,7 +58,7 @@ def set_form_values(form, data):
 def create_source_data(form, _type="new"):
     if _type == "new":
         return {
-            "endpoint_url": form.endpoint_url.data,
+            "endpoint-url": form.endpoint_url.data,
             "organisation": form.organisation.data,
             "datasets": get_datasets(form.dataset.data),
             "documentation_url": form.documentation_url.data,
@@ -148,6 +148,8 @@ def add():
             )
             if existing_source is not None:
                 session["existing_source"] = existing_source
+            else:
+                session["existing_source"] = None
         session["form_data"] = create_source_data(form)
         return redirect(url_for("source.summary"))
     return render_template("source/create.html", form=form)
