@@ -1,2 +1,5 @@
 def datasets_string_filter(datasets):
-    return ", ".join([dataset.get("name") for dataset in datasets])
+    s = ""
+    for d in datasets:
+        s = s + d.name + ";"
+    return s
