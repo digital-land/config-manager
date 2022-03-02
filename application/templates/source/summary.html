@@ -7,69 +7,32 @@
 
 {% if existing_source %}
   <p class="govuk-body app-body__alert">You are editing a source that already exists.</p>
-
-  {% set existingSourceChangeHTML %}
-  <div class="app-card__header__actions">
-    <a href="{{ url_for('source.edit', source_hash=existing_source.source) }}" class="govuk-link">Edit</a>
-  </div>
-  {% endset %}
-
-  {{ fullSourceCard({
-    'source': existing_source,
-    'controls': {
-      'html': existingSourceChangeHTML
-    },
-    "reachable_url": url_reachable,
-    "edits": sources[0]
-  }) }}
-
-  <form method="get" action="{{ url_for('source.finish') }}">
-    {{ form.hidden_tag() }}
-    {%  for name, value in form.data.items() %}
-      <input type="hidden" name="{{ name }}" value="{{ value }}"/>
-    {% endfor %}
-    {% if existing_source %}
-      <input type="hidden" name="existing_source" value="{{ existing_source.source }}"/>
-    {%  endif %}
-    <div class="govuk-button-group">
-      <input class="govuk-button"  type="submit" value="Save changes to source" />
-      <a class="govuk-link" href="{{ url_for('source.add') }}">Cancel</a>
-    </div>
-  </form>
-
-
-{% else %}
-
-  {% set newSourceChangeHTML %}
-  <div class="app-card__header__actions">
-    <a href="{{ url_for('source.add', _change='true', **form.data) }}" class="govuk-link">Change</a>
-  </div>
-  {% endset %}
-
-  {% for source in sources %}
-  {{ fullSourceCard({
-    'source': source,
-    'controls': {
-      'html': newSourceChangeHTML
-    },
-    "reachable_url": url_reachable
-  }) }}
-  {% endfor %}
-
-  <form method="get" action="{{ url_for('source.finish') }}">
-    {{ form.hidden_tag() }}
-    {%  for name, value in form.data.items() %}
-      <input type="hidden" name="{{ name }}" value="{{ value }}"/>
-    {% endfor %}
-    {% if existing_source %}
-      <input type="hidden" name="existing_source" value="{{ existing_source.source }}"/>
-    {%  endif %}
-    <div class="govuk-button-group">
-      <input class="govuk-button"  type="submit" value="Save source{{ "s" if sources|length > 1 }}" />
-      <a class="govuk-link" href="{{ url_for('source.add') }}">Cancel</a>
-    </div>
-  </form>
-
-
 {% endif %}
+
+{{ fullSourceCard({
+  'source': sources[0],
+  "reachable_url": url_reachable,
+  "existing_source": existing_source,
+  "form": form
+}) }}
+
+<form method="get" action="{{ url_for('source.finish') }}">
+  {{ form.hidden_tag() }}
+  {%  for name, value in form.data.items() %}
+    <input type="hidden" name="{{ name }}" value="{{ value }}"/>
+  {% endfor %}
+  {% if existing_source %}
+    <input type="hidden" name="existing_source" value="{{ existing_source.source }}"/>
+  {%  endif %}
+  <div class="govuk-button-group">
+    {% if existing_source %}
+    <input class="govuk-button"  type="submit" value="Save changes to source" />
+    {% else %}
+    <input class="govuk-button"  type="submit" value="Save source{{ "s" if sources|length > 1 }}" />
+    {% endif %}
+    <a class="govuk-link" href="{{ url_for('source.add') }}">Cancel</a>
+  </div>
+</form>
+
+
 {% endblock content %}

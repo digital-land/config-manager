@@ -28,13 +28,20 @@
 {% endmacro %}
 
 {% macro fullSourceCard(params) %}
+{% set existingSourceChangeHTML %}
+
+  {% endset %}
 <article class="app-card app-card--result">
   <div class="app-card__header">
     <div class="app-card__header__secondary">
       <h3 class="govuk-heading-s app-card__header__title">Source</h3>
-      {% if params.controls %}
-      {{ params.controls.html|safe }}
-      {% endif %}
+      <div class="app-card__header__actions">
+        {% if params.existing_source %}
+        <a href="{{ url_for('source.edit', source_hash=params.existing_source.source) }}" class="govuk-link">Edit</a>
+        {%- else %}
+        <a href="{{ url_for('source.add', _change='true', **params.form.data) }}" class="govuk-link">Change</a>
+        {% endif -%}
+      </div>
     </div>
   </div>
 
@@ -47,11 +54,12 @@
             <dt class="govuk-summary-list__key">
               Url
             </dt>
-            <dd class="govuk-summary-list__value {{ 'app-summary-list__value--success' if params.reachable_url else 'app-summary-list__value--error' }}">
-              {{ params.source.endpoint_url }}
-              <span class="app-summary-list__value__annotation">
+            <dd class="govuk-summary-list__value{% if not params.existing_source %}
+              {{ 'app-summary-list__value--success' if params.reachable_url else 'app-summary-list__value--error' }}{% endif %}">
+              {{ params.existing_source.endpoint.endpoint_url if params.existing_source else params.source.endpoint_url }}
+              {% if not params.existing_source %}<span class="app-summary-list__value__annotation">
               {{ 'Url can be reached' if params.reachable_url else "Can't reach this url" }}
-              </span>
+              </span>{% endif %}
             </dd>
           </div>
           <div class="govuk-summary-list__row">
@@ -59,10 +67,13 @@
               Dataset
             </dt>
             <dd class="govuk-summary-list__value">
-              {{ params.source.dataset }}
-              {#{% for dataset in datasets %}
+              {% if params.existing_source %}
+              {% for dataset in params.existing_source.datasets %}
                 {{ dataset.name }}{{ ', ' if not loop.last else '' }}
-              {% endfor %}#}
+              {% endfor %}
+              {% else %}
+              {{ params.source.dataset }}
+              {% endif %}
             </dd>
           </div>
           <div class="govuk-summary-list__row">
@@ -70,7 +81,7 @@
               Organisation
             </dt>
             <dd class="govuk-summary-list__value">
-              {{ params.source.organisation }}
+              {{ params.existing_source.organisation.name if params.existing_source else params.source.organisation }}
             </dd>
           </div>
           <div class="govuk-summary-list__row">
@@ -78,28 +89,32 @@
              Documentation url
             </dt>
             <dd class="govuk-summary-list__value">
-            {% set original = params.source.documentation_url if params.source.documentation_url is not none else '' %}
-            {% if params.edits and original != params.edits.documentation_url %}
-              <div class="app-summary-list__value__item">
-                <span class="app-summary-list__value__type">Current:</span> {{ original }}
-              </div>
-              <div class="app-summary-list__value__item">
-                <span class="app-summary-list__value__type">Your edit:</span> {{ params.edits.documentation_url if params.edits.documentation_url }}
-              </div>
-            {% else %}
+              {% if params.existing_source %}
+                {% set original = params.existing_source.documentation_url if params.existing_source.documentation_url is not none else '' %}
+                {% if params.source.documentation_url != original %}
+                <div class="app-summary-list__value__item">
+                  <span class="app-summary-list__value__type">Current:</span> {{ original }}
+                </div>
+                <div class="app-summary-list__value__item">
+                  <span class="app-summary-list__value__type">Your edit:</span> {{ params.source.documentation_url if params.source.documentation_url }}
+                 </div>
+                {% else %}
+                  {{ params.source.documentation_url if params.source.documentation_url }}
+                {% endif %}
+              {% else %}
               {{ params.source.documentation_url if params.source.documentation_url }}
-            {% endif %}
+              {% endif %}
             </dd>
           </div>
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">
               Licence
             </dt>
-            {% if params.edits %}
+            {% if params.existing_source %}
               {{- summaryEditedField({
                 "value": {
-                  "original": params.source['licence'],
-                  "edited": params.edits['licence']
+                  "original": params.existing_source['licence'],
+                  "edited": params.source['licence']
                 },
                 "prop": "licence"
               }) -}}
@@ -114,11 +129,11 @@
             <dt class="govuk-summary-list__key">
               Attribution
             </dt>
-            {% if params.edits %}
+            {% if params.existing_source %}
               {{- summaryEditedField({
                 "value": {
-                  "original": params.source['attribution'],
-                  "edited": params.edits['attribution']
+                  "original": params.existing_source['attribution'],
+                  "edited": params.source['attribution']
                 },
                 "prop": "attribution"
               }) -}}
@@ -134,14 +149,18 @@
               Start date
             </dt>
             <dd class="govuk-summary-list__value">
-            {% set original = params.source.start_date if params.source.start_date is not none else '' %}
-            {% if params.edits and original != params.edits.start_date %}
-              <div class="app-summary-list__value__item">
-                <span class="app-summary-list__value__type">Current:</span> {{ original }}
-              </div>
-              <div class="app-summary-list__value__item">
-                <span class="app-summary-list__value__type">Your edit:</span> {{ params.edits.start_date if params.edits.start_date }}
-              </div>
+            {% if params.existing_source %}
+              {% set original = params.existing_source.start_date if params.existing_source.start_date is not none else '' %}
+              {% if params.source.start_date == original %}
+                {{ params.source.start_date if params.source.start_date }}
+              {% else %}
+                <div class="app-summary-list__value__item">
+                  <span class="app-summary-list__value__type">Current:</span> {{ original }}
+                </div>
+                <div class="app-summary-list__value__item">
+                  <span class="app-summary-list__value__type">Your edit:</span> {{ params.source.start_date if params.source.start_date }}
+                </div>
+              {% endif %}
             {% else %}
               {{ params.source.start_date if params.source.start_date }}
             {% endif %}
