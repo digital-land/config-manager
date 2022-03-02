@@ -9,7 +9,6 @@ from flask import (
     render_template,
     request,
     send_file,
-    session,
     url_for,
 )
 
@@ -124,10 +123,6 @@ def add():
     else:
         form = NewSourceForm()
 
-    # TODO - sort change flow
-    if request.args.get("_change") and session.get("form_data"):
-        set_form_values(form, session["form_data"])
-
     organisations = Organisation.query.order_by(Organisation.name).all()
     form.organisation.choices = [("", "")] + [
         (o.organisation, o.name) for o in organisations
@@ -141,7 +136,7 @@ def add():
     )
     form.dataset.choices = [("", "")] + [(d.dataset, d.name) for d in datasets]
 
-    if request.args and form.validate():
+    if request.args and not request.args.get("_change") and form.validate():
         endpoint_hash = compute_hash(form.endpoint_url.data.strip())
         endpoint = Endpoint.query.get(endpoint_hash)
         url_reachable = check_url_reachable(form.endpoint_url.data.strip())

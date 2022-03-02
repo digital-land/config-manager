@@ -40,7 +40,7 @@
 
   {% set newSourceChangeHTML %}
   <div class="app-card__header__actions">
-    <a href="{{ url_for('source.add', _change='true') }}" class="govuk-link">Change</a>
+    <a href="{{ url_for('source.add', _change='true', **form.data) }}" class="govuk-link">Change</a>
   </div>
   {% endset %}
 
