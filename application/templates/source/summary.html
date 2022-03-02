@@ -31,10 +31,12 @@
     {% if existing_source %}
       <input type="hidden" name="existing_source" value="{{ existing_source.source }}"/>
     {%  endif %}
-    <input class="govuk-button"  type="submit" value="Save changes to source" />
+    <div class="govuk-button-group">
+      <input class="govuk-button"  type="submit" value="Save changes to source" />
+      <a class="govuk-link" href="{{ url_for('source.add') }}">Cancel</a>
+    </div>
   </form>
 
-  <a class="govuk-link" href="{{ url_for('source.add') }}">Cancel</a>
 
 {% else %}
 
@@ -62,10 +64,12 @@
     {% if existing_source %}
       <input type="hidden" name="existing_source" value="{{ existing_source.source }}"/>
     {%  endif %}
-    <input class="govuk-button"  type="submit" value="Save source{{ "s" if sources|length > 1 }}" />
+    <div class="govuk-button-group">
+      <input class="govuk-button"  type="submit" value="Save source{{ "s" if sources|length > 1 }}" />
+      <a class="govuk-link" href="{{ url_for('source.add') }}">Cancel</a>
+    </div>
   </form>
 
-  <a class="govuk-link" href="{{ url_for('source.add') }}">Cancel</a>
 
 {% endif %}
 {% endblock content %}
