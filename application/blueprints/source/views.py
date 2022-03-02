@@ -216,10 +216,10 @@ def edit(source_hash):
     if form.validate_on_submit():
         # if endpoint, org or dataset have changed then has the source changed or is it a new one
         # so ignore those for now
-        session["url_reachable"] = True
-        session["existing_source"] = source
-        session["form_data"] = create_source_data(form, _type="edit")
-        return redirect(url_for("source.summary"))
+        params = create_source_data(form, _type="edit")
+        params["existing_source"] = source.source
+        params["url_reachable"] = True
+        return redirect(url_for("source.summary", **params))
 
     cancel_href = url_for("source.source", source_hash=source.source)
     if url_for("source.summary") in request.referrer:
