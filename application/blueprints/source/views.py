@@ -159,7 +159,9 @@ def summary():
     form = NewSourceForm(request.args)
     url_reachable = request.args.get("url_reachable", None)
     existing_source_id = request.args.get("existing_source", None)
-    existing_source = Source.query.get(existing_source_id)
+    existing_source = (
+        Source.query.get(existing_source_id) if existing_source_id is not None else None
+    )
     dataset = Dataset.query.get(form.dataset.data)
     organisation = Organisation.query.get(form.organisation.data)
     return render_template(
