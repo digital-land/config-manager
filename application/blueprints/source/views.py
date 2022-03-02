@@ -60,7 +60,7 @@ def create_source_data(form, _type="new"):
         return {
             "endpoint_url": form.endpoint_url.data,
             "organisation": form.organisation.data,
-            "datasets": get_datasets(form.dataset.data),
+            "dataset": form.dataset.data,
             "documentation_url": form.documentation_url.data,
             "licence": form.licence.data,
             "attribution": form.attribution.data,
@@ -76,27 +76,26 @@ def create_source_data(form, _type="new"):
 
 
 def create_or_update_endpoint(data):
-    endpoint_url = data.pop("endpoint_url").strip()
+    endpoint_url = data.get("endpoint_url").strip()
     hashed_url = compute_hash(endpoint_url)
     endpoint = Endpoint.query.get(hashed_url)
     if endpoint is None:
         endpoint = Endpoint(endpoint=hashed_url, endpoint_url=endpoint_url)
-    datasets = data.pop("datasets")
-    for dataset in datasets:
-        ds = Dataset.query.get(dataset["dataset"])
-        collection = Collection.query.get(ds.collection)
-        organisation_id = data["organisation"]
-        organisation = Organisation.query.get(organisation_id)
-        source_key = f"{collection}|{organisation.organisation}|{endpoint.endpoint}"
-        source_key = compute_md5_hash(source_key)
-        source = Source(
-            source=source_key,
-            collection=collection,
-            organisation=organisation,
-        )
-        source.update(data)
-        ds.sources.append(source)
-        endpoint.sources.append(source)
+    dataset = data.get("dataset")
+    ds = Dataset.query.get(dataset)
+    collection = Collection.query.get(ds.collection)
+    organisation_id = data.get("organisation")
+    organisation = Organisation.query.get(organisation_id)
+    source_key = f"{collection}|{organisation.organisation}|{endpoint.endpoint}"
+    source_key = compute_md5_hash(source_key)
+    source = Source(
+        source=source_key,
+        collection=collection,
+        organisation=organisation,
+    )
+    source.update(data)
+    ds.sources.append(source)
+    endpoint.sources.append(source)
     return endpoint
 
 
@@ -118,9 +117,14 @@ def search():
     return render_template("source/search.html", form=form, sources=sources)
 
 
-@source_bp.route("/add", methods=["GET", "POST"])
+@source_bp.get("/add")
 def add():
-    form = NewSourceForm()
+    if request.args:
+        form = NewSourceForm(request.args)
+    else:
+        form = NewSourceForm()
+
+    # TODO - sort change flow
     if request.args.get("_change") and session.get("form_data"):
         set_form_values(form, session["form_data"])
 
@@ -137,46 +141,54 @@ def add():
     )
     form.dataset.choices = [("", "")] + [(d.dataset, d.name) for d in datasets]
 
-    if form.validate_on_submit():
-        session["url_reachable"] = check_url_reachable(form.endpoint_url.data.strip())
+    if request.args and form.validate():
         endpoint_hash = compute_hash(form.endpoint_url.data.strip())
         endpoint = Endpoint.query.get(endpoint_hash)
+        url_reachable = check_url_reachable(form.endpoint_url.data.strip())
+        query_params = {"url_reachable": url_reachable, **request.args}
         if endpoint is not None:
             # will need to update when/if user can put multiple datasets
             existing_source = endpoint.get_matching_source(
                 form.organisation.data, form.dataset.data
             )
             if existing_source is not None:
-                session["existing_source"] = existing_source
-        session["form_data"] = create_source_data(form)
-        return redirect(url_for("source.summary"))
+                query_params["existing_source"] = existing_source
+
+        return redirect(url_for("source.summary", **query_params))
+
     return render_template("source/create.html", form=form)
 
 
-@source_bp.route("/add/summary")
+@source_bp.get("/add/summary")
 def summary():
-    url_reachable = session.pop("url_reachable", None)
+    form = NewSourceForm(request.args)
+    url_reachable = request.args.get("url_reachable", None)
+    existing_source_id = request.args.get("existing_source", None)
+    existing_source = Source.query.get(existing_source_id)
+    dataset = Dataset.query.get(form.dataset.data)
+    organisation = Organisation.query.get(form.organisation.data)
     return render_template(
         "source/summary.html",
-        sources=[session.get("form_data")],
-        existing_source=session.get("existing_source"),
+        sources=[form.data],
+        existing_source=existing_source,
         url_reachable=url_reachable,
+        organisation=organisation,
+        dataset=dataset,
+        form=form,
     )
 
 
-@source_bp.route("/add/finish")
+@source_bp.get("/add/finish")
 def finish():
-    existing_source = session.pop("existing_source", None)
-    form_data = session.pop("form_data", None)
-    if not form_data:
-        return redirect(url_for("source.add"))
+    form = NewSourceForm(request.args)
+    existing_source = request.args.get("existing_source", None)
     if existing_source is None:
-        endpoint = create_or_update_endpoint(form_data)
+        endpoint = create_or_update_endpoint(form.data)
         db.session.add(endpoint)
         source = endpoint.sources[-1]
     else:
-        source = Source.query.get(existing_source["source"])
-        source.update(form_data)
+        source = Source.query.get(existing_source)
+        source.update(form.data)
         db.session.add(source)
     db.session.commit()
     return render_template("source/finish.html", source=source)

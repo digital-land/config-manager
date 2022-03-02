@@ -47,8 +47,16 @@
   }) }}
   {% endfor %}
 
-  <a href="{{ url_for('source.finish') }}" class="govuk-button">Save source{{ "s" if sources|length > 1 }}</a>
+<form method="get" action="{{ url_for('source.finish') }}">
+  {{ form.hidden_tag() }}
+  {%  for name, value in form.data.items() %}
+    <input type="hidden" name="{{ name }}" value="{{ value }}"/>
+  {% endfor %}
+  {% if existing_source %}
+    <input type="hidden" name="existing_source" value="{{ existing_source.source }}"/>
+  {%  endif %}
+  <input class="govuk-button"  type="submit" value="Save source{{ "s" if sources|length > 1 }}" />
+</form>
 
 {% endif %}
-
 {% endblock content %}

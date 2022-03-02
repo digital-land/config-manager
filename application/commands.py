@@ -22,7 +22,7 @@ from application.models import (
 
 management_cli = AppGroup("manage")
 
-digital_land_datasette = "https://datasette.digital-land.info/digital-land"
+digital_land_datasette = "https://development-datasette.digital-land.info/digital-land"
 model_classes = {
     "organisation": Organisation,
     "typology": Typology,

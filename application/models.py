@@ -124,7 +124,7 @@ class Endpoint(DateModel):
             if source.organisation.organisation == organisation:
                 for ds in source.datasets:
                     if ds.dataset == dataset:
-                        return source
+                        return source.source
         else:
             return None
 
