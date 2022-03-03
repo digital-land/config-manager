@@ -7,7 +7,7 @@
 {% block content %}
 <h1 class="govuk-heading-xl">Create a source entry</h1>
 
-<form method="POST" action="{{ url_for('source.add') }}" class="govuk-form">
+<form method="GET" action="{{ url_for('source.add') }}" class="govuk-form">
   {{ form.hidden_tag() }}
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">

@@ -1,5 +1,3 @@
-import datetime
-
 from sqlalchemy.dialects.postgresql import JSON
 
 from application.extensions import db
@@ -9,7 +7,7 @@ class DateModel(db.Model):
 
     __abstract__ = True
 
-    entry_date = db.Column(db.Date, default=datetime.datetime.now().isoformat())
+    entry_date = db.Column(db.Date)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
 
@@ -124,7 +122,7 @@ class Endpoint(DateModel):
             if source.organisation.organisation == organisation:
                 for ds in source.datasets:
                     if ds.dataset == dataset:
-                        return source
+                        return source.source
         else:
             return None
 

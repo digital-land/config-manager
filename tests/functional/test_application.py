@@ -36,7 +36,11 @@ def test_add_source(server_process, page):
         'select[name="organisation"]', "local-authority-eng:KET", force=True
     )
     page.click("text=Save and continue")
-    assert page.url == f"{BASE_URL}/source/add/summary"
+    assert page.url.startswith(f"{BASE_URL}/source/add/summary")
 
-    page.click("[href='/source/add/finish']")
-    assert page.url == f"{BASE_URL}/source/add/finish"
+    if page.locator("text=Save source").is_visible():
+        page.click("text=Save source")
+    if page.locator("text=Save changes to source").is_visible():
+        page.click("text=Save changes to source")
+
+    assert page.url.startswith(f"{BASE_URL}/source/add/finish")
