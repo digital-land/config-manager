@@ -83,7 +83,7 @@ def create_or_update_endpoint(data):
         endpoint = Endpoint(
             endpoint=hashed_url,
             endpoint_url=endpoint_url,
-            entry_date=datetime.datetime.now().isoformat(),
+            entry_date=datetime.now().isoformat(),
         )
     dataset = data.get("dataset")
     ds = Dataset.query.get(dataset)
@@ -96,7 +96,7 @@ def create_or_update_endpoint(data):
         source=source_key,
         collection=collection,
         organisation=organisation,
-        entry_date=datetime.datetime.now().isoformat(),
+        entry_date=datetime.now().isoformat(),
     )
     source.update(data)
     ds.sources.append(source)
