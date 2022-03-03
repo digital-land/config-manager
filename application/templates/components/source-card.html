@@ -151,7 +151,7 @@
             <dd class="govuk-summary-list__value">
             {% if params.existing_source %}
               {% set original = params.existing_source.start_date if params.existing_source.start_date is not none else '' %}
-              {% if params.source.start_date == original %}
+              {% if params.source.start_date == original.strftime("%Y-%m-%d") %}
                 {{ params.source.start_date if params.source.start_date }}
               {% else %}
                 <div class="app-summary-list__value__item">
