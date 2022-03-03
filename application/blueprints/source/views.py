@@ -259,12 +259,17 @@ def source_csv(source_hash, filename):
     if filename == "source":
         items = source.collection.sources
     elif filename == "endpoint":
-        items = set([s.endpoint for s in source.collection.sources])
+        items = set(
+            [s.endpoint for s in source.collection.sources if s.endpoint is not None]
+        )
     else:
         abort(404)
 
     for item in items:
-        csv_rows.append(item.to_csv_dict())
+        try:
+            csv_rows.append(item.to_csv_dict())
+        except Exception as e:
+            print(e)
 
     out = io.StringIO()
     fieldnames = csv_rows[0].keys()
