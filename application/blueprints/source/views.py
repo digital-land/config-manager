@@ -1,5 +1,6 @@
 import csv
 import io
+from datetime import datetime
 
 from flask import (
     Blueprint,
@@ -79,7 +80,11 @@ def create_or_update_endpoint(data):
     hashed_url = compute_hash(endpoint_url)
     endpoint = Endpoint.query.get(hashed_url)
     if endpoint is None:
-        endpoint = Endpoint(endpoint=hashed_url, endpoint_url=endpoint_url)
+        endpoint = Endpoint(
+            endpoint=hashed_url,
+            endpoint_url=endpoint_url,
+            entry_date=datetime.datetime.now().isoformat(),
+        )
     dataset = data.get("dataset")
     ds = Dataset.query.get(dataset)
     collection = Collection.query.get(ds.collection)
@@ -91,6 +96,7 @@ def create_or_update_endpoint(data):
         source=source_key,
         collection=collection,
         organisation=organisation,
+        entry_date=datetime.datetime.now().isoformat(),
     )
     source.update(data)
     ds.sources.append(source)
