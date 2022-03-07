@@ -79,9 +79,10 @@ class Source(DateModel):
     # Only needed until csv output for existing data processing no longer required
     def to_csv_dict(self):
         return {
+            "source": self.source,
             "attribution": self.attribution,
             "collection": self.collection.collection if self.collection else None,
-            "documentation_url": self.documentation_url,
+            "documentation-url": self.documentation_url,
             "endpoint": self.endpoint.endpoint if self.endpoint else None,
             "licence": self.licence,
             "organisation": self.organisation.organisation
