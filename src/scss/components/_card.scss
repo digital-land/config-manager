@@ -95,3 +95,13 @@
   @include govuk-font($size: 16);
   color: $govuk-secondary-text-colour;
 }
+
+.app-card__footer__actions__heading {
+  display: inline;
+  color: govuk-colour('dark-grey');
+  @include govuk-responsive-margin(3, 'right');
+}
+
+.app-card__footer__actions__action:not(:last-of-type) {
+  @include govuk-responsive-margin(3, 'right');
+}

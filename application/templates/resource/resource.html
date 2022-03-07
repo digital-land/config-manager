@@ -4,40 +4,60 @@
 {% block content %}
 <h1 class="govuk-heading-xl">Resource record</h1>
 
-<dl class="govuk-summary-list">
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Resource
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ resource.resource }}
-    </dd>
+<article class="app-card app-card--result">
+
+  <div class="app-card__body">
+
+    <div class="app-card__row">
+      <div class="app-card__properties">
+        <dl class="govuk-summary-list">
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Resource
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ resource.resource }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Collected on
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ resource.start_date }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Bytes
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ resource.bytes }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Mime type
+            </dt>
+            <dd class="govuk-summary-list__value">
+              {{ resource['mime-type'] }}
+            </dd>
+          </div>
+        </dl>
+
+      </div>
+    </div>
+
+  </div><!-- /.app-card__body -->
+  <div class="app-card__footer">
+    <nav class="app-card__footer__actions">
+      <h4 class="govuk-heading-xs app-card__footer__actions__heading">Actions</h4>
+      <a href="{{ url_for('resource.columns', resource_hash=resource.resource) }}" class="govuk-link app-card__footer__actions__action">Map columns<span class="govuk-visually-hidden"> seen in this resource</span></a>
+      <a href="#" class="govuk-link app-card__footer__actions__action app-link--destructive">Archive<span class="govuk-visually-hidden"> this resource</span></a>
+    </nav>
   </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Collected on
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ resource.start_date }}
-    </dd>
-  </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Bytes
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ resource.bytes }}
-    </dd>
-  </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
-      Mime type
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ resource['mime-type'] }}
-    </dd>
-  </div>
-</dl>
+
+</article>
 
 
 <div class="govuk-grid-row govuk-!-margin-top-9">
