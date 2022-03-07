@@ -47,7 +47,7 @@ def get_resource_datasets(resource):
     for ep in resource.endpoints:
         for source in ep.sources:
             for dataset in source.datasets:
-                datasets.append(dataset.dataset)
+                datasets.append(dataset)
     return datasets
 
 
@@ -60,7 +60,7 @@ def columns(resource_hash):
     dataset = datasets[0]
     # getting exisiting mappings - ignore any that have end-dates
     existing_mappings = Column.query.filter(
-        Column.dataset_id == dataset, Column.end_date.is_(None)
+        Column.dataset_id == dataset.dataset, Column.end_date.is_(None)
     ).all()
     global_mappings = [
         mapping for mapping in existing_mappings if mapping.resource is None
