@@ -29,7 +29,7 @@
         <span class="app-mapping-item__invisible">map to</span>
         <h5 class="govuk-heading-s app-mapping-item__heading">Schema<span class="govuk-visually-hidden"> headings</span></h5>
       </li>
-      {% for col in existing_mappings %}
+      {% for col in global_mappings %}
       <li class="app-mapping-item">
         <span class="app-mapping-item__unit">{{ col.column }}</span>
         <span>is mapped to</span>
@@ -39,6 +39,24 @@
     </ul>
   </div>
 </div>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h3 class="govuk-heading-m govuk-!-margin-top-6">Resource mappings</h3>
+    <p class="govuk-body">When processing this resource to extract {{ dataset }} data the following resource specific column mappings are applied.</p>
+    <p class="govuk-body">Resource mappings replace global mappings for the same column.</p>
+    {% if resource_mappings|length == 0 %}
+    <div class="govuk-warning-text">
+      <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+      <strong class="govuk-warning-text__text">
+        <span class="govuk-warning-text__assistive">Warning</span>
+        No resource specific mappings have been set.
+      </strong>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
 {% endfor %}
 
 {% endblock content %}

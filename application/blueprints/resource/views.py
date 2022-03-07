@@ -58,9 +58,18 @@ def columns(resource_hash):
 
     # start with one set of mappings for now
     dataset = datasets[0]
+    # getting exisiting mappings - ignore any that have end-dates
     existing_mappings = Column.query.filter(
         Column.dataset_id == dataset, Column.end_date.is_(None)
     ).all()
+    global_mappings = [
+        mapping for mapping in existing_mappings if mapping.resource is None
+    ]
+    resource_mappings = [
+        mapping
+        for mapping in existing_mappings
+        if mapping.resource == resource.resource
+    ]
     # To do: get columns/attr names from the original resource
     # To do: get expected/allowable attributes from schema
     # To do: get mappings between columns and expected columns
@@ -69,7 +78,8 @@ def columns(resource_hash):
         "resource/columns.html",
         resource=resource,
         datasets=datasets,
-        existing_mappings=existing_mappings,
+        global_mappings=global_mappings,
+        resource_mappings=resource_mappings,
     )
 
 
