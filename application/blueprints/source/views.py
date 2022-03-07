@@ -259,9 +259,12 @@ def source_csv(source_hash, filename):
     if filename == "source":
         items = source.collection.sources
     elif filename == "endpoint":
-        items = set(
-            [s.endpoint for s in source.collection.sources if s.endpoint is not None]
-        )
+        seen = set([])
+        items = []
+        for s in source.collection.sources:
+            if s.endpoint is not None and s.endpoint.endpoint not in seen:
+                items.append(s.endpoint)
+                seen.add(s.endpoint.endpoint)
     else:
         abort(404)
 
@@ -273,7 +276,7 @@ def source_csv(source_hash, filename):
 
     out = io.StringIO()
     fieldnames = csv_rows[0].keys()
-    writer = csv.DictWriter(out, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+    writer = csv.DictWriter(out, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL)
     writer.writeheader()
     for row in csv_rows:
         writer.writerow(row)
