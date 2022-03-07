@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, redirect, render_template, url_for
 
 from application.blueprints.resource.forms import SearchForm
-from application.models import Resource
+from application.models import Column, Resource
 
 resource_bp = Blueprint("resource", __name__, url_prefix="/resource")
 
@@ -42,13 +42,35 @@ def resource_json(resource_hash):
     return {}, 404
 
 
+def get_resource_datasets(resource):
+    datasets = []
+    for ep in resource.endpoints:
+        for source in ep.sources:
+            for dataset in source.datasets:
+                datasets.append(dataset.dataset)
+    return datasets
+
+
 @resource_bp.route("/<resource_hash>/columns")
 def columns(resource_hash):
+    resource = Resource.query.get(resource_hash)
+    datasets = get_resource_datasets(resource)
+
+    # start with one set of mappings for now
+    dataset = datasets[0]
+    existing_mappings = Column.query.filter(
+        Column.dataset_id == dataset, Column.end_date.is_(None)
+    ).all()
     # To do: get columns/attr names from the original resource
     # To do: get expected/allowable attributes from schema
     # To do: get mappings between columns and expected columns
     # To do: link to somewhere to edit mappings
-    return render_template("resource/columns.html")
+    return render_template(
+        "resource/columns.html",
+        resource=resource,
+        datasets=datasets,
+        existing_mappings=existing_mappings,
+    )
 
 
 @resource_bp.route("/<resource_hash>/values")
