@@ -48,7 +48,7 @@ def get_resource_datasets(resource):
         for source in ep.sources:
             for dataset in source.datasets:
                 datasets.append(dataset)
-    return datasets
+    return list(set(datasets))
 
 
 @resource_bp.route("/<resource_hash>/columns")
@@ -59,16 +59,20 @@ def columns(resource_hash):
     # start with one set of mappings for now
     dataset = datasets[0]
     # getting exisiting mappings - ignore any that have end-dates
-    existing_mappings = Column.query.filter(
-        Column.dataset_id == dataset.dataset, Column.end_date.is_(None)
-    ).all()
-    global_mappings = [
+    existing_mappings = (
+        Column.query.filter(
+            Column.dataset_id == dataset.dataset, Column.end_date.is_(None)
+        )
+        .order_by(Column.field_id)
+        .all()
+    )
+    dataset_mappings = [
         mapping for mapping in existing_mappings if mapping.resource is None
     ]
     resource_mappings = [
         mapping
         for mapping in existing_mappings
-        if mapping.resource == resource.resource
+        if mapping.resource and mapping.resource.resource == resource.resource
     ]
     # To do: get columns/attr names from the original resource
     # To do: get expected/allowable attributes from schema
@@ -78,7 +82,7 @@ def columns(resource_hash):
         "resource/columns.html",
         resource=resource,
         datasets=datasets,
-        global_mappings=global_mappings,
+        dataset_mappings=dataset_mappings,
         resource_mappings=resource_mappings,
     )
 

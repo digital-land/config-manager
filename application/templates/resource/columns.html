@@ -1,4 +1,5 @@
 {% extends 'layouts/base.html' %}
+{% from "govuk_frontend_jinja/components/accordion/macro.html" import govukAccordion %}
 
 {% block beforeContent %}
 {{ super() }}
@@ -19,22 +20,22 @@
 {% for dataset in datasets %}
 <h2 class="govuk-heading-l">{{ dataset.name }}</h2>
 
+{% set datasetHeaderHTML %}
+<h3 class="govuk-heading-m">Dataset mappings</h3>
+<p class="govuk-body govuk-!-margin-bottom-0">{{ dataset_mappings|length }} mapping rules set for the {{ dataset.name }} dataset.</p>
+{% endset %}
+
+{% set datasetHTML %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <h3 class="govuk-heading-m">Global mappings</h3>
-    <p class="govuk-body">When we process this resource to extract {{ dataset.name }} data the following global column mappings are applied</p>
-  </div>
-</div>
-
-<div class="govuk-grid-row">
-  <div class="govuk-grid-column-one-half">
+    <p class="govuk-body">When we process this resource to extract {{ dataset.name }} data the following dataset column mappings are applied</p>
     <ul class="govuk-list app-mapping-list">
       <li class="app-mapping-item">
         <h5 class="govuk-heading-s app-mapping-item__heading">Resource<span class="govuk-visually-hidden"> headings</span></h5>
         <span class="app-mapping-item__invisible">map to</span>
         <h5 class="govuk-heading-s app-mapping-item__heading">Schema<span class="govuk-visually-hidden"> headings</span></h5>
       </li>
-      {% for col in global_mappings %}
+      {% for col in dataset_mappings %}
       <li class="app-mapping-item">
         <span class="app-mapping-item__unit">{{ col.column }}</span>
         <span class="app-mapping-item__label"><span>is mapped to</span></span>
@@ -44,10 +45,16 @@
     </ul>
   </div>
 </div>
+{% endset %}
 
+{% set resourceHeaderHTML %}
+<h3 class="govuk-heading-m">Resource mappings</h3>
+<p class="govuk-body govuk-!-margin-bottom-0">{{ resource_mappings|length }} mapping rules set for the resource.</p>
+{% endset %}
+
+{% set resourceHTML %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <h3 class="govuk-heading-m govuk-!-margin-top-6">Resource mappings</h3>
     <p class="govuk-body">When processing this resource to extract {{ dataset.name }} data the following resource specific column mappings are applied.</p>
     <p class="govuk-body">Resource mappings replace global mappings for the same column.</p>
     {% if resource_mappings|length == 0 %}
@@ -58,9 +65,48 @@
         No resource specific mappings have been set.
       </strong>
     </div>
+    {% else %}
+    <ul class="govuk-list app-mapping-list">
+      <li class="app-mapping-item">
+        <h5 class="govuk-heading-s app-mapping-item__heading">Resource<span class="govuk-visually-hidden"> headings</span></h5>
+        <span class="app-mapping-item__invisible">map to</span>
+        <h5 class="govuk-heading-s app-mapping-item__heading">Schema<span class="govuk-visually-hidden"> headings</span></h5>
+      </li>
+      {% for col in resource_mappings %}
+      <li class="app-mapping-item">
+        <span class="app-mapping-item__unit">{{ col.column }}</span>
+        <span class="app-mapping-item__label"><span>is mapped to</span></span>
+        <span class="app-mapping-item__unit">{{ col.field_id }}</span>
+      </li>
+      {% endfor %}
+    </ul>
     {% endif %}
   </div>
 </div>
+{% endset %}
+
+{{ govukAccordion({
+  "id": "accordion-default",
+  "items": [
+    {
+      "heading": {
+        "html": datasetHeaderHTML
+      },
+      "content": {
+        "html": datasetHTML
+      }
+    },
+    {
+      "heading": {
+        "text": resourceHeaderHTML
+      },
+      "content": {
+        "html": resourceHTML
+      }
+    }
+  ]
+}) }}
+
 
 {% endfor %}
 
