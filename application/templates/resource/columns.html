@@ -1,5 +1,10 @@
 {% extends 'layouts/base.html' %}
 
+{% block beforeContent %}
+{{ super() }}
+<a href="{{ url_for('resource.resource', resource_hash=resource.resource) }}" class="govuk-back-link">Back to resource</a>
+{% endblock beforeContent %}
+
 {% block content %}
 <span class="govuk-caption-xl">Resource - {{ resource.resource|truncate(15) }}</span>
 <h1 class="govuk-heading-xl">Columns</h1>
@@ -32,7 +37,7 @@
       {% for col in global_mappings %}
       <li class="app-mapping-item">
         <span class="app-mapping-item__unit">{{ col.column }}</span>
-        <span>is mapped to</span>
+        <span class="app-mapping-item__label"><span>is mapped to</span></span>
         <span class="app-mapping-item__unit">{{ col.field_id }}</span>
       </li>
       {% endfor %}

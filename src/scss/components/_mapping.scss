@@ -37,3 +37,27 @@
   padding: govuk-spacing(1);
   border: 4px solid $govuk-border-colour;
 }
+
+.app-mapping-item__label {
+  position: relative;
+  flex-grow: 2;
+  text-align: center;
+
+  &:before {
+    content: "";
+    position: absolute;
+    top: calc(50% - 1px);
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: govuk-colour('blue');
+    background: govuk-colour('black');
+  }
+
+  span {
+    position: relative;
+    padding: 0 10px;
+    background: govuk-colour('white');
+    z-index: 2;
+  }
+}
