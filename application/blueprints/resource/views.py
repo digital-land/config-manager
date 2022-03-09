@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, redirect, render_template, url_for
 
-from application.blueprints.resource.forms import SearchForm
+from application.blueprints.resource.forms import MappingForm, SearchForm
 from application.models import Column, Resource
 
 resource_bp = Blueprint("resource", __name__, url_prefix="/resource")
@@ -84,6 +84,24 @@ def columns(resource_hash):
         datasets=datasets,
         dataset_mappings=dataset_mappings,
         resource_mappings=resource_mappings,
+    )
+
+
+@resource_bp.route("/<resource_hash>/columns/add", methods=["GET", "POST"])
+def columns_add(resource_hash):
+    form = MappingForm()
+    resource = Resource.query.get(resource_hash)
+
+    if form.validate_on_submit():
+        return redirect(url_for("resource.columns", resource_hash=resource_hash))
+
+    return render_template(
+        "resource/column-add.html",
+        resource=resource,
+        form=form,
+        sample_row={},
+        missing_fields=[],
+        available_columns=[],
     )
 
 

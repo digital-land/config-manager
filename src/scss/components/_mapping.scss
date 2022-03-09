@@ -61,3 +61,19 @@
     z-index: 2;
   }
 }
+
+
+// Form for adding mappings
+// ========================
+
+.app-mapping-rule__input {
+  margin-right: 5px;
+
+  &:first-of-type {
+    margin-bottom: 10px;
+  }
+}
+
+.app-mapping-rule__label {
+  @include govuk-font($size: 19);
+}

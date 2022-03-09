@@ -81,6 +81,7 @@
       {% endfor %}
     </ul>
     {% endif %}
+    <a href="{{ url_for('resource.columns_add', resource_hash=resource.resource) }}" class="govuk-button">Add new rule</a>
   </div>
 </div>
 {% endset %}

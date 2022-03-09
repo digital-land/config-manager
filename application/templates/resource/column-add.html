@@ -1,0 +1,43 @@
+{% extends 'layouts/base.html' %}
+{% from "govuk_frontend_jinja/components/details/macro.html" import govukDetails %}
+
+{% block beforeContent %}
+{{ super() }}
+<a href="{{ url_for('resource.columns', resource_hash=resource.resource) }}" class="govuk-back-link">Back to list of column rules</a>
+{% endblock beforeContent %}
+
+{% block content %}
+<span class="govuk-caption-xl">Resource - {{ resource.resource|truncate(15) }}</span>
+<h1 class="govuk-heading-xl">Add column rule</h1>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">Select the name of a column found in the resource. Then select the name of a field from the [dataset] dataset to map it to.</p>
+  </div>
+</div>
+
+{{ govukDetails({
+  "summaryText": "Sample row from resource",
+  "text": "We need to know your nationality so we can work out which elections you’re entitled to vote in. If you cannot provide your nationality, you’ll have to send copies of identity documents through the post."
+}) }}
+
+<form action="{{ url_for('resource.columns_add', resource_hash=resource.resource) }}" class="govuk-form" method="POST">
+
+
+  <div class="govuk-form-group{{ ' govuk-form-group--error' if form.errors.keys()|length }}">
+    <label for="column" class="govuk-label app-mapping-rule__label">I want any data in the</label>
+    {{ form.column(required=False, class="govuk-input app-mapping-rule__input govuk-input--width-10")}}<span class="app-mapping-rule__label"> column</span>
+    <p class="app-mapping-rule__label govuk-!-margin-top-1 govuk-!-margin-bottom-1">to be used for the</p>
+    {{ form.field(required=False, class="govuk-input app-mapping-rule__input govuk-input--width-10")}}<span class="app-mapping-rule__label"> field.</span>
+    {%- if form.errors.keys()|length %}
+    <p class='govuk-error-message govuk-!-margin-top-2'>You need to select a value for each input</p>
+    {% endif -%}
+  </div>
+
+  <div class="govuk-button-group">
+    <button class="govuk-button">Save rule</button>
+    <a href="{{ url_for('resource.columns', resource_hash=resource.resource) }}" class="govuk-link">Cancel</a>
+  </div>
+</form>
+
+{% endblock content %}
