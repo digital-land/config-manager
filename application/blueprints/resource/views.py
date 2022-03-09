@@ -28,6 +28,11 @@ def search():
     return render_template("resource/search.html", form=form, resources=resources)
 
 
+@resource_bp.route("/rules")
+def rules():
+    return render_template("resource/rules.html")
+
+
 @resource_bp.route("/<resource_hash>")
 def resource(resource_hash):
     resource = Resource.query.get(resource_hash)

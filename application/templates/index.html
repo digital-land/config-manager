@@ -19,6 +19,7 @@
   </section>
 
   <section class="govuk-width-container app-tools-list">
+    <h2 class="govuk-heading-m">Tools</h2>
     <div class="govuk-grid-row">
       <div class="govuk-grid-column-one-third">
         <a class="app-tools-list__item" href="{{ url_for('source.search') }}">
@@ -50,6 +51,18 @@
         <a class="app-tools-list__item" href="#">
           <h3 class="govuk-heading-s app-tools-list__item__heading">Create resource mappings</h3>
           <p class="govuk-body">Use this tool to map columns in a resource to expected column names.</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="govuk-width-container app-tools-list">
+    <h2 class="govuk-heading-m">Documentation</h2>
+    <div class="govuk-grid-row">
+      <div class="govuk-grid-column-one-third">
+        <a class="app-tools-list__item" href="{{ url_for('resource.rules') }}">
+          <h3 class="govuk-heading-s app-tools-list__item__heading">Resource rules</h3>
+          <p class="govuk-body">The types of rules that are used when processing resources.</p>
         </a>
       </div>
     </div>
