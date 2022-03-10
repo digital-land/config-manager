@@ -183,6 +183,10 @@ def summary():
 
 @source_bp.get("/add/finish")
 def finish():
+    # user is not at the end of the add a source journey
+    if len(request.args) == 0:
+        return redirect(url_for("source.add"))
+
     form = NewSourceForm(request.args)
     existing_source = request.args.get("existing_source", None)
     if existing_source is None:
