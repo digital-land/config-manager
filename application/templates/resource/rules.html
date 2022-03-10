@@ -20,7 +20,10 @@
 
 <h3 class="govuk-heading-s">Example</h3>
 <p class="govuk-body">If we have the rule:</p>
-<p class="govuk-body"><strong>HazSub</strong> to <strong>hazardous-substances</strong></p>
+
+<div class="app-rule-example">
+  Map <span class="app-rule-example__item">HazSub</span> to <span class="app-rule-example__item">hazardous-substances</span>
+</div>
 
 <p class="govuk-body">And the data in the resource looks like this:</p>
 
@@ -50,7 +53,9 @@
 
 <h3 class="govuk-heading-s">Example</h3>
 
-<p class="govuk-body"><strong>id</strong> if no <strong>reference</strong></p>
+<div class="app-rule-example">
+  If no <span class="app-rule-example__item">reference</span> then use <span class="app-rule-example__item">id</span>
+</div>
 
 <p class="govuk-body">This would mean the processor, first, looks for a reference attribute. If that does not exist it will look for an id attribute and use that value.</p>
 
@@ -86,7 +91,9 @@
 
 <h3 class="govuk-heading-s">Example</h3>
 
-<p class="govuk-body"><strong>Description</strong> + <strong>Notes</strong> + <strong>Misc</strong> to <strong>Notes</strong></p>
+<div class="app-rule-example">
+  Combine <span class="app-rule-example__item">Description</span>, <span class="app-rule-example__item">Notes</span> and <span class="app-rule-example__item">Misc</span> into <span class="app-rule-example__item">Notes</span>
+</div>
 
 <p class="govuk-body">The data in the resource looks like this:</p>
 

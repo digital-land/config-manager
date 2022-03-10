@@ -38,3 +38,18 @@
 .app-data-example__empty-cell {
   visibility: hidden;
 }
+
+// shall I move this to separate component
+.app-rule-example {
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(2);
+  @include govuk-font($size: 19);
+  background: govuk-colour('light-grey');
+}
+
+.app-rule-example__item {
+  margin: 0 5px;
+  padding: 5px;
+  border:1px solid govuk-colour('dark-grey');
+  font-family: monospace;
+}
