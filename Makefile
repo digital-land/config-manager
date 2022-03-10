@@ -28,6 +28,9 @@ watch:
 upgrade-db:
 	flask db upgrade
 
+downgrade-db:
+	flask db downgrade
+
 load-data:
 	flask manage load-data
 

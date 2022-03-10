@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 import click
 import requests
@@ -8,14 +9,17 @@ from sqlalchemy import and_, select
 from application.models import (
     Collection,
     Column,
+    Concat,
     Dataset,
     Datatype,
+    Default,
     Endpoint,
     Field,
     Organisation,
     Resource,
     Source,
     Typology,
+    dataset_field,
     resource_endpoint,
     source_dataset,
 )
@@ -36,6 +40,9 @@ model_classes = {
     "datatype": Datatype,
     "field": Field,
     "column": Column,
+    "schema_field": dataset_field,
+    "_default": Default,
+    "concat": Concat,
 }
 
 
@@ -125,6 +132,28 @@ def _load_data(columns, table, rows):
 
     for i in inserts:
 
+        if i.get("rowid", None) is not None:
+            i["id"] = i.pop("rowid")
+
+        entry_date = i.get("entry_date", None)
+        if entry_date is not None:
+            short_date = True
+            try:
+                fmt = "%Y-%m-%dT%H:%M:%SZ"
+                entry_datetime = datetime.strptime(entry_date, fmt)
+                short_date = False
+            except Exception as e:
+                print(e)
+
+            if short_date:
+                try:
+                    fmt = "%Y-%m-%d"
+                    entry_datetime = datetime.strptime(entry_date, fmt)
+                except Exception as e:
+                    print(e)
+
+            i["entry_date"] = entry_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
+
         if table == "resource_endpoint":
             ins = model_class.insert().values(**i)
             conn = db.engine.connect()
@@ -156,9 +185,27 @@ def _load_data(columns, table, rows):
                 conn.execute(ins)
             else:
                 print(f"{i} already in db")
+        elif table == "schema_field":
+            # note source and destination table have different names
+            i["dataset"] = i.pop("schema")
+            i.pop("id")
+            ins = model_class.insert().values(**i)
+            conn = db.engine.connect()
+            s = select(model_class).where(
+                and_(
+                    model_class.c.dataset == i["dataset"],
+                    model_class.c.field == i["field"],
+                )
+            )
+            result = conn.execute(s).fetchone()
+            if not result:
+                conn.execute(ins)
+            else:
+                print(f"{i} already in db")
+
         else:
             try:
-                if table in ["source", "field", "column"]:
+                if table in ["source", "field", "column", "concat", "_default"]:
                     for fk_col in foreign_key_columns:
                         if table != fk_col:
                             key = i.pop(fk_col, None)
@@ -168,7 +215,12 @@ def _load_data(columns, table, rows):
                                 if related_obj is not None:
                                     i[fk_col] = related_obj
 
-                if db.session.query(model_class).get(i[table]) is None:
+                if table in ["concat", "_default"]:
+                    id = i["id"]
+                else:
+                    id = i[table]
+
+                if db.session.query(model_class).get(id) is None:
                     obj = model_class(**i)
                     db.session.add(obj)
                     db.session.commit()

@@ -7,7 +7,7 @@ class DateModel(db.Model):
 
     __abstract__ = True
 
-    entry_date = db.Column(db.Date)
+    entry_date = db.Column(db.TIMESTAMP)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
 
@@ -70,7 +70,7 @@ class Source(DateModel):
             "licence": self.licence,
             "attribution": self.attribution,
             "collection": self.collection if self.collection else None,
-            "entry-date": self.entry_date,
+            "entry-date": self.entry_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "start-date": self.start_date,
             "end-date": self.end_date,
             "datasets": self.datasets if self.datasets else None,
@@ -91,7 +91,7 @@ class Source(DateModel):
             "pipelines": ";".join([ds.dataset for ds in self.datasets])
             if self.datasets
             else None,
-            "entry-date": self.entry_date,
+            "entry-date": self.entry_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "start-date": self.start_date,
             "end-date": self.end_date,
         }
@@ -134,7 +134,7 @@ class Endpoint(DateModel):
             "parameters": self.parameters,
             "plugin": self.plugin,
             "sources": [s.to_dict() for s in self.sources],
-            "entry-date": self.entry_date,
+            "entry-date": self.entry_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "start-date": self.start_date,
             "end-date": self.end_date,
         }
@@ -145,7 +145,7 @@ class Endpoint(DateModel):
             "endpoint-url": self.endpoint_url,
             "parameters": self.parameters,
             "plugin": self.plugin,
-            "entry-date": self.entry_date,
+            "entry-date": self.entry_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "start-date": self.start_date,
             "end-date": self.end_date,
         }
@@ -294,3 +294,38 @@ class Field(DateModel):
     datatype_id = db.Column(db.Text, db.ForeignKey("datatype.datatype"), nullable=True)
     typology_id = db.Column(db.Text, db.ForeignKey("typology.typology"), nullable=True)
     columns = db.relationship("Column", backref="field", lazy=True)
+
+
+dataset_field = db.Table(
+    "dataset_field",
+    db.Column("dataset", db.Text, db.ForeignKey("dataset.dataset"), primary_key=True),
+    db.Column("field", db.Text, db.ForeignKey("field.field"), primary_key=True),
+    db.Column("entry_date", db.TIMESTAMP),
+    db.Column("start_date", db.Date),
+    db.Column("end_date", db.Date),
+)
+
+
+class Default(DateModel):
+
+    id = db.Column(db.Integer, primary_key=True)
+    default_field = db.Column(db.Text)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
+    resource_id = db.Column(db.Text, db.ForeignKey("resource.resource"), nullable=True)
+    dataset = db.relationship("Dataset")
+    field = db.relationship("Field")
+    resource = db.relationship("Resource")
+
+
+class Concat(DateModel):
+
+    id = db.Column(db.Integer, primary_key=True)
+    fields = db.Column(db.Text)
+    separator = db.Column(db.Text)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
+    resource_id = db.Column(db.Text, db.ForeignKey("resource.resource"), nullable=True)
+    dataset = db.relationship("Dataset")
+    field = db.relationship("Field")
+    resource = db.relationship("Resource")
