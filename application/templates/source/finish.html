@@ -14,9 +14,21 @@
       <a href="{{ url_for('source.source', source_hash=source.source) }}" class="govuk-link">See source record</a>
     </p>
 
-    <h2 class="govuk-heading-m">What happens next</h2>
+    <p class="govuk-body">For the collector to attempt to collect from this source the {{ source.collection.name }} collection repo on github needs to be updated.</p>
 
-    <p class="govuk-body">For the collector to attempt to collect from this source you need to update the {{ source.collection.name }} collection repo on github.</p>
+    <h2 class="govuk-heading-m">What do you want to do next?</h2>
+
+    <h3 class="govuk-heading-s">I have more sources to add</h3>
+
+    <p class="govuk-body">If you want to add more sources, you should do that before downloading the csv files you need to upload to github.</p>
+
+    <p class="govuk-body">
+      <a href="{{ url_for('source.add') }}" class="govuk-link">Add another source.</a>
+    </p>
+
+    <h3 class="govuk-heading-s">I have finished adding sources</h3>
+
+    <p class="govuk-body">If you have finished adding sources you can now download the csv files you need to then upload to github.</p>
 
     <p class="govuk-body">First download the endpoint and source csv files.</p>
 
@@ -25,17 +37,17 @@
       <li><a href="{{ url_for('source.source_csv', source_hash=source.source, filename='source') }}" class="govuk-link">Download the source.csv file</a></li>
     </ul>
 
-    <p class="govuk-body">Upload and commit these files to the {{ source.collection.name }} collection repo.</p>
+    <p class="govuk-body">Then, upload and commit these files to the {{ source.collection.name }} collection repo.</p>
 
     <p class="govuk-body">
-      The next time the collectors run it will collect from the source you added.
+      The next time the collectors run it will try to collect from the source you added.
     </p>
     <p class="govuk-body">
       If a resource is collected you might need to map the column names and values.
     </p>
 
     <p class="govuk-body">
-      <a href="#" class="govuk-link">Map fields for a resource</a>
+      <a href="{{ url_for('resource.search') }}" class="govuk-link">Map fields for a resource</a>
     </p>
   </div>
 </div>
