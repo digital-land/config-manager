@@ -1,0 +1,40 @@
+.app-data-example {
+  display: inline-block;
+  margin: govuk-spacing(2) 0 govuk-spacing(6);
+  padding: govuk-spacing(2) 0;
+  @include govuk-font($size: 19);
+  background: govuk-colour('light-grey');
+
+  @include govuk-media-query($from: tablet) {
+    display: inline-flex;
+  }
+}
+
+.app-data-example__item {
+  display: inline-block;
+  padding: 0 govuk-spacing(2);
+
+  @include govuk-media-query($from: tablet) {
+    max-width: 250px;
+  }
+
+  & + .app-data-example__item {
+    border-left: 1px solid $govuk-border-colour;
+  }
+}
+
+.app-data-example__item__attr {
+  margin-bottom: .25em;
+  color: govuk-colour('dark-grey');
+  font-size: 16px;
+}
+
+.app-data-example__item__value {
+  margin: 0;
+  font-family: monospace;
+  font-size: 24px;
+}
+
+.app-data-example__empty-cell {
+  visibility: hidden;
+}
