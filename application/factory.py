@@ -53,6 +53,10 @@ def register_blueprints(app):
 
     app.register_blueprint(resource_bp)
 
+    from application.blueprints.dataset.views import dataset_bp
+
+    app.register_blueprint(dataset_bp)
+
 
 def register_context_processors(app):
     """

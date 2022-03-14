@@ -192,6 +192,7 @@ class Dataset(DateModel):
         secondary=source_dataset,
         lazy="subquery",
         backref=db.backref("datasets", lazy=True),
+        order_by="Source.entry_date",
     )
 
     columns = db.relationship("Column", backref="dataset", lazy=True)

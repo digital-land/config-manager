@@ -1,5 +1,3 @@
-import csv
-import io
 from datetime import datetime
 
 from flask import (
@@ -21,7 +19,12 @@ from application.blueprints.source.forms import (
 )
 from application.extensions import db
 from application.models import Collection, Dataset, Endpoint, Organisation, Source
-from application.utils import check_url_reachable, compute_hash, compute_md5_hash
+from application.utils import (
+    check_url_reachable,
+    compute_hash,
+    compute_md5_hash,
+    csv_data_to_buffer,
+)
 
 source_bp = Blueprint("source", __name__, url_prefix="/source")
 
@@ -278,16 +281,7 @@ def source_csv(source_hash, filename):
         except Exception as e:
             print(e)
 
-    out = io.StringIO()
-    fieldnames = csv_rows[0].keys()
-    writer = csv.DictWriter(out, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL)
-    writer.writeheader()
-    for row in csv_rows:
-        writer.writerow(row)
-    buffer = io.BytesIO()
-    buffer.write(out.getvalue().encode())
-    buffer.seek(0)
-    out.close()
+    buffer = csv_data_to_buffer(csv_rows)
     return send_file(
         buffer,
         as_attachment=True,
