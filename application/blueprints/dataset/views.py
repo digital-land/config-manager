@@ -31,3 +31,20 @@ def dataset_endpoint_csv(dataset):
         attachment_filename="endpoint.csv",
         mimetype="text/csv",
     )
+
+
+@dataset_bp.get("/<dataset>/source.csv")
+def dataset_source_csv(dataset):
+    dataset = Dataset.query.get(dataset)
+    if not dataset:
+        return abort(404)
+    csv_rows = []
+    for source in dataset.sources:
+        csv_rows.append(source.to_csv_dict())
+    buffer = csv_data_to_buffer(csv_rows)
+    return send_file(
+        buffer,
+        as_attachment=True,
+        attachment_filename="source.csv",
+        mimetype="text/csv",
+    )
