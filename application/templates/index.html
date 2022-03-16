@@ -6,7 +6,7 @@
 
 <main id="content" role="main">
 
-  <section class="app-hero" id="intro">
+  <section class="app-hero app-hero--flush" id="intro">
     <div class="app-hero__content govuk-width-container">
       <div class="govuk-grid-row">
         <div class="govuk-grid-column-two-thirds">
@@ -19,6 +19,16 @@
   </section>
 
   <section class="govuk-width-container app-tools-list">
+
+    {% if session['user'] %}
+    {% set user = session['user'] %}
+    <section class="app-user-bar">
+      <ol class="app-user-bar__list">
+        <li class="app-user-bar__item">Signed in as <a href="{{ user.url }}" class="app-user-bar__link">{{ user.name }}</a></li>
+        <li class="app-user-bar__item"><a class="app-user-bar__link--text-colour" href="{{ url_for('auth.logout') }}">Sign out</a></li>
+      </ol>
+    </section>
+    {% endif %}
 
     {%- from "govuk_frontend_jinja/components/notification-banner/macro.html" import govukNotificationBanner %}
 
