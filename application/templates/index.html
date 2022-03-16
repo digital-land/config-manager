@@ -19,6 +19,24 @@
   </section>
 
   <section class="govuk-width-container app-tools-list">
+
+    {%- from "govuk_frontend_jinja/components/notification-banner/macro.html" import govukNotificationBanner %}
+
+    {%- with messages = get_flashed_messages() %}
+      {%- if messages %}
+        {%- set flashMessageHtml %}
+        {% for message in messages %}
+        <p class="govuk-notification-banner__heading">
+          {{message}}.
+        </p>
+        {% endfor %}
+        {% endset -%}
+        {{ govukNotificationBanner({
+          "html": flashMessageHtml
+        }) }}
+      {%- endif %}
+    {%- endwith %}
+
     <h2 class="govuk-heading-m">Tools</h2>
     <div class="govuk-grid-row">
       <div class="govuk-grid-column-one-third">

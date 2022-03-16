@@ -1,5 +1,5 @@
 import requests
-from flask import Blueprint, current_app, redirect, request, session, url_for
+from flask import Blueprint, current_app, flash, redirect, request, session, url_for
 from is_safe_url import is_safe_url
 
 from application.extensions import oauth
@@ -42,6 +42,7 @@ def authorize():
             headers=headers,
             auth=(client_id, client_secret),
         )
+        flash("You must be a member of the digital-land organisation to be logged in")
         return redirect(url_for("base.index"))
 
 
