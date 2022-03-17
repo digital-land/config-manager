@@ -236,7 +236,7 @@ def edit(source_hash):
         return redirect(url_for("source.summary", **params))
 
     cancel_href = url_for("source.source", source_hash=source.source)
-    if url_for("source.summary") in request.referrer:
+    if request.referrer and url_for("source.summary") in request.referrer:
         cancel_href = request.referrer
     return render_template(
         "source/edit.html", source=source, form=form, cancel_href=cancel_href
