@@ -53,8 +53,12 @@
         Organisation
       </dt>
       <dd class="govuk-summary-list__value">
+        {% if source.organisation %}
         {{ source.organisation.name }}
         <span class="govuk-!-margin-left-1 dl-data-reference">({{ source.organisation.organisation }})</span>
+        {% else %}
+        <span class="dl-secondary-text">No organisation</span>
+        {% endif %}
       </dd>
     </div>
 
