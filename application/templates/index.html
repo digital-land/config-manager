@@ -6,7 +6,7 @@
 
 <main id="content" role="main">
 
-  <section class="app-hero app-hero--flush" id="intro">
+  <section class="app-hero{{ ' app-hero--flush' if session['user'] }}" id="intro">
     <div class="app-hero__content govuk-width-container">
       <div class="govuk-grid-row">
         <div class="govuk-grid-column-two-thirds">
