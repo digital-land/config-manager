@@ -14,7 +14,7 @@ def dataset_endpoint_csv(dataset):
         .filter(Endpoint.endpoint == Source.endpoint_id)
         .filter(Source.source == source_dataset.c.source)
         .filter(Dataset.dataset == source_dataset.c.dataset)
-        .filter(Dataset.dataset == dataset)
+        .filter(Dataset.collection == dataset)
         .order_by(Endpoint.entry_date)
         .distinct()
         .all()
@@ -35,12 +35,13 @@ def dataset_endpoint_csv(dataset):
 
 @dataset_bp.get("/<dataset>/source.csv")
 def dataset_source_csv(dataset):
-    dataset = Dataset.query.get(dataset)
-    if not dataset:
+    datasets = Dataset.query.filter(Dataset.collection == dataset).all()
+    if not datasets:
         return abort(404)
     csv_rows = []
-    for source in dataset.sources:
-        csv_rows.append(source.to_csv_dict())
+    for d in datasets:
+        for source in d.sources:
+            csv_rows.append(source.to_csv_dict())
     buffer = csv_data_to_buffer(csv_rows)
     return send_file(
         buffer,
