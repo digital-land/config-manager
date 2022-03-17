@@ -119,6 +119,6 @@
 {% endblock content %}
 
 {% block pageScripts %}
-<script src="{{ assetPath | default('/assets') }}/javascripts/vendor/govuk-accessible-autocomplete.min.js"></script>
-<script src="{{ assetPath | default('/assets') }}/javascripts/application-add-source.js"></script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="{{ assetPath | default('/assets') }}/javascripts/vendor/govuk-accessible-autocomplete.min.js"></script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="{{ assetPath | default('/assets') }}/javascripts/application-add-source.js"></script>
 {% endblock pageScripts %}

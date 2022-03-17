@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import io
+from functools import wraps
 
 import requests
 from flask.json import JSONEncoder
@@ -45,3 +46,16 @@ def csv_data_to_buffer(csv_rows):
     buffer.seek(0)
     out.close()
     return buffer
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from flask import current_app, redirect, request, session, url_for
+
+        if current_app.config.get("AUTHENTICATION_ON", True):
+            if session.get("user") is None:
+                return redirect(url_for("auth.login", next=request.url))
+        return f(*args, **kwargs)
+
+    return decorated_function

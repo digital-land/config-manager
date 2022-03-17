@@ -24,6 +24,7 @@ from application.utils import (
     compute_hash,
     compute_md5_hash,
     csv_data_to_buffer,
+    login_required,
 )
 
 source_bp = Blueprint("source", __name__, url_prefix="/source")
@@ -126,6 +127,7 @@ def search():
 
 
 @source_bp.get("/add")
+@login_required
 def add():
     if request.args:
         form = NewSourceForm(request.args)
@@ -185,6 +187,7 @@ def summary():
 
 
 @source_bp.get("/add/finish")
+@login_required
 def finish():
     # user is not at the end of the add a source journey
     if len(request.args) == 0:
@@ -219,6 +222,7 @@ def source_json(source_hash):
 
 
 @source_bp.route("<source_hash>/edit", methods=["GET", "POST"])
+@login_required
 def edit(source_hash):
     source = Source.query.get(source_hash)
     form = EditSourceForm(obj=source)

@@ -30,6 +30,16 @@
 </header>
 {% endblock mastHead %}
 
+{% block beforeContent %}
+{{ super() }}
+{% if session['user'] %}
+  {% from 'components/user-bar.html' import appUserBar %}
+  {{ appUserBar({
+    "user": session['user']
+  }) }}
+{% endif %}
+{% endblock beforeContent %}
+
 {% block content %}
 <h1 class="govuk-heading-xl">{{ title|default('Index') }}</h1>
 {% endblock content %}

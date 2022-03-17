@@ -1,0 +1,8 @@
+{% macro appUserBar(params) %}
+<section class="app-user-bar{{ ' ' + params.classes if params.classes }}">
+  <ol class="app-user-bar__list">
+    <li class="app-user-bar__item">Signed in as <a href="{{ params.user.url }}" class="app-user-bar__link">{{ params.user.name }}</a></li>
+    <li class="app-user-bar__item"><a class="app-user-bar__link--text-colour" href="{{ url_for('auth.logout') }}">Sign out</a></li>
+  </ol>
+</section>
+{% endmacro %}

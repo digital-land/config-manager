@@ -13,12 +13,21 @@ class Config:
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://")
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
+    GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
+    SAFE_URLS = {"data-manager-prototype.herokuapp.com"}
+    AUTHENTICATION_ON = True
 
 
 class DevelopmentConfig(Config):
     DEBUG = True
     WTF_CSRF_ENABLED = False
+    SAFE_URLS = {"localhost:5000"}
+    AUTHENTICATION_ON = False
 
 
 class TestConfig(Config):
+    ENV = "test"
+    DEBUG = True
     TESTING = True
+    AUTHENTICATION_ON = False

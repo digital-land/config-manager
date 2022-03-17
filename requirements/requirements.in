@@ -7,3 +7,6 @@ Flask-SQLAlchemy
 Flask-Migrate
 psycopg2
 requests
+Authlib
+is-safe-url
+flask-talisman
