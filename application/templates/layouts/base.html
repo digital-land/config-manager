@@ -21,9 +21,9 @@
             Data manager
           </span>
         </a>
-        <!-- <strong class="govuk-tag govuk-phase-banner__content__tag app-header__tag">
+        <strong class="govuk-tag govuk-phase-banner__content__tag app-header__tag">
           prototype
-        </strong> -->
+        </strong>
       </a>
     </div>
   </div>
@@ -31,7 +31,6 @@
 {% endblock mastHead %}
 
 {% block beforeContent %}
-{{ super() }}
 {% if session['user'] %}
   {% from 'components/user-bar.html' import appUserBar %}
   {{ appUserBar({
