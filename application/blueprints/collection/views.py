@@ -4,17 +4,17 @@ from application.extensions import db
 from application.models import Dataset, Endpoint, Source, source_dataset
 from application.utils import csv_data_to_buffer
 
-dataset_bp = Blueprint("dataset", __name__, url_prefix="/dataset")
+collection_bp = Blueprint("collection", __name__, url_prefix="/collection")
 
 
-@dataset_bp.get("/<dataset>/endpoint.csv")
-def dataset_endpoint_csv(dataset):
+@collection_bp.get("/<collection>/endpoint.csv")
+def collection_endpoint_csv(collection):
     endpoints = (
         db.session.query(Endpoint)
         .filter(Endpoint.endpoint == Source.endpoint_id)
         .filter(Source.source == source_dataset.c.source)
         .filter(Dataset.dataset == source_dataset.c.dataset)
-        .filter(Dataset.collection == dataset)
+        .filter(Dataset.collection == collection)
         .order_by(Endpoint.entry_date)
         .distinct()
         .all()
@@ -33,13 +33,13 @@ def dataset_endpoint_csv(dataset):
     )
 
 
-@dataset_bp.get("/<dataset>/source.csv")
-def dataset_source_csv(dataset):
+@collection_bp.get("/<collection>/source.csv")
+def collection_source_csv(collection):
     sources = (
         db.session.query(Source)
         .filter(Source.source == source_dataset.c.source)
         .filter(Dataset.dataset == source_dataset.c.dataset)
-        .filter(Dataset.collection == dataset)
+        .filter(Dataset.collection == collection)
         .order_by(Source.entry_date)
         .distinct()
         .all()
