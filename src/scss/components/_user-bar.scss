@@ -7,13 +7,21 @@
 .app-user-bar__list {
   display: flex;
   margin: 0;
-  padding: 5px 0;
+  padding: 10px 0;
   list-style: none;
-  justify-content: flex-end;
+  @include govuk-media-query($from: tablet) {
+    justify-content: flex-end;
+  }
 }
 
 .app-user-bar__item {
   padding: 0 10px;
+
+  @include govuk-media-query($until: tablet) {
+    &:first-of-type {
+      padding-left: 0;
+    }
+  }
 
   &:last-of-type {
     padding-right: 0;

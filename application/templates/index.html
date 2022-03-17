@@ -21,13 +21,10 @@
   <section class="govuk-width-container app-tools-list">
 
     {% if session['user'] %}
-    {% set user = session['user'] %}
-    <section class="app-user-bar">
-      <ol class="app-user-bar__list">
-        <li class="app-user-bar__item">Signed in as <a href="{{ user.url }}" class="app-user-bar__link">{{ user.name }}</a></li>
-        <li class="app-user-bar__item"><a class="app-user-bar__link--text-colour" href="{{ url_for('auth.logout') }}">Sign out</a></li>
-      </ol>
-    </section>
+    {% from 'components/user-bar.html' import appUserBar %}
+    {{ appUserBar({
+      "user": session['user']
+    }) }}
     {% endif %}
 
     {%- from "govuk_frontend_jinja/components/notification-banner/macro.html" import govukNotificationBanner %}
