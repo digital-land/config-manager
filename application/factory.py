@@ -53,9 +53,9 @@ def register_blueprints(app):
 
     app.register_blueprint(resource_bp)
 
-    from application.blueprints.dataset.views import dataset_bp
+    from application.blueprints.collection.views import collection_bp
 
-    app.register_blueprint(dataset_bp)
+    app.register_blueprint(collection_bp)
 
     from application.blueprints.auth.views import auth_bp
 
