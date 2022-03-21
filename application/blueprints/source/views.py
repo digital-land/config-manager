@@ -96,12 +96,15 @@ def create_or_update_endpoint(data):
     organisation = Organisation.query.get(organisation_id)
     source_key = f"{collection}|{organisation.organisation}|{endpoint.endpoint}"
     source_key = compute_md5_hash(source_key)
-    source = Source(
-        source=source_key,
-        collection=collection,
-        organisation=organisation,
-        entry_date=datetime.now().isoformat(),
-    )
+    # check if source exists - can happen if user refreshes finish page
+    source = Source.query.get(source_key)
+    if source is None:
+        source = Source(
+            source=source_key,
+            collection=collection,
+            organisation=organisation,
+            entry_date=datetime.now().isoformat(),
+        )
     source.update(data)
     ds.sources.append(source)
     endpoint.sources.append(source)
