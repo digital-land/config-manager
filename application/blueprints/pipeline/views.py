@@ -61,7 +61,6 @@ def run(source):
             resource_hash = resources[0]
             # convert - discard anything over 20 lines
             limit = int(request.args.get("limit")) if request.args.get("limit") else 10
-            limit += 1  # for header row
             (
                 resource_fields,
                 input_path,
