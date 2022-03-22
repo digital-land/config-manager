@@ -4,9 +4,8 @@ import tempfile
 from collections import namedtuple
 from itertools import islice
 
-import requests
 from digital_land.api import DigitalLandApi
-from flask import Blueprint, abort, current_app, jsonify
+from flask import Blueprint, abort, current_app, jsonify, request
 
 from application.models import Organisation, Source
 from application.utils import login_required
@@ -57,12 +56,14 @@ def run(source):
 
         if not resources:
             print("No resource collected")
-            # do something to let user know we couldn't collect resource
+            return abort(400)
         else:
             resource_hash = resources[0]
             # convert - discard anything over 20 lines
+            limit = int(request.args.get("limit")) if request.args.get("limit") else 10
+            limit += 1  # for header row
             resource_fields, input_path, output_path = _convert_and_truncate_resource(
-                api, workspace, resource_hash
+                api, workspace, resource_hash, limit
             )
 
             api.pipeline_cmd(
@@ -101,17 +102,34 @@ def run(source):
 
 def _setup_workspace(source, dataset, temp_dir, project_root_dir):
 
-    pipeline_files = [
-        "column.csv",
-        "concat.csv",
-        "convert.csv",
-        "default.csv",
-        "filter.csv",
-        "lookup.csv",
-        "patch.csv",
-        "skip.csv",
-        "transform.csv",
-    ]
+    pipeline_file_fields = {
+        "column": ["dataset", "resource", "column", "field"],
+        "concat": [
+            "pipeline",
+            "resource",
+            "field",
+            "fields",
+            "separator",
+            "entry-date",
+            "start-date",
+            "end-date",
+        ],
+        "convert": ["pipeline", "resource", "script"],
+        "default": [
+            "pipeline",
+            "resource",
+            "field",
+            "default-field",
+            "entry-date",
+            "start-date",
+            "end-date",
+        ],
+        "filter": ["dataset", "resource", "field", "pattern"],
+        "lookup": ["prefix", "reference", "entity"],
+        "patch": ["pipeline", "resource", "field", "pattern,value"],
+        "skip": ["pipeline", "resource", "pattern"],
+        "transform": ["pipeline", "field", "replacement-field"],
+    }
 
     pipeline_dirs = [
         "transformed",
@@ -119,6 +137,12 @@ def _setup_workspace(source, dataset, temp_dir, project_root_dir):
         "var/column-field",
         "var/dataset-resource",
     ]
+
+    other_pipeline_files = {
+        "column": dataset.columns,
+        "concat": dataset.concats,
+        "default": dataset.defaults,
+    }
 
     collection_dir = os.path.join(temp_dir, "collection")
     if not os.path.exists(collection_dir):
@@ -151,21 +175,37 @@ def _setup_workspace(source, dataset, temp_dir, project_root_dir):
             os.makedirs(d)
 
     # TODO build from db data instead of fetch from github
-    for file in pipeline_files:
-        pipeline_url = f"https://raw.githubusercontent.com/digital-land/{dataset.dataset}-collection/main/pipeline/{file}"  # noqa
-        resp = requests.get(pipeline_url)
-        if resp.status_code != 200:
-            continue
-        outfile = f"{os.path.join(pipeline_dir, file)}"
-        with open(outfile, "w") as f:
-            f.write(resp.content.decode("utf-8"))
+    # for not create default empty files for those we don't
+    # have in db yet
+    for filename, fields in pipeline_file_fields.items():
+        if filename not in other_pipeline_files.keys():
+            file = os.path.join(pipeline_dir, f"{filename}.csv")
+            with open(file, "w") as f:
+                writer = csv.DictWriter(f, fieldnames=fields)
+                writer.writeheader()
+
+    for filename, collection in other_pipeline_files.items():
+        file = os.path.join(pipeline_dir, f"{filename}.csv")
+        rows = [item.to_csv_dict() for item in collection]
+        if rows:
+            fieldnames = rows[0].keys()
+        else:
+            fieldnames = pipeline_file_fields[filename]
+        with open(file, "w") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for r in rows:
+                writer.writerow(r)
 
     transformed_dir = os.path.join(temp_dir, "transformed", dataset.dataset)
     if not os.path.exists(transformed_dir):
         os.makedirs(transformed_dir)
 
     specification_dir = os.path.join(project_root_dir, "specification")
+
     resource_dir = os.path.join(collection_dir, "resource")
+    if not os.path.exists(resource_dir):
+        os.makedirs(resource_dir)
 
     column_field_dir = os.path.join(temp_dir, "var/column-field", dataset.dataset)
     if not os.path.exists(column_field_dir):
@@ -212,7 +252,7 @@ def _setup_workspace(source, dataset, temp_dir, project_root_dir):
     )
 
 
-def _convert_and_truncate_resource(api, workspace, resource_hash):
+def _convert_and_truncate_resource(api, workspace, resource_hash, limit=10):
     input_path = os.path.join(workspace.resource_dir, resource_hash)
     output_path = os.path.join(workspace.resource_dir, f"{resource_hash}_converted.csv")
 
@@ -221,9 +261,7 @@ def _convert_and_truncate_resource(api, workspace, resource_hash):
     with open(output_path) as file:
         reader = csv.DictReader(file)
         resource_fields = reader.fieldnames
-        truncated_resource_rows = list(
-            islice(reader, current_app.config.get("ROW_LIMIT", 11))
-        )
+        truncated_resource_rows = list(islice(reader, limit))
 
     # overwrite resource with first n rows of converted data
     with open(input_path, "w") as file:

@@ -233,6 +233,8 @@ class Dataset(DateModel):
     fields = db.relationship("Field", secondary=dataset_field, lazy="subquery")
 
     columns = db.relationship("Column", backref="dataset", lazy=True)
+    concats = db.relationship("Concat", backref="dataset", lazy=True)
+    defaults = db.relationship("Default", backref="dataset", lazy=True)
 
     def to_dict(self):
         return {
@@ -307,6 +309,14 @@ class Column(DateModel):
     field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     resource_id = db.Column(db.Text, db.ForeignKey("resource.resource"), nullable=True)
 
+    def to_csv_dict(self):
+        return {
+            "dataset": self.dataset_id,
+            "resource": self.resource_id,
+            "column": self.column,
+            "field": self.field_id,
+        }
+
 
 class Datatype(DateModel):
 
@@ -341,9 +351,19 @@ class Default(DateModel):
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     resource_id = db.Column(db.Text, db.ForeignKey("resource.resource"), nullable=True)
-    dataset = db.relationship("Dataset")
     field = db.relationship("Field")
     resource = db.relationship("Resource")
+
+    def to_csv_dict(self):
+        return {
+            "pipeline": self.dataset_id,
+            "resource": self.resource_id,
+            "field": self.field_id,
+            "default-field": self.default_field,
+            "entry-date": self.entry_date,
+            "start-date": self.start_date,
+            "end-date": self.end_date,
+        }
 
 
 class Concat(DateModel):
@@ -354,6 +374,17 @@ class Concat(DateModel):
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     resource_id = db.Column(db.Text, db.ForeignKey("resource.resource"), nullable=True)
-    dataset = db.relationship("Dataset")
     field = db.relationship("Field")
     resource = db.relationship("Resource")
+
+    def to_csv_dict(self):
+        return {
+            "pipeline": self.dataset_id,
+            "resource": self.resource_id,
+            "field": self.field_id,
+            "fields": self.fields,
+            "separator": self.separator,
+            "entry-date": self.entry_date,
+            "start-date": self.start_date,
+            "end-date": self.end_date,
+        }
