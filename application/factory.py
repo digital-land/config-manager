@@ -35,7 +35,6 @@ def create_app(config_filename):
     app.json_encoder = CustomJSONEncoder
 
     get_specification(app)
-    get_organisations(app)
 
     return app
 
@@ -216,23 +215,3 @@ def get_specification(app):
             print(f"{spec_url} already downloaded to {spec_file}")
 
     print("Specification done")
-
-
-def get_organisations(app):
-
-    ORGANISATION_URL = f"{DIGITAL_LAND_GITHUB_URL}/organisation-dataset/main/collection/organisation.csv"
-
-    organisation_dir = os.path.join(app.config["PROJECT_ROOT"], "var/cache")
-    if not os.path.exists(organisation_dir):
-        os.makedirs(organisation_dir)
-
-    organisation_file = os.path.join(organisation_dir, "organisation.csv")
-
-    if not os.path.exists(organisation_file):
-        print(f"Downloading {ORGANISATION_URL} to {organisation_file}")
-        resp = requests.get(ORGANISATION_URL)
-        resp.raise_for_status()
-        with open(organisation_file, "w") as file:
-            file.write(resp.content.decode("utf-8"))
-    else:
-        print(f"{ORGANISATION_URL} already downloaded to {organisation_file}")

@@ -7,7 +7,7 @@ import requests
 from digital_land.api import DigitalLandApi
 from flask import Blueprint, abort, current_app, jsonify
 
-from application.models import Source
+from application.models import Organisation, Source
 from application.utils import login_required
 
 pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/pipeline")
@@ -109,15 +109,29 @@ def run(source):
                 os.makedirs(dataset_resource_dir)
 
             organisation_dir = os.path.join(
-                current_app.config["PROJECT_ROOT"], "var/cache", "organisation.csv"
+                temp_dir,
+                "var/cache",
             )
+            if not os.path.exists(organisation_dir):
+                os.makedirs(organisation_dir)
+
+            organisation_path = os.path.join(organisation_dir, "organisation.csv")
+
+            organisations = [org.to_csv_dict() for org in Organisation.query.all()]
+            with open(organisation_path, "w") as csvfile:
+                fieldnames = organisations[0].keys()
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                for org in organisations:
+                    writer.writerow(org)
+
             api.pipeline_cmd(
                 input_path,
                 output_path,
                 collection_dir,
                 None,
                 issue_dir,
-                organisation_dir,
+                organisation_path,
                 column_field_dir=column_field_dir,
                 dataset_resource_dir=dataset_resource_dir,
             )

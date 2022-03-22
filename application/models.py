@@ -39,6 +39,31 @@ class Organisation(DateModel):
         "Source", backref="organisation", lazy=True, order_by="Source.entry_date"
     )
 
+    def to_csv_dict(self):
+        return {
+            "organisation": self.organisation,
+            "name": self.name,
+            "addressbase-custodian": self.addressbase_custodian,
+            "billing-authority": self.billing_authority,
+            "census-area": self.census_area,
+            "combined-authority": self.combined_authority,
+            "company": self.company,
+            "end-date": self.end_date,
+            "entity": self.entity,
+            "esd-inventories": self.esd_inventory,
+            "local-authority-type": self.local_authority_type,
+            "local-resilience-forum": self.local_resilience_forum,
+            "opendatacommunities": self.opendatacommunities_organisation,
+            "opendatacommunities-area": self.opendatacommunities_area,
+            "region": self.region,
+            "start-date": self.start_date,
+            "statistical-geography": self.statistical_geography,
+            "twitter": self.twitter,
+            "website": self.website,
+            "wikidata": self.wikidata,
+            "wikipedia": self.wikipedia,
+        }
+
     def __repr__(self):
         return f"<{self.__class__.__name__}> organisation: {self.organisation} entry_date: {self.entry_date}"
 
