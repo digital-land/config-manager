@@ -62,9 +62,12 @@ def run(source):
             # convert - discard anything over 20 lines
             limit = int(request.args.get("limit")) if request.args.get("limit") else 10
             limit += 1  # for header row
-            resource_fields, input_path, output_path = _convert_and_truncate_resource(
-                api, workspace, resource_hash, limit
-            )
+            (
+                resource_fields,
+                input_path,
+                output_path,
+                resource_rows,
+            ) = _convert_and_truncate_resource(api, workspace, resource_hash, limit)
 
             api.pipeline_cmd(
                 input_path,
@@ -96,6 +99,7 @@ def run(source):
             "issues": issues,
             "resource_fields": resource_fields,
             "expected_fields": expected_fields,
+            "resource_rows": resource_rows,
         }
     )
 
@@ -271,4 +275,4 @@ def _convert_and_truncate_resource(api, workspace, resource_hash, limit=10):
             writer.writerow(row)
 
     output_path = os.path.join(workspace.transformed_dir, f"{resource_hash}.csv")
-    return resource_fields, input_path, output_path
+    return resource_fields, input_path, output_path, truncated_resource_rows
