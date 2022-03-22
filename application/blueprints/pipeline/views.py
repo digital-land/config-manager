@@ -1,6 +1,7 @@
 import csv
 import os
 import tempfile
+from itertools import islice
 from pathlib import Path
 
 import requests
@@ -34,7 +35,12 @@ def run(source):
     source_obj = Source.query.get(source)
     if source_obj is None:
         return abort(404)
-    dataset = source_obj.datasets[0].dataset
+
+    # TODO what happens in cases where more than one dataset? which name do we use? which fields?
+    dataset_obj = source_obj.datasets[0]
+    dataset = dataset_obj.dataset
+    expected_fields = [field.field for field in dataset_obj.fields]
+
     with tempfile.TemporaryDirectory() as temp_dir:
         collection_dir = os.path.join(temp_dir, "collection")
         Path(collection_dir).mkdir(parents=True, exist_ok=True)
@@ -70,16 +76,13 @@ def run(source):
             current_app.config["PROJECT_ROOT"], "specification"
         )
 
-        # does it matter that we just grab first dataset? we just want
-        # a name for dir structure?
-
         api = DigitalLandApi(False, dataset, pipeline_dir, specification_dir)
         api.collect_cmd(endpoint_csv, collection_dir)
 
         resource_dir = os.path.join(collection_dir, "resource")
         resources = os.listdir(resource_dir)
         if not resources:
-            print("No resource collection")
+            print("No resource collected")
             # do something to let user know we couldn't collect resource
         else:
             resource_hash = resources[0]
@@ -87,7 +90,26 @@ def run(source):
                 d = os.path.join(temp_dir, directory)
                 if not os.path.exists(d):
                     os.makedirs(d)
-            input_path = os.path.join(resource_dir, resource_hash)
+            # convert - discard anything over 20 lines
+            resource_input_path = os.path.join(resource_dir, resource_hash)
+            output_path = os.path.join(resource_dir, f"{resource_hash}_converted.csv")
+
+            api.convert_cmd(resource_input_path, output_path)
+
+            with open(output_path) as file:
+                reader = csv.DictReader(file)
+                resource_fields = reader.fieldnames
+                truncated_resource_rows = list(
+                    islice(reader, current_app.config.get("ROW_LIMIT", 11))
+                )
+
+            # overwrite resource with first n rows of converted data
+            with open(resource_input_path, "w") as file:
+                writer = csv.DictWriter(file, fieldnames=resource_fields)
+                writer.writeheader()
+                for row in truncated_resource_rows:
+                    writer.writerow(row)
+
             output_dir = os.path.join(temp_dir, "transformed", dataset)
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
@@ -126,7 +148,7 @@ def run(source):
                     writer.writerow(org)
 
             api.pipeline_cmd(
-                input_path,
+                resource_input_path,
                 output_path,
                 collection_dir,
                 None,
@@ -148,4 +170,11 @@ def run(source):
                 for row in reader:
                     issues.append(row)
 
-    return jsonify({"transformed": transformed, "issues": issues})
+    return jsonify(
+        {
+            "transformed": transformed,
+            "issues": issues,
+            "resource_fields": resource_fields,
+            "expected_fields": expected_fields,
+        }
+    )

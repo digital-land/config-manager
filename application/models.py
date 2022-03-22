@@ -195,6 +195,16 @@ source_dataset = db.Table(
 )
 
 
+dataset_field = db.Table(
+    "dataset_field",
+    db.Column("dataset", db.Text, db.ForeignKey("dataset.dataset"), primary_key=True),
+    db.Column("field", db.Text, db.ForeignKey("field.field"), primary_key=True),
+    db.Column("entry_date", db.TIMESTAMP),
+    db.Column("start_date", db.Date),
+    db.Column("end_date", db.Date),
+)
+
+
 class Dataset(DateModel):
 
     dataset = db.Column(db.Text, primary_key=True, nullable=False)
@@ -219,6 +229,8 @@ class Dataset(DateModel):
         backref=db.backref("datasets", lazy=True),
         order_by="Source.entry_date",
     )
+
+    fields = db.relationship("Field", secondary=dataset_field, lazy="subquery")
 
     columns = db.relationship("Column", backref="dataset", lazy=True)
 
@@ -320,16 +332,6 @@ class Field(DateModel):
     datatype_id = db.Column(db.Text, db.ForeignKey("datatype.datatype"), nullable=True)
     typology_id = db.Column(db.Text, db.ForeignKey("typology.typology"), nullable=True)
     columns = db.relationship("Column", backref="field", lazy=True)
-
-
-dataset_field = db.Table(
-    "dataset_field",
-    db.Column("dataset", db.Text, db.ForeignKey("dataset.dataset"), primary_key=True),
-    db.Column("field", db.Text, db.ForeignKey("field.field"), primary_key=True),
-    db.Column("entry_date", db.TIMESTAMP),
-    db.Column("start_date", db.Date),
-    db.Column("end_date", db.Date),
-)
 
 
 class Default(DateModel):
