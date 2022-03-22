@@ -220,12 +220,15 @@ def _load_data(columns, table, rows):
                 else:
                     id = i[table]
 
-                if db.session.query(model_class).get(id) is None:
-                    obj = model_class(**i)
-                    db.session.add(obj)
-                    db.session.commit()
+                if id is not None:
+                    if db.session.query(model_class).get(id) is None:
+                        obj = model_class(**i)
+                        db.session.add(obj)
+                        db.session.commit()
+                    else:
+                        print(f"{table}: {i[table]} already loaded")
                 else:
-                    print(f"{table}: {i[table]} already loaded")
+                    print(f"Record {i} does not have primary key value")
 
             except Exception as e:
                 print(f"error loading {i}")
