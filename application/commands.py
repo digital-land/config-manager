@@ -18,6 +18,7 @@ from application.models import (
     Organisation,
     Resource,
     Source,
+    SourceCheck,
     Typology,
     dataset_field,
     resource_endpoint,
@@ -66,6 +67,13 @@ test_ordered_tables = ["organisation", "typology", "collection", "dataset"]
 @click.option("--test", default=False, help="Use test ordered tables or ordered tables")
 def load_data(test):
 
+    from application.extensions import db
+
+    if Field.query.get("IGNORE") is None:
+        ignore_field = Field(field="IGNORE")
+        db.session.add(ignore_field)
+        db.session.commit()
+
     tables = ordered_tables if not test else test_ordered_tables
     for table in tables:
         url = f"{digital_land_datasette}/{table}.json"
@@ -94,6 +102,9 @@ def load_data(test):
 @management_cli.command("drop-data")
 def drop_data():
     from application.extensions import db
+
+    db.session.query(SourceCheck).delete()
+    db.session.commit()
 
     for table in reversed(ordered_tables):
 
