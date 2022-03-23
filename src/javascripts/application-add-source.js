@@ -7,9 +7,9 @@ accessibleAutocomplete.enhanceSelectElement({
   selectElement: document.querySelector('#organisation')
 })
 
-accessibleAutocomplete.enhanceSelectElement({
-  selectElement: document.querySelector('#dataset')
-})
+// accessibleAutocomplete.enhanceSelectElement({
+//   selectElement: document.querySelector('#dataset')
+// })
 
 function appFetch (url, fetchParams, _callback) {
   fetchWithArgs(url, fetchParams)
