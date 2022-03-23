@@ -1,4 +1,7 @@
-from sqlalchemy.dialects.postgresql import JSON
+import datetime
+import uuid
+
+from sqlalchemy.dialects.postgresql import ARRAY, JSON, UUID
 
 from application.extensions import db
 
@@ -81,6 +84,7 @@ class Source(DateModel):
     collection_id = db.Column(
         db.Text, db.ForeignKey("collection.collection"), nullable=True
     )
+    check = db.relationship("SourceCheck", back_populates="source", uselist=False)
 
     def to_dict(self):
         return {
@@ -356,7 +360,7 @@ class Default(DateModel):
 
     def to_csv_dict(self):
         return {
-            "pipeline": self.dataset_id,
+            "dataset": self.dataset_id,
             "resource": self.resource_id,
             "field": self.field_id,
             "default-field": self.default_field,
@@ -379,7 +383,7 @@ class Concat(DateModel):
 
     def to_csv_dict(self):
         return {
-            "pipeline": self.dataset_id,
+            "dataset": self.dataset_id,
             "resource": self.resource_id,
             "field": self.field_id,
             "fields": self.fields,
@@ -388,3 +392,14 @@ class Concat(DateModel):
             "start-date": self.start_date,
             "end-date": self.end_date,
         }
+
+
+class SourceCheck(db.Model):
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source_id = db.Column(db.Text, db.ForeignKey("source.source"))
+    source = db.relationship("Source", back_populates="check")
+    resource_hash = db.Column(db.Text)
+    resource_rows = db.Column(JSON)
+    resource_fields = db.Column(ARRAY(db.String))
+    created_timestamp = db.Column(db.TIMESTAMP, default=datetime.datetime.utcnow)
