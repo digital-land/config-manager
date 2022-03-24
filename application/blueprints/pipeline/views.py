@@ -5,10 +5,7 @@ import tempfile
 from digital_land.api import DigitalLandApi
 from flask import Blueprint, abort, current_app, jsonify, request
 
-from application.collection_utils import (
-    convert_and_truncate_resource,
-    workspace_factory,
-)
+from application.collection_utils import Workspace, convert_and_truncate_resource
 from application.models import Source
 from application.utils import login_required
 
@@ -32,7 +29,7 @@ def run(source):
 
     with tempfile.TemporaryDirectory() as temp_dir:
 
-        workspace = workspace_factory(
+        workspace = Workspace.factory(
             source_obj, dataset_obj, temp_dir, current_app.config["PROJECT_ROOT"]
         )
         api = DigitalLandApi(
