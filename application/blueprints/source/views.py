@@ -22,10 +22,7 @@ from application.blueprints.source.forms import (
     NewSourceForm,
     SearchForm,
 )
-from application.collection_utils import (
-    convert_and_truncate_resource,
-    workspace_factory,
-)
+from application.collection_utils import Workspace, convert_and_truncate_resource
 from application.extensions import db
 from application.models import (
     Collection,
@@ -321,7 +318,7 @@ def source_check(source_hash):
         return abort(404)
 
     # if there is a request arg for dataset we can then find the correct
-    # one to use rather than just take the first dataset from source_obj.datasets
+    # dataset to use rather than just take the first one from source_obj.datasets
     if len(source_obj.datasets) > 1 and not request.args.get("dataset"):
         flash("This source has has more than one dataset")
         return redirect(url_for("source.source"))
@@ -340,45 +337,48 @@ def source_check(source_hash):
             }
         )
 
-    # else fetch from url, convert and truncate
-    with tempfile.TemporaryDirectory() as temp_dir:
+    # else fetch from contents from url, convert and truncate
+    else:
+        with tempfile.TemporaryDirectory() as temp_dir:
 
-        workspace = workspace_factory(
-            source_obj, dataset_obj, temp_dir, current_app.config["PROJECT_ROOT"]
-        )
-        api = DigitalLandApi(
-            False, dataset, workspace.pipeline_dir, workspace.specification_dir
-        )
+            workspace = Workspace.factory(
+                source_obj, dataset_obj, temp_dir, current_app.config["PROJECT_ROOT"]
+            )
+            api = DigitalLandApi(
+                False, dataset, workspace.pipeline_dir, workspace.specification_dir
+            )
 
-        api.collect_cmd(workspace.endpoint_csv, workspace.collection_dir)
+            api.collect_cmd(workspace.endpoint_csv, workspace.collection_dir)
 
-        resources = os.listdir(workspace.resource_dir)
+            resources = os.listdir(workspace.resource_dir)
 
-        if not resources:
-            print("No resource collected")
-            return abort(400)
-        else:
-            resource_hash = resources[0]
-            limit = int(request.args.get("limit")) if request.args.get("limit") else 10
-            (
-                resource_fields,
-                input_path,
-                output_path,
-                resource_rows,
-            ) = convert_and_truncate_resource(api, workspace, resource_hash, limit)
+            if not resources:
+                print("No resource collected")
+                return abort(400)
+            else:
+                resource_hash = resources[0]
+                limit = (
+                    int(request.args.get("limit")) if request.args.get("limit") else 10
+                )
+                (
+                    resource_fields,
+                    input_path,
+                    output_path,
+                    resource_rows,
+                ) = convert_and_truncate_resource(api, workspace, resource_hash, limit)
 
-        source_obj.check = SourceCheck(
-            resource_hash=resource_hash,
-            resource_rows=resource_rows,
-            resource_fields=resource_fields,
-        )
-        db.session.add(source_obj)
-        db.session.commit()
+            source_obj.check = SourceCheck(
+                resource_hash=resource_hash,
+                resource_rows=resource_rows,
+                resource_fields=resource_fields,
+            )
+            db.session.add(source_obj)
+            db.session.commit()
 
-        return jsonify(
-            {
-                "resource_fields": resource_fields,
-                "expected_fields": expected_fields,
-                "resource_rows": resource_rows,
-            }
-        )
+            return jsonify(
+                {
+                    "resource_fields": resource_fields,
+                    "expected_fields": expected_fields,
+                    "resource_rows": resource_rows,
+                }
+            )
