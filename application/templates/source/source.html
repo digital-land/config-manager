@@ -119,5 +119,28 @@
     </dd>
   </div>
 </dl>
+
+{# whats available from source and source.to_dict() is different #}
+{% set source_dict = source.to_dict() %}
+<hr class="govuk-section-break--xl" />
+
+<p class="govuk-body">
+  {{ source_dict['resources']|length }} resource{{ " has" if source_dict.resources|length == 1 else "s have" }} been collected from this source
+</p>
+{% if source_dict['resources']|length %}
+<ul class="govuk-list govuk-list--bullet">
+  {% for resource in source_dict['resources'] %}
+  <li><a href="{{ url_for('resource.resource', resource_hash=resource) }}" class="govuk-link">{{ resource }}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="govuk-body">You can check if the source yields a resource and if the resource contains data relevant to a dataset.</p>
+<ul class="govuk-list">
+  {% for dataset in source.datasets %}
+  <li><a href="{{ url_for('source.source_check', source_hash=source.source, dataset=dataset.dataset) }}" class="govuk-link">Check for {{ dataset.name }} data</a></li>
+  {% endfor %}
+</ul>
+{% endif %}
+
 {% endif %}
 {% endblock content %}

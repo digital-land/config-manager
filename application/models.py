@@ -103,6 +103,9 @@ class Source(DateModel):
             "start-date": self.start_date,
             "end-date": self.end_date,
             "datasets": self.datasets if self.datasets else None,
+            "resources": [resource.resource for resource in self.endpoint.resources]
+            if self.endpoint
+            else None,
         }
 
     # Only needed until csv output for existing data processing no longer required
