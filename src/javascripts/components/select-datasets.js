@@ -16,7 +16,7 @@ SelectDatasets.prototype.init = function (params) {
   this.$input = this.$module.querySelector(this.options.inputSelector)
   this.$summaryContainer = this.$module.querySelector(this.options.containerSelector)
   this.$select = this.$module.querySelector(this.options.selectSelector)
-  this.$summary = this.$module.querySelector(this.options.summarySelector)
+  this.$summary = this.$module.querySelector(this.options.listSelector)
 
   this.setInitalSelection()
 
@@ -129,7 +129,7 @@ SelectDatasets.prototype.setupOptions = function (params) {
     inputSelector: params.inputSelector || '.app-select-datasets__input',
     itemClass: params.itemClass || 'app-select-datasets__item',
     selectSelector: params.selectSelector || '.app-select-datasets__select',
-    summarySelector: params.summarySelector || '.app-select-datasets__summary'
+    listSelector: params.listSelector || '.app-select-datasets__list'
   }
 }
 

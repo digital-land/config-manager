@@ -1,6 +1,19 @@
 from flask_wtf import FlaskForm
-from wtforms import RadioField, SelectField, StringField, TextAreaField
+from wtforms import RadioField, SelectField, StringField, TextAreaField, ValidationError
 from wtforms.validators import URL, DataRequired
+
+from application.models import Dataset
+
+
+def same_collection(form, field):
+    datasets_ids = field.data.split(";")
+    if len(datasets_ids) > 1:
+        datasets = Dataset.query.filter(Dataset.dataset.in_(datasets_ids)).all()
+        collections = set([d.collection for d in datasets])
+        if len(collections) > 1:
+            raise ValidationError(
+                "All the datasets you select must belong to the same collection"
+            )
 
 
 class SearchForm(FlaskForm):
@@ -28,7 +41,11 @@ class NewSourceForm(EditSourceForm):
     #     "Dataset", validators=[DataRequired(message="Please provide a dataset")]
     # )
     dataset = StringField(
-        "Dataset", validators=[DataRequired(message="Please provide a dataset")]
+        "Dataset",
+        validators=[
+            DataRequired(message="Please provide a dataset"),
+            same_collection,
+        ],
     )
     organisation = SelectField(
         "Organisation",
