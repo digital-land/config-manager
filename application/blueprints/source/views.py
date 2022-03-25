@@ -149,13 +149,13 @@ def add():
     form.organisation.choices = [("", "")] + [
         (o.organisation, o.name) for o in organisations
     ]
-    # datasets = (
-    #     Dataset.query.filter(
-    #         Dataset.typology != "specification", Dataset.collection.is_not(None)
-    #     )
-    #     .order_by(Dataset.name)
-    #     .all()
-    # )
+    datasets = (
+        Dataset.query.filter(
+            Dataset.typology != "specification", Dataset.collection.is_not(None)
+        )
+        .order_by(Dataset.name)
+        .all()
+    )
     # form.dataset.choices = [("", "")] + [(d.dataset, d.name) for d in datasets]
 
     if request.args and not request.args.get("_change") and form.validate():
@@ -177,7 +177,7 @@ def add():
 
         return redirect(url_for("source.summary", **query_params))
 
-    return render_template("source/create.html", form=form)
+    return render_template("source/create.html", form=form, datasets=datasets)
 
 
 @source_bp.get("/add/summary")

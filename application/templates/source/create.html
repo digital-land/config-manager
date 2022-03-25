@@ -28,16 +28,28 @@
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-one-half">
       <div class='govuk-form-group{% if form.dataset.errors %} govuk-form-group--error{% endif %}'>
-        <label class='govuk-label' for='dataset'>Dataset</label>
+        <label class='govuk-label' for='dataset'>Datasets</label>
         <div id="organisation-hint" class="govuk-hint">
-          The dataset the source is for
+          The datasets the source provides data for.
         </div>
         {% if form.dataset.errors %}
         <p class='govuk-error-message'>
           {% for error in form.dataset.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
         </p>
         {% endif %}
-        {{ form.dataset(required=False, class="govuk-input")}}
+        <div class="app-select-datasets" data-module="select-datasets">
+          {{ form.dataset(required=False, class="govuk-input app-select-datasets__input")}}
+          <div class="app-select-datasets__container js-hidden">
+            <select name="select-datasets" id="select-datasets" class="govuk-select app-select-datasets__select">
+              <option value="">Add dataset...</option>
+              {% for dataset in datasets %}
+              <option value="{{ dataset.dataset }}" data-option-selector="{{ dataset.name }}">{{ dataset.name }}</option>
+              {% endfor %}
+            </select>
+            <span class="app-select-datasets__label">Selected datasets</span>
+            <ul class="app-select-datasets__summary"></ul>
+          </div>
+        </div>
       </div>
       <div class='govuk-form-group{% if form.organisation.errors %} govuk-form-group--error{% endif %}'>
         <label class='govuk-label' for='organisation'>Organisation</label>
