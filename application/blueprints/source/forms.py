@@ -37,9 +37,6 @@ class NewSourceForm(EditSourceForm):
             URL(message="Please provide a valid URL"),
         ],
     )
-    # dataset = SelectField(
-    #     "Dataset", validators=[DataRequired(message="Please provide a dataset")]
-    # )
     dataset = StringField(
         "Dataset",
         validators=[
