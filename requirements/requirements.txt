@@ -8,20 +8,32 @@ alembic==1.7.6
     # via flask-migrate
 authlib==1.0.0
     # via -r requirements/requirements.in
+canonicaljson==1.6.0
+    # via digital-land
+cchardet==2.1.7
+    # via digital-land
 certifi==2021.10.8
-    # via requests
+    # via
+    #   pyproj
+    #   requests
 cffi==1.15.0
     # via cryptography
 charset-normalizer==2.0.12
     # via requests
 click==8.0.3
-    # via flask
+    # via
+    #   digital-land
+    #   flask
 cryptography==36.0.1
     # via authlib
 decorator==5.1.1
     # via validators
+digital-land @ git+https://github.com/digital-land/pipeline.git
+    # via -r requirements/requirements.in
 digital_land_frontend @ git+https://github.com/digital-land/digital-land-frontend.git
     # via -r requirements/requirements.in
+et-xmlfile==1.1.0
+    # via openpyxl
 flask==2.0.2
     # via
     #   -r requirements/requirements.in
@@ -38,6 +50,8 @@ flask-talisman==0.8.1
     # via -r requirements/requirements.in
 flask-wtf==1.0.0
     # via -r requirements/requirements.in
+geojson==2.5.0
+    # via digital-land
 govuk-frontend-jinja==2.0.0
     # via digital-land-frontend
 greenlet==1.1.2
@@ -48,6 +62,8 @@ idna==3.3
     # via requests
 is-safe-url==1.0
     # via -r requirements/requirements.in
+isodate==0.6.1
+    # via rdflib
 itsdangerous==2.0.1
     # via
     #   flask
@@ -63,30 +79,70 @@ markupsafe==2.0.1
     #   jinja2
     #   mako
     #   wtforms
+mysql-connector-python==8.0.28
+    # via digital-land
+numpy==1.22.3
+    # via pandas
+openpyxl==3.0.9
+    # via digital-land
+pandas==1.4.1
+    # via digital-land
+pluggy==1.0.0
+    # via digital-land
+protobuf==3.19.4
+    # via mysql-connector-python
 psycopg2==2.9.3
     # via -r requirements/requirements.in
 pycparser==2.21
     # via cffi
+pyparsing==3.0.7
+    # via rdflib
+pyproj==3.3.0
+    # via digital-land
+python-dateutil==2.8.2
+    # via pandas
 python-dotenv==0.19.2
     # via -r requirements/requirements.in
+pytz==2022.1
+    # via pandas
+rdflib==6.1.1
+    # via sparqlwrapper
 requests==2.27.1
-    # via -r requirements/requirements.in
+    # via
+    #   -r requirements/requirements.in
+    #   digital-land
+shapely==1.8.1.post1
+    # via digital-land
+simplejson==3.17.6
+    # via canonicaljson
 six==1.16.0
     # via
     #   flask-talisman
+    #   python-dateutil
     #   validators
+sparqlwrapper==2.0.0
+    # via digital-land
+specification @ git+https://github.com/digital-land/specification
+    # via digital-land
 sqlalchemy==1.4.31
     # via
     #   alembic
+    #   digital-land
     #   flask-sqlalchemy
+tenacity==8.0.1
+    # via digital-land
 urllib3==1.26.8
     # via requests
 validators==0.18.2
-    # via digital-land-frontend
+    # via
+    #   digital-land
+    #   digital-land-frontend
 werkzeug==2.0.3
     # via flask
 wtforms==3.0.1
     # via flask-wtf
+xlrd==1.2.0
+    # via digital-land
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

@@ -1,4 +1,7 @@
-from sqlalchemy.dialects.postgresql import JSON
+import datetime
+import uuid
+
+from sqlalchemy.dialects.postgresql import ARRAY, JSON, UUID
 
 from application.extensions import db
 
@@ -39,6 +42,31 @@ class Organisation(DateModel):
         "Source", backref="organisation", lazy=True, order_by="Source.entry_date"
     )
 
+    def to_csv_dict(self):
+        return {
+            "organisation": self.organisation,
+            "name": self.name,
+            "addressbase-custodian": self.addressbase_custodian,
+            "billing-authority": self.billing_authority,
+            "census-area": self.census_area,
+            "combined-authority": self.combined_authority,
+            "company": self.company,
+            "end-date": self.end_date,
+            "entity": self.entity,
+            "esd-inventories": self.esd_inventory,
+            "local-authority-type": self.local_authority_type,
+            "local-resilience-forum": self.local_resilience_forum,
+            "opendatacommunities": self.opendatacommunities_organisation,
+            "opendatacommunities-area": self.opendatacommunities_area,
+            "region": self.region,
+            "start-date": self.start_date,
+            "statistical-geography": self.statistical_geography,
+            "twitter": self.twitter,
+            "website": self.website,
+            "wikidata": self.wikidata,
+            "wikipedia": self.wikipedia,
+        }
+
     def __repr__(self):
         return f"<{self.__class__.__name__}> organisation: {self.organisation} entry_date: {self.entry_date}"
 
@@ -56,6 +84,7 @@ class Source(DateModel):
     collection_id = db.Column(
         db.Text, db.ForeignKey("collection.collection"), nullable=True
     )
+    check = db.relationship("SourceCheck", back_populates="source", uselist=False)
 
     def to_dict(self):
         return {
@@ -170,6 +199,16 @@ source_dataset = db.Table(
 )
 
 
+dataset_field = db.Table(
+    "dataset_field",
+    db.Column("dataset", db.Text, db.ForeignKey("dataset.dataset"), primary_key=True),
+    db.Column("field", db.Text, db.ForeignKey("field.field"), primary_key=True),
+    db.Column("entry_date", db.TIMESTAMP),
+    db.Column("start_date", db.Date),
+    db.Column("end_date", db.Date),
+)
+
+
 class Dataset(DateModel):
 
     dataset = db.Column(db.Text, primary_key=True, nullable=False)
@@ -195,7 +234,11 @@ class Dataset(DateModel):
         order_by="Source.entry_date",
     )
 
+    fields = db.relationship("Field", secondary=dataset_field, lazy="subquery")
+
     columns = db.relationship("Column", backref="dataset", lazy=True)
+    concats = db.relationship("Concat", backref="dataset", lazy=True)
+    defaults = db.relationship("Default", backref="dataset", lazy=True)
 
     def to_dict(self):
         return {
@@ -270,6 +313,14 @@ class Column(DateModel):
     field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     resource_id = db.Column(db.Text, db.ForeignKey("resource.resource"), nullable=True)
 
+    def to_csv_dict(self):
+        return {
+            "dataset": self.dataset_id,
+            "resource": self.resource_id,
+            "column": self.column,
+            "field": self.field_id,
+        }
+
 
 class Datatype(DateModel):
 
@@ -297,16 +348,6 @@ class Field(DateModel):
     columns = db.relationship("Column", backref="field", lazy=True)
 
 
-dataset_field = db.Table(
-    "dataset_field",
-    db.Column("dataset", db.Text, db.ForeignKey("dataset.dataset"), primary_key=True),
-    db.Column("field", db.Text, db.ForeignKey("field.field"), primary_key=True),
-    db.Column("entry_date", db.TIMESTAMP),
-    db.Column("start_date", db.Date),
-    db.Column("end_date", db.Date),
-)
-
-
 class Default(DateModel):
 
     id = db.Column(db.Integer, primary_key=True)
@@ -314,9 +355,19 @@ class Default(DateModel):
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     resource_id = db.Column(db.Text, db.ForeignKey("resource.resource"), nullable=True)
-    dataset = db.relationship("Dataset")
     field = db.relationship("Field")
     resource = db.relationship("Resource")
+
+    def to_csv_dict(self):
+        return {
+            "dataset": self.dataset_id,
+            "resource": self.resource_id,
+            "field": self.field_id,
+            "default-field": self.default_field,
+            "entry-date": self.entry_date,
+            "start-date": self.start_date,
+            "end-date": self.end_date,
+        }
 
 
 class Concat(DateModel):
@@ -327,6 +378,28 @@ class Concat(DateModel):
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     resource_id = db.Column(db.Text, db.ForeignKey("resource.resource"), nullable=True)
-    dataset = db.relationship("Dataset")
     field = db.relationship("Field")
     resource = db.relationship("Resource")
+
+    def to_csv_dict(self):
+        return {
+            "dataset": self.dataset_id,
+            "resource": self.resource_id,
+            "field": self.field_id,
+            "fields": self.fields,
+            "separator": self.separator,
+            "entry-date": self.entry_date,
+            "start-date": self.start_date,
+            "end-date": self.end_date,
+        }
+
+
+class SourceCheck(db.Model):
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source_id = db.Column(db.Text, db.ForeignKey("source.source"))
+    source = db.relationship("Source", back_populates="check")
+    resource_hash = db.Column(db.Text)
+    resource_rows = db.Column(JSON)
+    resource_fields = db.Column(ARRAY(db.String))
+    created_timestamp = db.Column(db.TIMESTAMP, default=datetime.datetime.utcnow)

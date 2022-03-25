@@ -1,8 +1,13 @@
+import os
+import tempfile
 from datetime import datetime
 
+from digital_land.api import DigitalLandApi
 from flask import (
     Blueprint,
     abort,
+    current_app,
+    flash,
     jsonify,
     redirect,
     render_template,
@@ -17,8 +22,16 @@ from application.blueprints.source.forms import (
     NewSourceForm,
     SearchForm,
 )
+from application.collection_utils import Workspace, convert_and_truncate_resource
 from application.extensions import db
-from application.models import Collection, Dataset, Endpoint, Organisation, Source
+from application.models import (
+    Collection,
+    Dataset,
+    Endpoint,
+    Organisation,
+    Source,
+    SourceCheck,
+)
 from application.utils import (
     check_url_reachable,
     compute_hash,
@@ -100,12 +113,15 @@ def create_or_update_endpoint(data):
     organisation = Organisation.query.get(organisation_id)
     source_key = f"{collection}|{organisation.organisation}|{endpoint.endpoint}"
     source_key = compute_md5_hash(source_key)
-    source = Source(
-        source=source_key,
-        collection=collection,
-        organisation=organisation,
-        entry_date=datetime.now().isoformat(),
-    )
+    # check if source exists - can happen if user refreshes finish page
+    source = Source.query.get(source_key)
+    if source is None:
+        source = Source(
+            source=source_key,
+            collection=collection,
+            organisation=organisation,
+            entry_date=datetime.now().isoformat(),
+        )
     source.update(data)
     # add source to each dataset listed
     for dataset in datasets:
@@ -307,3 +323,77 @@ def source_csv(source_hash, filename):
         attachment_filename=f"{filename}.csv",
         mimetype="text/csv",
     )
+
+
+@source_bp.get("/<source_hash>/check")
+@login_required
+def source_check(source_hash):
+    source_obj = Source.query.get(source_hash)
+    if source_obj is None:
+        return abort(404)
+
+    # if there is a request arg for dataset we can then find the correct
+    # dataset to use rather than just take the first one from source_obj.datasets
+    if len(source_obj.datasets) > 1 and not request.args.get("dataset"):
+        flash("This source has has more than one dataset")
+        return redirect(url_for("source.source"))
+
+    dataset_obj = source_obj.datasets[0]
+    dataset = dataset_obj.dataset
+    expected_fields = [field.field for field in dataset_obj.fields]
+
+    # if already checked return from db
+    if source_obj.check is not None:
+        return jsonify(
+            {
+                "resource_fields": source_obj.check.resource_fields,
+                "expected_fields": expected_fields,
+                "resource_rows": source_obj.check.resource_rows,
+            }
+        )
+
+    # else fetch from contents from url, convert and truncate
+    else:
+        with tempfile.TemporaryDirectory() as temp_dir:
+
+            workspace = Workspace.factory(
+                source_obj, dataset_obj, temp_dir, current_app.config["PROJECT_ROOT"]
+            )
+            api = DigitalLandApi(
+                False, dataset, workspace.pipeline_dir, workspace.specification_dir
+            )
+
+            api.collect_cmd(workspace.endpoint_csv, workspace.collection_dir)
+
+            resources = os.listdir(workspace.resource_dir)
+
+            if not resources:
+                print("No resource collected")
+                return abort(400)
+            else:
+                resource_hash = resources[0]
+                limit = (
+                    int(request.args.get("limit")) if request.args.get("limit") else 10
+                )
+                (
+                    resource_fields,
+                    input_path,
+                    output_path,
+                    resource_rows,
+                ) = convert_and_truncate_resource(api, workspace, resource_hash, limit)
+
+            source_obj.check = SourceCheck(
+                resource_hash=resource_hash,
+                resource_rows=resource_rows,
+                resource_fields=resource_fields,
+            )
+            db.session.add(source_obj)
+            db.session.commit()
+
+            return jsonify(
+                {
+                    "resource_fields": resource_fields,
+                    "expected_fields": expected_fields,
+                    "resource_rows": resource_rows,
+                }
+            )
