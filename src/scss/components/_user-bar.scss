@@ -1,6 +1,6 @@
 .app-user-bar {
   @include govuk-font($size: 16);
-  @include govuk-responsive-margin(9, "bottom");
+  @include govuk-responsive-margin(2, "bottom");
   border-bottom: 1px solid $govuk-border-colour;
 
   .app-before-content-container & {
