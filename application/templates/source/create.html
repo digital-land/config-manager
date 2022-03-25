@@ -28,16 +28,30 @@
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-one-half">
       <div class='govuk-form-group{% if form.dataset.errors %} govuk-form-group--error{% endif %}'>
-        <label class='govuk-label' for='dataset'>Dataset</label>
+        <label class='govuk-label' for='dataset'>Datasets</label>
         <div id="organisation-hint" class="govuk-hint">
-          The dataset the source is for
+          The datasets the source provides data for
         </div>
         {% if form.dataset.errors %}
         <p class='govuk-error-message'>
           {% for error in form.dataset.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
         </p>
         {% endif %}
-        {{ form.dataset(required=False, class="govuk-select")}}
+        <div class="app-select-datasets" data-module="select-datasets">
+          {{ form.dataset(required=False, class="govuk-input app-select-datasets__input")}}
+          <div class="app-select-datasets__container js-hidden">
+            <select name="select-datasets" id="select-datasets" class="govuk-select app-select-datasets__select">
+              <option value="">Add dataset...</option>
+              {% for dataset in datasets %}
+              <option value="{{ dataset.dataset }}" data-option-selector="{{ dataset.name }}">{{ dataset.name }}</option>
+              {% endfor %}
+            </select>
+            <div class="app-select-datasets__summary" aria-live="polite">
+              <span class="app-select-datasets__label">Selected datasets</span>
+              <ul class="app-select-datasets__list"></ul>
+            </div>
+          </div>
+        </div>
       </div>
       <div class='govuk-form-group{% if form.organisation.errors %} govuk-form-group--error{% endif %}'>
         <label class='govuk-label' for='organisation'>Organisation</label>
@@ -65,9 +79,9 @@
       </div>
       <div class='govuk-form-group{% if form.licence.errors %} govuk-form-group--error{% endif %}'>
         <label class='govuk-label' for='licence'>Licence</label>
-        <p id="organisation-hint" class="govuk-hint">
+        <div id="licence-hint" class="govuk-hint">
           If available, add the licence the data was published under
-        </p>
+        </div>
         {% if form.licence.errors %}
         <p class='govuk-error-message'>
           {% for error in form.licence.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
@@ -77,9 +91,9 @@
       </div>
       <div class='govuk-form-group{% if form.attribution.errors %} govuk-form-group--error{% endif %}'>
         <label class='govuk-label' for='attribution'>Attribution</label>
-        <p id="organisation-hint" class="govuk-hint">
+        <div id="attribution-hint" class="govuk-hint">
           If available, add the attribution for the data
-        </p>
+        </div>
         {% if form.attribution.errors %}
         <p class='govuk-error-message'>
           {% for error in form.attribution.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}
@@ -89,9 +103,9 @@
       </div>
       <div class='govuk-form-group{% if form.start_date.errors %} govuk-form-group--error{% endif %}'>
         <label class='govuk-label' for='start_date'>Start date</label>
-        <p id="organisation-hint" class="govuk-hint">
+        <div id="start-date-hint" class="govuk-hint">
           If known, add the date of publication. Dates should be in the YYYY-MM-DD format.
-        </p>
+        </div>
         {% if form.start_date.errors %}
         <p class='govuk-error-message'>
           {% for error in form.start_date.errors %}<span class='govuk-visually-hidden'>Error:</span> {{ error }}{% endfor %}

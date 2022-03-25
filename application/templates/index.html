@@ -23,7 +23,8 @@
     {% if session['user'] %}
     {% from 'components/user-bar.html' import appUserBar %}
     {{ appUserBar({
-      "user": session['user']
+      "user": session['user'],
+      "classes": "govuk-!-margin-bottom-9"
     }) }}
     {% endif %}
 
