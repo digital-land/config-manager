@@ -53,7 +53,7 @@ def set_form_values(form, data):
     form.endpoint_url.data = data["endpoint_url"]
     form.organisation.data = data["organisation"]
     # need to change this to work with multiple
-    form.dataset.data = ", ".join([dataset["dataset"] for dataset in data["datasets"]])
+    form.dataset.data = ",".join([dataset["dataset"] for dataset in data["datasets"]])
     form.licence.data = data["licence"]
     form.attribution.data = data["attribution"]
     form.start_date.data = data["start_date"]
@@ -79,6 +79,11 @@ def create_source_data(form, _type="new"):
         }
 
 
+def dataset_str_to_objs(s):
+    source_datasets = s.split(";")
+    return Dataset.query.filter(Dataset.dataset.in_(source_datasets)).all()
+
+
 def create_or_update_endpoint(data):
     endpoint_url = data.get("endpoint_url").strip()
     hashed_url = compute_hash(endpoint_url)
@@ -89,9 +94,8 @@ def create_or_update_endpoint(data):
             endpoint_url=endpoint_url,
             entry_date=datetime.now().isoformat(),
         )
-    dataset = data.get("dataset")
-    ds = Dataset.query.get(dataset)
-    collection = Collection.query.get(ds.collection)
+    datasets = dataset_str_to_objs(data.get("dataset"))
+    collection = Collection.query.get(datasets[0].collection)
     organisation_id = data.get("organisation")
     organisation = Organisation.query.get(organisation_id)
     source_key = f"{collection}|{organisation.organisation}|{endpoint.endpoint}"
@@ -103,7 +107,9 @@ def create_or_update_endpoint(data):
         entry_date=datetime.now().isoformat(),
     )
     source.update(data)
-    ds.sources.append(source)
+    # add source to each dataset listed
+    for dataset in datasets:
+        dataset.sources.append(source)
     endpoint.sources.append(source)
     return endpoint
 
@@ -126,6 +132,11 @@ def search():
     return render_template("source/search.html", form=form, sources=sources)
 
 
+def clean_dataset_string(s):
+    ds = s.replace(",", ";").split(";")
+    return ";".join([d.strip() for d in ds])
+
+
 @source_bp.get("/add")
 @login_required
 def add():
@@ -145,13 +156,17 @@ def add():
         .order_by(Dataset.name)
         .all()
     )
-    form.dataset.choices = [("", "")] + [(d.dataset, d.name) for d in datasets]
+    # form.dataset.choices = [("", "")] + [(d.dataset, d.name) for d in datasets]
 
     if request.args and not request.args.get("_change") and form.validate():
         endpoint_hash = compute_hash(form.endpoint_url.data.strip())
         endpoint = Endpoint.query.get(endpoint_hash)
         url_reachable = check_url_reachable(form.endpoint_url.data.strip())
-        query_params = {"url_reachable": url_reachable, **request.args}
+        source_params = {
+            **request.args,
+            **{"dataset": clean_dataset_string(request.args.get("dataset"))},
+        }
+        query_params = {"url_reachable": url_reachable, **source_params}
         if endpoint is not None:
             # will need to update when/if user can put multiple datasets
             existing_source = endpoint.get_matching_source(
@@ -162,7 +177,7 @@ def add():
 
         return redirect(url_for("source.summary", **query_params))
 
-    return render_template("source/create.html", form=form)
+    return render_template("source/create.html", form=form, datasets=datasets)
 
 
 @source_bp.get("/add/summary")
@@ -173,7 +188,7 @@ def summary():
     existing_source = (
         Source.query.get(existing_source_id) if existing_source_id is not None else None
     )
-    dataset = Dataset.query.get(form.dataset.data)
+    datasets = dataset_str_to_objs(form.dataset.data)
     organisation = Organisation.query.get(form.organisation.data)
     return render_template(
         "source/summary.html",
@@ -181,7 +196,7 @@ def summary():
         existing_source=existing_source,
         url_reachable=url_reachable,
         organisation=organisation,
-        dataset=dataset,
+        datasets=datasets,
         form=form,
     )
 

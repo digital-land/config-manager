@@ -31,7 +31,8 @@ def test_add_source(server_process, page):
         'input[name="endpoint_url"]',
         "http://www.nnjpu.org.uk/publications/docdetail.asp?docid=1593",
     )
-    page.select_option('select[name="dataset"]', "brownfield-land", force=True)
+    page.fill("#select-datasets", "Brownfield", force=True)
+    page.click("#select-datasets__option--0")
     page.select_option(
         'select[name="organisation"]', "local-authority-eng:KET", force=True
     )

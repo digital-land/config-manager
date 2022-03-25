@@ -1,15 +1,21 @@
 /* global accessibleAutocomplete */
 
 import { fetchWithArgs } from './utilities/fetchWithArgs'
+import SelectDatasets from './components/select-datasets'
 
 // set up the auto complete inputs
 accessibleAutocomplete.enhanceSelectElement({
   selectElement: document.querySelector('#organisation')
 })
 
-accessibleAutocomplete.enhanceSelectElement({
-  selectElement: document.querySelector('#dataset')
-})
+// accessibleAutocomplete.enhanceSelectElement({
+//   selectElement: document.querySelector('#dataset')
+// })
+
+const $selectDatasetComponent = document.querySelector("[data-module='select-datasets']")
+const $selectDatasetModule = new SelectDatasets($selectDatasetComponent).init({})
+
+window.$selectDatasetModule = $selectDatasetModule
 
 function appFetch (url, fetchParams, _callback) {
   fetchWithArgs(url, fetchParams)

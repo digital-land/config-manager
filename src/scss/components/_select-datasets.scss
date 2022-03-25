@@ -1,0 +1,39 @@
+.app-select-datasets__container {
+  @include govuk-font($size: 19);
+}
+
+.app-select-datasets__label {
+  display: inline-block;
+  @include govuk-font($size: 16);
+  margin-top: 10px;
+}
+
+.app-select-datasets__list {
+  margin: 5px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+$item-gap: 10px;
+
+.app-select-datasets__item {
+  position: relative;
+  display: inline-block;
+  margin-right: $item-gap;
+  margin-bottom: $item-gap;
+  padding: 5px 30px 5px 8px;
+  border: 1px solid $govuk-border-colour;
+}
+
+.app-select-datasets__btn {
+  position: absolute;
+  top: calc(50% - 16px);
+  right: 5px;
+  padding: 5px;
+  font-size: 20px;
+  color: govuk-colour('red');
+  line-height: 1;
+  outline: none;
+  border: none;
+  text-decoration: underline;
+}
