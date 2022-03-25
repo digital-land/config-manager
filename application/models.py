@@ -406,3 +406,12 @@ class SourceCheck(db.Model):
     resource_rows = db.Column(JSON)
     resource_fields = db.Column(ARRAY(db.String))
     created_timestamp = db.Column(db.TIMESTAMP, default=datetime.datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "source": self.source if self.source else None,
+            "resource": self.resource_hash,
+            "rows": self.resource_rows,
+            "fields": [field for field in self.resource_fields],
+        }
