@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, redirect, render_template, url_for
+from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
 
 from application.blueprints.resource.forms import MappingForm, SearchForm
 from application.models import Column, Resource, SourceCheck
@@ -67,12 +67,21 @@ def columns(resource_hash):
     resource = Resource.query.get(resource_hash)
     datasets = get_resource_datasets(resource)
 
-    # start with one set of mappings for now
-    dataset = datasets[0]
+    # default to first dataset of list
+    dataset_obj = datasets[0]
+    if request.args.get("dataset") is not None:
+        # check it is a relevant dataset for the resource
+        if request.args.get("dataset") not in [dataset.dataset for dataset in datasets]:
+            # should tell user that resource isn't part of dataset
+            return abort(404)
+        dataset_obj = next(
+            d for d in datasets if request.args.get("dataset") == d.dataset
+        )
+
     # getting exisiting mappings - ignore any that have end-dates
     existing_mappings = (
         Column.query.filter(
-            Column.dataset_id == dataset.dataset, Column.end_date.is_(None)
+            Column.dataset_id == dataset_obj.dataset, Column.end_date.is_(None)
         )
         .order_by(Column.field_id)
         .all()
@@ -105,7 +114,7 @@ def columns(resource_hash):
             dataset_mappings, summary.resource_fields
         ),
         resource_mappings=resource_mappings,
-        expected_fields=[field.field for field in dataset.fields],
+        expected_fields=[field.field for field in dataset_obj.fields],
     )
 
 
