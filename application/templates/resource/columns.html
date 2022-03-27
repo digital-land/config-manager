@@ -17,6 +17,25 @@
   </div>
 </div>
 
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <details class="govuk-details" data-module="govuk-details">
+      <summary class="govuk-details__summary">
+        <span class="govuk-details__summary-text">
+          See sample row from collected resource
+        </span>
+      </summary>
+      <div class="govuk-details__text">
+        <ul class="govuk-list">
+          {% for k, v in sample_row.items() %}
+          <li>{{ k }}: {{ v }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </details>
+  </div>
+</div>
+
 {% for dataset in datasets %}
 <h2 class="govuk-heading-l">{{ dataset.name }}</h2>
 

@@ -1,3 +1,5 @@
+import collections
+
 from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
 
 from application.blueprints.resource.forms import MappingForm, SearchForm
@@ -115,6 +117,8 @@ def columns(resource_hash):
         ),
         resource_mappings=resource_mappings,
         expected_fields=[field.field for field in dataset_obj.fields],
+        summary=summary,
+        sample_row=collections.OrderedDict(sorted(summary.resource_rows[0].items())),
     )
 
 
