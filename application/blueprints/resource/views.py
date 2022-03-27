@@ -64,6 +64,34 @@ def relevant_mappings(dataset_mappings, resource_columns):
     ]
 
 
+def remove_already_mapped(fields, mappings, type_="field"):
+    # mappings are list of mapping_objs
+    mapping_fields = [
+        (mapping.field_id if type_ == "field" else mapping.column)
+        for mapping in mappings
+    ]
+    return [field for field in fields if field not in mapping_fields]
+
+
+def outstanding_fields(
+    expected_fields, resource_columns, relevant_dataset_mappings, resource_mappings
+):
+    unmatched = [field for field in expected_fields if field not in resource_columns]
+    for mappings in [relevant_dataset_mappings, resource_mappings]:
+        unmatched = remove_already_mapped(unmatched, mappings)
+
+    return unmatched
+
+
+def remaining_columns(
+    resource_columns, expected_fields, relevant_dataset_mappings, resource_mappings
+):
+    unmatched = [column for column in resource_columns if column not in expected_fields]
+    for mappings in [relevant_dataset_mappings, resource_mappings]:
+        unmatched = remove_already_mapped(unmatched, mappings, type_="column")
+    return unmatched
+
+
 @resource_bp.route("/<resource_hash>/columns")
 def columns(resource_hash):
     resource = Resource.query.get(resource_hash)
@@ -104,6 +132,24 @@ def columns(resource_hash):
         # perform the /check
         pass
 
+    relevant_dataset_mappings = relevant_mappings(
+        dataset_mappings, summary.resource_fields
+    )
+
+    expected_fields = [field.field for field in dataset_obj.fields]
+    missing_fields = outstanding_fields(
+        expected_fields,
+        summary.resource_fields,
+        relevant_dataset_mappings,
+        resource_mappings,
+    )
+    unused_columns = remaining_columns(
+        summary.resource_fields,
+        expected_fields,
+        relevant_dataset_mappings,
+        resource_mappings,
+    )
+
     # To do: get columns/attr names from the original resource
     # To do: get expected/allowable attributes from schema
     # To do: get mappings between columns and expected columns
@@ -112,13 +158,13 @@ def columns(resource_hash):
         "resource/columns.html",
         resource=resource,
         datasets=datasets,
-        relevant_dataset_mappings=relevant_mappings(
-            dataset_mappings, summary.resource_fields
-        ),
+        relevant_dataset_mappings=relevant_dataset_mappings,
         resource_mappings=resource_mappings,
-        expected_fields=[field.field for field in dataset_obj.fields],
+        expected_fields=expected_fields,
         summary=summary,
         sample_row=collections.OrderedDict(sorted(summary.resource_rows[0].items())),
+        missing_fields=missing_fields,
+        unused_columns=unused_columns,
     )
 
 
