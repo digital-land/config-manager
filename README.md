@@ -56,7 +56,7 @@ To add a development library, add a line to [dev-requirements.in](dev-requiremen
 
 Note that the first line of that file is:
 
-"-c requirements.txt" which constrains the versions of dependencies in the requirements.txt file generated in previous step.
+"-r requirements.txt" which constrains the versions of dependencies in the requirements.txt file generated in previous step.
 
     python -m piptools compile requirements/dev-requirements.in
 
