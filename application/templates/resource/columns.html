@@ -22,7 +22,7 @@
 
 {% set datasetHeaderHTML %}
 <h3 class="govuk-heading-m app-accordion__heading__header">Dataset mappings</h3>
-<p class="govuk-body govuk-!-margin-bottom-0">{{ dataset_mappings|length }} mapping rules set for the {{ dataset.name }} dataset.</p>
+<p class="govuk-body govuk-!-margin-bottom-0">{{ relevant_dataset_mappings|length }} mapping rules set for the {{ dataset.name }} dataset apply to this resource.</p>
 {% endset %}
 
 {% set datasetHTML %}
@@ -35,7 +35,7 @@
         <span class="app-mapping-item__invisible">map to</span>
         <h5 class="govuk-heading-s app-mapping-item__heading">Schema<span class="govuk-visually-hidden"> headings</span></h5>
       </li>
-      {% for col in dataset_mappings %}
+      {% for col in relevant_dataset_mappings %}
       <li class="app-mapping-item">
         <span class="app-mapping-item__unit">{{ col.column }}</span>
         <span class="app-mapping-item__label"><span>is mapped to</span></span>

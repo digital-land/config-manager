@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, redirect, render_template, url_for
 
 from application.blueprints.resource.forms import MappingForm, SearchForm
-from application.models import Column, Resource
+from application.models import Column, Resource, SourceCheck
 
 resource_bp = Blueprint("resource", __name__, url_prefix="/resource")
 
@@ -56,6 +56,12 @@ def get_resource_datasets(resource):
     return list(set(datasets))
 
 
+def relevant_mappings(dataset_mappings, resource_columns):
+    return [
+        mapping for mapping in dataset_mappings if mapping.column in resource_columns
+    ]
+
+
 @resource_bp.route("/<resource_hash>/columns")
 def columns(resource_hash):
     resource = Resource.query.get(resource_hash)
@@ -79,6 +85,14 @@ def columns(resource_hash):
         for mapping in existing_mappings
         if mapping.resource and mapping.resource.resource == resource.resource
     ]
+
+    summary = SourceCheck.query.filter(
+        SourceCheck.resource_hash == resource.resource
+    ).first()
+    if summary is None:
+        # perform the /check
+        pass
+
     # To do: get columns/attr names from the original resource
     # To do: get expected/allowable attributes from schema
     # To do: get mappings between columns and expected columns
@@ -87,8 +101,11 @@ def columns(resource_hash):
         "resource/columns.html",
         resource=resource,
         datasets=datasets,
-        dataset_mappings=dataset_mappings,
+        relevant_dataset_mappings=relevant_mappings(
+            dataset_mappings, summary.resource_fields
+        ),
         resource_mappings=resource_mappings,
+        expected_fields=[field.field for field in dataset.fields],
     )
 
 
