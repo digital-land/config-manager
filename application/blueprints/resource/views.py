@@ -158,6 +158,7 @@ def columns(resource_hash):
         "resource/columns.html",
         resource=resource,
         datasets=datasets,
+        dataset=dataset_obj,
         relevant_dataset_mappings=relevant_dataset_mappings,
         resource_mappings=resource_mappings,
         expected_fields=expected_fields,
