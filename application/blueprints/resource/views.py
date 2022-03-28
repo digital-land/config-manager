@@ -220,6 +220,36 @@ def columns_add(resource_hash):
     )
 
 
+# should the urls be /<resource_hash>/dataset/<dataset>/columns/{,remove,add}?
+@resource_bp.route("/<resource_hash>/columns/remove")
+def columns_remove(resource_hash):
+    if (
+        request.args.get("dataset") is None
+        or request.args.get("column") is None
+        or request.args.get("field") is None
+    ):
+        # should fail more nicely than this
+        return abort(404)
+    dataset = request.args.get("dataset")
+    column = request.args.get("column")
+    field = request.args.get("field")
+
+    mapping = Column.query.filter(
+        Column.dataset_id == dataset,
+        Column.column == column,
+        Column.field_id == field,
+        Column.resource_id == resource_hash,
+    ).first()
+
+    if mapping:
+        db.session.delete(mapping)
+        db.session.commit()
+
+    return redirect(
+        url_for("resource.columns", resource_hash=resource_hash, dataset=dataset)
+    )
+
+
 @resource_bp.route("/<resource_hash>/values")
 def values(resource_hash):
     # To do: get expected/allowable attributes from schema and check if any contain specific values (category fields)

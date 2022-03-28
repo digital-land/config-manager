@@ -144,6 +144,12 @@
         <span class="app-mapping-item__unit">{{ col.column }}</span>
         <span class="app-mapping-item__label"><span>is mapped to</span></span>
         <span class="app-mapping-item__unit">{{ col.field_id }}</span>
+        <div class="app-mapping-item__delete">
+          <a href="{{ url_for('resource.columns_remove', resource_hash=resource.resource, dataset=dataset.dataset, column=col.column, field=col.field_id) }}">
+            <span class="app-mapping-item__delete__btn">x</span>
+            <span class="app-mapping-item__delete__label">Delete mapping</span>
+          </a>
+        </div>
       </li>
       {% endfor %}
     </ul>

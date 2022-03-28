@@ -7,9 +7,11 @@
 }
 
 .app-mapping-item {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
 
   &__unit:first-of-type {
     margin-right: 10px;
@@ -59,6 +61,46 @@
     padding: 0 10px;
     background: govuk-colour('white');
     z-index: 2;
+  }
+}
+
+.app-mapping-item__delete {
+  flex-basis: 100%;
+
+  @include govuk-media-query($from: tablet) {
+    position: absolute;
+    right: -50px;
+  }
+
+  a {
+    display: inline-block;
+    padding-top: 5px;
+    color: govuk-colour('red');
+
+    @include govuk-media-query($from: tablet) {
+      padding-top: 0;
+    }
+  }
+}
+
+.app-mapping-item__delete__btn {
+  display: inline-block;
+  width: 50px;
+  height: 50px;
+  line-height: 50px;
+  text-align: center;
+  font-size: 19px;
+  font-weight: 700;
+  text-transform: uppercase;
+
+  @include govuk-media-query($until: tablet) {
+    @include govuk-visually-hidden;
+  }
+}
+
+.app-mapping-item__delete__label {
+  @include govuk-media-query($from: tablet) {
+    @include govuk-visually-hidden;
   }
 }
 
