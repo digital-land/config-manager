@@ -3,6 +3,7 @@ import collections
 from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
 
 from application.blueprints.resource.forms import MappingForm, SearchForm
+from application.extensions import db
 from application.models import Column, Resource, SourceCheck
 
 resource_bp = Blueprint("resource", __name__, url_prefix="/resource")
@@ -92,11 +93,7 @@ def remaining_columns(
     return unmatched
 
 
-@resource_bp.route("/<resource_hash>/columns")
-def columns(resource_hash):
-    resource = Resource.query.get(resource_hash)
-    datasets = get_resource_datasets(resource)
-
+def get_dataset_from_param(request, datasets):
     # default to first dataset of list
     dataset_obj = datasets[0]
     if request.args.get("dataset") is not None:
@@ -107,6 +104,14 @@ def columns(resource_hash):
         dataset_obj = next(
             d for d in datasets if request.args.get("dataset") == d.dataset
         )
+    return dataset_obj
+
+
+@resource_bp.route("/<resource_hash>/columns")
+def columns(resource_hash):
+    resource = Resource.query.get(resource_hash)
+    datasets = get_resource_datasets(resource)
+    dataset_obj = get_dataset_from_param(request, datasets)
 
     # getting exisiting mappings - ignore any that have end-dates
     existing_mappings = (
@@ -173,17 +178,45 @@ def columns(resource_hash):
 def columns_add(resource_hash):
     form = MappingForm()
     resource = Resource.query.get(resource_hash)
+    datasets = get_resource_datasets(resource)
+    dataset_obj = get_dataset_from_param(request, datasets)
+
+    summary = SourceCheck.query.filter(
+        SourceCheck.resource_hash == resource.resource
+    ).first()
+    if summary is None:
+        # perform the /check
+        pass
+
+    expected_fields = [field.field for field in dataset_obj.fields]
+    resource_columns = summary.resource_fields
+
+    form.column.choices = [("", "")] + sorted([(col, col) for col in resource_columns])
+    form.field.choices = [("", "")] + sorted(
+        [(field, field) for field in expected_fields]
+    )
 
     if form.validate_on_submit():
+        # to do
+        # save the new rule before redirecting to page with all rules listed
+        mapping = Column(
+            column=form.column.data,
+            dataset_id=dataset_obj.dataset,
+            field_id=form.field.data,
+            resource_id=resource_hash,
+        )
+        db.session.add(mapping)
+        db.session.commit()
         return redirect(url_for("resource.columns", resource_hash=resource_hash))
 
     return render_template(
         "resource/column-add.html",
         resource=resource,
         form=form,
-        sample_row={},
-        missing_fields=[],
-        available_columns=[],
+        dataset=dataset_obj,
+        sample_row=collections.OrderedDict(sorted(summary.resource_rows[0].items())),
+        expected_fields=[field.field for field in dataset_obj.fields],
+        resource_columns=summary.resource_fields,
     )
 
 

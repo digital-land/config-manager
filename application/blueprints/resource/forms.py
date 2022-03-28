@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField
+from wtforms import SelectField, StringField
 from wtforms.validators import DataRequired
 
 
@@ -10,12 +10,12 @@ class SearchForm(FlaskForm):
 
 
 class MappingForm(FlaskForm):
-    column = StringField(
+    column = SelectField(
         "Column",
         validators=[
             DataRequired(message="Enter a column name represent in the resource")
         ],
     )
-    field = StringField(
+    field = SelectField(
         "Field", validators=[DataRequired(message="Enter field name from schema")]
     )

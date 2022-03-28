@@ -16,9 +16,17 @@
   </div>
 </div>
 
+{% set sampleRowHtml %}
+<ul class="govuk-list">
+  {% for k, v in sample_row.items() %}
+  <li>{{ k }}: {{ v }}</li>
+  {% endfor %}
+</ul>
+{% endset %}
+
 {{ govukDetails({
   "summaryText": "Sample row from resource",
-  "text": "We need to know your nationality so we can work out which elections you’re entitled to vote in. If you cannot provide your nationality, you’ll have to send copies of identity documents through the post."
+  "html": sampleRowHtml
 }) }}
 
 <form action="{{ url_for('resource.columns_add', resource_hash=resource.resource) }}" class="govuk-form" method="POST">
@@ -26,9 +34,9 @@
 
   <div class="govuk-form-group{{ ' govuk-form-group--error' if form.errors.keys()|length }}">
     <label for="column" class="govuk-label app-mapping-rule__label">I want any data in the</label>
-    {{ form.column(required=False, class="govuk-input app-mapping-rule__input govuk-input--width-10")}}<span class="app-mapping-rule__label"> column</span>
+    {{ form.column(required=False, class="govuk-select app-mapping-rule__input govuk-input--width-10")}}<span class="app-mapping-rule__label"> column</span>
     <p class="app-mapping-rule__label govuk-!-margin-top-1 govuk-!-margin-bottom-1">to be used for the</p>
-    {{ form.field(required=False, class="govuk-input app-mapping-rule__input govuk-input--width-10")}}<span class="app-mapping-rule__label"> field.</span>
+    {{ form.field(required=False, class="govuk-select app-mapping-rule__input govuk-input--width-10")}}<span class="app-mapping-rule__label"> field.</span>
     {%- if form.errors.keys()|length %}
     <p class='govuk-error-message govuk-!-margin-top-2'>You need to select a value for each input</p>
     {% endif -%}
