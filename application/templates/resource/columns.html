@@ -37,6 +37,27 @@
   </div>
 </div>
 
+{% if datasets|length > 1 %}
+<hr class="govuk-section-break--l">
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">This resource gets processed for {{ datasets|length }} datasets.</p>
+    <form action="" class="govuk-form" method="GET">
+      <div class="govuk-form-group">
+        <label for="dataset" class="govuk-label">Select dataset to view</label>
+        <select name="dataset" id="" class="govuk-select">
+          {% for d in datasets %}
+            <option value="{{ d.dataset }}"{% if d.dataset == dataset %} selected='selected'{% endif %}>{{ d.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="govuk-button govuk-button--secondary">Select</button>
+    </form>
+  </div>
+</div>
+<hr class="govuk-section-break--l">
+{% endif %}
+
 {% for dataset in datasets %}
 <h2 class="govuk-heading-l">{{ dataset.name }}</h2>
 
