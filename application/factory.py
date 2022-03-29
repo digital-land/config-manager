@@ -133,6 +133,7 @@ def register_extensions(app):
                 "'sha256-+6WnXIl4mbFTCARd8N3COQmT3bJJmo32N8q8ZSQAIcU='",
                 "'sha256-vTIO5fI4O36AP9+OzV3oS3SxijRPilL7mJYDUwnwwqk='",
                 "'sha256-icLIt+1VXFav7q50YdfAHSFYWsMvSawaYWwo5ocWp5A='",
+                "'sha256-ACotEtBlkqjCUAsddlA/3p2h7Q0iHuDXxk577uNsXwA='",
             ],
             "style-src": [
                 SELF,
