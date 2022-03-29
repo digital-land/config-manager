@@ -38,7 +38,7 @@ def search():
     resources = (
         Resource.query.filter(Resource.start_date != None)  # noqa: E711
         .order_by(Resource.start_date.desc())
-        .limit(5)
+        .limit(10)
         .all()
     )
 

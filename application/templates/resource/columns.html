@@ -128,7 +128,7 @@
 </div>
 
 {% set datasetHeaderHTML %}
-<h3 class="govuk-heading-s app-accordion__heading__header">Dataset mappings</h3>
+<h3 class="govuk-heading-s app-accordion__heading__header govuk-!-margin-top-5">Dataset mappings</h3>
 <p class="govuk-body govuk-!-margin-bottom-0">{{ relevant_dataset_mappings|length }} mapping rules set for the {{ dataset.name }} dataset apply to this resource.</p>
 {% endset %}
 
@@ -155,7 +155,7 @@
 {% endset %}
 
 {% set resourceHeaderHTML %}
-<h3 class="govuk-heading-s app-accordion__heading__header">Resource mappings</h3>
+<h3 class="govuk-heading-s app-accordion__heading__header govuk-!-margin-top-5">Resource mappings</h3>
 <p class="govuk-body govuk-!-margin-bottom-0">{{ resource_mappings|length }} mapping rules set for the resource.</p>
 {% endset %}
 
@@ -199,6 +199,8 @@
 </div>
 {% endset %}
 
+{% set resourceSectionExpanded = True if resource_mappings|length == 0 else False %}
+
 {{ govukAccordion({
   "id": "accordion-default",
   "items": [
@@ -211,6 +213,7 @@
       }
     },
     {
+      "expanded": "test",
       "heading": {
         "text": resourceHeaderHTML
       },

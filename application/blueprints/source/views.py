@@ -142,7 +142,7 @@ def search():
     sources = (
         Source.query.filter(Source.entry_date != None)  # noqa: E711
         .order_by(Source.entry_date.desc())
-        .limit(5)
+        .limit(10)
         .all()
     )
     return render_template("source/search.html", form=form, sources=sources)
