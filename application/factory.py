@@ -140,7 +140,7 @@ def register_extensions(app):
                 "'sha256-biLFinpqYMtWHmXfkA1BPeCY0/fNt46SAZ+BBk5YUog='",
             ],
             "default-src": SELF,
-            "connect-src": ["*.google-analytics.com", "*.doubleclick.net"],
+            "connect-src": [SELF, "*.google-analytics.com", "*.doubleclick.net"],
             "img-src": [SELF, "*.google.co.uk", "*.google.com"],
         }
 
