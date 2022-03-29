@@ -1,8 +1,22 @@
 import collections
+import os
+import tempfile
 
-from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
+import requests
+from digital_land.api import DigitalLandApi
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from application.blueprints.resource.forms import MappingForm, SearchForm
+from application.collection_utils import Workspace, convert_and_truncate_resource
 from application.extensions import db
 from application.models import Column, Resource, SourceCheck
 
@@ -40,6 +54,63 @@ def rules():
 def resource(resource_hash):
     resource = Resource.query.get(resource_hash)
     return render_template("resource/resource.html", resource=resource)
+
+
+@resource_bp.route("/<resource_hash>/check")
+def resource_check(resource_hash):
+
+    resource = Resource.query.get(resource_hash)
+    if resource is None:
+        return abort(404)
+
+    source = resource.endpoints[0].sources[0]
+    dataset = source.datasets[0]
+    expected_fields = [field.field for field in dataset.fields]
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        workspace = Workspace.factory(
+            source, dataset, temp_dir, current_app.config["PROJECT_ROOT"]
+        )
+        api = DigitalLandApi(
+            False, dataset, workspace.pipeline_dir, workspace.specification_dir
+        )
+        bucket_url = current_app.config["S3_BUCKET_URL"]
+        resource_url = f"{bucket_url}/{dataset.collection}-collection/collection/resource/{resource_hash}"
+
+        try:
+            resp = requests.get(resource_url)
+            resp.raise_for_status()
+        except requests.HTTPError as e:
+            print(e)
+            return abort(404)
+
+        content = resp.content.decode("utf-8")
+        resource_path = os.path.join(workspace.resource_dir, resource_hash)
+        with open(resource_path, "w") as f:
+            f.write(content)
+        limit = int(request.args.get("limit")) if request.args.get("limit") else 10
+        (
+            resource_fields,
+            input_path,
+            output_path,
+            resource_rows,
+        ) = convert_and_truncate_resource(api, workspace, resource_hash, limit)
+
+        source.check = SourceCheck(
+            resource_hash=resource_hash,
+            resource_rows=resource_rows,
+            resource_fields=resource_fields,
+        )
+        db.session.add(source)
+        db.session.commit()
+
+    return jsonify(
+        {
+            "resource_fields": resource_fields,
+            "expected_fields": expected_fields,
+            "resource_rows": resource_rows,
+        }
+    )
 
 
 @resource_bp.route("/<resource_hash>.json")
