@@ -5,6 +5,7 @@ Flask app factory class
 import os.path
 
 import requests
+import sentry_sdk
 from flask import Flask
 from flask.cli import load_dotenv
 
@@ -149,6 +150,13 @@ def register_extensions(app):
             app,
             content_security_policy=csp,
             content_security_policy_nonce_in=["script-src"],
+        )
+
+        from sentry_sdk.integrations.flask import FlaskIntegration
+
+        sentry_sdk.init(
+            dsn=os.environ.get("SENTRY_DSN"),
+            integrations=[FlaskIntegration()],
         )
 
 
