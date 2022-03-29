@@ -67,6 +67,19 @@ def resource_check(resource_hash):
     dataset = source.datasets[0]
     expected_fields = [field.field for field in dataset.fields]
 
+    # if already checked return from db
+    source_check = SourceCheck.query.filter(
+        SourceCheck.resource_hash == resource_hash
+    ).first()
+    if source_check is not None:
+        return jsonify(
+            {
+                "resource_fields": source_check.resource_fields,
+                "expected_fields": expected_fields,
+                "resource_rows": source_check.resource_rows,
+            }
+        )
+
     with tempfile.TemporaryDirectory() as temp_dir:
         workspace = Workspace.factory(
             source, dataset, temp_dir, current_app.config["PROJECT_ROOT"]
