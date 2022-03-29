@@ -17,6 +17,7 @@ class Config:
     GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
     SAFE_URLS = {"data-manager-prototype.herokuapp.com"}
     AUTHENTICATION_ON = True
+    S3_BUCKET_URL = "https://collection-dataset.s3.eu-west-2.amazonaws.com"
 
 
 class DevelopmentConfig(Config):
