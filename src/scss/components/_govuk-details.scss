@@ -1,0 +1,20 @@
+// modifier class to add smaller details component
+.govuk-details--small {
+  .govuk-details__summary {
+    padding-left: govuk-spacing(3) + $govuk-border-width;
+  }
+
+  .govuk-details__summary-text,
+  .govuk-details__text {
+    @include govuk-font($size: 16);
+  }
+
+  .govuk-details__summary:before {
+    top: 3px;
+    @include govuk-shape-arrow($direction: right, $base: 11px);
+  }
+}
+
+.govuk-details--small[open] > .govuk-details__summary:before {
+  @include govuk-shape-arrow($direction: down, $base: 11px);
+}

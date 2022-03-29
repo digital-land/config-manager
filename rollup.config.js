@@ -12,5 +12,12 @@ module.exports = [
       file: 'application/static/javascripts/app-background-check.js',
       format: 'iife'
     }
+  },
+  {
+    input: 'src/javascripts/app-resource-mapping.js',
+    output: {
+      file: 'application/static/javascripts/app-resource-mapping.js',
+      format: 'iife'
+    }
   }
 ]

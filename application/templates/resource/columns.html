@@ -47,7 +47,7 @@
         <label for="dataset" class="govuk-label">Select dataset to view</label>
         <select name="dataset" id="" class="govuk-select">
           {% for d in datasets %}
-            <option value="{{ d.dataset }}"{% if d.dataset == dataset %} selected='selected'{% endif %}>{{ d.name }}</option>
+          <option value="{{ d.dataset }}"{% if d.dataset == dataset %} selected='selected'{% endif %}>{{ d.name }}</option>
           {% endfor %}
         </select>
       </div>
@@ -64,22 +64,62 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
     <p class="govuk-body">Results after processing the resource for {{ dataset.name }} data.</p>
+  </div>
+</div>
 
-    <p class="govuk-body"><span class="govuk-!-font-size-48 govuk-!-font-weight-bold">{{ missing_fields|length }}</span> fields missing from expected fields for {{ dataset.name }}.</p>
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-one-half">
+    <p class="govuk-body"><span class="govuk-!-font-size-48 govuk-!-font-weight-bold">{{ missing_fields|length }}</span> expected fields are missing.</p>
+    {% if missing_fields|length > 0 %}
+    <div class="dl-collapsible__wrapper" data-module='app-collapsible'>
+      <div class="dl-collapsible no-doc-endpoints" data-collapsible="open">
+        <ul class="govuk-list">
+        {% for field in missing_fields %}
+          <li>{{ field }}</li>
+        {% endfor %}
+        </ul>
+      </div>
+      <div class="expanding-line-break">
+        <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible">
+        <span class="govuk-link dl-collapsible__btn open-section" data-action="open-section"><span class="dl-collapsible__icon">⊻</span>See missing fields</span>
+        <span class="govuk-link dl-collapsible__btn close-section" data-action="close-section"><span class="dl-collapsible__icon">⊼</span>Hide missing fields</span>
+      </div>
+    </div>
+    {% endif %}
     {{ govukDetails({
       "summaryText": "What do we mean by a missing field?",
+      "classes": "govuk-details--small",
       "text": "For each dataset there is a number of expected fields. When data is extracted from the resource we check which fields we've been able to extract data for. If no data has been extracted for a field it is considered to be missing."
     }) }}
+  </div>
+  <div class="govuk-grid-column-one-half">
     <p class="govuk-body">
-      <span class="govuk-!-font-size-48 govuk-!-font-weight-bold">{{ unused_columns|length }}</span> unused columns from the resource.
+      <span class="govuk-!-font-size-48 govuk-!-font-weight-bold">{{ unused_columns|length }}</span> unused columns in the resource.
     </p>
+    {% if unused_columns|length > 0 %}
+    <div class="dl-collapsible__wrapper" data-module='app-collapsible'>
+      <div class="dl-collapsible no-doc-endpoints" data-collapsible="open">
+        <ul class="govuk-list">
+          {% for column in unused_columns %}
+          <li>{{ column }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="expanding-line-break">
+        <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible">
+        <span class="govuk-link dl-collapsible__btn open-section" data-action="open-section"><span class="dl-collapsible__icon">⊻</span>See missing columns</span>
+        <span class="govuk-link dl-collapsible__btn close-section" data-action="close-section"><span class="dl-collapsible__icon">⊼</span>Hide missing columns</span>
+      </div>
+    </div>
+    {% endif %}
     {{ govukDetails({
       "summaryText": "What do we mean by unused columns?",
+      "classes": "govuk-details--small",
       "text": "In a resource there are a number of columns per row. We look through these to see if we can extract data. If we recognise the field name or if there is an applicable mapping we will use the data in the column. If there isn't we can't use the data - in this case we consider the column to be unused."
     }) }}
   </div>
 </div>
-<h2 class="govuk-heading-m govuk-!-margin-top-6">Applicable rules</h2>
+<h2 class="govuk-heading-m govuk-!-margin-top-6">Rules used to extract data</h2>
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
@@ -185,3 +225,7 @@
 {% endfor %}
 
 {% endblock content %}
+
+{% block pageScripts %}
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="{{ assetPath | default('/assets') }}/javascripts/app-resource-mapping.js"></script>
+{% endblock pageScripts %}
