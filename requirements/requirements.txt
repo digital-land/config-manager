@@ -16,6 +16,7 @@ certifi==2021.10.8
     # via
     #   pyproj
     #   requests
+    #   sentry-sdk
 cffi==1.15.0
     # via cryptography
 charset-normalizer==2.0.12
@@ -111,6 +112,8 @@ requests==2.27.1
     # via
     #   -r requirements/requirements.in
     #   digital-land
+sentry-sdk==1.5.8
+    # via -r requirements/requirements.in
 shapely==1.8.1.post1
     # via digital-land
 simplejson==3.17.6
@@ -132,7 +135,9 @@ sqlalchemy==1.4.31
 tenacity==8.0.1
     # via digital-land
 urllib3==1.26.8
-    # via requests
+    # via
+    #   requests
+    #   sentry-sdk
 validators==0.18.2
     # via
     #   digital-land
