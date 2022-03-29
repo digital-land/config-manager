@@ -53,7 +53,9 @@ def rules():
 @resource_bp.route("/<resource_hash>")
 def resource(resource_hash):
     resource = Resource.query.get(resource_hash)
-    return render_template("resource/resource.html", resource=resource)
+    # has local check been performed?
+    check = SourceCheck.query.filter(SourceCheck.resource_hash == resource_hash).first()
+    return render_template("resource/resource.html", resource=resource, check=check)
 
 
 @resource_bp.route("/<resource_hash>/check")

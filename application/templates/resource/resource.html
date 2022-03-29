@@ -52,7 +52,7 @@
   <div class="app-card__footer">
     <nav class="app-card__footer__actions">
       <h4 class="govuk-heading-xs app-card__footer__actions__heading">Actions</h4>
-      <a href="{{ url_for('resource.columns', resource_hash=resource.resource) }}" class="govuk-link app-card__footer__actions__action">Map columns<span class="govuk-visually-hidden"> seen in this resource</span></a>
+      <a href="{{ url_for('resource.columns', resource_hash=resource.resource) }}" class="govuk-link app-card__footer__actions__action" data-module="resource-check" data-check-performed="{{ 'true' if check else 'false' }}" data-resource-hash="{{ resource.resource }}">Map columns<span class="govuk-visually-hidden"> seen in this resource</span></a>
       <a href="#" class="govuk-link app-card__footer__actions__action app-link--destructive">Archive<span class="govuk-visually-hidden"> this resource</span></a>
     </nav>
   </div>
@@ -80,3 +80,11 @@
 
 
 {% endblock content %}
+
+{% block pageScripts %}
+<!--
+  this will do a basic check of the resource in the background so that the user can then do the mappings.
+  IT IS NOT PROGRESSIVELY ENHANCED SO NEEDS TO CHANGE
+-->
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="{{ assetPath | default('/assets') }}/javascripts/app-background-check.js"></script>
+{% endblock pageScripts %}
