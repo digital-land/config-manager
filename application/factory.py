@@ -69,10 +69,6 @@ def register_blueprints(app):
 
     app.register_blueprint(auth_bp)
 
-    # from application.blueprints.pipeline.views import pipeline_bp
-    #
-    # app.register_blueprint(pipeline_bp)
-
 
 def register_context_processors(app):
     """
