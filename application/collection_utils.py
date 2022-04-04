@@ -171,7 +171,7 @@ def convert_and_truncate_resource(api, workspace, resource_hash, limit=10):
         resource_fields = reader.fieldnames
         truncated_resource_rows = list(islice(reader, limit))
 
-    # overwrite resource with first n rows of converted data
+    # overwrite local copy of resource with first n rows of converted data
     with open(input_path, "w") as file:
         writer = csv.DictWriter(file, fieldnames=resource_fields)
         writer.writeheader()
