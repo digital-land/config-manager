@@ -20,7 +20,7 @@ def test_visit_main_pages(server_process, page):
     page.click("text=Data manager")
 
 
-def test_add_source(server_process, page):
+def test_add_edit_source(server_process, page):
 
     page.goto(BASE_URL)
     page.click("text=Add a source")
@@ -44,4 +44,15 @@ def test_add_source(server_process, page):
     if page.locator("text=Save changes to source").is_visible():
         page.click("text=Save changes to source")
 
+    assert page.url.startswith(f"{BASE_URL}/source/add/finish")
+
+    page.click("text=See source record")
+    page.click("text=Edit")
+    page.fill(
+        'input[name="documentation_url"]',
+        "http://www.nnjpu.org.uk/publications/documentation.html",
+    )
+    page.click("text=Save changes")
+    assert page.url.startswith(f"{BASE_URL}/source/add/summary")
+    page.click("text=Save changes to source")
     assert page.url.startswith(f"{BASE_URL}/source/add/finish")

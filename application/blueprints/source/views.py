@@ -204,8 +204,12 @@ def summary():
     existing_source = (
         Source.query.get(existing_source_id) if existing_source_id is not None else None
     )
-    datasets = dataset_str_to_objs(form.dataset.data)
-    organisation = Organisation.query.get(form.organisation.data)
+    if existing_source:
+        datasets = existing_source.datasets
+        organisation = existing_source.organisation
+    else:
+        datasets = dataset_str_to_objs(form.dataset.data)
+        organisation = Organisation.query.get(form.organisation.data)
     return render_template(
         "source/summary.html",
         sources=[form.data],
