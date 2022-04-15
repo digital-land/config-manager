@@ -38,7 +38,7 @@ def csv_data_to_buffer(csv_rows):
     out = io.StringIO()
     fieldnames = csv_rows[0].keys()
     writer = csv.DictWriter(
-        out, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL, lineterminator="\n"
+        out, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL, lineterminator="\r\n"
     )
     writer.writeheader()
     for row in csv_rows:
