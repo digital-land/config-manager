@@ -37,7 +37,9 @@ def check_url_reachable(url):
 def csv_data_to_buffer(csv_rows):
     out = io.StringIO()
     fieldnames = csv_rows[0].keys()
-    writer = csv.DictWriter(out, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL)
+    writer = csv.DictWriter(
+        out, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL, lineterminator="\n"
+    )
     writer.writeheader()
     for row in csv_rows:
         writer.writerow(row)

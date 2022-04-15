@@ -66,15 +66,15 @@ class Workspace(NamedTuple):
 
         with open(endpoint_csv, "w") as csvfile:
             fieldnames = endpoint_data.keys()
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, lineterminator="\n")
             writer.writeheader()
             writer.writerow(endpoint_data)
 
-        source_csv = os.path.join(collection_dir, "source.csv")
+        source_csv = os.path.join(collection_dir, "source.csv", lineterminator="\n")
         source_data = source.to_csv_dict()
         with open(source_csv, "w") as csvfile:
             fieldnames = source_data.keys()
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, lineterminator="\n")
             writer.writeheader()
             writer.writerow(source_data)
 
@@ -89,7 +89,7 @@ class Workspace(NamedTuple):
             if filename not in other_pipeline_files.keys():
                 file = os.path.join(pipeline_dir, f"{filename}.csv")
                 with open(file, "w") as f:
-                    writer = csv.DictWriter(f, fieldnames=fields)
+                    writer = csv.DictWriter(f, fieldnames=fields, lineterminator="\n")
                     writer.writeheader()
 
         for filename, collection in other_pipeline_files.items():
@@ -100,7 +100,7 @@ class Workspace(NamedTuple):
             else:
                 fieldnames = pipeline_file_fields[filename]
             with open(file, "w") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
                 writer.writeheader()
                 for r in rows:
                     writer.writerow(r)
@@ -141,7 +141,7 @@ class Workspace(NamedTuple):
         organisations = [org.to_csv_dict() for org in Organisation.query.all()]
         with open(organisation_path, "w") as csvfile:
             fieldnames = organisations[0].keys()
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, lineterminator="\n")
             writer.writeheader()
             for org in organisations:
                 writer.writerow(org)
@@ -173,7 +173,7 @@ def convert_and_truncate_resource(api, workspace, resource_hash, limit=10):
 
     # overwrite local copy of resource with first n rows of converted data
     with open(input_path, "w") as file:
-        writer = csv.DictWriter(file, fieldnames=resource_fields)
+        writer = csv.DictWriter(file, fieldnames=resource_fields, lineterminator="\n")
         writer.writeheader()
         for row in truncated_resource_rows:
             writer.writerow(row)
