@@ -4,12 +4,11 @@ services:
   web:
     build:
       context: .
-    volumes:
-      - .:/app
     ports:
-      - "2000:5000"
+      - "80:80"
+    env_file: .flaskenv
     environment:
-      PORT: 5000
+      PORT: 80
       DATABASE_URL: postgresql://postgres:postgres@database/manager
     links:
       - database
