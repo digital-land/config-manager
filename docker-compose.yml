@@ -4,6 +4,7 @@ services:
   web:
     build:
       context: .
+      target: development
     ports:
       - "80:80"
     env_file: .flaskenv
