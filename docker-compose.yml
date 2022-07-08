@@ -8,6 +8,8 @@ services:
     ports:
       - "80:80"
     env_file: .flaskenv
+    volumes:
+      - .:/app
     environment:
       PORT: 80
       DATABASE_URL: postgresql://postgres:postgres@database/manager

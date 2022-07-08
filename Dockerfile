@@ -11,7 +11,6 @@ RUN set -ex; \
         python3-pip \
         rsync
 
-ENV PROJ_DIR=/usr
 ENV PORT=80
 
 # We copy only the requirements files across here,
@@ -41,7 +40,8 @@ FROM base AS development
 ENV FLASK_ENV=development
 RUN pip install \
     --no-cache-dir \
-    --requirement requirements/dev-requirements.txt
+    --editable \
+    .[dev]
 CMD flask db upgrade && flask run -p $PORT -h 0.0.0.0
 
 FROM base AS live

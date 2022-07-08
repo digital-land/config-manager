@@ -15,7 +15,6 @@ tf
 .github
 .vscode
 .idea
-.git
 *.in
 #*.sqlite3
 .flaskenv
