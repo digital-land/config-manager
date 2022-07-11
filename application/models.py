@@ -30,7 +30,11 @@ class Organisation(DateModel):
     local_authority_type = db.Column(db.Text)
     local_resilience_forum = db.Column(db.Text)
     opendatacommunities_area = db.Column(db.Text)
+    opendatacommunities_uri = db.Column(db.Text)
     opendatacommunities_organisation = db.Column(db.Text)
+    parliament_thesaurus = db.Column(db.Text)
+    prefix = db.Column(db.Text)
+    reference = db.Column(db.Text)
     region = db.Column(db.Text)
     shielding_hub = db.Column(db.Text)
     statistical_geography = db.Column(db.Text)
@@ -57,7 +61,11 @@ class Organisation(DateModel):
             "local-authority-type": self.local_authority_type,
             "local-resilience-forum": self.local_resilience_forum,
             "opendatacommunities": self.opendatacommunities_organisation,
+            "opendatacommunities-uri": self.opendatacommunities_uri,
             "opendatacommunities-area": self.opendatacommunities_area,
+            "parliament_thesaurus": self.parliament_thesaurus,
+            "prefix": self.prefix,
+            "reference": self.reference,
             "region": self.region,
             "start-date": self.start_date,
             "statistical-geography": self.statistical_geography,
