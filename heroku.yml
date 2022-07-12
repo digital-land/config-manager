@@ -3,4 +3,6 @@ build:
     web:
       dockerfile: Dockerfile
       target: live
-
+release:
+  image: web
+  command: flask db upgrade head
