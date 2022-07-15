@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      target: development
+    ports:
+      - "80:80"
+    env_file: .flaskenv
+    volumes:
+      - .:/app
+    environment:
+      PORT: 80
+      DATABASE_URL: postgresql://postgres:postgres@database/manager
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    image: postgis/postgis
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: manager
+    healthcheck:
+      test: pg_isready -U postgres
+      interval: 10s
+      timeout: 5s
+      retries: 5
