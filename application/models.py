@@ -236,6 +236,8 @@ class Dataset(DateModel):
     wikipedia = db.Column(db.Text)
     collection = db.Column(db.Text, db.ForeignKey("collection.collection"))
     typology = db.Column(db.Text, db.ForeignKey("typology.typology"))
+    attribution = db.Column(db.Text)
+    licence = db.Column(db.Text)
 
     sources = db.relationship(
         "Source",
