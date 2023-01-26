@@ -5,6 +5,11 @@ init::
 	python -m pre_commit install
 	npm install
 
+reqs:
+	python -m piptools compile requirements/requirements.in
+	python -m piptools compile requirements/dev-requirements.in
+	python -m piptools sync requirements/requirements.txt requirements/dev-requirements.txt
+
 black:
 	black .
 
