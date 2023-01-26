@@ -3,7 +3,8 @@ import os
 import tempfile
 
 import requests
-from digital_land.api import DigitalLandApi
+
+# from digital_land.api import DigitalLandApi
 from flask import (
     Blueprint,
     abort,
@@ -16,7 +17,9 @@ from flask import (
 )
 
 from application.blueprints.resource.forms import MappingForm, SearchForm
-from application.collection_utils import Workspace, convert_and_truncate_resource
+from application.collection_utils import Workspace
+
+# from application.collection_utils import Workspace, convert_and_truncate_resource
 from application.extensions import db
 from application.models import Column, Resource, SourceCheck
 
@@ -86,9 +89,9 @@ def resource_check(resource_hash):
         workspace = Workspace.factory(
             source, dataset, temp_dir, current_app.config["PROJECT_ROOT"]
         )
-        api = DigitalLandApi(
-            False, dataset, workspace.pipeline_dir, workspace.specification_dir
-        )
+        # api = DigitalLandApi(
+        #     False, dataset, workspace.pipeline_dir, workspace.specification_dir
+        # )
         bucket_url = current_app.config["S3_BUCKET_URL"]
         resource_url = f"{bucket_url}/{dataset.collection}-collection/collection/resource/{resource_hash}"
 
@@ -103,27 +106,34 @@ def resource_check(resource_hash):
         resource_path = os.path.join(workspace.resource_dir, resource_hash)
         with open(resource_path, "w") as f:
             f.write(content)
-        limit = int(request.args.get("limit")) if request.args.get("limit") else 10
-        (
-            resource_fields,
-            input_path,
-            output_path,
-            resource_rows,
-        ) = convert_and_truncate_resource(api, workspace, resource_hash, limit)
+        # limit = int(request.args.get("limit")) if request.args.get("limit") else 10
+        # (
+        #     resource_fields,
+        #     input_path,
+        #     output_path,
+        #     resource_rows,
+        # ) = convert_and_truncate_resource(api, workspace, resource_hash, limit)
 
-        source.check = SourceCheck(
-            resource_hash=resource_hash,
-            resource_rows=resource_rows,
-            resource_fields=resource_fields,
-        )
-        db.session.add(source)
-        db.session.commit()
+        # source.check = SourceCheck(
+        #     resource_hash=resource_hash,
+        #     resource_rows=resource_rows,
+        #     resource_fields=resource_fields,
+        # )
+        # db.session.add(source)
+        # db.session.commit()
 
+    # return jsonify(
+    #     {
+    #         "resource_fields": resource_fields,
+    #         "expected_fields": expected_fields,
+    #         "resource_rows": resource_rows,
+    #     }
+    # )
     return jsonify(
         {
-            "resource_fields": resource_fields,
+            "resource_fields": None,
             "expected_fields": expected_fields,
-            "resource_rows": resource_rows,
+            "resource_rows": None,
         }
     )
 

@@ -2,7 +2,7 @@ import os
 import tempfile
 from datetime import datetime
 
-from digital_land.api import DigitalLandApi
+# from digital_land.api import DigitalLandApi
 from flask import (
     Blueprint,
     abort,
@@ -22,16 +22,9 @@ from application.blueprints.source.forms import (
     NewSourceForm,
     SearchForm,
 )
-from application.collection_utils import Workspace, convert_and_truncate_resource
+from application.collection_utils import Workspace
 from application.extensions import db
-from application.models import (
-    Collection,
-    Dataset,
-    Endpoint,
-    Organisation,
-    Source,
-    SourceCheck,
-)
+from application.models import Collection, Dataset, Endpoint, Organisation, Source
 from application.utils import (
     check_url_reachable,
     compute_hash,
@@ -39,6 +32,9 @@ from application.utils import (
     csv_data_to_buffer,
     login_required,
 )
+
+# from application.collection_utils import Workspace, convert_and_truncate_resource
+
 
 source_bp = Blueprint("source", __name__, url_prefix="/source")
 
@@ -343,7 +339,7 @@ def source_check(source_hash):
         return redirect(url_for("source.source"))
 
     dataset_obj = source_obj.datasets[0]
-    dataset = dataset_obj.dataset
+    # dataset = dataset_obj.dataset
     expected_fields = [field.field for field in dataset_obj.fields]
 
     # if already checked return from db
@@ -363,41 +359,48 @@ def source_check(source_hash):
             workspace = Workspace.factory(
                 source_obj, dataset_obj, temp_dir, current_app.config["PROJECT_ROOT"]
             )
-            api = DigitalLandApi(
-                False, dataset, workspace.pipeline_dir, workspace.specification_dir
-            )
+            # api = DigitalLandApi(
+            #     False, dataset, workspace.pipeline_dir, workspace.specification_dir
+            # )
 
-            api.collect_cmd(workspace.endpoint_csv, workspace.collection_dir)
+            # api.collect_cmd(workspace.endpoint_csv, workspace.collection_dir)
 
             resources = os.listdir(workspace.resource_dir)
 
             if not resources:
                 print("No resource collected")
                 return abort(400)
-            else:
-                resource_hash = resources[0]
-                limit = (
-                    int(request.args.get("limit")) if request.args.get("limit") else 10
-                )
-                (
-                    resource_fields,
-                    input_path,
-                    output_path,
-                    resource_rows,
-                ) = convert_and_truncate_resource(api, workspace, resource_hash, limit)
+            # else:
+            #     resource_hash = resources[0]
+            #     limit = (
+            #         int(request.args.get("limit")) if request.args.get("limit") else 10
+            #     )
+            #     (
+            #         resource_fields,
+            #         input_path,
+            #         output_path,
+            #         resource_rows,
+            #     ) = convert_and_truncate_resource(api, workspace, resource_hash, limit)
 
-            source_obj.check = SourceCheck(
-                resource_hash=resource_hash,
-                resource_rows=resource_rows,
-                resource_fields=resource_fields,
-            )
-            db.session.add(source_obj)
-            db.session.commit()
+            # source_obj.check = SourceCheck(
+            #     resource_hash=resource_hash,
+            #     resource_rows=resource_rows,
+            #     resource_fields=resource_fields,
+            # )
+            # db.session.add(source_obj)
+            # db.session.commit()
 
+            # return jsonify(
+            #     {
+            #         "resource_fields": resource_fields,
+            #         "expected_fields": expected_fields,
+            #         "resource_rows": resource_rows,
+            #     }
+            # )
             return jsonify(
                 {
-                    "resource_fields": resource_fields,
+                    "resource_fields": None,
                     "expected_fields": expected_fields,
-                    "resource_rows": resource_rows,
+                    "resource_rows": None,
                 }
             )
