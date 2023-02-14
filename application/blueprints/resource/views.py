@@ -18,8 +18,6 @@ from flask import (
 
 from application.blueprints.resource.forms import MappingForm, SearchForm
 from application.collection_utils import Workspace
-
-# from application.collection_utils import Workspace, convert_and_truncate_resource
 from application.extensions import db
 from application.models import Column, Resource, SourceCheck
 
