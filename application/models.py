@@ -1,4 +1,4 @@
-# from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import JSON
 
 from application.extensions import db
 
@@ -41,7 +41,7 @@ class Organisation(DateModel):
     wikipedia = db.Column(db.Text)
 
 
-class Collection(db.Model):
+class Collection(DateModel):
 
     __tablename__ = "collection"
 
@@ -55,7 +55,31 @@ class Pipeline(db.Model):
 
     pipeline = db.Column(db.Text, primary_key=True)
     name = db.Column(db.Text)
-    source = db.relationship("Source", back_populates="pipelines")
+
+
+source_dataset = db.Table(
+    "source_dataset",
+    db.Column("source", db.Text, db.ForeignKey("source.source"), primary_key=True),
+    db.Column("dataset", db.Text, db.ForeignKey("dataset.dataset"), primary_key=True),
+)
+
+source_pipeline = db.Table(
+    "source_pipeline",
+    db.Column("source", db.Text, db.ForeignKey("source.source"), primary_key=True),
+    db.Column(
+        "pipeline", db.Text, db.ForeignKey("pipeline.pipeline"), primary_key=True
+    ),
+)
+
+
+dataset_field = db.Table(
+    "dataset_field",
+    db.Column("dataset", db.Text, db.ForeignKey("dataset.dataset"), primary_key=True),
+    db.Column("field", db.Text, db.ForeignKey("field.field"), primary_key=True),
+    db.Column("entry_date", db.TIMESTAMP),
+    db.Column("start_date", db.Date),
+    db.Column("end_date", db.Date),
+)
 
 
 class Source(DateModel):
@@ -69,7 +93,13 @@ class Source(DateModel):
     endpoint = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
     licence = db.Column(db.Text, db.ForeignKey("licence.licence"))
     organisation = db.Column(db.Text, db.ForeignKey("organisation.organisation"))
-    pipelines = db.relationship("Pipeline", back_populates="source")
+
+    pipelines = db.relationship(
+        "Pipeline",
+        secondary=source_pipeline,
+        lazy="subquery",
+        backref=db.backref("sources", lazy=True),
+    )
 
 
 class Endpoint(DateModel):
@@ -82,45 +112,45 @@ class Endpoint(DateModel):
     plugin = db.Column(db.Text)
 
 
-# class Resource(DateModel):
+class Resource(DateModel):
 
-#     __tablename__ = "resource"
+    __tablename__ = "resource"
 
-#     resource = db.Column(db.Text, primary_key=True)
-#     bytes = db.Column(db.BigInteger)
-#     mime_type = db.Column(db.Text)
-
-
-# class OldResource(DateModel):
-
-#     __tablename__ = "old_resource"
-
-#     old_resource = db.Column(db.Text, primary_key=True)
-#     resource = db.Column(db.Text, db.ForeignKey("resource.resource"))
-#     notes = db.Column(db.Text)
-#     status = db.Column(db.Text)
+    resource = db.Column(db.Text, primary_key=True)
+    bytes = db.Column(db.BigInteger)
+    mime_type = db.Column(db.Text)
 
 
-# class Dataset(DateModel):
+class OldResource(DateModel):
 
-#     __tablename__ = "dataset"
+    __tablename__ = "old_resource"
 
-#     dataset = db.Column(db.Text, primary_key=True)
-#     attribution = db.Column(db.Text, db.ForeignKey("attribution.attribution"))
-#     collection = db.Column(db.Text, db.ForeignKey("collection.collection"))
-#     description = db.Column(db.Text)
-#     key_field = db.Column(db.Text)
-#     entity_minimum = db.Column(db.BigInteger)
-#     entity_maximum = db.Column(db.BigInteger)
-#     licence = db.Column(db.Text, db.ForeignKey("licence.licence"))
-#     name = db.Column(db.Text)
-#     paint_options = db.Column(JSON)
-#     plural = db.Column(db.Text)
-#     prefix = db.Column(db.Text)
-#     text = db.Column(db.Text)
-#     typology = db.Column(db.Text, db.ForeignKey("typology.typology"))
-#     wikidata = db.Column(db.Text)
-#     wikipedia = db.Column(db.Text)
+    old_resource = db.Column(db.Text, primary_key=True)
+    resource = db.Column(db.Text, db.ForeignKey("resource.resource"))
+    notes = db.Column(db.Text)
+    status = db.Column(db.Text)
+
+
+class Dataset(DateModel):
+
+    __tablename__ = "dataset"
+
+    dataset = db.Column(db.Text, primary_key=True)
+    attribution = db.Column(db.Text, db.ForeignKey("attribution.attribution"))
+    collection = db.Column(db.Text, db.ForeignKey("collection.collection"))
+    description = db.Column(db.Text)
+    key_field = db.Column(db.Text)
+    entity_minimum = db.Column(db.BigInteger)
+    entity_maximum = db.Column(db.BigInteger)
+    licence = db.Column(db.Text, db.ForeignKey("licence.licence"))
+    name = db.Column(db.Text)
+    paint_options = db.Column(JSON)
+    plural = db.Column(db.Text)
+    prefix = db.Column(db.Text)
+    text = db.Column(db.Text)
+    typology = db.Column(db.Text, db.ForeignKey("typology.typology"))
+    wikidata = db.Column(db.Text)
+    wikipedia = db.Column(db.Text)
 
 
 class Attribution(DateModel):
@@ -147,7 +177,7 @@ class Column(db.Model):
     column = db.Column(db.Text)
     resource = db.Column(db.Text, db.ForeignKey("resource.resource"))
     dataset = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    field = db.Column(db.Text, db.ForeignKey("field.field"))
+    field_id = db.Column(db.Text, db.ForeignKey("field.field"))
 
 
 class Combine(DateModel):
@@ -181,6 +211,32 @@ class Convert(DateModel):
     dataset = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
     resource = db.Column(db.Text, db.ForeignKey("resource.resource"))
     plugin = db.Column(db.Text)
+
+
+class Datatype(DateModel):
+
+    datatype = db.Column(db.Text, primary_key=True, nullable=False)
+    name = db.Column(db.Text)
+    text = db.Column(db.Text)
+    fields = db.relationship("Field", backref="datatype", lazy=True)
+
+
+class Field(DateModel):
+
+    field = db.Column(db.Text, primary_key=True, nullable=False)
+    cardinality = db.Column(db.Text)
+    description = db.Column(db.Text)
+    guidance = db.Column(db.Text)
+    hint = db.Column(db.Text)
+    name = db.Column(db.Text)
+    parent_field = db.Column(db.Text)
+    replacement_field = db.Column(db.Text)
+    text = db.Column(db.Text)
+    uri_template = db.Column(db.Text)
+    wikidata_property = db.Column(db.Text)
+    datatype_id = db.Column(db.Text, db.ForeignKey("datatype.datatype"), nullable=True)
+    typology_id = db.Column(db.Text, db.ForeignKey("typology.typology"), nullable=True)
+    columns = db.relationship("Column", backref="field", lazy=True)
 
 
 class Default(DateModel):
@@ -248,3 +304,19 @@ class Filter(DateModel):
     field = db.Column(db.Text)
     dataset = db.Column(db.Text)
     pattern = db.Column(db.Text)
+
+
+class Typology(DateModel):
+
+    typology = db.Column(db.Text, primary_key=True, nullable=False)
+    name = db.Column(db.Text)
+    description = db.Column(db.Text)
+    text = db.Column(db.Text)
+    plural = db.Column(db.Text)
+    wikidata = db.Column(db.Text)
+    wikipedia = db.Column(db.Text)
+    fields = db.relationship("Field", backref="typology", lazy=True)
+
+
+class SourceCheck:
+    pass

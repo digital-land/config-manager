@@ -24,6 +24,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    ENV = "development"
     WTF_CSRF_ENABLED = False
     SAFE_URLS = {"localhost:80"}
     AUTHENTICATION_ON = False

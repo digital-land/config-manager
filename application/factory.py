@@ -35,7 +35,7 @@ def create_app(config_filename):
 
     app.json_encoder = CustomJSONEncoder
 
-    get_specification(app)
+    # get_specification(app)
 
     return app
 
