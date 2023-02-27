@@ -1,9 +1,18 @@
+import csv
+import logging
+import os
+import tempfile
 from datetime import datetime
+from zipfile import ZipFile
 
+import click
 import requests
 from flask.cli import AppGroup
 
-from application.models import Collection, Endpoint, Pipeline, Source
+from application.models import Endpoint, Pipeline, Source
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 management_cli = AppGroup("manage")
 
@@ -13,24 +22,44 @@ DIGITAL_LAND_RAW_GITHUB_URL = "https://raw.githubusercontent.com/digital-land"
 reference_tables = [
     "attribution",
     "licence",
-    "collection",
     "typology",
+    "datatype",
+    "field",
     "organisation",
     "dataset",
+    "dataset_field",
 ]
 
 
+foreign_key_columns = set(
+    [
+        "dataset",
+        "endpoint",
+        "datatype",
+        "typology",
+        "dataset",
+        "field",
+        "licence",
+        "attribution",
+        "organisation",
+        "pipeline",
+    ]
+)
+
+
 @management_cli.command("load-data")
-def load_data():
+@click.option("--reference", default=False, help="Load just specification tables")
+@click.option("--config", default=False, help="Load config tables")
+def load_data(reference, config):
 
     from application.extensions import db
 
-    _load_pipeline(db)
+    if reference:
+        for table in reference_tables:
+            _load_reference_data(db, table)
 
-    for table in reference_tables:
-        _load_data(db, table)
-
-    _load_config(db)
+    if config:
+        _load_config(db)
 
 
 @management_cli.command("drop-data")
@@ -43,12 +72,12 @@ def drop_data():
         try:
             db.engine.execute(delete)
         except Exception as e:
-            print(e)
+            logger.exception(e)
 
 
-def _load_data(db, table):
+def _load_reference_data(db, table):
     url = f"{DIGITAL_LAND_DATASETTE}/{table}.json?_shape=array"
-    print(f"loading from {url}")
+    logger.info(f"loading from {url}")
 
     records = []
     while url:
@@ -61,7 +90,8 @@ def _load_data(db, table):
 
     for record in records:
         if table in ["attribution", "licence"]:
-            del record["entity"]
+            if "entity" in record.keys():
+                del record["entity"]
 
         for key, val in record.items():
             if not val:
@@ -74,163 +104,147 @@ def _load_data(db, table):
                     try:
                         record[key] = datetime.strptime(val, "%Y-%m-%d").date()
                     except Exception as e:
-                        print(e)
+                        logger.exception(e)
                         record[key] = None
+
+        insert_record = {}
+        for key, val in record.items():
+            if key == "rowid":
+                continue
+            if key != table and key in foreign_key_columns:
+                f_key = f"{key}_id"
+                insert_record[f_key] = val
+            else:
+                insert_record[key] = val
         try:
             t = db.metadata.tables.get(table)
-            insert = t.insert().values(**record)
+            insert = t.insert().values(**insert_record)
             db.engine.execute(insert)
         except Exception as e:
-            print(e)
-            print("error loading", table, "with data", record)
+            logger.exception(e)
+            logger.exception(f"error loading {table} with data {record}")
 
-    print("inserted", len(records), table)
-
-
-# TODO - this is wrong. We're using collection csv for a list of pipelines because there
-# isn't one! Fixup where this list comes from.
-def _load_pipeline(db):
-
-    import csv
-
-    # TODO - FIX THIS!
-    url = (
-        f"{DIGITAL_LAND_RAW_GITHUB_URL}/specification/main/specification/collection.csv"
-    )
-
-    resp = requests.get(url)
-    content = resp.iter_lines(decode_unicode=True)
-
-    reader = csv.DictReader(content, delimiter=",")
-    rows = []
-    for row in reader:
-        rows.append(row)
-
-    for row in rows:
-        collection = row.pop("collection")
-        row["pipeline"] = collection
-
-        row.pop("entry-date")
-        row.pop("start-date")
-        row.pop("end-date")
-
-        for key, val in row.items():
-            if not val:
-                row[key] = None
-
-    for row in rows:
-        pipeline = Pipeline(**row)
-        db.session.add(pipeline)
-
-    db.session.commit()
+    logger.info(f"inserted {len(records)} records into {table}")
 
 
 def _load_config(db):
 
-    import csv
+    config_zip_url = (
+        "https://github.com/digital-land/config/archive/refs/heads/main.zip"
+    )
 
-    file_url = "{url}/config/main/collection/{collection}/{file}.csv"
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        logger.info(f"Created temp directory {tmp_dir}")
 
-    for collection in Collection.query.all():
+        resp = requests.get(config_zip_url)
+        zip_file_path = os.path.join(tmp_dir, "main.zip")
 
-        url = file_url.format(
-            url=DIGITAL_LAND_RAW_GITHUB_URL,
-            collection=collection.collection,
-            file="endpoint",
-        )
-        resp = requests.get(url)
-        content = resp.iter_lines(decode_unicode=True)
+        with open(zip_file_path, "wb") as f:
+            f.write(resp.content)
 
-        reader = csv.DictReader(content, delimiter=",")
-        endpoints = _get_dated_rows(reader)
-        endpoints = _remove_empties(endpoints)
+        with ZipFile(zip_file_path) as config_zip:
+            config_zip.extractall(path=tmp_dir)
 
-        for endpoint in endpoints:
-            # skip records with no key defined
-            if not endpoint.get("endpoint"):
-                print("endpoint hash missing", endpoint)
-                print("===" * 30)
-                continue
-            data = endpoint.copy()
-            data["endpoint_url"] = data.pop("endpoint-url")
-            e = Endpoint(**data)
-            try:
-                db.session.add(e)
+        pipeline_dir = os.path.join(tmp_dir, "config-main", "pipeline")
+        pipelines = os.listdir(pipeline_dir)
+
+        for p in pipelines:
+            pipeline_path = os.path.join(pipeline_dir, p)
+            logger.info(f"pipleline path {pipeline_path}")
+
+            pipeline = Pipeline.query.get(p)
+            if pipeline is None:
+                name = p.replace("-", " ").capitalize()
+                pipeline = Pipeline(pipeline=p, name=name)
+                db.session.add(pipeline)
                 db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                print("Couldn't insert", data)
-                print(e)
-                print("===" * 30)
 
-        url = file_url.format(
-            url=DIGITAL_LAND_RAW_GITHUB_URL,
-            collection=collection.collection,
-            file="source",
-        )
-        resp = requests.get(url)
-        content = resp.iter_lines(decode_unicode=True)
+            endpoint_file = f"{pipeline_path}/endpoint.csv"
 
-        reader = csv.DictReader(content, delimiter=",")
-        sources = _get_dated_rows(reader)
-        sources = _remove_empties(sources)
+            if os.path.exists(endpoint_file):
+                with open(endpoint_file, "r") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        endpoint_id = row["endpoint"]
+                        if Endpoint.query.get(endpoint_id) is None:
+                            insert_copy = _get_insert_copy(row, "endpoint")
+                            try:
+                                endpoint = Endpoint(**insert_copy)
+                                db.session.add(endpoint)
+                                db.session.commit()
+                            except Exception as e:
+                                logger.exception(e)
 
-        for source in sources:
-            # skip records with no key defined
-            if not source.get("source"):
-                print("source hash missing", source)
-                print("===" * 30)
-                continue
-            data = source.copy()
-            data["documentation_url"] = data.pop("documentation-url")
-            pipelines = []
-            if "pipelines" in data and data.get("pipelines") is not None:
-                pipelines = data["pipelines"].split(";")
-                data.pop("pipelines")
+            source_file = f"{pipeline_path}/source.csv"
+            if os.path.exists(source_file):
+                with open(source_file, "r") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        source_id = row["source"]
+                        endpoint_id = row["endpoint"]
+                        if endpoint_id.strip() != "":
+                            if Endpoint.query.get(endpoint_id) is None:
+                                message = f"Can't add source that doesn't link to endpoint {row}"
+                                logger.info(message)
+                                continue
+                        source = Source.query.get(source_id)
+                        if source is None:
+                            insert_copy = _get_insert_copy(
+                                row,
+                                "source",
+                                skip_fields=[
+                                    "collection",
+                                    "pipeline",
+                                    "attribution",
+                                    "licence",
+                                ],
+                            )
+                            try:
+                                source = Source(**insert_copy)
+                                db.session.add(source)
+                                pipeline.sources.append(source)
+                                db.session.commit()
 
-            s = Source(**data)
-            for pipeline in pipelines:
-                p = Pipeline.query.get(pipeline)
-                if p:
-                    s.pipelines.append(p)
-            try:
-                db.session.add(s)
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                print("Couldn't insert", data)
-                print(e)
-                print("===" * 30)
+                            except Exception as e:
+                                message = f"could not save source {insert_copy} for pipeline {p}"
+                                logger.exception(e)
+                                logger.exception(message)
+                                db.session.rollback()
+                                continue
 
-
-def _get_dated_rows(reader):
-    rows = []
-    for row in reader:
-        for date_field in ["entry-date", "start-date", "end-date"]:
-            d = row.pop(date_field)
-            update_field_name = date_field.replace("-", "_")
-            if d:
-                try:
-                    date = datetime.strptime(d, "%Y-%m-%dT%H:%M:%SZ").date()
-                    row[update_field_name] = date
-                except Exception as e:
-                    print(e)
-                    row[update_field_name] = None
-                try:
-                    date = datetime.strptime(d, "%Y-%m-%d").date()
-                    row[update_field_name] = date
-                except Exception as e:
-                    print(e)
-                    row[update_field_name] = None
-            else:
-                row[update_field_name] = None
-        rows.append(row)
-    return rows
+            # TODO load the rest of the files
+            # for file in glob.glob(f"{pipeline_path}/*.csv"):
+            #     logger.info(file)
 
 
-def _remove_empties(rows):
-    for row in rows:
-        for key, val in row.items():
-            if not val:
-                row[key] = None
-    return rows
+def _get_insert_copy(row, current_file_key, skip_fields=[]):
+    insert_copy = {}
+    for key, val in row.items():
+        if key in skip_fields:
+            continue
+        if key != current_file_key and key in foreign_key_columns:
+            k = f"{key}_id"
+        else:
+            k = key
+        k = k.replace("-", "_")
+        if val is None or val.strip() == "":
+            insert_copy[k] = None
+        else:
+            insert_copy[k] = val
+        if "date" in k:
+            insert_copy[k] = _parse_date(val)
+    return insert_copy
+
+
+def _parse_date(value):
+    try:
+        date = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").date()
+        return date
+    except Exception as e:
+        logger.exception(e)
+        try:
+            date = datetime.strptime(value, "%Y-%m-%d").date()
+            return date
+        except Exception as e:
+            logger.exception(e)
+            return None

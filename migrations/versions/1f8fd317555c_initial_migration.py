@@ -1,8 +1,8 @@
 """initial migration
 
-Revision ID: 890f047fff74
+Revision ID: 1f8fd317555c
 Revises:
-Create Date: 2023-02-15 14:38:12.924018
+Create Date: 2023-02-27 14:52:43.389006
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "890f047fff74"
+revision = "1f8fd317555c"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,15 +26,6 @@ def upgrade():
         sa.Column("attribution", sa.Text(), nullable=False),
         sa.Column("text", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("attribution"),
-    )
-    op.create_table(
-        "collection",
-        sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
-        sa.Column("start_date", sa.Date(), nullable=True),
-        sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("collection", sa.Text(), nullable=False),
-        sa.Column("name", sa.Text(), nullable=True),
-        sa.PrimaryKeyConstraint("collection"),
     )
     op.create_table(
         "datatype",
@@ -56,17 +47,6 @@ def upgrade():
         sa.Column("parameters", sa.Text(), nullable=True),
         sa.Column("plugin", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("endpoint"),
-    )
-    op.create_table(
-        "filter",
-        sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
-        sa.Column("start_date", sa.Date(), nullable=True),
-        sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("rowid", sa.Integer(), nullable=False),
-        sa.Column("field", sa.Text(), nullable=True),
-        sa.Column("dataset", sa.Text(), nullable=True),
-        sa.Column("pattern", sa.Text(), nullable=True),
-        sa.PrimaryKeyConstraint("rowid"),
     )
     op.create_table(
         "licence",
@@ -114,16 +94,6 @@ def upgrade():
         sa.PrimaryKeyConstraint("pipeline"),
     )
     op.create_table(
-        "resource",
-        sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
-        sa.Column("start_date", sa.Date(), nullable=True),
-        sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("resource", sa.Text(), nullable=False),
-        sa.Column("bytes", sa.BigInteger(), nullable=True),
-        sa.Column("mime_type", sa.Text(), nullable=True),
-        sa.PrimaryKeyConstraint("resource"),
-    )
-    op.create_table(
         "typology",
         sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
@@ -143,13 +113,13 @@ def upgrade():
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("end_date", sa.Date(), nullable=True),
         sa.Column("dataset", sa.Text(), nullable=False),
-        sa.Column("attribution", sa.Text(), nullable=True),
+        sa.Column("attribution_id", sa.Text(), nullable=True),
         sa.Column("collection", sa.Text(), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("key_field", sa.Text(), nullable=True),
         sa.Column("entity_minimum", sa.BigInteger(), nullable=True),
         sa.Column("entity_maximum", sa.BigInteger(), nullable=True),
-        sa.Column("licence", sa.Text(), nullable=True),
+        sa.Column("licence_id", sa.Text(), nullable=True),
         sa.Column("name", sa.Text(), nullable=True),
         sa.Column(
             "paint_options", postgresql.JSON(astext_type=sa.Text()), nullable=True
@@ -157,23 +127,19 @@ def upgrade():
         sa.Column("plural", sa.Text(), nullable=True),
         sa.Column("prefix", sa.Text(), nullable=True),
         sa.Column("text", sa.Text(), nullable=True),
-        sa.Column("typology", sa.Text(), nullable=True),
+        sa.Column("typology_id", sa.Text(), nullable=True),
         sa.Column("wikidata", sa.Text(), nullable=True),
         sa.Column("wikipedia", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["attribution"],
+            ["attribution_id"],
             ["attribution.attribution"],
         ),
         sa.ForeignKeyConstraint(
-            ["collection"],
-            ["collection.collection"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["licence"],
+            ["licence_id"],
             ["licence.licence"],
         ),
         sa.ForeignKeyConstraint(
-            ["typology"],
+            ["typology_id"],
             ["typology.typology"],
         ),
         sa.PrimaryKeyConstraint("dataset"),
@@ -207,50 +173,30 @@ def upgrade():
         sa.PrimaryKeyConstraint("field"),
     )
     op.create_table(
-        "old_resource",
-        sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
-        sa.Column("start_date", sa.Date(), nullable=True),
-        sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("old_resource", sa.Text(), nullable=False),
-        sa.Column("resource", sa.Text(), nullable=True),
-        sa.Column("notes", sa.Text(), nullable=True),
-        sa.Column("status", sa.Text(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["resource"],
-            ["resource.resource"],
-        ),
-        sa.PrimaryKeyConstraint("old_resource"),
-    )
-    op.create_table(
         "source",
         sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("end_date", sa.Date(), nullable=True),
         sa.Column("source", sa.Text(), nullable=False),
-        sa.Column("attribution", sa.Text(), nullable=True),
-        sa.Column("collection", sa.Text(), nullable=True),
+        sa.Column("attribution_id", sa.Text(), nullable=True),
         sa.Column("documentation_url", sa.Text(), nullable=True),
-        sa.Column("endpoint", sa.Text(), nullable=True),
-        sa.Column("licence", sa.Text(), nullable=True),
-        sa.Column("organisation", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
+        sa.Column("licence_id", sa.Text(), nullable=True),
+        sa.Column("organisation_id", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["attribution"],
+            ["attribution_id"],
             ["attribution.attribution"],
         ),
         sa.ForeignKeyConstraint(
-            ["collection"],
-            ["collection.collection"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["endpoint"],
+            ["endpoint_id"],
             ["endpoint.endpoint"],
         ),
         sa.ForeignKeyConstraint(
-            ["licence"],
+            ["licence_id"],
             ["licence.licence"],
         ),
         sa.ForeignKeyConstraint(
-            ["organisation"],
+            ["organisation_id"],
             ["organisation.organisation"],
         ),
         sa.PrimaryKeyConstraint("source"),
@@ -260,43 +206,58 @@ def upgrade():
         sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("rowid", sa.Integer(), nullable=False),
-        sa.Column("field", sa.Text(), nullable=True),
-        sa.Column("dataset", sa.Text(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("pipeline_id", sa.Text(), nullable=True),
+        sa.Column("dataset_id", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
         sa.Column("resource", sa.Text(), nullable=True),
+        sa.Column("field", sa.Text(), nullable=True),
         sa.Column("default_field", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["dataset"],
+            ["dataset_id"],
             ["dataset.dataset"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["endpoint_id"],
+            ["endpoint.endpoint"],
         ),
         sa.ForeignKeyConstraint(
             ["field"],
             ["field.field"],
         ),
         sa.ForeignKeyConstraint(
-            ["resource"],
-            ["resource.resource"],
+            ["pipeline_id"],
+            ["pipeline.pipeline"],
         ),
-        sa.PrimaryKeyConstraint("rowid"),
+        sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
         "column",
+        sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
+        sa.Column("start_date", sa.Date(), nullable=True),
+        sa.Column("end_date", sa.Date(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("column", sa.Text(), nullable=True),
+        sa.Column("pipeline_id", sa.Text(), nullable=True),
+        sa.Column("dataset_id", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
         sa.Column("resource", sa.Text(), nullable=True),
-        sa.Column("dataset", sa.Text(), nullable=True),
+        sa.Column("column", sa.Text(), nullable=True),
         sa.Column("field_id", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["dataset"],
+            ["dataset_id"],
             ["dataset.dataset"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["endpoint_id"],
+            ["endpoint.endpoint"],
         ),
         sa.ForeignKeyConstraint(
             ["field_id"],
             ["field.field"],
         ),
         sa.ForeignKeyConstraint(
-            ["resource"],
-            ["resource.resource"],
+            ["pipeline_id"],
+            ["pipeline.pipeline"],
         ),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -305,104 +266,213 @@ def upgrade():
         sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("rowid", sa.Integer(), nullable=False),
-        sa.Column("field", sa.Text(), nullable=True),
-        sa.Column("dataset", sa.Text(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("pipeline", sa.Text(), nullable=True),
+        sa.Column("dataset_id", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
         sa.Column("resource", sa.Text(), nullable=True),
+        sa.Column("field_id", sa.Text(), nullable=True),
         sa.Column("separator", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["dataset"],
+            ["dataset_id"],
             ["dataset.dataset"],
         ),
         sa.ForeignKeyConstraint(
-            ["field"],
+            ["endpoint_id"],
+            ["endpoint.endpoint"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["field_id"],
             ["field.field"],
         ),
         sa.ForeignKeyConstraint(
-            ["resource"],
-            ["resource.resource"],
+            ["pipeline"],
+            ["pipeline.pipeline"],
         ),
-        sa.PrimaryKeyConstraint("rowid"),
+        sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
         "concat",
         sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("rowid", sa.Integer(), nullable=False),
-        sa.Column("field", sa.Text(), nullable=True),
-        sa.Column("dataset", sa.Text(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("pipeline_id", sa.Text(), nullable=True),
+        sa.Column("dataset_id", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
         sa.Column("resource", sa.Text(), nullable=True),
+        sa.Column("field_id", sa.Text(), nullable=True),
         sa.Column("fields", sa.Text(), nullable=True),
         sa.Column("separator", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["dataset"],
+            ["dataset_id"],
             ["dataset.dataset"],
         ),
         sa.ForeignKeyConstraint(
-            ["field"],
+            ["endpoint_id"],
+            ["endpoint.endpoint"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["field_id"],
             ["field.field"],
         ),
         sa.ForeignKeyConstraint(
-            ["resource"],
-            ["resource.resource"],
+            ["pipeline_id"],
+            ["pipeline.pipeline"],
         ),
-        sa.PrimaryKeyConstraint("rowid"),
+        sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
         "convert",
         sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("rowid", sa.Integer(), nullable=False),
-        sa.Column("dataset", sa.Text(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("pipeline_id", sa.Text(), nullable=True),
+        sa.Column("dataset_id", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
         sa.Column("resource", sa.Text(), nullable=True),
         sa.Column("plugin", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["dataset"],
+            ["dataset_id"],
             ["dataset.dataset"],
         ),
         sa.ForeignKeyConstraint(
-            ["resource"],
-            ["resource.resource"],
+            ["endpoint_id"],
+            ["endpoint.endpoint"],
         ),
-        sa.PrimaryKeyConstraint("rowid"),
+        sa.ForeignKeyConstraint(
+            ["pipeline_id"],
+            ["pipeline.pipeline"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
         "dataset_field",
-        sa.Column("dataset", sa.Text(), nullable=False),
-        sa.Column("field", sa.Text(), nullable=False),
+        sa.Column("dataset_id", sa.Text(), nullable=False),
+        sa.Column("field_id", sa.Text(), nullable=False),
+        sa.Column("hint", sa.Text(), nullable=True),
+        sa.Column("guidance", sa.Text(), nullable=True),
         sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("end_date", sa.Date(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["dataset"],
+            ["dataset_id"],
             ["dataset.dataset"],
         ),
         sa.ForeignKeyConstraint(
-            ["field"],
+            ["field_id"],
             ["field.field"],
         ),
-        sa.PrimaryKeyConstraint("dataset", "field"),
+        sa.PrimaryKeyConstraint("dataset_id", "field_id"),
     )
     op.create_table(
         "default_value",
         sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("rowid", sa.Integer(), nullable=False),
-        sa.Column("endpoint", sa.Text(), nullable=True),
-        sa.Column("field", sa.Text(), nullable=True),
-        sa.Column("dataset", sa.Text(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("pipeline_id", sa.Text(), nullable=True),
+        sa.Column("dataset_id", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
         sa.Column("resource", sa.Text(), nullable=True),
+        sa.Column("field_id", sa.Text(), nullable=True),
         sa.Column("entry_number", sa.BigInteger(), nullable=True),
         sa.Column("value", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["dataset"],
+            ["dataset_id"],
             ["dataset.dataset"],
         ),
         sa.ForeignKeyConstraint(
-            ["endpoint"],
+            ["endpoint_id"],
+            ["endpoint.endpoint"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["field_id"],
+            ["field.field"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["pipeline_id"],
+            ["pipeline.pipeline"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
+        "filter",
+        sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
+        sa.Column("start_date", sa.Date(), nullable=True),
+        sa.Column("end_date", sa.Date(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("pipeline_id", sa.Text(), nullable=True),
+        sa.Column("dataset_id", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
+        sa.Column("resource", sa.Text(), nullable=True),
+        sa.Column("field", sa.Text(), nullable=True),
+        sa.Column("pattern", sa.Text(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["dataset_id"],
+            ["dataset.dataset"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["endpoint_id"],
+            ["endpoint.endpoint"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["pipeline_id"],
+            ["pipeline.pipeline"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
+        "lookup",
+        sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
+        sa.Column("start_date", sa.Date(), nullable=True),
+        sa.Column("end_date", sa.Date(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("pipeline_id", sa.Text(), nullable=True),
+        sa.Column("dataset_id", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
+        sa.Column("resource", sa.Text(), nullable=True),
+        sa.Column("pattern", sa.Text(), nullable=True),
+        sa.Column("entry_number", sa.BigInteger(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["dataset_id"],
+            ["dataset.dataset"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["endpoint_id"],
+            ["endpoint.endpoint"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["pattern"],
+            ["field.field"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["pipeline_id"],
+            ["pipeline.pipeline"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
+        "patch",
+        sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
+        sa.Column("start_date", sa.Date(), nullable=True),
+        sa.Column("end_date", sa.Date(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("pipeline_id", sa.Text(), nullable=True),
+        sa.Column("dataset_id", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
+        sa.Column("resource", sa.Text(), nullable=True),
+        sa.Column("field", sa.Text(), nullable=True),
+        sa.Column("entry_number", sa.BigInteger(), nullable=True),
+        sa.Column("pattern", sa.Text(), nullable=True),
+        sa.Column("value", sa.Text(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["dataset_id"],
+            ["dataset.dataset"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["endpoint_id"],
             ["endpoint.endpoint"],
         ),
         sa.ForeignKeyConstraint(
@@ -410,98 +480,78 @@ def upgrade():
             ["field.field"],
         ),
         sa.ForeignKeyConstraint(
-            ["resource"],
-            ["resource.resource"],
+            ["pipeline_id"],
+            ["pipeline.pipeline"],
         ),
-        sa.PrimaryKeyConstraint("rowid"),
-    )
-    op.create_table(
-        "patch",
-        sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
-        sa.Column("start_date", sa.Date(), nullable=True),
-        sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("rowid", sa.Integer(), nullable=False),
-        sa.Column("field", sa.Text(), nullable=True),
-        sa.Column("dataset", sa.Text(), nullable=True),
-        sa.Column("resource", sa.Text(), nullable=True),
-        sa.Column("entry_number", sa.BigInteger(), nullable=True),
-        sa.Column("pattern", sa.Text(), nullable=True),
-        sa.Column("value", sa.Text(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["dataset"],
-            ["dataset.dataset"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["field"],
-            ["field.field"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["resource"],
-            ["resource.resource"],
-        ),
-        sa.PrimaryKeyConstraint("rowid"),
+        sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
         "skip",
         sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("rowid", sa.Integer(), nullable=False),
-        sa.Column("dataset", sa.Text(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("pipeline_id", sa.Text(), nullable=True),
+        sa.Column("dataset_id", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
         sa.Column("pattern", sa.Text(), nullable=True),
         sa.Column("resource", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["dataset"],
-            ["dataset.dataset"],
-        ),
-        sa.PrimaryKeyConstraint("rowid"),
-    )
-    op.create_table(
-        "source_dataset",
-        sa.Column("source", sa.Text(), nullable=False),
-        sa.Column("dataset", sa.Text(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["dataset"],
+            ["dataset_id"],
             ["dataset.dataset"],
         ),
         sa.ForeignKeyConstraint(
-            ["source"],
-            ["source.source"],
+            ["endpoint_id"],
+            ["endpoint.endpoint"],
         ),
-        sa.PrimaryKeyConstraint("source", "dataset"),
+        sa.ForeignKeyConstraint(
+            ["pipeline_id"],
+            ["pipeline.pipeline"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
         "source_pipeline",
-        sa.Column("source", sa.Text(), nullable=False),
-        sa.Column("pipeline", sa.Text(), nullable=False),
+        sa.Column("pipeline_id", sa.Text(), nullable=True),
+        sa.Column("source_id", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["pipeline"],
+            ["pipeline_id"],
             ["pipeline.pipeline"],
         ),
         sa.ForeignKeyConstraint(
-            ["source"],
+            ["source_id"],
             ["source.source"],
         ),
-        sa.PrimaryKeyConstraint("source", "pipeline"),
     )
     op.create_table(
         "transform",
         sa.Column("entry_date", sa.TIMESTAMP(), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("end_date", sa.Date(), nullable=True),
-        sa.Column("rowid", sa.Integer(), nullable=False),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("pipeline_id", sa.Text(), nullable=True),
+        sa.Column("dataset_id", sa.Text(), nullable=True),
+        sa.Column("endpoint_id", sa.Text(), nullable=True),
+        sa.Column("resource", sa.Text(), nullable=True),
         sa.Column("field", sa.Text(), nullable=True),
-        sa.Column("dataset", sa.Text(), nullable=True),
         sa.Column("replacement_field", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["dataset"],
+            ["dataset_id"],
             ["dataset.dataset"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["endpoint_id"],
+            ["endpoint.endpoint"],
         ),
         sa.ForeignKeyConstraint(
             ["field"],
             ["field.field"],
         ),
-        sa.PrimaryKeyConstraint("rowid"),
+        sa.ForeignKeyConstraint(
+            ["pipeline_id"],
+            ["pipeline.pipeline"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
     )
     # ### end Alembic commands ###
 
@@ -510,9 +560,10 @@ def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table("transform")
     op.drop_table("source_pipeline")
-    op.drop_table("source_dataset")
     op.drop_table("skip")
     op.drop_table("patch")
+    op.drop_table("lookup")
+    op.drop_table("filter")
     op.drop_table("default_value")
     op.drop_table("dataset_field")
     op.drop_table("convert")
@@ -521,17 +572,13 @@ def downgrade():
     op.drop_table("column")
     op.drop_table("_default")
     op.drop_table("source")
-    op.drop_table("old_resource")
     op.drop_table("field")
     op.drop_table("dataset")
     op.drop_table("typology")
-    op.drop_table("resource")
     op.drop_table("pipeline")
     op.drop_table("organisation")
     op.drop_table("licence")
-    op.drop_table("filter")
     op.drop_table("endpoint")
     op.drop_table("datatype")
-    op.drop_table("collection")
     op.drop_table("attribution")
     # ### end Alembic commands ###
