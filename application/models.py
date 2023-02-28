@@ -6,7 +6,7 @@ from application.extensions import db
 class DateModel(db.Model):
     __abstract__ = True
 
-    entry_date = db.Column(db.TIMESTAMP)
+    entry_date = db.Column(db.Date)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
 
