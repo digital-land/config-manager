@@ -21,7 +21,15 @@
   Set up new pipeline configuration
 </a>
 
-<p class="govuk-body">{{ pipelines|length }} pipelines have been configured. </p>
+<h2 class="govuk-heading-m">Dataset pipelines</h2>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">These pipelines have been configured to collect and process data to create a dataset.</p>
+  </div>
+</div>
+
+<p class="govuk-body">{{ pipelines|length }} pipelines.</p>
 
 <ul class="govuk-list govuk-list--bullet">
 {% for pipeline in pipelines %}
@@ -29,10 +37,20 @@
 {% endfor %}
 </ul>
 
-<!-- <ul class="govuk-list govuk-list--bullet">
-{% for pipeline in pipelines if pipeline['typology'] == "category" %}
+<h2 class="govuk-heading-m">Pipelines for category data</h2>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">These pipelines collect the category data that is managed by DLUHC. Category data is maintained in registers and should not need to be transformed by a pipeline.</p>
+  </div>
+</div>
+
+<p class="govuk-body">{{ category_pipelines|length }} pipelines.</p>
+
+<ul class="govuk-list govuk-list--bullet">
+{% for pipeline in category_pipelines %}
 <li><a class="govuk-link" href="{{url_for('pipeline.pipeline', pipeline_id=pipeline.pipeline)}}">{{ pipeline.name }}</a></li>
 {% endfor %}
-</ul> -->
+</ul>
 
 {% endblock content %}

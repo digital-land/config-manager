@@ -5,10 +5,28 @@ from application.models import Pipeline
 pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/pipeline")
 
 
+def get_pipelines_by_typology(pipelines, typology, match=True):
+    if match:
+        return [
+            pipeline
+            for pipeline in pipelines
+            if pipeline.dataset.typology.typology == typology
+        ]
+    return [
+        pipeline
+        for pipeline in pipelines
+        if pipeline.dataset.typology.typology != typology
+    ]
+
+
 @pipeline_bp.get("/")
 def index():
     pipelines = Pipeline.query.order_by(Pipeline.name).all()
-    return render_template("pipeline/index.html", pipelines=pipelines)
+    return render_template(
+        "pipeline/index.html",
+        pipelines=get_pipelines_by_typology(pipelines, "category", False),
+        category_pipelines=get_pipelines_by_typology(pipelines, "category"),
+    )
 
 
 @pipeline_bp.get("/<string:pipeline_id>")
