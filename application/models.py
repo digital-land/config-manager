@@ -78,6 +78,7 @@ class Dataset(DateModel):
     wikidata = db.Column(db.Text)
     wikipedia = db.Column(db.Text)
     fields = db.relationship("Field", secondary=dataset_field, lazy="subquery")
+    pipeline = db.relationship("Pipeline", uselist=False, back_populates="dataset")
 
 
 class Typology(DateModel):
@@ -144,6 +145,8 @@ class Pipeline(db.Model):
 
     pipeline = db.Column(db.Text, primary_key=True)
     name = db.Column(db.Text)
+    dataset = db.relationship("Dataset")
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=False)
 
     sources = db.relationship(
         "Source",

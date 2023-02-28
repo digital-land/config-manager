@@ -154,7 +154,7 @@ def _load_config(db):
             pipeline = Pipeline.query.get(p)
             if pipeline is None:
                 name = p.replace("-", " ").capitalize()
-                pipeline = Pipeline(pipeline=p, name=name)
+                pipeline = Pipeline(pipeline=p, name=name, dataset_id=p)
                 db.session.add(pipeline)
                 db.session.commit()
 
