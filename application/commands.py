@@ -237,14 +237,20 @@ def _get_insert_copy(row, current_file_key, skip_fields=[]):
 
 
 def _parse_date(value):
+    if value.strip() == "":
+        return None
+    try:
+        date = datetime.strptime(value, "%Y-%m-%d").date()
+        return date
+    except Exception as e:
+        logger.info(e)
+        logger.info(value)
+
     try:
         date = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").date()
         return date
     except Exception as e:
-        logger.exception(e)
-        try:
-            date = datetime.strptime(value, "%Y-%m-%d").date()
-            return date
-        except Exception as e:
-            logger.exception(e)
-            return None
+        logger.info(e)
+        logger.info(value)
+
+    return None
