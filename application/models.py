@@ -273,7 +273,7 @@ class Lookup(DateModel):
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     organisation_id = db.Column(
-        db.Text, db.ForeignKey("organisation.organisation"), nullable=False
+        db.Text, db.ForeignKey("organisation.organisation"), nullable=True
     )
     resource = db.Column(db.Text)
     entity = db.Column(db.BigInteger)
