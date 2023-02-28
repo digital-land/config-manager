@@ -1,6 +1,8 @@
 import csv
+import glob
 import logging
 import os
+import pathlib
 import tempfile
 from datetime import datetime
 from zipfile import ZipFile
@@ -51,7 +53,6 @@ foreign_key_columns = set(
 @click.option("--reference", default=False, help="Load just specification tables")
 @click.option("--config", default=False, help="Load config tables")
 def load_data(reference, config):
-
     from application.extensions import db
 
     if reference:
@@ -64,7 +65,6 @@ def load_data(reference, config):
 
 @management_cli.command("drop-data")
 def drop_data():
-
     from application.extensions import db
 
     for table in reversed(db.metadata.sorted_tables):
@@ -128,7 +128,6 @@ def _load_reference_data(db, table):
 
 
 def _load_config(db):
-
     config_zip_url = (
         "https://github.com/digital-land/config/archive/refs/heads/main.zip"
     )
@@ -212,9 +211,29 @@ def _load_config(db):
                                 db.session.rollback()
                                 continue
 
-            # TODO load the rest of the files
-            # for file in glob.glob(f"{pipeline_path}/*.csv"):
-            #     logger.info(file)
+            # load the rest of the config files
+            files = [
+                file
+                for file in glob.glob(f"{pipeline_path}/*.csv")
+                if pathlib.Path(file).name not in ["source.csv", "endpoint.csv"]
+            ]
+
+            for file in files:
+                path = pathlib.Path(file)
+                logger.info(f" processing {path.name} for {p}")
+                table_name = path.stem.replace("-", "_")
+                table = db.metadata.tables.get(table_name)
+                if table is not None:
+                    with open(file) as f:
+                        reader = csv.DictReader(f)
+                        for row in reader:
+                            try:
+                                insert_record = _get_insert_copy(row, path.stem)
+                                insert = table.insert().values(**insert_record)
+                                db.engine.execute(insert)
+                                logger.info(f"inserted: {insert}")
+                            except Exception as e:
+                                logger.info(e)
 
 
 def _get_insert_copy(row, current_file_key, skip_fields=[]):
