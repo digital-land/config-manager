@@ -1,4 +1,4 @@
-# Data manager
+# Config manager
 
 ## Getting started
 
