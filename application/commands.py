@@ -252,11 +252,11 @@ def _get_insert_copy(row, current_file_key, skip_fields=[]):
         else:
             insert_copy[k] = val
         if "date" in k:
-            insert_copy[k] = _parse_date(val)
+            insert_copy[k] = _parse_date(val, row)
     return insert_copy
 
 
-def _parse_date(value):
+def _parse_date(value, row):
     if value.strip() == "":
         return None
     try:
@@ -264,13 +264,20 @@ def _parse_date(value):
         return date
     except Exception as e:
         logger.info(e)
-        logger.info(value)
+        logger.info(row)
 
     try:
         date = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").date()
         return date
     except Exception as e:
         logger.info(e)
-        logger.info(value)
+        logger.info(row)
+
+    try:
+        date = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S:%fZ").date()
+        return date
+    except Exception as e:
+        logger.info(e)
+        logger.info(row)
 
     return None
