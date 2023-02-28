@@ -1,6 +1,15 @@
 {% extends 'layouts/base.html' %}
 {% block beforeContent %}
-<a href="{{ url_for('base.index')}}" class="govuk-back-link">Back</a>
+<div class="govuk-breadcrumbs">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      Pipelines
+    </li>
+  </ol>
+</div>
 {% endblock beforeContent %}
 
 {% block content %}
