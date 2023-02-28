@@ -10,7 +10,6 @@ from flask import Flask
 from flask.cli import load_dotenv
 
 from application.models import *  # noqa
-from application.utils import CustomJSONEncoder
 
 load_dotenv()
 
@@ -32,8 +31,6 @@ def create_app(config_filename):
     register_filters(app)
     register_extensions(app)
     register_commands(app)
-
-    app.json_encoder = CustomJSONEncoder
 
     # get_specification(app)
 
@@ -60,6 +57,10 @@ def register_blueprints(app):
     from application.blueprints.auth.views import auth_bp
 
     app.register_blueprint(auth_bp)
+
+    from application.blueprints.pipeline.views import pipeline_bp
+
+    app.register_blueprint(pipeline_bp)
 
 
 def register_context_processors(app):
