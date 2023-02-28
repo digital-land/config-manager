@@ -23,6 +23,10 @@
 
 <h2 class="govuk-heading-l">Sources</h2>
 
+<a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="{{ url_for('source.add', pipeline=pipeline.id) }}">
+  + add new source
+</a>
+
 <ul class="govuk-list govuk-list--bullet">
 {% for source in pipeline.sources %}
   <li><a class="govuk-link" href="{{ url_for('source.source', source_hash=source.source)}}">{{ source.source }}</a></li>
