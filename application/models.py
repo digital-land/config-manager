@@ -77,6 +77,7 @@ class Dataset(DateModel):
     prefix = db.Column(db.Text)
     text = db.Column(db.Text)
     typology_id = db.Column(db.Text, db.ForeignKey("typology.typology"))
+    typology = db.relationship("Typology")
     wikidata = db.Column(db.Text)
     wikipedia = db.Column(db.Text)
     fields = db.relationship("Field", secondary=dataset_field, lazy="subquery")
@@ -91,7 +92,7 @@ class Typology(DateModel):
     plural = db.Column(db.Text)
     wikidata = db.Column(db.Text)
     wikipedia = db.Column(db.Text)
-    # fields = db.relationship("Field", backref="typology", lazy=True)
+    fields = db.relationship("Field", backref="typology", lazy=True)
 
 
 class Attribution(DateModel):

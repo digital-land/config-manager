@@ -162,9 +162,7 @@ def add():
         (o.organisation, o.name) for o in organisations
     ]
     datasets = (
-        Dataset.query.filter(
-            Dataset.typology != "specification", Dataset.collection.is_not(None)
-        )
+        Dataset.query.filter(Dataset.typology_id != "specification")
         .order_by(Dataset.name)
         .all()
     )
