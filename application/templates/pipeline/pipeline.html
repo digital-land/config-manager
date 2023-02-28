@@ -1,12 +1,28 @@
 {% extends 'layouts/base.html' %}
+
+{% block beforeContent %}
+<div class="govuk-breadcrumbs">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('pipeline.index') }}">Pipelines</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      {{pipeline.name}}
+    </li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+
 {% block content %}
 
-<h1>{{pipeline.name}}</h1>
+<span class="govuk-caption-xl">Pipeline</span>
+<h1 class="govuk-heading-xl">{{pipeline.name}}</h1>
 
-<h2>Sources</h2>
-<ul>
+<h2 class="govuk-heading-l">Sources</h2>
+
+<ul class="govuk-list govuk-list--bullet">
 {% for source in pipeline.sources %}
-  <li><a href="{{ url_for('source.source', source_hash=source.source)}}"">{{ source.source }}</a></li>
+  <li><a class="govuk-link" href="{{ url_for('source.source', source_hash=source.source)}}">{{ source.source }}</a></li>
 {% endfor %}
 </ul>
 

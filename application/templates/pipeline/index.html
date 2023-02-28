@@ -1,10 +1,25 @@
 {% extends 'layouts/base.html' %}
+{% block beforeContent %}
+<a href="{{ url_for('base.index')}}" class="govuk-back-link">Back</a>
+{% endblock beforeContent %}
+
 {% block content %}
 
-<ul>
+
+<h1 class="govuk-heading-xl">Pipeline configuration</h1>
+
+<p class="govuk-body">{{ pipelines|length }} pipelines have been configured. </p>
+
+<ul class="govuk-list govuk-list--bullet">
 {% for pipeline in pipelines %}
-  <li><a href="{{url_for('pipeline.pipeline', pipeline_id=pipeline.pipeline)}}">{{ pipeline.name }}</a></li>
+  <li><a class="govuk-link" href="{{url_for('pipeline.pipeline', pipeline_id=pipeline.pipeline)}}">{{ pipeline.name }}</a></li>
 {% endfor %}
 </ul>
+
+<!-- <ul class="govuk-list govuk-list--bullet">
+{% for pipeline in pipelines if pipeline['typology'] == "category" %}
+<li><a class="govuk-link" href="{{url_for('pipeline.pipeline', pipeline_id=pipeline.pipeline)}}">{{ pipeline.name }}</a></li>
+{% endfor %}
+</ul> -->
 
 {% endblock content %}
