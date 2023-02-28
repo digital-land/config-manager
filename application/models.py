@@ -4,7 +4,6 @@ from application.extensions import db
 
 
 class DateModel(db.Model):
-
     __abstract__ = True
 
     entry_date = db.Column(db.TIMESTAMP)
@@ -28,7 +27,6 @@ dataset_field = db.Table(
 
 # read only models
 class Organisation(DateModel):
-
     __tablename__ = "organisation"
 
     organisation = db.Column(db.Text, primary_key=True)
@@ -60,7 +58,6 @@ class Organisation(DateModel):
 
 
 class Dataset(DateModel):
-
     __tablename__ = "dataset"
 
     dataset = db.Column(db.Text, primary_key=True)
@@ -84,7 +81,6 @@ class Dataset(DateModel):
 
 
 class Typology(DateModel):
-
     typology = db.Column(db.Text, primary_key=True, nullable=False)
     name = db.Column(db.Text)
     description = db.Column(db.Text)
@@ -96,7 +92,6 @@ class Typology(DateModel):
 
 
 class Attribution(DateModel):
-
     __tablename__ = "attribution"
 
     attribution = db.Column(db.Text, primary_key=True)
@@ -104,7 +99,6 @@ class Attribution(DateModel):
 
 
 class Licence(DateModel):
-
     __tablename__ = "licence"
 
     licence = db.Column(db.Text, primary_key=True)
@@ -112,7 +106,6 @@ class Licence(DateModel):
 
 
 class Field(DateModel):
-
     field = db.Column(db.Text, primary_key=True, nullable=False)
     cardinality = db.Column(db.Text)
     description = db.Column(db.Text)
@@ -130,7 +123,6 @@ class Field(DateModel):
 
 
 class Datatype(DateModel):
-
     datatype = db.Column(db.Text, primary_key=True, nullable=False)
     name = db.Column(db.Text)
     text = db.Column(db.Text)
@@ -148,7 +140,6 @@ source_pipeline = db.Table(
 
 
 class Pipeline(db.Model):
-
     __tablename__ = "pipeline"
 
     pipeline = db.Column(db.Text, primary_key=True)
@@ -175,7 +166,6 @@ class Pipeline(db.Model):
 
 
 class Source(DateModel):
-
     __tablename__ = "source"
 
     source = db.Column(db.Text, primary_key=True)
@@ -187,7 +177,6 @@ class Source(DateModel):
 
 
 class Endpoint(DateModel):
-
     __tablename__ = "endpoint"
 
     endpoint = db.Column(db.Text, primary_key=True)
@@ -201,39 +190,36 @@ class Endpoint(DateModel):
 
 
 class Column(DateModel):
-
     __tablename__ = "column"
 
     id = db.Column(db.Integer, primary_key=True)
-    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"))
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     column = db.Column(db.Text)
     field_id = db.Column(db.Text, db.ForeignKey("field.field"))
 
 
 class Combine(DateModel):
-
     __tablename__ = "combine"
 
     id = db.Column(db.Integer, primary_key=True)
-    pipeline = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"))
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     field_id = db.Column(db.Text, db.ForeignKey("field.field"))
     separator = db.Column(db.Text)
 
 
 class Concat(DateModel):
-
     __tablename__ = "concat"
 
     id = db.Column(db.Integer, primary_key=True)
-    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"))
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     field_id = db.Column(db.Text, db.ForeignKey("field.field"))
     fields = db.Column(db.Text)
@@ -241,38 +227,35 @@ class Concat(DateModel):
 
 
 class Convert(DateModel):
-
     __tablename__ = "convert"
 
     id = db.Column(db.Integer, primary_key=True)
-    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"))
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     plugin = db.Column(db.Text)
 
 
 class Default(DateModel):
-
     __tablename__ = "_default"
 
     id = db.Column(db.Integer, primary_key=True)
-    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"))
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     field = db.Column(db.Text, db.ForeignKey("field.field"))
     default_field = db.Column(db.Text)
 
 
 class DefaultValue(DateModel):
-
     __tablename__ = "default_value"
 
     id = db.Column(db.Integer, primary_key=True)
-    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"))
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     field_id = db.Column(db.Text, db.ForeignKey("field.field"))
     entry_number = db.Column(db.BigInteger)
@@ -280,26 +263,30 @@ class DefaultValue(DateModel):
 
 
 class Lookup(DateModel):
-
     __tablename__ = "lookup"
 
     id = db.Column(db.Integer, primary_key=True)
-    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"))
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
+    organisation_id = db.Column(
+        db.Text, db.ForeignKey("organisation.organisation"), nullable=False
+    )
     resource = db.Column(db.Text)
-    pattern = db.Column(db.Text, db.ForeignKey("field.field"))
+    entity = db.Column(db.BigInteger)
     entry_number = db.Column(db.BigInteger)
+    prefix = db.Column(db.Text)
+    reference = db.Column(db.Text)
+    value = db.Column(db.Text)
 
 
 class Patch(DateModel):
-
     __tablename__ = "patch"
 
     id = db.Column(db.Integer, primary_key=True)
-    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"))
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     field = db.Column(db.Text, db.ForeignKey("field.field"))
     entry_number = db.Column(db.BigInteger)
@@ -308,39 +295,36 @@ class Patch(DateModel):
 
 
 class Skip(DateModel):
-
     __tablename__ = "skip"
 
     id = db.Column(db.Integer, primary_key=True)
-    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"))
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     pattern = db.Column(db.Text)
     resource = db.Column(db.Text)
 
 
 class Transform(DateModel):
-
     __tablename__ = "transform"
 
     id = db.Column(db.Integer, primary_key=True)
-    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"))
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     field = db.Column(db.Text, db.ForeignKey("field.field"))
     replacement_field = db.Column(db.Text)
 
 
 class Filter(DateModel):
-
     __tablename__ = "filter"
 
     id = db.Column(db.Integer, primary_key=True)
-    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"))
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"))
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
+    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     field = db.Column(db.Text)
     pattern = db.Column(db.Text)

@@ -13,7 +13,7 @@ from flask.cli import AppGroup
 
 from application.models import Endpoint, Pipeline, Source
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, filename="data-load.log", filemode="w")
 logger = logging.getLogger(__name__)
 
 management_cli = AppGroup("manage")
@@ -229,6 +229,7 @@ def _load_config(db):
                         for row in reader:
                             try:
                                 insert_record = _get_insert_copy(row, path.stem)
+                                insert_record["pipeline_id"] = p
                                 insert = table.insert().values(**insert_record)
                                 db.engine.execute(insert)
                                 logger.info(f"inserted: {insert}")
