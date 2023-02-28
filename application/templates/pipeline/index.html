@@ -1,0 +1,10 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+
+<ul>
+{% for pipeline in pipelines %}
+  <li><a href="{{url_for('pipeline.pipeline', pipeline_id=pipeline.pipeline)}}">{{ pipeline.name }}</a></li>
+{% endfor %}
+</ul>
+
+{% endblock content %}
