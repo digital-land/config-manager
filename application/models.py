@@ -54,6 +54,9 @@ class Organisation(DateModel):
     website = db.Column(db.Text)
     wikidata = db.Column(db.Text)
     wikipedia = db.Column(db.Text)
+    sources = db.relationship(
+        "Source", backref="organisation", lazy=True, order_by="Source.entry_date"
+    )
 
 
 class Dataset(DateModel):
