@@ -35,7 +35,7 @@ def create_app(config_filename):
 
     app.json_encoder = CustomJSONEncoder
 
-    get_specification(app)
+    # get_specification(app)
 
     return app
 
@@ -56,14 +56,6 @@ def register_blueprints(app):
     from application.blueprints.endpoint.views import endpoint_bp
 
     app.register_blueprint(endpoint_bp)
-
-    from application.blueprints.resource.views import resource_bp
-
-    app.register_blueprint(resource_bp)
-
-    from application.blueprints.collection.views import collection_bp
-
-    app.register_blueprint(collection_bp)
 
     from application.blueprints.auth.views import auth_bp
 

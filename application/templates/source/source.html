@@ -62,14 +62,6 @@
   </div>
   <div class="govuk-summary-list__row">
     <dt class="govuk-summary-list__key">
-      Collection
-    </dt>
-    <dd class="govuk-summary-list__value">
-      {{ source.collection.collection }}
-    </dd>
-  </div>
-  <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">
       Datasets
     </dt>
     <dd class="govuk-summary-list__value">
@@ -119,34 +111,6 @@
     </dd>
   </div>
 </dl>
-
-{# Note: what is available from source and source.to_dict() is different #}
-{% set source_dict = source.to_dict() %}
-<hr class="govuk-section-break--xl" />
-
-<p class="govuk-body">
-  {{ source_dict['resources']|length }} resource{{ " has" if source_dict.resources|length == 1 else "s have" }} been collected from this source.
-</p>
-{% if source_dict['resources']|length %}
-<ul class="govuk-list govuk-list--bullet">
-  {% for resource in source_dict['resources'] %}
-  <li><a href="{{ url_for('resource.resource', resource_hash=resource) }}" class="govuk-link">{{ resource }}</a></li>
-  {% endfor %}
-</ul>
-{% else %}
-{# when no resource has been collected yet #}
-  {% if source.check %}{# local check has been performed #}
-  <p class="govuk-body">However, we have tested the source and when the collector runs it will yield a resource.</p>
-  <p class="govuk-body"><a href="#" class="govuk-link">Create mappings for expected resource</a></p>
-  {% else %}
-  <p class="govuk-body">You can check if the source yields a resource and if the resource contains data relevant to a dataset.</p>
-  <ul class="govuk-list">
-    {% for dataset in source.datasets %}
-    <li><a href="{{ url_for('source.source_check', source_hash=source.source, dataset=dataset.dataset) }}" class="govuk-link">Check for {{ dataset.name }} data</a></li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-{% endif %}
 
 {% endif %}
 {% endblock content %}
