@@ -188,6 +188,7 @@ def _load_config(db):
                                 continue
                         source = Source.query.get(source_id)
                         if source is None:
+                            # TODO - fix licence and attribution missing from reference data
                             insert_copy = _get_insert_copy(
                                 row,
                                 "source",
@@ -215,7 +216,8 @@ def _load_config(db):
             files = [
                 file
                 for file in glob.glob(f"{pipeline_path}/*.csv")
-                if pathlib.Path(file).name not in ["source.csv", "endpoint.csv"]
+                if pathlib.Path(file).name
+                not in ["source.csv", "endpoint.csv", "lookup.csv"]
             ]
 
             for file in files:
@@ -235,6 +237,44 @@ def _load_config(db):
                                 logger.info(f"inserted: {insert}")
                             except Exception as e:
                                 logger.info(e)
+
+            lookup_files = glob.glob(f"{pipeline_path}/lookup.csv")
+
+            for file in lookup_files:
+                path = pathlib.Path(file)
+                logger.info(f" processing {path.name} for {p}")
+                with open(file) as f:
+                    reader = csv.reader(f)
+                    fields = next(reader)
+                    fields = [field.replace("-", "_") for field in fields]
+                    fieldnames = []
+                    for field in fields:
+                        if field in ["organisation", "endpoint"]:
+                            field = f"{field}_id"
+                        fieldnames.append(field)
+                    fieldnames.extend(["dataset_id", "pipeline_id"])
+                    rows = list(reader)
+                    update_header_path = f"{file}.tmp"
+                    with open(update_header_path, "w") as out:
+                        writer = csv.writer(out)
+                        writer.writerow(fieldnames)
+                        for row in rows:
+                            row.extend([p, p])
+                            writer.writerow(row)
+
+                # run pg copy for lookup files due to number of records
+                import psycopg2
+
+                connection = psycopg2.connect(os.getenv("DATABASE_URL"))
+                cursor = connection.cursor()
+                with open(update_header_path) as f:
+                    # cursor.copy_from(f, "lookup", columns=fieldnames, sep=",")
+                    copy_command = f"COPY lookup({','.join(fieldnames)}) FROM STDIN WITH HEADER CSV"
+                    cursor.copy_expert(copy_command, f)
+                    connection.commit()
+                    connection.close()
+
+        logger.info("done")
 
 
 def _get_insert_copy(row, current_file_key, skip_fields=[]):
