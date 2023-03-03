@@ -13,8 +13,16 @@ from flask.cli import AppGroup
 
 from application.models import Endpoint, Pipeline, Source
 
-logging.basicConfig(level=logging.INFO, filename="data-load.log", filemode="w")
 logger = logging.getLogger(__name__)
+
+# Create handlers
+info_handler = logging.StreamHandler()
+error_handler = logging.FileHandler("error.log")
+info_handler.setLevel(logging.INFO)
+error_handler.setLevel(logging.ERROR)
+
+logger.addHandler(info_handler)
+logger.addHandler(error_handler)
 
 management_cli = AppGroup("manage")
 
@@ -173,6 +181,8 @@ def _load_config(db):
                                 db.session.commit()
                             except Exception as e:
                                 logger.exception(e)
+                                logger.error(f"could not insert endpoint {row}")
+                                logger.error(e)
 
             source_file = f"{pipeline_path}/source.csv"
             if os.path.exists(source_file):
@@ -184,7 +194,7 @@ def _load_config(db):
                         if endpoint_id.strip() != "":
                             if Endpoint.query.get(endpoint_id) is None:
                                 message = f"Can't add source that doesn't link to endpoint {row}"
-                                logger.info(message)
+                                logger.error(message)
                                 continue
                         source = Source.query.get(source_id)
                         if source is None:
@@ -208,7 +218,7 @@ def _load_config(db):
                             except Exception as e:
                                 message = f"could not save source {insert_copy} for pipeline {p}"
                                 logger.exception(e)
-                                logger.exception(message)
+                                logger.error(message)
                                 db.session.rollback()
                                 continue
 
@@ -236,7 +246,10 @@ def _load_config(db):
                                 db.engine.execute(insert)
                                 logger.info(f"inserted: {insert}")
                             except Exception as e:
-                                logger.info(e)
+                                logger.error(e)
+                                logger.error(
+                                    f"could not insert into table {table_name}: {insert_record}"
+                                )
 
             lookup_files = glob.glob(f"{pipeline_path}/lookup.csv")
 
@@ -303,21 +316,23 @@ def _parse_date(value, row):
         date = datetime.strptime(value, "%Y-%m-%d").date()
         return date
     except Exception as e:
-        logger.info(e)
-        logger.info(row)
+        logger.exception(e)
+        logger.exception(row)
 
     try:
         date = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").date()
         return date
     except Exception as e:
-        logger.info(e)
-        logger.info(row)
+        logger.exception(e)
+        logger.exception(row)
 
     try:
         date = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S:%fZ").date()
         return date
     except Exception as e:
-        logger.info(e)
-        logger.info(row)
+        logger.exception(e)
+        logger.exception(row)
+
+    logger.error(f"no date parsed for {row} using value {value}")
 
     return None

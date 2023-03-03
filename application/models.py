@@ -202,7 +202,7 @@ class Column(DateModel):
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     column = db.Column(db.Text)
-    field_id = db.Column(db.Text, db.ForeignKey("field.field"))
+    field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
 
 
 class Combine(DateModel):
@@ -213,7 +213,7 @@ class Combine(DateModel):
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
-    field_id = db.Column(db.Text, db.ForeignKey("field.field"))
+    field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     separator = db.Column(db.Text)
 
 
@@ -225,7 +225,7 @@ class Concat(DateModel):
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
-    field_id = db.Column(db.Text, db.ForeignKey("field.field"))
+    field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     fields = db.Column(db.Text)
     separator = db.Column(db.Text)
 
@@ -239,6 +239,7 @@ class Convert(DateModel):
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     plugin = db.Column(db.Text)
+    parameters = db.Column(db.Text)
 
 
 class Default(DateModel):
@@ -249,8 +250,9 @@ class Default(DateModel):
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
-    field = db.Column(db.Text, db.ForeignKey("field.field"))
+    field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     default_field = db.Column(db.Text)
+    entry_number = db.Column(db.BigInteger)
 
 
 class DefaultValue(DateModel):
@@ -292,7 +294,7 @@ class Patch(DateModel):
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
-    field = db.Column(db.Text, db.ForeignKey("field.field"))
+    field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     entry_number = db.Column(db.BigInteger)
     pattern = db.Column(db.Text)
     value = db.Column(db.Text)
@@ -308,6 +310,7 @@ class Skip(DateModel):
     resource = db.Column(db.Text)
     pattern = db.Column(db.Text)
     resource = db.Column(db.Text)
+    entry_number = db.Column(db.BigInteger)
 
 
 class Transform(DateModel):
@@ -318,8 +321,9 @@ class Transform(DateModel):
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
-    field = db.Column(db.Text, db.ForeignKey("field.field"))
+    field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     replacement_field = db.Column(db.Text)
+    entry_number = db.Column(db.BigInteger)
 
 
 class Filter(DateModel):
@@ -330,8 +334,9 @@ class Filter(DateModel):
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
-    field = db.Column(db.Text)
+    field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     pattern = db.Column(db.Text)
+    entry_number = db.Column(db.BigInteger)
 
 
 class SourceCheck:
