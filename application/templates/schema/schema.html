@@ -1,0 +1,28 @@
+{% extends 'layouts/base.html' %}
+
+{% block beforeContent %}
+<div class="govuk-breadcrumbs">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('pipeline.index') }}">Schemas</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      {{schema.name}}
+    </li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+
+{% block content %}
+
+<span class="govuk-caption-xl">Dataset schema</span>
+<h1 class="govuk-heading-xl">{{schema.name}}</h1>
+
+{% if schema.pipeline %}
+<a href="{{ url_for('pipeline.pipeline', pipeline_id=schema.pipeline.pipeline) }}" class="govuk-link">{{ schema.pipeline.name }} pipeline</a>
+{% endif %}
+
+{% endblock content %}

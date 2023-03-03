@@ -62,6 +62,10 @@ def register_blueprints(app):
 
     app.register_blueprint(pipeline_bp)
 
+    from application.blueprints.schema.views import schema_bp
+
+    app.register_blueprint(schema_bp)
+
 
 def register_context_processors(app):
     """
@@ -170,14 +174,12 @@ def register_templates(app):
 
 
 def register_commands(app):
-
     from application.commands import management_cli
 
     app.cli.add_command(management_cli)
 
 
 def get_specification(app):
-
     specification_dir = os.path.join(app.config["PROJECT_ROOT"], "specification")
     if not os.path.exists(specification_dir):
         os.mkdir(specification_dir)
@@ -196,7 +198,6 @@ def get_specification(app):
     ]
 
     for file in specification_files:
-
         spec_file = os.path.join(specification_dir, f"{file}.csv")
         spec_url = (
             f"{DIGITAL_LAND_GITHUB_URL}/specification/main/specification/{file}.csv"
