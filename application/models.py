@@ -10,7 +10,9 @@ class DateModel(db.Model):
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
 
-
+    
+# read only models - i.e. read only copy of some specification tables
+    
 dataset_field = db.Table(
     "dataset_field",
     db.Column(
@@ -25,7 +27,6 @@ dataset_field = db.Table(
 )
 
 
-# read only models
 class Organisation(DateModel):
     __tablename__ = "organisation"
 
