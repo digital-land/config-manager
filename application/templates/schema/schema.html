@@ -21,8 +21,188 @@
 <span class="govuk-caption-xl">Dataset schema</span>
 <h1 class="govuk-heading-xl">{{schema.name}}</h1>
 
+<p class="govuk-body">This schema defines the shape of data the platform will collect for the {{ schema.name }} dataset.</p>
+
 {% if schema.pipeline %}
-<a href="{{ url_for('pipeline.pipeline', pipeline_id=schema.pipeline.pipeline) }}" class="govuk-link">{{ schema.pipeline.name }} pipeline</a>
+<p class="govuk-body">
+  View the <a href="{{ url_for('pipeline.pipeline', pipeline_id=schema.pipeline.pipeline) }}" class="govuk-link">{{ schema.pipeline.name }} pipeline configuration</a> for this schema.
+</p>
 {% endif %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-three-quarters">
+
+    <section class="app-summary-card govuk-!-margin-bottom-0">
+      <div class="app-summary-card__body">
+          <table class="govuk-table">
+            <tbody class="govuk-table__body">
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  attribution
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.attribution }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  collection
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.collection }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  dataset
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.dataset }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  description
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.description }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  end-date
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.end_date }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  entity-maximum
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.entity_maximum }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  entity-minimum
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.entity_minimum }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  entry-date
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.entry_date }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  fields
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  <ol class="govuk-list">
+                    {% for field in schema.fields %}<li>{{ field.field }}</li>{% endfor %}
+                  </ol>
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  key-field
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.key_field }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  licence
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.licence }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  name
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.name }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  paint-options
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.paint_options }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  plural
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.plural }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  prefix
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.prefix }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  start-date
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.start_date }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  themes
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.themes }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  typology
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.typology }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  wikidata
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.wikidata }}
+                </td>
+              </tr>
+              <tr class="govuk-table__row">
+                <th scope="row" class="app-table__header app-table__header--row">
+                  wikipedia
+                </th>
+                <td class="govuk-table__cell app-table__cell">
+                  {{ schema.wikipedia }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+      </div>
+    </section>
+  </div>
+</div>
 
 {% endblock content %}
