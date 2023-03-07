@@ -8,7 +8,7 @@ Create a python virtualenv then run:
 
 Create a local development postgres db
 
-    createdb data_manager
+    createdb config_manager
 
 Create or update db schema
 
