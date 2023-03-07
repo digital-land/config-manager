@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template
 
 from application.models import Pipeline
+from application.spec_helpers import get_expected_pipeline_specs
 
 pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/pipeline")
 
@@ -32,7 +33,12 @@ def index():
 @pipeline_bp.get("/<string:pipeline_id>")
 def pipeline(pipeline_id):
     pipeline = Pipeline.query.get(pipeline_id)
-    return render_template("pipeline/pipeline.html", pipeline=pipeline)
+    specification_pipelines = get_expected_pipeline_specs()
+    return render_template(
+        "pipeline/pipeline.html",
+        pipeline=pipeline,
+        specification_pipelines=specification_pipelines,
+    )
 
 
 # @pipeline_bp.get("/<string:source>")
