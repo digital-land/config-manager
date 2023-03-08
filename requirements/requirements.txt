@@ -79,8 +79,6 @@ geojson==2.5.0
     # via digital-land
 govuk-frontend-jinja==2.4.0
     # via digital-land-frontend
-greenlet==2.0.1
-    # via sqlalchemy
 gunicorn==20.1.0
     # via -r requirements/requirements.in
 h11==0.14.0
@@ -115,6 +113,8 @@ jinja2==3.1.2
     #   datasette
     #   flask
     #   govuk-frontend-jinja
+jsonpickle==3.0.1
+    # via -r requirements/requirements.in
 mako==1.2.4
     # via alembic
 markupsafe==2.1.2
