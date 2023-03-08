@@ -10,7 +10,13 @@ schema_bp = Blueprint("schema", __name__, url_prefix="/schema")
 
 @schema_bp.get("/")
 def index():
-    datasets = Dataset.query.order_by(Dataset.name).all()
+    datasets = (
+        Dataset.query.filter(
+            Dataset.typology_id.not_in(["specification", "value", "entity", "category"])
+        )
+        .order_by(Dataset.name)
+        .all()
+    )
     grouped_datasets = OrderedDict()
 
     for letter in string.ascii_uppercase:
