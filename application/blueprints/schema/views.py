@@ -15,7 +15,8 @@ def index():
 
     for letter in string.ascii_uppercase:
         group = [d for d in datasets if d.dataset[0].upper() == letter]
-        grouped_datasets[letter] = group
+        if len(group) > 0:
+            grouped_datasets[letter] = group
 
     return render_template(
         "schema/index.html", schemas=datasets, grouped_datasets=grouped_datasets

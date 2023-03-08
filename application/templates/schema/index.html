@@ -14,37 +14,44 @@
 
 {% block content %}
 
-
-<h1 class="govuk-heading-xl">Schemas</h1>
-
-<div class="govuk-grid-row">
-  <div class="govuk-grid-column-two-thirds">
-    <p class="govuk-body-l">Schemas define the shape of the data. We configure one pipeline for each schema. Schemas are defined in the specification.</p>
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+      <h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Schemas</h1>
+    </div>
+    <div class="govuk-grid-column-two-thirds">
+      {{
+        govukDetails({
+          'summaryText': 'What is a Schema?',
+          'text': 'Schemas define the shape of the data. We configure one pipeline for each schema. Schemas are defined in the specification.'
+        })
+      }}
+    </div>
+    <div class="govuk-grid-column-one-third">
+      <p class="govuk-heading-s govuk-!-text-align-right">Total schemas: {{ schemas|length }}</p>
+    </div>
+    <div class="govuk-grid-column-full">
+      <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
+    </div>
   </div>
-</div>
 
-<p class="govuk-heading-m">{{ schemas|length }} schemas</p>
-
-<ol class="govuk-list">
-
-{% for schema in schemas %}
-  <li class="govuk-!-margin-bottom-3 govuk-!-padding-bottom-3" style="border-bottom: 1px solid #ccc;"><a class="govuk-link" href="{{url_for('schema.schema', dataset_id=schema.dataset)}}">{{ schema.name }}</a></li>
-{% endfor %}
-</ol>
-
-<div class="govuk-grid-column-full">
-
-    {% for letter, datasets in grouped_datasets.items() %}
-    <h2>{{ letter }}</h2>
-    <ul>
-      {% for d in datasets %}
-        <li>{{ d.name }}</li>
-      {% endfor %}
-    </ul>
-
-    {% endfor %}
-</div>
-  <!-- /.govuk-grid-row -->
-
+  {% for letter, datasets in grouped_datasets.items() %}
+    <div class="govuk-grid-row js-filter-item">
+      <div class="govuk-grid-column-one-third">
+        <h2 class="govuk-heading-xl">{{ letter }}</h2>
+      </div>
+      <div class="govuk-grid-column-two-thirds">
+        <ul class="govuk-list govuk-!-margin-bottom-0">
+          {% for d in datasets %}
+            <li class="govuk-!-margin-bottom-1 js-filter-item">
+              <a class="govuk-link" href="{{url_for('schema.schema', dataset_id=d.dataset)}}">{{ d.name }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="govuk-grid-column-full">
+        <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible">
+      </div>
+    </div>
+  {% endfor %}
 
 {% endblock content %}
