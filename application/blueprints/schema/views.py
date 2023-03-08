@@ -17,7 +17,9 @@ def index():
         group = [d for d in datasets if d.dataset[0].upper() == letter]
         grouped_datasets[letter] = group
 
-    return render_template("schema/index.html", schemas=datasets)
+    return render_template(
+        "schema/index.html", schemas=datasets, grouped_datasets=grouped_datasets
+    )
 
 
 @schema_bp.get("/<string:dataset_id>")

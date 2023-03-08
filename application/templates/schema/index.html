@@ -26,34 +26,25 @@
 <p class="govuk-heading-m">{{ schemas|length }} schemas</p>
 
 <ol class="govuk-list">
+
 {% for schema in schemas %}
   <li class="govuk-!-margin-bottom-3 govuk-!-padding-bottom-3" style="border-bottom: 1px solid #ccc;"><a class="govuk-link" href="{{url_for('schema.schema', dataset_id=schema.dataset)}}">{{ schema.name }}</a></li>
 {% endfor %}
 </ol>
 
-{# {% set letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" | list %}
-{% for char in letters %}
-  {% set theseSchemas = schemas | get_items_beginning_with(char) %}
-  {% if (theseSchemas | length) > 0 %}
-    <div class="govuk-grid-row js-filter-item">
-      <div class="govuk-grid-column-one-third">
-        <h2 class="govuk-heading-xl">{{ char }}</h2>
-      </div>
-      <div class="govuk-grid-column-two-thirds">
-        <ul class="govuk-list govuk-!-margin-bottom-0">
-          {% for thisSchema in theseSchemas | sort %}
-            <li class="govuk-!-margin-bottom-1 js-filter-item">
-             <a class="govuk-link" href="{{url_for('schema.schema', dataset_id=schema.dataset)}}">{{ thisSchema }}</a>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-      <div class="govuk-grid-column-full">
-        <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible">
-      </div>
-    </div>
-  {% endif %}
+<div class="govuk-grid-column-full">
+
+    {% for letter, datasets in grouped_datasets.items() %}
+    <h2>{{ letter }}</h2>
+    <ul>
+      {% for d in datasets %}
+        <li>{{ d.name }}</li>
+      {% endfor %}
+    </ul>
+
+    {% endfor %}
+</div>
   <!-- /.govuk-grid-row -->
-{% endfor %} #}
+
 
 {% endblock content %}
