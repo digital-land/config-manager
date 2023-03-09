@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, jsonify, render_template
 
-from application.models import Pipeline
+from application.db.models import Pipeline
+from application.export.models import PipelineModel
 from application.spec_helpers import get_expected_pipeline_specs
 
 pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/pipeline")
@@ -39,6 +40,13 @@ def pipeline(pipeline_id):
         pipeline=pipeline,
         specification_pipelines=specification_pipelines,
     )
+
+
+@pipeline_bp.get("/<string:pipeline_id>/configuration")
+def download_pipeline(pipeline_id):
+    p = Pipeline.query.get(pipeline_id)
+    pipeline = PipelineModel.from_orm(p)
+    return jsonify(pipeline.dict(by_alias=True))
 
 
 # @pipeline_bp.get("/<string:source>")

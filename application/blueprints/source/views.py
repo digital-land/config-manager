@@ -23,8 +23,8 @@ from application.blueprints.source.forms import (
     SearchForm,
 )
 from application.collection_utils import Workspace
+from application.db.models import Collection, Dataset, Endpoint, Organisation, Source
 from application.extensions import db
-from application.models import Collection, Dataset, Endpoint, Organisation, Source
 from application.utils import (
     check_url_reachable,
     compute_hash,
@@ -353,7 +353,6 @@ def source_check(source_hash):
     # else fetch from contents from url, convert and truncate
     else:
         with tempfile.TemporaryDirectory() as temp_dir:
-
             workspace = Workspace.factory(
                 source_obj, dataset_obj, temp_dir, current_app.config["PROJECT_ROOT"]
             )

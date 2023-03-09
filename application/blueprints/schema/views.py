@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 from flask import Blueprint, render_template
 
-from application.models import Dataset
+from application.db.models import Dataset
 
 schema_bp = Blueprint("schema", __name__, url_prefix="/schema")
 

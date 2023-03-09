@@ -3,11 +3,10 @@ import os
 from itertools import islice
 from typing import NamedTuple
 
-from application.models import Organisation
+from application.db.models import Organisation
 
 
 class Workspace(NamedTuple):
-
     collection_dir: str
     endpoint_csv: str
     pipeline_dir: str
@@ -21,7 +20,6 @@ class Workspace(NamedTuple):
 
     @staticmethod
     def factory(source, dataset, temp_dir, project_root_dir):
-
         pipeline_file_fields = {
             "column": ["dataset", "resource", "column", "field"],
             "concat": [

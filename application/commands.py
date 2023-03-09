@@ -11,7 +11,7 @@ import click
 import requests
 from flask.cli import AppGroup
 
-from application.models import Endpoint, Pipeline, Source
+from application.db.models import Endpoint, Pipeline, Source
 
 logger = logging.getLogger(__name__)
 

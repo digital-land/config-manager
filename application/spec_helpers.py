@@ -1,4 +1,4 @@
-from application.models import Dataset
+from application.db.models import Dataset
 
 # hard code names of pipeline specifications until there
 # is a way to extract the list from specification

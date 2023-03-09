@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from application.models import Endpoint
+from application.db.models import Endpoint
 
 endpoint_bp = Blueprint("endpoint", __name__, url_prefix="/endpoint")
 

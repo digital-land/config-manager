@@ -9,7 +9,7 @@ import sentry_sdk
 from flask import Flask
 from flask.cli import load_dotenv
 
-from application.models import *  # noqa
+from application.db.models import *  # noqa
 
 load_dotenv()
 

@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import RadioField, SelectField, StringField, TextAreaField, ValidationError
 from wtforms.validators import URL, DataRequired
 
-from application.models import Dataset
+from application.db.models import Dataset
 
 
 def same_collection(form, field):
