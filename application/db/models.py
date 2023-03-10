@@ -180,30 +180,13 @@ class Source(DateModel):
     source = db.Column(db.Text, primary_key=True)
     attribution_id = db.Column(db.Text, db.ForeignKey("attribution.attribution"))
     documentation_url = db.Column(db.Text)
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"))
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     licence_id = db.Column(db.Text, db.ForeignKey("licence.licence"))
     organisation_id = db.Column(db.Text, db.ForeignKey("organisation.organisation"))
 
-    _attribuion = db.relationship("Attribution")
-    _endpoint = db.relationship("Endpoint")
-    _licence = db.relationship("Licence")
-    _organisation = db.relationship("Organisation")
-
-    @property
-    def attribution(self):
-        return self._attribution.attribuion
-
-    @property
-    def endpoint(self):
-        return self._endpoint.endpoint
-
-    @property
-    def licence(self):
-        return self._licence.licence
-
-    @property
-    def organisation(self):
-        return self._organisation.organisation
+    attribution = db.relationship("Attribution")
+    licence = db.relationship("Licence")
+    organisation = db.relationship("Organisation")
 
 
 class Endpoint(DateModel):
@@ -214,7 +197,9 @@ class Endpoint(DateModel):
     parameters = db.Column(db.Text)
     plugin = db.Column(db.Text)
 
-    sources = db.relationship("Source", lazy=True, order_by="Source.entry_date")
+    sources = db.relationship(
+        "Source", backref="endpoint", lazy=True, order_by="Source.entry_date"
+    )
 
 
 class Column(DateModel):
