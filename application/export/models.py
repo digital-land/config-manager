@@ -9,10 +9,6 @@ def _to_kebab_case(field_name: str) -> str:
     return field_name.replace("_", "-")
 
 
-def _format_date(d: date) -> str:
-    return d.isoformat()
-
-
 # this all feels a bit hacky - is there a better way to customise from_orm?
 class RelatedObjectKeyGetter(GetterDict):
     def get(self, key: str, default: Any) -> Any:
@@ -37,7 +33,6 @@ class ConfigBaseModel(BaseModel):
         allow_population_by_field_name = True
         orm_mode = True
         arbitrary_types_allowed = True
-        json_encoders = {date: _format_date}
         getter_dict = RelatedObjectKeyGetter
 
 

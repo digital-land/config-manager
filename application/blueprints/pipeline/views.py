@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, render_template
+from flask import Blueprint, make_response, render_template
 
 from application.db.models import Pipeline
 from application.export.models import PipelineModel
@@ -46,7 +46,9 @@ def pipeline(pipeline_id):
 def download_pipeline(pipeline_id):
     p = Pipeline.query.get(pipeline_id)
     pipeline = PipelineModel.from_orm(p)
-    return jsonify(pipeline.dict(by_alias=True))
+    resp = make_response(pipeline.json(by_alias=True), 200)
+    resp.headers["Content-Type"] = "application/json"
+    return resp
 
 
 # @pipeline_bp.get("/<string:source>")
