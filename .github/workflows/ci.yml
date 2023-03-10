@@ -33,9 +33,9 @@ jobs:
       with:
         python-version: 3.9
 
-    # - name: Init
-    #   run: |
-    #     make init
+    - name: Install dependencies
+      run: |
+        make init
 
     - name: Lint
       run: |
