@@ -28,6 +28,8 @@ class RelatedObjectKeyGetter(GetterDict):
 
 
 class ConfigBaseModel(BaseModel):
+    dataset: Optional[str]
+
     class Config:
         alias_generator = _to_kebab_case
         allow_population_by_field_name = True
@@ -58,16 +60,90 @@ class EndpointModel(ConfigDateModel):
     plugin: Optional[str]
 
 
-class ColumnModel(ConfigDateModel):
+class ConfigPipelineModel(ConfigBaseModel):
     dataset: Optional[str]
     endpoint: Optional[str]
     resource: Optional[str]
-    column: str
-    field: str
+
+
+class ColumnModel(ConfigPipelineModel):
+    column: Optional[str]
+    field: Optional[str]
+
+
+class CombineModel(ConfigPipelineModel):
+    field: Optional[str]
+    separator: Optional[str]
+
+
+class ConcatModel(ConfigPipelineModel):
+    field: Optional[str]
+    fields: Optional[str]
+    separator: Optional[str]
+
+
+class ConvertModel(ConfigPipelineModel):
+    pluguin: Optional[str]
+    parameters: Optional[str]
+
+
+class DefaultModel(ConfigPipelineModel):
+    field: Optional[str]
+    default_field: Optional[str]
+    entry_number: Optional[int]
+
+
+class DefaultValueModel(ConfigPipelineModel):
+    field: Optional[str]
+    entry_number: Optional[int]
+    value: Optional[str]
+
+
+class LookupModel(ConfigPipelineModel):
+    organisation: Optional[str]
+    entity: Optional[int]
+    entry_number: Optional[int]
+    prefix: Optional[str]
+    reference: Optional[str]
+    value: Optional[str]
+
+
+class PatchModel(ConfigPipelineModel):
+    field: Optional[str]
+    entry_number: Optional[int]
+    prefix: Optional[str]
+    pattern: Optional[str]
+    value: Optional[str]
+
+
+class SkipModel(ConfigPipelineModel):
+    pattern: Optional[str]
+    entry_number: Optional[int]
+
+
+class TransformModel(ConfigPipelineModel):
+    field: Optional[str]
+    replacement_field: Optional[str]
+    entry_number: Optional[int]
+
+
+class FilterModel(ConfigPipelineModel):
+    field: Optional[str]
+    pattern: Optional[str]
+    entry_number: Optional[int]
 
 
 class PipelineModel(ConfigBaseModel):
-    dataset: str
     sources: Optional[List[SourceModel]]
     endpoints: Optional[List[EndpointModel]]
-    columns: Optional[List[ColumnModel]]
+    column: Optional[List[ColumnModel]]
+    combine: Optional[List[CombineModel]]
+    concat: Optional[List[ConcatModel]]
+    convert: Optional[List[ConvertModel]]
+    default: Optional[List[DefaultModel]]
+    default_value: Optional[List[DefaultValueModel]]
+    # lookup: Optional[List[LookupModel]]
+    patch: Optional[List[PatchModel]]
+    skip: Optional[List[SkipModel]]
+    transform: Optional[List[TransformModel]]
+    filter: Optional[List[FilterModel]]

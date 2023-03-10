@@ -18,10 +18,6 @@ PIPELINE_SPECIFICATIONS = [
 
 
 def get_expected_pipeline_specs():
-    specs = {}
-    for pipeline_rule_type in PIPELINE_SPECIFICATIONS:
-        specs.setdefault(pipeline_rule_type, {})
-        specs[pipeline_rule_type] = Dataset.query.filter_by(
-            dataset=pipeline_rule_type
-        ).first()
+    datasets = Dataset.query.filter(Dataset.dataset.in_(PIPELINE_SPECIFICATIONS)).all()
+    specs = {spec: dataset for spec, dataset in zip(PIPELINE_SPECIFICATIONS, datasets)}
     return specs

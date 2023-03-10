@@ -156,17 +156,17 @@ class Pipeline(db.Model):
         backref=db.backref("pipelines", lazy=True),
     )
 
-    columns = db.relationship("Column")
-    combines = db.relationship("Combine")
-    concats = db.relationship("Concat")
-    converts = db.relationship("Convert")
-    defaults = db.relationship("Default")
-    default_values = db.relationship("DefaultValue")
-    filters = db.relationship("Filter")
-    lookups = db.relationship("Lookup")
-    patches = db.relationship("Patch")
-    skips = db.relationship("Skip")
-    transforms = db.relationship("Transform")
+    column = db.relationship("Column")
+    combine = db.relationship("Combine")
+    concat = db.relationship("Concat")
+    convert = db.relationship("Convert")
+    default = db.relationship("Default")
+    default_value = db.relationship("DefaultValue")
+    filter = db.relationship("Filter")
+    lookup = db.relationship("Lookup")
+    patch = db.relationship("Patch")
+    skip = db.relationship("Skip")
+    transform = db.relationship("Transform")
 
     @property
     def endpoints(self):
@@ -319,7 +319,6 @@ class Skip(DateModel):
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     resource = db.Column(db.Text)
     pattern = db.Column(db.Text)
-    resource = db.Column(db.Text)
     entry_number = db.Column(db.BigInteger)
 
 
