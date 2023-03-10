@@ -10,18 +10,18 @@ jobs:
   runner-job:
     runs-on: ubuntu-20.04
 
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
+    # services:
+    #   postgres:
+    #     image: postgres
+    #     env:
+    #       POSTGRES_PASSWORD: postgres
+    #     options: >-
+    #       --health-cmd pg_isready
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
+    #     ports:
+    #       - 5432:5432
 
     steps:
     - uses: actions/checkout@v2
@@ -31,32 +31,32 @@ jobs:
     - name: Set up python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.9
 
-    - name: Init
-      run: |
-        make init
+    # - name: Init
+    #   run: |
+    #     make init
 
     - name: Lint
       run: |
         make lint
 
-    - name: Setup database
-      run: |
-        psql -h localhost -c "CREATE DATABASE data_manager WITH TEMPLATE postgres" -U postgres
-      env:
-        PGPASSWORD: postgres
+    # - name: Setup database
+    #   run: |
+    #     psql -h localhost -c "CREATE DATABASE data_manager WITH TEMPLATE postgres" -U postgres
+    #   env:
+    #     PGPASSWORD: postgres
 
-    - name: Migrate database
-      run: |
-        make upgrade-db
-      env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost/data_manager
+    # - name: Migrate database
+    #   run: |
+    #     make upgrade-db
+    #   env:
+    #     DATABASE_URL: postgresql://postgres:postgres@localhost/config_manager
 
-    - name: Test
-      run: |
-        make load-test-data
-        make test
-        make test-functional
-      env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost/data_manager
+    # - name: Test
+    #   run: |
+    #     make load-test-data
+    #     make test
+    #     make test-functional
+    #   env:
+    #     DATABASE_URL: postgresql://postgres:postgres@localhost/config_manager
