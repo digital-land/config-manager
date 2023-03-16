@@ -42,6 +42,13 @@ class Collection(DateModel):
     datasets = db.relationship("Dataset", back_populates="collection")
     sources = db.relationship("Source", back_populates="collection")
 
+    @property
+    def endpoints(self):
+        endpoints = set([])
+        for s in self.sources:
+            endpoints.add(s.endpoint)
+        return endpoints
+
 
 class Organisation(DateModel):
     __tablename__ = "organisation"
@@ -175,13 +182,6 @@ class Pipeline(db.Model):
     skip = db.relationship("Skip")
     transform = db.relationship("Transform")
 
-    @property
-    def endpoints(self):
-        endpoints = []
-        for s in self.sources:
-            endpoints.append(s.endpoint)
-        return endpoints
-
 
 class Source(DateModel):
     __tablename__ = "source"
@@ -190,7 +190,7 @@ class Source(DateModel):
 
     attribution_id = db.Column(db.Text, db.ForeignKey("attribution.attribution"))
     documentation_url = db.Column(db.Text)
-    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
+    endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=False)
     licence_id = db.Column(db.Text, db.ForeignKey("licence.licence"))
     organisation_id = db.Column(db.Text, db.ForeignKey("organisation.organisation"))
 

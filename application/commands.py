@@ -198,12 +198,11 @@ def _load_config(db):
                     reader = csv.DictReader(f)
                     for row in reader:
                         source_id = row["source"]
-                        endpoint_id = row["endpoint"]
-                        if endpoint_id.strip() != "":
-                            if Endpoint.query.get(endpoint_id) is None:
-                                message = f"Can't add source that doesn't link to endpoint {row}"
-                                logger.error(message)
-                                continue
+                        endpoint_id = row["endpoint"].strip()
+                        if endpoint_id == "":
+                            message = f"Can't add source without endpoint {row}"
+                            logger.error(message)
+                            continue
                         source = Source.query.get(source_id)
                         dataset_pipelines = row.get("pipelines").split(";")
                         datasets = Dataset.query.filter(

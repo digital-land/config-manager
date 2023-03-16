@@ -1,7 +1,7 @@
 from flask import Blueprint, abort, make_response, render_template
 
-from application.db.models import Dataset, Pipeline
-from application.export.models import PipelineModel
+from application.db.models import Dataset
+from application.export.models import CollectionModel
 from application.spec_helpers import get_expected_pipeline_specs
 
 pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/pipeline")
@@ -41,11 +41,14 @@ def pipeline(dataset_id):
     )
 
 
-@pipeline_bp.get("/<string:pipeline_id>.json")
-def download_pipeline(pipeline_id):
-    p = Pipeline.query.get(pipeline_id)
-    pipeline = PipelineModel.from_orm(p)
-    resp = make_response(pipeline.json(by_alias=True), 200)
+@pipeline_bp.get("/<string:dataset_id>.json")
+def download_pipeline(dataset_id):
+    dataset = Dataset.query.get(dataset_id)
+    if dataset is None or dataset.collection_id is None:
+        return abort(404)
+
+    collection = CollectionModel.from_orm(dataset.collection)
+    resp = make_response(collection.json(by_alias=True), 200)
     resp.headers["Content-Type"] = "application/json"
     return resp
 

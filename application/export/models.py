@@ -28,8 +28,6 @@ class RelatedObjectKeyGetter(GetterDict):
 
 
 class ConfigBaseModel(BaseModel):
-    dataset: Optional[str]
-
     class Config:
         alias_generator = _to_kebab_case
         allow_population_by_field_name = True
@@ -134,8 +132,6 @@ class FilterModel(ConfigPipelineModel):
 
 
 class PipelineModel(ConfigBaseModel):
-    sources: Optional[List[SourceModel]]
-    endpoints: Optional[List[EndpointModel]]
     column: Optional[List[ColumnModel]]
     combine: Optional[List[CombineModel]]
     concat: Optional[List[ConcatModel]]
@@ -148,20 +144,10 @@ class PipelineModel(ConfigBaseModel):
     transform: Optional[List[TransformModel]]
     filter: Optional[List[FilterModel]]
 
-    def collection(self):
-        return {"sources": self.sources, "endpoint": self.endpoint}
 
-    def config(self):
-        return {
-            "column": self.column,
-            "combine": self.combine,
-            "concat": self.concat,
-            "convert": self.convert,
-            "default": self.default,
-            "default_value": self.default_value,
-            "lookup": self.lookup,
-            "patch": self.patch,
-            "skip": self.skip,
-            "transform": self.transform,
-            "filter": self.filter,
-        }
+class CollectionModel(ConfigBaseModel):
+    collection: str
+    name: str
+    sources: Optional[List[SourceModel]]
+    endpoints: Optional[List[EndpointModel]]
+    pipeline: PipelineModel
