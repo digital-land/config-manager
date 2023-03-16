@@ -47,7 +47,7 @@ class ConfigDateModel(ConfigBaseModel):
 class SourceModel(ConfigDateModel):
     source: str
     attribution: Optional[str]
-    documentation_url: str
+    documentation_url: Optional[str]
     endpoint: Optional[str]
     licence: Optional[str]
     organisation: Optional[str]
@@ -147,3 +147,21 @@ class PipelineModel(ConfigBaseModel):
     skip: Optional[List[SkipModel]]
     transform: Optional[List[TransformModel]]
     filter: Optional[List[FilterModel]]
+
+    def collection(self):
+        return {"sources": self.sources, "endpoint": self.endpoint}
+
+    def config(self):
+        return {
+            "column": self.column,
+            "combine": self.combine,
+            "concat": self.concat,
+            "convert": self.convert,
+            "default": self.default,
+            "default_value": self.default_value,
+            "lookup": self.lookup,
+            "patch": self.patch,
+            "skip": self.skip,
+            "transform": self.transform,
+            "filter": self.filter,
+        }

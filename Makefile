@@ -46,7 +46,7 @@ downgrade-db:
 	flask db downgrade
 
 load-data:
-	flask manage load-data --reference 1 --config 1
+	flask manage load-data --spec 1 --config 1
 
 drop-data:
 	flask manage drop-data

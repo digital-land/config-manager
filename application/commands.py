@@ -11,7 +11,7 @@ import click
 import requests
 from flask.cli import AppGroup
 
-from application.db.models import Endpoint, Pipeline, Source
+from application.db.models import Collection, Dataset, Endpoint, Pipeline, Source
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +29,13 @@ management_cli = AppGroup("manage")
 DIGITAL_LAND_DATASETTE = "https://datasette.planning.data.gov.uk/digital-land"
 DIGITAL_LAND_RAW_GITHUB_URL = "https://raw.githubusercontent.com/digital-land"
 
-reference_tables = [
+specification_tables = [
     "attribution",
     "licence",
     "typology",
     "datatype",
     "field",
+    "collection",
     "organisation",
     "dataset",
     "dataset_field",
@@ -53,19 +54,20 @@ foreign_key_columns = set(
         "attribution",
         "organisation",
         "pipeline",
+        "collection",
     ]
 )
 
 
 @management_cli.command("load-data")
-@click.option("--reference", default=False, help="Load just specification tables")
+@click.option("--spec", default=False, help="Load just specification tables")
 @click.option("--config", default=False, help="Load config tables")
-def load_data(reference, config):
+def load_data(spec, config):
     from application.extensions import db
 
-    if reference:
-        for table in reference_tables:
-            _load_reference_data(db, table)
+    if spec:
+        for table in specification_tables:
+            _load_specification_data(db, table)
 
     if config:
         _load_config(db)
@@ -78,12 +80,13 @@ def drop_data():
     for table in reversed(db.metadata.sorted_tables):
         delete = table.delete()
         try:
-            db.engine.execute(delete)
+            db.session.execute(delete)
+            db.session.commit()
         except Exception as e:
-            logger.exception(e)
+            logger.error(e)
 
 
-def _load_reference_data(db, table):
+def _load_specification_data(db, table):
     url = f"{DIGITAL_LAND_DATASETTE}/{table}.json?_shape=array"
     logger.info(f"loading from {url}")
 
@@ -127,7 +130,8 @@ def _load_reference_data(db, table):
         try:
             t = db.metadata.tables.get(table)
             insert = t.insert().values(**insert_record)
-            db.engine.execute(insert)
+            db.session.execute(insert)
+            db.session.commit()
         except Exception as e:
             logger.exception(e)
             logger.exception(f"error loading {table} with data {record}")
@@ -153,20 +157,25 @@ def _load_config(db):
             config_zip.extractall(path=tmp_dir)
 
         pipeline_dir = os.path.join(tmp_dir, "config-main", "pipeline")
+        collection_dir = os.path.join(tmp_dir, "config-main", "collection")
+
         pipelines = os.listdir(pipeline_dir)
 
         for p in pipelines:
             pipeline_path = os.path.join(pipeline_dir, p)
+            collection_path = os.path.join(collection_dir, p)
+
             logger.info(f"pipleline path {pipeline_path}")
 
             pipeline = Pipeline.query.get(p)
             if pipeline is None:
                 name = p.replace("-", " ").capitalize()
-                pipeline = Pipeline(pipeline=p, name=name, dataset_id=p)
+                collection = Collection.query.get(p)
+                pipeline = Pipeline(pipeline=p, name=name, collection=collection)
                 db.session.add(pipeline)
                 db.session.commit()
 
-            endpoint_file = f"{pipeline_path}/endpoint.csv"
+            endpoint_file = f"{collection_path}/endpoint.csv"
 
             if os.path.exists(endpoint_file):
                 with open(endpoint_file, "r") as f:
@@ -180,11 +189,10 @@ def _load_config(db):
                                 db.session.add(endpoint)
                                 db.session.commit()
                             except Exception as e:
-                                logger.exception(e)
                                 logger.error(f"could not insert endpoint {row}")
                                 logger.error(e)
 
-            source_file = f"{pipeline_path}/source.csv"
+            source_file = f"{collection_path}/source.csv"
             if os.path.exists(source_file):
                 with open(source_file, "r") as f:
                     reader = csv.DictReader(f)
@@ -197,32 +205,37 @@ def _load_config(db):
                                 logger.error(message)
                                 continue
                         source = Source.query.get(source_id)
+                        dataset_pipelines = row.get("pipelines").split(";")
+                        datasets = Dataset.query.filter(
+                            Dataset.dataset.in_(dataset_pipelines)
+                        ).all()
                         if source is None:
                             # TODO - fix licence and attribution missing from reference data
                             insert_copy = _get_insert_copy(
-                                row,
-                                "source",
-                                skip_fields=[
-                                    "collection",
-                                    "pipeline",
-                                    "attribution",
-                                    "licence",
-                                ],
+                                row, "source", skip_fields=["pipelines"]
                             )
+                            if (
+                                not insert_copy.get("source")
+                                or insert_copy.get("attribution_id") == "wikidata"
+                            ):
+                                message = f"source {insert_copy} for pipeline {p} has no source id"
+                                logger.error(message)
+                                continue
                             try:
                                 source = Source(**insert_copy)
+                                for d in datasets:
+                                    if d:
+                                        source.datasets.append(d)
                                 db.session.add(source)
-                                pipeline.sources.append(source)
                                 db.session.commit()
-
                             except Exception as e:
                                 message = f"could not save source {insert_copy} for pipeline {p}"
-                                logger.exception(e)
+                                logger.error(e)
                                 logger.error(message)
                                 db.session.rollback()
                                 continue
 
-            # load the rest of the config files
+            # # load the rest of the config files
             files = [
                 file
                 for file in glob.glob(f"{pipeline_path}/*.csv")
@@ -243,13 +256,15 @@ def _load_config(db):
                                 insert_record = _get_insert_copy(row, path.stem)
                                 insert_record["pipeline_id"] = p
                                 insert = table.insert().values(**insert_record)
-                                db.engine.execute(insert)
+                                db.session.execute(insert)
+                                db.session.commit()
                                 logger.info(f"inserted: {insert}")
                             except Exception as e:
                                 logger.error(e)
                                 logger.error(
                                     f"could not insert into table {table_name}: {insert_record}"
                                 )
+                                db.session.rollback()
 
             lookup_files = glob.glob(f"{pipeline_path}/lookup.csv")
 
@@ -265,14 +280,20 @@ def _load_config(db):
                         if field in ["organisation", "endpoint"]:
                             field = f"{field}_id"
                         fieldnames.append(field)
-                    fieldnames.extend(["dataset_id", "pipeline_id"])
+                    if path.stem == "lookup":
+                        fieldnames.append("pipeline_id")
+                    else:
+                        fieldnames.extend(["dataset_id", "pipeline_id"])
                     rows = list(reader)
                     update_header_path = f"{file}.tmp"
                     with open(update_header_path, "w") as out:
                         writer = csv.writer(out)
                         writer.writerow(fieldnames)
                         for row in rows:
-                            row.extend([p, p])
+                            if path.stem == "lookup":
+                                row.append(p)
+                            else:
+                                row.extend([p, p])
                             writer.writerow(row)
 
                 # run pg copy for lookup files due to number of records

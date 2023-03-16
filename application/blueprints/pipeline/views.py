@@ -1,6 +1,6 @@
 from flask import Blueprint, make_response, render_template
 
-from application.db.models import Dataset, Pipeline
+from application.db.models import Collection, Dataset, Pipeline
 from application.export.models import PipelineModel
 from application.extensions import db
 from application.spec_helpers import get_expected_pipeline_specs
@@ -10,21 +10,13 @@ pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/pipeline")
 
 @pipeline_bp.get("/")
 def index():
-    category_pipelines = (
-        db.session.query(Pipeline)
-        .join(Dataset)
-        .filter(Pipeline.dataset_id == Dataset.dataset)
-        .filter(Dataset.typology_id == "category")
-        .all()
-    )
+    category_pipelines = Dataset.query.filter(
+        Dataset.typology_id == "category", Dataset.collection_id.isnot(None)
+    ).all()
 
-    pipelines = (
-        db.session.query(Pipeline)
-        .join(Dataset)
-        .filter(Pipeline.dataset_id == Dataset.dataset)
-        .filter(Dataset.typology_id != "category")
-        .all()
-    )
+    pipelines = Dataset.query.filter(
+        Dataset.typology_id != "category", Dataset.collection_id.isnot(None)
+    ).all()
 
     return render_template(
         "pipeline/index.html",
@@ -33,18 +25,30 @@ def index():
     )
 
 
-@pipeline_bp.get("/<string:pipeline_id>")
-def pipeline(pipeline_id):
-    pipeline = Pipeline.query.get(pipeline_id)
+@pipeline_bp.get("/<string:dataset_id>")
+def pipeline(dataset_id):
+    dataset = Dataset.query.get(dataset_id)
+
+    pipeline = (
+        db.session.query(Pipeline)
+        .join(Collection)
+        .filter(Pipeline.collection_id == Collection.collection)
+        .join(Dataset)
+        .filter(Collection.collection == Dataset.collection_id)
+        .filter(Dataset.dataset == dataset_id)
+        .one_or_none()
+    )
+
     specification_pipelines = get_expected_pipeline_specs()
     return render_template(
         "pipeline/pipeline.html",
         pipeline=pipeline,
+        dataset=dataset,
         specification_pipelines=specification_pipelines,
     )
 
 
-@pipeline_bp.get("/<string:pipeline_id>/configuration")
+@pipeline_bp.get("/<string:pipeline_id>.json")
 def download_pipeline(pipeline_id):
     p = Pipeline.query.get(pipeline_id)
     pipeline = PipelineModel.from_orm(p)

@@ -21,9 +21,9 @@
 <span class="govuk-caption-xl">Pipeline</span>
 <h1 class="govuk-heading-xl">{{pipeline.name}}</h1>
 
-<p class="govuk-body">Typology: <span class="govuk-!-font-weight-bold">{{ pipeline.dataset.typology.name }}</span></p>
+<p class="govuk-body">Typology: <span class="govuk-!-font-weight-bold">{{ dataset.typology.name }}</span></p>
 
-<p class="govuk-body">This pipeline has been configured to collect, process and yield data that matches the <a href="{{ url_for('schema.schema', dataset_id=pipeline.dataset.dataset) }}" class="govuk-link">{{ pipeline.dataset.name }} schema</a>.</p>
+<p class="govuk-body">This pipeline has been configured to collect, process and yield data that matches the <a href="{{ url_for('schema.schema', dataset_id=dataset.dataset) }}" class="govuk-link">{{ dataset.name }} schema</a>.</p>
 
 <h2 class="govuk-heading-l">Pipeline rules</h2>
 

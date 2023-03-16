@@ -11,6 +11,12 @@ class DateModel(db.Model):
     end_date = db.Column(db.Date)
 
 
+source_dataset = db.Table(
+    "source_dataset",
+    db.Column("dataset_id", db.Text, db.ForeignKey("dataset.dataset")),
+    db.Column("source_id", db.Text, db.ForeignKey("source.source")),
+)
+
 # read only models - i.e. read only copy of some specification tables
 
 dataset_field = db.Table(
@@ -25,6 +31,16 @@ dataset_field = db.Table(
     db.Column("start_date", db.Date),
     db.Column("end_date", db.Date),
 )
+
+
+class Collection(DateModel):
+    __tablename__ = "collection"
+
+    collection = db.Column(db.Text, primary_key=True)
+    name = db.Column(db.Text)
+    pipeline = db.relationship("Pipeline", uselist=False, back_populates="collection")
+    datasets = db.relationship("Dataset", back_populates="collection")
+    sources = db.relationship("Source", back_populates="collection")
 
 
 class Organisation(DateModel):
@@ -63,7 +79,8 @@ class Dataset(DateModel):
 
     dataset = db.Column(db.Text, primary_key=True)
     attribution_id = db.Column(db.Text, db.ForeignKey("attribution.attribution"))
-    collection = db.Column(db.Text)
+    collection_id = db.Column(db.Text, db.ForeignKey("collection.collection"))
+    collection = db.relationship("Collection", back_populates="datasets")
     description = db.Column(db.Text)
     key_field = db.Column(db.Text)
     entity_minimum = db.Column(db.BigInteger)
@@ -79,7 +96,10 @@ class Dataset(DateModel):
     wikidata = db.Column(db.Text)
     wikipedia = db.Column(db.Text)
     fields = db.relationship("Field", secondary=dataset_field, lazy="subquery")
-    pipeline = db.relationship("Pipeline", uselist=False, back_populates="dataset")
+
+    sources = db.relationship(
+        "Source", secondary=source_dataset, lazy="subquery", back_populates="datasets"
+    )
 
 
 class Typology(DateModel):
@@ -134,27 +154,14 @@ class Datatype(DateModel):
 # end read only models
 
 
-source_pipeline = db.Table(
-    "source_pipeline",
-    db.Column("pipeline_id", db.Text, db.ForeignKey("pipeline.pipeline")),
-    db.Column("source_id", db.Text, db.ForeignKey("source.source")),
-)
-
-
 class Pipeline(db.Model):
     __tablename__ = "pipeline"
 
     pipeline = db.Column(db.Text, primary_key=True)
     name = db.Column(db.Text)
-    dataset = db.relationship("Dataset")
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=False)
 
-    sources = db.relationship(
-        "Source",
-        secondary=source_pipeline,
-        lazy="subquery",
-        backref=db.backref("pipelines", lazy=True),
-    )
+    collection_id = db.Column(db.Text, db.ForeignKey("collection.collection"))
+    collection = db.relationship("Collection", back_populates="pipeline")
 
     column = db.relationship("Column")
     combine = db.relationship("Combine")
@@ -180,14 +187,22 @@ class Source(DateModel):
     __tablename__ = "source"
 
     source = db.Column(db.Text, primary_key=True)
+
     attribution_id = db.Column(db.Text, db.ForeignKey("attribution.attribution"))
     documentation_url = db.Column(db.Text)
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     licence_id = db.Column(db.Text, db.ForeignKey("licence.licence"))
     organisation_id = db.Column(db.Text, db.ForeignKey("organisation.organisation"))
 
+    collection_id = db.Column(db.Text, db.ForeignKey("collection.collection"))
+    collection = db.relationship("Collection", back_populates="sources")
+
     attribution = db.relationship("Attribution")
     licence = db.relationship("Licence")
+
+    datasets = db.relationship(
+        "Dataset", secondary=source_dataset, lazy="subquery", back_populates="sources"
+    )
 
 
 class Endpoint(DateModel):
@@ -283,7 +298,6 @@ class Lookup(DateModel):
 
     id = db.Column(db.Integer, primary_key=True)
     pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
-    dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
     organisation_id = db.Column(
         db.Text, db.ForeignKey("organisation.organisation"), nullable=True
@@ -346,15 +360,3 @@ class Filter(DateModel):
     field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     pattern = db.Column(db.Text)
     entry_number = db.Column(db.BigInteger)
-
-
-class SourceCheck:
-    pass
-
-
-class Collection:
-    pass
-
-
-class Resource:
-    pass
