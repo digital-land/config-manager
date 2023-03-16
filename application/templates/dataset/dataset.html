@@ -7,10 +7,10 @@
       <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
     </li>
     <li class="govuk-breadcrumbs__list-item">
-      <a class="govuk-breadcrumbs__link" href="{{ url_for('pipeline.index') }}">Pipelines</a>
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.index') }}">Datasets</a>
     </li>
     <li class="govuk-breadcrumbs__list-item">
-      {{pipeline.name}}
+      {{dataset.name}}
     </li>
   </ol>
 </div>
@@ -18,12 +18,12 @@
 
 {% block content %}
 
-<span class="govuk-caption-xl">Pipeline</span>
-<h1 class="govuk-heading-xl">{{pipeline.name}}</h1>
+<span class="govuk-caption-xl">Dataset</span>
+<h1 class="govuk-heading-xl">{{dataset.name}}</h1>
 
 <p class="govuk-body">Typology: <span class="govuk-!-font-weight-bold">{{ dataset.typology.name }}</span></p>
 
-<p class="govuk-body">This pipeline has been configured to collect, process and yield data that matches the <a href="{{ url_for('schema.schema', dataset_id=dataset.dataset) }}" class="govuk-link">{{ dataset.name }} schema</a>.</p>
+<p class="govuk-body">This dataset is the yield of the {{ dataset.collection.name }} pipeline. The pipeline has been configured to collect, process and yield data that matches the <a href="{{ url_for('schema.schema', dataset_id=dataset.dataset) }}" class="govuk-link">{{ dataset.name }} schema</a>.</p>
 
 <h2 class="govuk-heading-l">Pipeline rules</h2>
 

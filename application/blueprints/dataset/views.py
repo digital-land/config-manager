@@ -4,10 +4,10 @@ from application.db.models import Dataset
 from application.export.models import CollectionModel
 from application.spec_helpers import get_expected_pipeline_specs
 
-pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/pipeline")
+dataset_bp = Blueprint("dataset", __name__, url_prefix="/dataset")
 
 
-@pipeline_bp.get("/")
+@dataset_bp.get("/")
 def index():
     category_datasets = Dataset.query.filter(
         Dataset.typology_id == "category", Dataset.collection_id.isnot(None)
@@ -18,14 +18,14 @@ def index():
     ).all()
 
     return render_template(
-        "pipeline/index.html",
+        "dataset/index.html",
         datasets=datasets,
         category_datasets=category_datasets,
     )
 
 
-@pipeline_bp.get("/<string:dataset_id>")
-def pipeline(dataset_id):
+@dataset_bp.get("/<string:dataset_id>")
+def dataset(dataset_id):
     dataset = Dataset.query.get(dataset_id)
 
     if dataset is None or dataset.collection_id is None:
@@ -34,14 +34,14 @@ def pipeline(dataset_id):
     specification_pipelines = get_expected_pipeline_specs()
 
     return render_template(
-        "pipeline/pipeline.html",
+        "dataset/dataset.html",
         pipeline=dataset.collection.pipeline,
         dataset=dataset,
         specification_pipelines=specification_pipelines,
     )
 
 
-@pipeline_bp.get("/<string:dataset_id>.json")
+@dataset_bp.get("/<string:dataset_id>.json")
 def download_pipeline(dataset_id):
     dataset = Dataset.query.get(dataset_id)
     if dataset is None or dataset.collection_id is None:
@@ -53,7 +53,7 @@ def download_pipeline(dataset_id):
     return resp
 
 
-# @pipeline_bp.get("/<string:source>")
+# @dataset_bp.get("/<string:source>")
 # def run(source):
 #     source_obj = Source.query.get(source)
 #     if source_obj is None:
