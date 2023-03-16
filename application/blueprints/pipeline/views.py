@@ -1,8 +1,7 @@
-from flask import Blueprint, make_response, render_template
+from flask import Blueprint, abort, make_response, render_template
 
-from application.db.models import Collection, Dataset, Pipeline
+from application.db.models import Dataset, Pipeline
 from application.export.models import PipelineModel
-from application.extensions import db
 from application.spec_helpers import get_expected_pipeline_specs
 
 pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/pipeline")
@@ -10,18 +9,18 @@ pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/pipeline")
 
 @pipeline_bp.get("/")
 def index():
-    category_pipelines = Dataset.query.filter(
+    category_datasets = Dataset.query.filter(
         Dataset.typology_id == "category", Dataset.collection_id.isnot(None)
     ).all()
 
-    pipelines = Dataset.query.filter(
+    datasets = Dataset.query.filter(
         Dataset.typology_id != "category", Dataset.collection_id.isnot(None)
     ).all()
 
     return render_template(
         "pipeline/index.html",
-        pipelines=pipelines,
-        category_pipelines=category_pipelines,
+        datasets=datasets,
+        category_datasets=category_datasets,
     )
 
 
@@ -29,15 +28,13 @@ def index():
 def pipeline(dataset_id):
     dataset = Dataset.query.get(dataset_id)
 
-    pipeline = (
-        db.session.query(Pipeline)
-        .join(Collection)
-        .filter(Pipeline.collection_id == Collection.collection)
-        .join(Dataset)
-        .filter(Collection.collection == Dataset.collection_id)
-        .filter(Dataset.dataset == dataset_id)
-        .one_or_none()
-    )
+    if dataset is None:
+        return abort(404)
+
+    pipeline = dataset.collection.pipeline
+
+    if pipeline is None:
+        return abort(404)
 
     specification_pipelines = get_expected_pipeline_specs()
     return render_template(

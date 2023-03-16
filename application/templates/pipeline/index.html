@@ -29,11 +29,11 @@
   </div>
 </div>
 
-<p class="govuk-body">Configuration for {{ pipelines|length }} datasets</p>
+<p class="govuk-body">Configuration for {{ datasets|length }} datasets</p>
 
 <ul class="govuk-list govuk-list--bullet">
-{% for pipeline in pipelines %}
-  <li><a class="govuk-link" href="{{url_for('pipeline.pipeline', pipeline_id=pipeline.dataset)}}">{{ pipeline.name }}</a></li>
+{% for dataset in datasets %}
+  <li><a class="govuk-link" href="{{url_for('pipeline.pipeline', dataset_id=dataset.dataset)}}">{{ dataset.name }}</a></li>
 {% endfor %}
 </ul>
 
@@ -45,11 +45,11 @@
   </div>
 </div>
 
-<p class="govuk-body">Configuration for {{ category_pipelines|length }} datasets.</p>
+<p class="govuk-body">Configuration for {{ category_datasets|length }} datasets.</p>
 
 <ul class="govuk-list govuk-list--bullet">
-{% for pipeline in category_pipelines %}
-<li><a class="govuk-link" href="{{url_for('pipeline.pipeline', pipeline_id=pipeline.pipeline)}}">{{ pipeline.name }}</a></li>
+{% for dataset in category_datasets %}
+<li><a class="govuk-link" href="{{url_for('pipeline.pipeline', dataset_id=dataset.dataset)}}">{{ dataset.name }}</a></li>
 {% endfor %}
 </ul>
 
