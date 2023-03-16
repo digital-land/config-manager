@@ -31,15 +31,11 @@ def pipeline(dataset_id):
     if dataset is None:
         return abort(404)
 
-    pipeline = dataset.collection.pipeline
-
-    if pipeline is None:
-        return abort(404)
-
     specification_pipelines = get_expected_pipeline_specs()
+
     return render_template(
         "pipeline/pipeline.html",
-        pipeline=pipeline,
+        pipeline=dataset.collection.pipeline,
         dataset=dataset,
         specification_pipelines=specification_pipelines,
     )
