@@ -1,6 +1,29 @@
+import enum
+
 from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.orm import declarative_mixin, declared_attr
 
 from application.extensions import db
+
+
+class PublicationStatus(enum.Enum):
+    DRAFT = "DRAFT"
+    PUBLISHED = "PUBLISHED"
+
+
+@declarative_mixin
+class VersionedMixin:
+    @declared_attr
+    def __tablename__(cls):
+        return cls.__name__.lower()
+
+    version_id = db.Column(db.Integer, nullable=False, default=0)
+    publication_status = db.Column(
+        db.Enum(PublicationStatus, name="publication_status"),
+        default=PublicationStatus.DRAFT,
+    )
+
+    __mapper_args__ = {"version_id_col": version_id}
 
 
 class DateModel(db.Model):
@@ -34,8 +57,6 @@ dataset_field = db.Table(
 
 
 class Collection(DateModel):
-    __tablename__ = "collection"
-
     collection = db.Column(db.Text, primary_key=True)
     name = db.Column(db.Text)
     pipeline = db.relationship("Pipeline", uselist=False, back_populates="collection")
@@ -51,8 +72,6 @@ class Collection(DateModel):
 
 
 class Organisation(DateModel):
-    __tablename__ = "organisation"
-
     organisation = db.Column(db.Text, primary_key=True)
     addressbase_custodian = db.Column(db.Text)
     billing_authority = db.Column(db.Text)
@@ -82,8 +101,6 @@ class Organisation(DateModel):
 
 
 class Dataset(DateModel):
-    __tablename__ = "dataset"
-
     dataset = db.Column(db.Text, primary_key=True)
     attribution_id = db.Column(db.Text, db.ForeignKey("attribution.attribution"))
     collection_id = db.Column(db.Text, db.ForeignKey("collection.collection"))
@@ -121,15 +138,11 @@ class Typology(DateModel):
 
 
 class Attribution(DateModel):
-    __tablename__ = "attribution"
-
     attribution = db.Column(db.Text, primary_key=True)
     text = db.Column(db.Text)
 
 
 class Licence(DateModel):
-    __tablename__ = "licence"
-
     licence = db.Column(db.Text, primary_key=True)
     text = db.Column(db.Text)
 
@@ -162,8 +175,6 @@ class Datatype(DateModel):
 
 
 class Pipeline(db.Model):
-    __tablename__ = "pipeline"
-
     pipeline = db.Column(db.Text, primary_key=True)
     name = db.Column(db.Text)
 
@@ -183,9 +194,7 @@ class Pipeline(db.Model):
     transform = db.relationship("Transform")
 
 
-class Source(DateModel):
-    __tablename__ = "source"
-
+class Source(DateModel, VersionedMixin):
     source = db.Column(db.Text, primary_key=True)
 
     attribution_id = db.Column(db.Text, db.ForeignKey("attribution.attribution"))
@@ -205,9 +214,7 @@ class Source(DateModel):
     )
 
 
-class Endpoint(DateModel):
-    __tablename__ = "endpoint"
-
+class Endpoint(DateModel, VersionedMixin):
     endpoint = db.Column(db.Text, primary_key=True)
     endpoint_url = db.Column(db.Text)
     parameters = db.Column(db.Text)
@@ -218,9 +225,7 @@ class Endpoint(DateModel):
     )
 
 
-class Column(DateModel):
-    __tablename__ = "column"
-
+class Column(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
     pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
@@ -230,9 +235,7 @@ class Column(DateModel):
     field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
 
 
-class Combine(DateModel):
-    __tablename__ = "combine"
-
+class Combine(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
     pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
@@ -242,9 +245,7 @@ class Combine(DateModel):
     separator = db.Column(db.Text)
 
 
-class Concat(DateModel):
-    __tablename__ = "concat"
-
+class Concat(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
     pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
@@ -255,9 +256,7 @@ class Concat(DateModel):
     separator = db.Column(db.Text)
 
 
-class Convert(DateModel):
-    __tablename__ = "convert"
-
+class Convert(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
     pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
@@ -267,7 +266,7 @@ class Convert(DateModel):
     parameters = db.Column(db.Text)
 
 
-class Default(DateModel):
+class Default(DateModel, VersionedMixin):
     __tablename__ = "_default"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -280,7 +279,7 @@ class Default(DateModel):
     entry_number = db.Column(db.BigInteger)
 
 
-class DefaultValue(DateModel):
+class DefaultValue(DateModel, VersionedMixin):
     __tablename__ = "default_value"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -293,9 +292,7 @@ class DefaultValue(DateModel):
     value = db.Column(db.Text)
 
 
-class Lookup(DateModel):
-    __tablename__ = "lookup"
-
+class Lookup(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
     pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=True)
@@ -310,9 +307,7 @@ class Lookup(DateModel):
     value = db.Column(db.Text)
 
 
-class Patch(DateModel):
-    __tablename__ = "patch"
-
+class Patch(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
     pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
@@ -324,9 +319,7 @@ class Patch(DateModel):
     value = db.Column(db.Text)
 
 
-class Skip(DateModel):
-    __tablename__ = "skip"
-
+class Skip(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
     pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
@@ -336,9 +329,7 @@ class Skip(DateModel):
     entry_number = db.Column(db.BigInteger)
 
 
-class Transform(DateModel):
-    __tablename__ = "transform"
-
+class Transform(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
     pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
@@ -349,9 +340,7 @@ class Transform(DateModel):
     entry_number = db.Column(db.BigInteger)
 
 
-class Filter(DateModel):
-    __tablename__ = "filter"
-
+class Filter(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
     pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)
     dataset_id = db.Column(db.Text, db.ForeignKey("dataset.dataset"), nullable=True)
