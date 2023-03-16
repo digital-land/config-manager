@@ -6,7 +6,7 @@
       <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
     </li>
     <li class="govuk-breadcrumbs__list-item">
-      Pipelines
+      Datasets
     </li>
   </ol>
 </div>
@@ -14,18 +14,13 @@
 
 {% block content %}
 
+<h1 class="govuk-heading-xl">Datasets - pipeline configuration</h1>
 
-<h1 class="govuk-heading-xl">Dataset pipeline configuration</h1>
-
-<a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="#">
-  Set up new pipeline configuration
-</a>
-
-<h2 class="govuk-heading-m">Dataset pipelines</h2>
+<h2 class="govuk-heading-m">Datasets</h2>
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <p class="govuk-body">These pipelines have been configured to collect and process data to create a dataset.</p>
+    <p class="govuk-body">These datasets are the product of pipelines that collect and process source data.</p>
   </div>
 </div>
 
@@ -33,15 +28,15 @@
 
 <ul class="govuk-list govuk-list--bullet">
 {% for dataset in datasets %}
-  <li><a class="govuk-link" href="{{url_for('pipeline.pipeline', dataset_id=dataset.dataset)}}">{{ dataset.name }}</a></li>
+  <li><a class="govuk-link" href="{{url_for('dataset.dataset', dataset_id=dataset.dataset)}}">{{ dataset.name }}</a></li>
 {% endfor %}
 </ul>
 
-<h2 class="govuk-heading-m">Dataset pipelines for category data</h2>
+<h2 class="govuk-heading-m">Category type datasets</h2>
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <p class="govuk-body">These pipelines collect the category data that is managed by DLUHC. Category data is maintained in registers and should not need to be transformed by a pipeline.</p>
+    <p class="govuk-body">These datasets are category data managed by DLUHC. Category data is maintained in registers and should not need to be transformed by a pipeline.</p>
   </div>
 </div>
 
@@ -49,7 +44,7 @@
 
 <ul class="govuk-list govuk-list--bullet">
 {% for dataset in category_datasets %}
-<li><a class="govuk-link" href="{{url_for('pipeline.pipeline', dataset_id=dataset.dataset)}}">{{ dataset.name }}</a></li>
+<li><a class="govuk-link" href="{{url_for('dataset.dataset', dataset_id=dataset.dataset)}}">{{ dataset.name }}</a></li>
 {% endfor %}
 </ul>
 
