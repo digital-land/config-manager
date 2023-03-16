@@ -28,7 +28,7 @@ def index():
 def pipeline(dataset_id):
     dataset = Dataset.query.get(dataset_id)
 
-    if dataset is None:
+    if dataset is None or dataset.collection_id is None:
         return abort(404)
 
     specification_pipelines = get_expected_pipeline_specs()
