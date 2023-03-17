@@ -2,7 +2,7 @@ from flask import Blueprint, abort, make_response, render_template
 
 from application.db.models import Dataset
 from application.export.models import CollectionModel
-from application.spec_helpers import get_expected_pipeline_specs
+from application.spec_helpers import count_pipeline_rules, get_expected_pipeline_specs
 
 dataset_bp = Blueprint("dataset", __name__, url_prefix="/dataset")
 
@@ -33,11 +33,14 @@ def dataset(dataset_id):
 
     specification_pipelines = get_expected_pipeline_specs()
 
+    rule_counts = count_pipeline_rules(dataset.collection.pipeline)
+
     return render_template(
         "dataset/dataset.html",
         pipeline=dataset.collection.pipeline,
         dataset=dataset,
         specification_pipelines=specification_pipelines,
+        rule_counts=rule_counts,
     )
 
 

@@ -21,68 +21,108 @@
 <span class="govuk-caption-xl">Dataset</span>
 <h1 class="govuk-heading-xl">{{dataset.name}}</h1>
 
-<p class="govuk-body">Typology: <span class="govuk-!-font-weight-bold">{{ dataset.typology.name }}</span></p>
-
 <p class="govuk-body">This dataset is the yield of the {{ dataset.collection.name }} pipeline. The pipeline has been configured to collect, process and yield data that matches the <a href="{{ url_for('schema.schema', dataset_id=dataset.dataset) }}" class="govuk-link">{{ dataset.name }} schema</a>.</p>
 
-<h2 class="govuk-heading-l">Pipeline rules</h2>
-
-{% macro ruleTableHead(params) %}
-<thead class="govuk-table__head">
-  <tr class="govuk-table__row">
-    {% for field in params.fields  %}
-    <th scope="col" class="govuk-table__header">{{ field.name }}</th>
-    {% endfor %}
-  </tr>
-</thead>
-{% endmacro %}
-
-<div class="govuk-accordion" data-module="govuk-accordion" id="accordion-default">
-
-  {% for rule_type_name in specification_pipelines -%}
-  {% set rule_type_tablename = rule_type_name|replace("-", "_") %}
-  <div class="govuk-accordion__section">
-    <div class="govuk-accordion__section-header">
-      <h2 class="govuk-accordion__section-heading">
-        <span class="govuk-accordion__section-button" id="accordion-default-heading-1">
-          {{ pipeline[rule_type_tablename]|length }} {{ rule_type_name }} rules
-        </span>
-      </h2>
-    </div>
-    <div id="accordion-default-content-1" class="govuk-accordion__section-content" aria-labelledby="accordion-default-heading-1">
-      <p class='govuk-body'>{{ specification_pipelines[rule_type_name].description }}</p>
-      {% if pipeline[rule_type_tablename]|length > 0 %}
-      <table class="govuk-table">
-        {{ ruleTableHead({ "fields": specification_pipelines[rule_type_name].fields }) }}
-        {% set rows = pipeline[rule_type_tablename]|length if pipeline[rule_type_tablename]|length < 6 else 5 %}
-        <tbody class="govuk-table__body">
-        {% for n in range(rows) %}
-          {% set rule = pipeline[rule_type_tablename][n] %}
-          <tr class="govuk-table__row">
-          {%- for field in specification_pipelines[rule_type_name].fields %}
-            <td class="govuk-table__cell">{{ rule[field.field] }}</td>
-          {% endfor -%}
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
-    </div>
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <section class="app-summary-card govuk-!-margin-bottom-0">
+      <header class="app-summary-card__header">
+        <h2 class="app-summary-card__title">
+          Configuration summary
+        </h2>
+      </header>
+      <div class="app-summary-card__body">
+        <dl class="govuk-summary-list govuk-!-margin-bottom-0">
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Typology</dt>
+            <dd class="govuk-summary-list__value">
+              {{ dataset.typology.name }}
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Sources</dt>
+            <dd class="govuk-summary-list__value">{{ dataset.sources|length }}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Pipeline rules</dt>
+            <dd class="govuk-summary-list__value">{{ rule_counts.pipeline }}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Lookup rules</dt>
+            <dd class="govuk-summary-list__value">{{ rule_counts.lookup }}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Collection</dt>
+            <dd class="govuk-summary-list__value">{{ dataset.collection.name }}</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
   </div>
-  {%- endfor %}
-
 </div>
 
-<h2 class="govuk-heading-l">Sources</h2>
+<section id="pipeline-rules" class="govuk-!-margin-top-9">
+  <h2 class="govuk-heading-l">Pipeline rules</h2>
 
-<a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="{{ url_for('source.add', pipeline=pipeline.id) }}">
-  + add new source
-</a>
+  {% macro ruleTableHead(params) %}
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      {% for field in params.fields  %}
+      <th scope="col" class="govuk-table__header">{{ field.name }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  {% endmacro %}
 
-<ul class="govuk-list govuk-list--bullet">
-{% for source in pipeline.sources %}
-  <li><a class="govuk-link" href="{{ url_for('source.source', source_hash=source.source)}}">{{ source.source }}</a></li>
-{% endfor %}
-</ul>
+  <div class="govuk-accordion" data-module="govuk-accordion" id="accordion-default">
+
+    {% for rule_type_name in specification_pipelines -%}
+    {% set rule_type_tablename = rule_type_name|replace("-", "_") %}
+    <div class="govuk-accordion__section">
+      <div class="govuk-accordion__section-header">
+        <h2 class="govuk-accordion__section-heading">
+          <span class="govuk-accordion__section-button" id="accordion-default-heading-1">
+            {{ pipeline[rule_type_tablename]|length }} {{ rule_type_name }} rules
+          </span>
+        </h2>
+      </div>
+      <div id="accordion-default-content-1" class="govuk-accordion__section-content" aria-labelledby="accordion-default-heading-1">
+        <p class='govuk-body'>{{ specification_pipelines[rule_type_name].description }}</p>
+        {% if pipeline[rule_type_tablename]|length > 0 %}
+        <table class="govuk-table">
+          {{ ruleTableHead({ "fields": specification_pipelines[rule_type_name].fields }) }}
+          {% set rows = pipeline[rule_type_tablename]|length if pipeline[rule_type_tablename]|length < 6 else 5 %}
+          <tbody class="govuk-table__body">
+          {% for n in range(rows) %}
+            {% set rule = pipeline[rule_type_tablename][n] %}
+            <tr class="govuk-table__row">
+            {%- for field in specification_pipelines[rule_type_name].fields %}
+              <td class="govuk-table__cell">{{ rule[field.field] }}</td>
+            {% endfor -%}
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+    {%- endfor %}
+
+  </div>
+</section>
+
+<section id="sources" class="govuk-!-margin-top-9">
+  <h2 class="govuk-heading-l">Sources</h2>
+
+  <a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="{{ url_for('source.add', pipeline=pipeline.id) }}">
+    + add new source
+  </a>
+
+  <ul class="govuk-list govuk-list--bullet">
+  {% for source in pipeline.sources %}
+    <li><a class="govuk-link" href="{{ url_for('source.source', source_hash=source.source)}}">{{ source.source }}</a></li>
+  {% endfor %}
+  </ul>
+</section>
 
 {% endblock content %}

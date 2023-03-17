@@ -21,3 +21,18 @@ def get_expected_pipeline_specs():
     datasets = Dataset.query.filter(Dataset.dataset.in_(PIPELINE_SPECIFICATIONS)).all()
     specs = {spec: dataset for spec, dataset in zip(PIPELINE_SPECIFICATIONS, datasets)}
     return specs
+
+
+def count_pipeline_rules(pipeline):
+    exclude_list = ["lookup"]
+    rule_types = [
+        rule_type_name.replace("-", "_") for rule_type_name in PIPELINE_SPECIFICATIONS
+    ]
+    s = sum(
+        [
+            len(getattr(pipeline, n))
+            for n in rule_types
+            if n not in exclude_list and hasattr(pipeline, n)
+        ]
+    )
+    return {"pipeline": s, "lookup": len(pipeline.lookup)}
