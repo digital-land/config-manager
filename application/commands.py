@@ -11,7 +11,14 @@ import click
 import requests
 from flask.cli import AppGroup
 
-from application.db.models import Collection, Dataset, Endpoint, Pipeline, Source
+from application.db.models import (
+    Collection,
+    Dataset,
+    Endpoint,
+    Pipeline,
+    PublicationStatus,
+    Source,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -280,9 +287,18 @@ def _load_config(db):
                             field = f"{field}_id"
                         fieldnames.append(field)
                     if path.stem == "lookup":
-                        fieldnames.append("pipeline_id")
+                        fieldnames.extend(
+                            ["pipeline_id", "version_id", "publication_status"]
+                        )
                     else:
-                        fieldnames.extend(["dataset_id", "pipeline_id"])
+                        fieldnames.extend(
+                            [
+                                "dataset_id",
+                                "pipeline_id",
+                                "version_id",
+                                "publication_status",
+                            ]
+                        )
                     rows = list(reader)
                     update_header_path = f"{file}.tmp"
                     with open(update_header_path, "w") as out:
@@ -290,9 +306,9 @@ def _load_config(db):
                         writer.writerow(fieldnames)
                         for row in rows:
                             if path.stem == "lookup":
-                                row.append(p)
+                                row.extend([p, 0, PublicationStatus.DRAFT.value])
                             else:
-                                row.extend([p, p])
+                                row.extend([p, p, 0, PublicationStatus.DRAFT.value])
                             writer.writerow(row)
 
                 # run pg copy for lookup files due to number of records
