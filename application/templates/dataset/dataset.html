@@ -77,27 +77,26 @@
   <div class="govuk-accordion" data-module="govuk-accordion" id="accordion-default">
 
     {% for rule_type_name in specification_pipelines -%}
-    {% set rule_type_tablename = rule_type_name|replace("-", "_") %}
     <div class="govuk-accordion__section">
       <div class="govuk-accordion__section-header">
         <h2 class="govuk-accordion__section-heading">
           <span class="govuk-accordion__section-button" id="accordion-default-heading-1">
-            {{ pipeline[rule_type_tablename]|length }} {{ rule_type_name }} rules
+            {{ pipeline[rule_type_name]|length }} {{ rule_type_name }} rules
           </span>
         </h2>
       </div>
       <div id="accordion-default-content-1" class="govuk-accordion__section-content" aria-labelledby="accordion-default-heading-1">
         <p class='govuk-body'>{{ specification_pipelines[rule_type_name].description }}</p>
-        {% if pipeline[rule_type_tablename]|length > 0 %}
+        {% if pipeline[rule_type_name]|length > 0 %}
         <table class="govuk-table">
           {{ ruleTableHead({ "fields": specification_pipelines[rule_type_name].fields }) }}
-          {% set rows = pipeline[rule_type_tablename]|length if pipeline[rule_type_tablename]|length < 6 else 5 %}
+          {% set rows = pipeline[rule_type_name]|length if pipeline[rule_type_name]|length < 6 else 5 %}
           <tbody class="govuk-table__body">
           {% for n in range(rows) %}
-            {% set rule = pipeline[rule_type_tablename][n] %}
+            {% set rule = pipeline[rule_type_name][n] %}
             <tr class="govuk-table__row">
             {%- for field in specification_pipelines[rule_type_name].fields %}
-              <td class="govuk-table__cell">{{ rule[field.field] }}</td>
+              <td class="govuk-table__cell">{% if rule[field.field] %}{{ rule[field.field] }}{% endif %}</td>
             {% endfor -%}
             </tr>
           {% endfor %}

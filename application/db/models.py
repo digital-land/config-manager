@@ -234,6 +234,9 @@ class Column(DateModel, VersionedMixin):
     column = db.Column(db.Text)
     field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
 
+    dataset = db.relationship("Dataset")
+    endpoint = db.relationship("Endpoint")
+
 
 class Combine(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -243,6 +246,9 @@ class Combine(DateModel, VersionedMixin):
     resource = db.Column(db.Text)
     field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     separator = db.Column(db.Text)
+
+    dataset = db.relationship("Dataset")
+    endpoint = db.relationship("Endpoint")
 
 
 class Concat(DateModel, VersionedMixin):
@@ -255,6 +261,9 @@ class Concat(DateModel, VersionedMixin):
     fields = db.Column(db.Text)
     separator = db.Column(db.Text)
 
+    dataset = db.relationship("Dataset")
+    endpoint = db.relationship("Endpoint")
+
 
 class Convert(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -264,6 +273,9 @@ class Convert(DateModel, VersionedMixin):
     resource = db.Column(db.Text)
     plugin = db.Column(db.Text)
     parameters = db.Column(db.Text)
+
+    dataset = db.relationship("Dataset")
+    endpoint = db.relationship("Endpoint")
 
 
 class Default(DateModel, VersionedMixin):
@@ -278,6 +290,9 @@ class Default(DateModel, VersionedMixin):
     default_field = db.Column(db.Text)
     entry_number = db.Column(db.BigInteger)
 
+    dataset = db.relationship("Dataset")
+    endpoint = db.relationship("Endpoint")
+
 
 class DefaultValue(DateModel, VersionedMixin):
     __tablename__ = "default_value"
@@ -290,6 +305,9 @@ class DefaultValue(DateModel, VersionedMixin):
     field_id = db.Column(db.Text, db.ForeignKey("field.field"))
     entry_number = db.Column(db.BigInteger)
     value = db.Column(db.Text)
+
+    dataset = db.relationship("Dataset")
+    endpoint = db.relationship("Endpoint")
 
 
 class Lookup(DateModel, VersionedMixin):
@@ -306,6 +324,8 @@ class Lookup(DateModel, VersionedMixin):
     reference = db.Column(db.Text)
     value = db.Column(db.Text)
 
+    endpoint = db.relationship("Endpoint")
+
 
 class Patch(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -318,6 +338,9 @@ class Patch(DateModel, VersionedMixin):
     pattern = db.Column(db.Text)
     value = db.Column(db.Text)
 
+    dataset = db.relationship("Dataset")
+    endpoint = db.relationship("Endpoint")
+
 
 class Skip(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -327,6 +350,9 @@ class Skip(DateModel, VersionedMixin):
     resource = db.Column(db.Text)
     pattern = db.Column(db.Text)
     entry_number = db.Column(db.BigInteger)
+
+    dataset = db.relationship("Dataset")
+    endpoint = db.relationship("Endpoint")
 
 
 class Transform(DateModel, VersionedMixin):
@@ -339,6 +365,9 @@ class Transform(DateModel, VersionedMixin):
     replacement_field = db.Column(db.Text)
     entry_number = db.Column(db.BigInteger)
 
+    dataset = db.relationship("Dataset")
+    endpoint = db.relationship("Endpoint")
+
 
 class Filter(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -349,3 +378,6 @@ class Filter(DateModel, VersionedMixin):
     field_id = db.Column(db.Text, db.ForeignKey("field.field"), nullable=True)
     pattern = db.Column(db.Text)
     entry_number = db.Column(db.BigInteger)
+
+    dataset = db.relationship("Dataset")
+    endpoint = db.relationship("Endpoint")
