@@ -66,7 +66,7 @@
     </dt>
     <dd class="govuk-summary-list__value">
       {% for dataset in source.datasets %}
-        {{ dataset.name }}{{ ', ' if not loop.last else '' }}
+        <a href="{{ url_for('dataset.dataset', dataset_id=dataset.dataset)}}">{{ dataset.name }}</a>{{ ', ' if not loop.last else '' }}
       {% endfor %}
     </dd>
   </div>
@@ -83,7 +83,7 @@
       Licence
     </dt>
     <dd class="govuk-summary-list__value">
-      {{ source.licence if source.licence }}
+      {{ source.licence.text if source.licence }}
     </dd>
   </div>
   <div class="govuk-summary-list__row">
