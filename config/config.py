@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import base64
 import os
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -15,7 +16,11 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
     GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
-    SAFE_URLS = {"data-manager-prototype.herokuapp.com"}
+    GITHUB_APP_ID = os.getenv("GITHUB_APP_ID")
+    GITHUB_APP_PRIVATE_KEY = base64.b64decode(
+        os.getenv("GITHUB_APP_PRIVATE_KEY", "")
+    ).decode("utf-8")
+    SAFE_URLS = {"config-manager-prototype.herokuapp.com"}
     AUTHENTICATION_ON = True
     S3_BUCKET_URL = (
         "https://digital-land-production-collection-dataset.s3.eu-west-2.amazonaws.com"
@@ -26,7 +31,7 @@ class DevelopmentConfig(Config):
     DEBUG = True
     ENV = "development"
     WTF_CSRF_ENABLED = False
-    SAFE_URLS = {"localhost:80"}
+    SAFE_URLS = {"localhost:5000"}
     AUTHENTICATION_ON = False
 
 

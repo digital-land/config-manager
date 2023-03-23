@@ -23,7 +23,15 @@ from application.blueprints.source.forms import (
     SearchForm,
 )
 from application.collection_utils import Workspace
-from application.db.models import Collection, Dataset, Endpoint, Organisation, Source
+from application.db.models import (
+    Attribution,
+    Collection,
+    Dataset,
+    Endpoint,
+    Licence,
+    Organisation,
+    Source,
+)
 from application.extensions import db
 from application.utils import (
     check_url_reachable,
@@ -255,6 +263,13 @@ def source_json(source_hash):
 def edit(source_hash):
     source = Source.query.get(source_hash)
     form = EditSourceForm(obj=source)
+    form.licence.choices = [
+        (licence.licence, licence.text) for licence in Licence.query.all()
+    ]
+    form.attribution.choices = [
+        (attribution.attribution, attribution.text)
+        for attribution in Attribution.query.all()
+    ]
 
     if form.validate_on_submit():
         # if endpoint, org or dataset have changed then has the source changed or is it a new one

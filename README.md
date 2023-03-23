@@ -27,10 +27,14 @@ To run the application run:
     make run
 
 
-To test out github oauth2 locally you need to set the following in a `.env` file:
+To test out github app integration locally you need to set the following in a `.env` file:
 
     GITHUB_CLIENT_ID=[the id]
     GITHUB_CLIENT_SECRET=[the secret]
+    GITHUB_APP_ID=[github app id]
+    GITHUB_APP_PRIVATE_KEY=[base64 encoded private key for github app]
+
+Speak to @ashimali about where to find the above
 
 
 ## Adding new python packages to the project

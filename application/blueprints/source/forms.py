@@ -24,9 +24,9 @@ class SearchForm(FlaskForm):
 
 class EditSourceForm(FlaskForm):
     documentation_url = StringField("Documentation url")
-    attribution = StringField("Attribution")
-    licence = StringField("Licence")
     start_date = StringField("Start date")
+    attribution = SelectField("Attribution")
+    licence = SelectField("Licence")
 
 
 class NewSourceForm(EditSourceForm):

@@ -213,6 +213,20 @@ class Source(DateModel, VersionedMixin):
         "Dataset", secondary=source_dataset, lazy="subquery", back_populates="sources"
     )
 
+    def update(self, data):
+        for key, val in data.items():
+            if hasattr(self, key) and key not in [
+                "datasets",
+                "organisation",
+                "collection",
+            ]:
+                if val == "":
+                    val = None
+                if key in ["attribution", "licence"]:
+                    setattr(self, f"{key}_id", val)
+                else:
+                    setattr(self, key, val)
+
 
 class Endpoint(DateModel, VersionedMixin):
     endpoint = db.Column(db.Text, primary_key=True)

@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import requests
 from flask import Blueprint, current_app, flash, redirect, request, session, url_for
 from is_safe_url import is_safe_url
@@ -18,30 +20,42 @@ def login():
 def authorize():
     next_url = session.pop("next", None)
     token = oauth.github.authorize_access_token()
-    resp = oauth.github.get("user/orgs", token=token)
+    resp = oauth.github.get("user", token=token)
     resp.raise_for_status()
-    orgs = resp.json()
-    is_in_organisation = any((org["login"] == "digital-land" for org in orgs))
-
-    if is_in_organisation:
-        resp = oauth.github.get("user", token=token)
-        resp.raise_for_status()
-        user_profile = resp.json()
-        if user_profile:
-            session["user"] = user_profile
-        next_url = _make_next_url_safe(next_url)
-        return redirect(next_url)
-    else:
-        client_id = current_app.config["GITHUB_CLIENT_ID"]
-        client_secret = current_app.config["GITHUB_CLIENT_SECRET"]
-        headers = {"Accept": "application/vnd.github.v3+json"}
-        params = {"access_token": token["access_token"]}
-        requests.delete(
-            f"https://api.github.com/applications/{client_id}/grant",
-            json=params,
-            headers=headers,
-            auth=(client_id, client_secret),
+    user_profile = resp.json()
+    if user_profile:
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token['access_token']}",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+        # check if user is a member of digitial-land org - if they are the members endpoint
+        # will return status code 204
+        # https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#check-organization-membership-for-a-user
+        url = (
+            f"https://api.github.com/orgs/digital-land/members/{user_profile['login']}"
         )
+        resp = requests.get(url, headers=headers)
+        if resp.status_code == HTTPStatus.NO_CONTENT:
+            session["user"] = user_profile
+            next_url = _make_next_url_safe(next_url)
+            return redirect(next_url)
+        else:
+            client_id = current_app.config["GITHUB_CLIENT_ID"]
+            client_secret = current_app.config["GITHUB_CLIENT_SECRET"]
+            params = {"access_token": token["access_token"]}
+            headers = {"X-GitHub-Api-Version": "2022-11-28"}
+            resp = requests.delete(
+                f"https://api.github.com/applications/{client_id}/grant",
+                headers=headers,
+                params=params,
+                auth=(client_id, client_secret),
+            )
+            flash(
+                "You must be a member of the digital-land organisation to be logged in"
+            )
+            return redirect(url_for("base.index"))
+    else:
         flash("You must be a member of the digital-land organisation to be logged in")
         return redirect(url_for("base.index"))
 
