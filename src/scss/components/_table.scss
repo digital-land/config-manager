@@ -15,5 +15,19 @@
     word-break: break-all;
     word-break: break-word;
   }
+}
 
+// styles for tables on pipeline config pages
+
+.dl-data-table .govuk-table__header {
+  border-bottom-color: govuk-colour("dark-grey");
+}
+
+.dl-data-table th {
+  background: govuk-colour("light-grey");
+  font-weight: 700;
+}
+
+.govuk-table__header:last-child, .govuk-table__cell:last-child {
+  padding-right: 15px;
 }
