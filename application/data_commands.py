@@ -8,6 +8,7 @@ from datetime import datetime
 from zipfile import ZipFile
 
 import click
+import psycopg2
 import requests
 from flask.cli import AppGroup
 
@@ -316,13 +317,12 @@ def _load_config(db):
                         writer.writerow(fieldnames)
                         for row in rows:
                             if path.stem == "lookup":
-                                row.extend([p, 0, PublicationStatus.DRAFT.value])
+                                row.extend([p, 0, PublicationStatus.PUBLISHED.value])
                             else:
-                                row.extend([p, p, 0, PublicationStatus.DRAFT.value])
+                                row.extend([p, p, 0, PublicationStatus.PUBLISHED.value])
                             writer.writerow(row)
 
                 # run pg copy for lookup files due to number of records
-                import psycopg2
 
                 connection = psycopg2.connect(os.getenv("DATABASE_URL"))
                 cursor = connection.cursor()
@@ -337,7 +337,7 @@ def _load_config(db):
 
 
 def _get_insert_copy(row, current_file_key, skip_fields=[]):
-    insert_copy = {}
+    insert_copy = {"publication_status": PublicationStatus.PUBLISHED.value}
     for key, val in row.items():
         if key in skip_fields:
             continue

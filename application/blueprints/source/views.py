@@ -1,7 +1,7 @@
 from datetime import datetime
 
 # from digital_land.api import DigitalLandApi
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, redirect, render_template, request, url_for
 
 from application.blueprints.source.forms import (
     ArchiveForm,
@@ -25,9 +25,6 @@ from application.utils import (
     compute_md5_hash,
     login_required,
 )
-
-# from application.collection_utils import Workspace, convert_and_truncate_resource
-
 
 source_bp = Blueprint("source", __name__, url_prefix="/source")
 
@@ -233,14 +230,6 @@ def finish():
 def source(source_hash):
     source = Source.query.get(source_hash)
     return render_template("source/source.html", source=source)
-
-
-@source_bp.route("<source_hash>.json")
-def source_json(source_hash):
-    source = Source.query.get(source_hash)
-    if source:
-        return jsonify(source), 200
-    return {}, 404
 
 
 @source_bp.route("<source_hash>/edit", methods=["GET", "POST"])

@@ -1,5 +1,6 @@
 import enum
 
+from sqlalchemy import event
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import declarative_mixin, declared_attr
 
@@ -395,3 +396,13 @@ class Filter(DateModel, VersionedMixin):
 
     dataset = db.relationship("Dataset")
     endpoint = db.relationship("Endpoint")
+
+
+# Set publication status for all versionable classes
+@event.listens_for(VersionedMixin, "before_update", propagate=True)
+def handle_before_update(mapper, connection, target):
+    if (
+        hasattr(target, "publication_status")
+        and target.publication_status == PublicationStatus.PUBLISHED
+    ):
+        target.publication_status = PublicationStatus.DRAFT.value

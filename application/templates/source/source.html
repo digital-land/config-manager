@@ -110,6 +110,14 @@
       {{ source.end_date if source.end_date }}
     </dd>
   </div>
+   <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Status
+    </dt>
+    <dd class="govuk-summary-list__value">
+      {{ source.publication_status.value if source.publication_status }}
+    </dd>
+  </div>
 </dl>
 
 {% endif %}
