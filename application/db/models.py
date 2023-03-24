@@ -398,11 +398,11 @@ class Filter(DateModel, VersionedMixin):
     endpoint = db.relationship("Endpoint")
 
 
-# Set publication status for all versionable classes
+# Set publication status to draft on update for all versionable classes
 @event.listens_for(VersionedMixin, "before_update", propagate=True)
 def handle_before_update(mapper, connection, target):
     if (
         hasattr(target, "publication_status")
         and target.publication_status == PublicationStatus.PUBLISHED
     ):
-        target.publication_status = PublicationStatus.DRAFT.value
+        target.publication_status = PublicationStatus.DRAFT
