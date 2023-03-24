@@ -25,6 +25,9 @@ class Config:
     S3_BUCKET_URL = (
         "https://digital-land-production-collection-dataset.s3.eu-west-2.amazonaws.com"
     )
+    # Config repo branch to commit to. If/when this application is used
+    # to edit config then change to push to main branch - until then default to update-test
+    CONFIG_REPO_BRANCH = os.getenv("CONFIG_REPO_BRANCH", "config-manager-update")
 
 
 class DevelopmentConfig(Config):

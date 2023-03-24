@@ -4,7 +4,6 @@ Flask app factory class
 """
 import os.path
 
-import requests
 import sentry_sdk
 from flask import Flask
 from flask.cli import load_dotenv
@@ -170,43 +169,6 @@ def register_templates(app):
 
 
 def register_commands(app):
-    from application.commands import management_cli
+    from application.data_commands import data_cli
 
-    app.cli.add_command(management_cli)
-
-
-def get_specification(app):
-    specification_dir = os.path.join(app.config["PROJECT_ROOT"], "specification")
-    if not os.path.exists(specification_dir):
-        os.mkdir(specification_dir)
-
-    specification_files = [
-        "collection",
-        "dataset",
-        "dataset-schema",
-        "schema",
-        "schema-field",
-        "field",
-        "datatype",
-        "typology",
-        "pipeline",
-        "theme",
-    ]
-
-    for file in specification_files:
-        spec_file = os.path.join(specification_dir, f"{file}.csv")
-        spec_url = (
-            f"{DIGITAL_LAND_GITHUB_URL}/specification/main/specification/{file}.csv"
-        )
-
-        if not os.path.exists(spec_file):
-            print(f"Downloading {spec_url} to {spec_file}")
-            resp = requests.get(spec_url)
-            resp.raise_for_status()
-            outfile_name = os.path.join(specification_dir, f"{file}.csv")
-            with open(outfile_name, "w") as file:
-                file.write(resp.content.decode("utf-8"))
-        else:
-            print(f"{spec_url} already downloaded to {spec_file}")
-
-    print("Specification done")
+    app.cli.add_command(data_cli)

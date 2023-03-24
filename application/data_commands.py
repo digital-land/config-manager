@@ -31,7 +31,7 @@ error_handler.setLevel(logging.ERROR)
 logger.addHandler(info_handler)
 logger.addHandler(error_handler)
 
-management_cli = AppGroup("manage")
+data_cli = AppGroup("data")
 
 DIGITAL_LAND_DATASETTE = "https://datasette.planning.data.gov.uk/digital-land"
 DIGITAL_LAND_RAW_GITHUB_URL = "https://raw.githubusercontent.com/digital-land"
@@ -66,7 +66,17 @@ foreign_key_columns = set(
 )
 
 
-@management_cli.command("load-data")
+"""
+These commands were created during development as the means to seed the application with
+data from the central config repo. As long as users edit the config repo directly then
+these commands can be used to drop and re seed the data from the config repo.
+
+If/when this application becomes the sole source of configuration edits then this
+file should be removed.
+"""
+
+
+@data_cli.command("load")
 @click.option("--spec", default=False, help="Load just specification tables")
 @click.option("--config", default=False, help="Load config tables")
 def load_data(spec, config):
@@ -80,7 +90,7 @@ def load_data(spec, config):
         _load_config(db)
 
 
-@management_cli.command("drop-data")
+@data_cli.command("drop")
 def drop_data():
     from application.extensions import db
 
