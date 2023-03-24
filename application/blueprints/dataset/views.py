@@ -46,6 +46,29 @@ def dataset(dataset_id):
     )
 
 
+@dataset_bp.get("/<string:dataset_id>/rules/<string:ruletype_name>")
+def ruletype(dataset_id, ruletype_name):
+    dataset = Dataset.query.get(dataset_id)
+
+    if dataset is None or dataset.collection_id is None:
+        return abort(404)
+
+    # # check if name is one of allowable rule types
+    specification_pipelines = get_expected_pipeline_specs()
+    if ruletype_name not in specification_pipelines.keys():
+        return abort(404)
+
+    pipeline = PipelineModel.from_orm(dataset.collection.pipeline).dict(by_alias=True)
+
+    return render_template(
+        "dataset/rules.html",
+        dataset=dataset,
+        ruletype_name=ruletype_name,
+        ruletype_specification=specification_pipelines[ruletype_name],
+        rules=pipeline[ruletype_name],
+    )
+
+
 @dataset_bp.get("/<string:dataset_id>.json")
 def download_pipeline(dataset_id):
     dataset = Dataset.query.get(dataset_id)

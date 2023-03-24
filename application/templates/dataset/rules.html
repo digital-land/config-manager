@@ -1,0 +1,48 @@
+{% extends 'layouts/base.html' %}
+
+{% from 'components/rule-table-header.html' import ruleTableHead %}
+
+{% block beforeContent %}
+<div class="govuk-breadcrumbs">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.index') }}">Datasets</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.dataset', dataset_id=dataset.dataset) }}">{{dataset.name}}</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">{{ ruletype_name|capitalize }} rules</li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+
+{% block content %}
+
+<span class="govuk-caption-xl">{{ dataset.name }}</span>
+<h1 class="govuk-heading-xl">{{ ruletype_name|capitalize }} rules</h1>
+
+<a class='govuk-button govuk-button--secondary' data-module='govuk-button'>
+  Add new rule
+</a>
+
+
+<p class="govuk-body">Showing {{ rules|length }} {{ rule_type_name }} rule{{ '' if rules|length == 1 else 's' }}</p>
+<table class="dl-data-table">
+  {{ ruleTableHead({ "fields": ruletype_specification.fields }) }}
+  <tbody class="govuk-table__body">
+  {% if rules|length > 0 %}
+  {% for rule in rules %}
+    <tr class="govuk-table__row">
+    {%- for field in ruletype_specification.fields %}
+      <td class="govuk-table__cell">{% if rule[field.field] %}{{ rule[field.field] }}{% endif %}</td>
+    {% endfor -%}
+    </tr>
+  {% endfor %}
+  {% endif %}
+  </tbody>
+</table>
+
+{% endblock content %}

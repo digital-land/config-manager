@@ -1,5 +1,7 @@
 {% extends 'layouts/base.html' %}
 
+{% from 'components/rule-table-header.html' import ruleTableHead %}
+
 {% block beforeContent %}
 <div class="govuk-breadcrumbs">
   <ol class="govuk-breadcrumbs__list">
@@ -64,15 +66,7 @@
 <section id="pipeline-rules" class="govuk-!-margin-top-9">
   <h2 class="govuk-heading-l">Pipeline rules</h2>
 
-  {% macro ruleTableHead(params) %}
-  <thead class="govuk-table__head">
-    <tr class="govuk-table__row">
-      {% for field in params.fields  %}
-      <th scope="col" class="govuk-table__header">{{ field.name }}</th>
-      {% endfor %}
-    </tr>
-  </thead>
-  {% endmacro %}
+
 
   <div class="govuk-accordion" data-module="govuk-accordion" id="accordion-default">
 
@@ -103,7 +97,7 @@
           {% endfor %}
           </tbody>
         </table>
-        <p class="govuk-body govuk-!-margin-top-3"><a href="">See all {{ rule_type_name }} rules</a></p>
+        <p class="govuk-body govuk-!-margin-top-3"><a class="govuk-link" href="{{ url_for('dataset.ruletype', dataset_id=dataset.dataset, ruletype_name=rule_type_name) }}">See all {{ rule_type_name }} rules</a></p>
         {% endif %}
       </div>
     </div>
