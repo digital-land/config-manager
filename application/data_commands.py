@@ -145,6 +145,9 @@ def _load_specification_data(db, table):
                 insert_record[f_key] = val
             else:
                 insert_record[key] = val
+
+            if table == "collection":
+                insert_record["publication_status"] = PublicationStatus.PUBLISHED.name
         try:
             t = db.metadata.tables.get(table)
             insert = t.insert().values(**insert_record)
@@ -189,7 +192,12 @@ def _load_config(db):
             if pipeline is None:
                 name = p.replace("-", " ").capitalize()
                 collection = Collection.query.get(p)
-                pipeline = Pipeline(pipeline=p, name=name, collection=collection)
+                pipeline = Pipeline(
+                    pipeline=p,
+                    name=name,
+                    collection=collection,
+                    publication_status=PublicationStatus.PUBLISHED.name,
+                )
                 db.session.add(pipeline)
                 db.session.commit()
 
@@ -298,16 +306,13 @@ def _load_config(db):
                             field = f"{field}_id"
                         fieldnames.append(field)
                     if path.stem == "lookup":
-                        fieldnames.extend(
-                            ["pipeline_id", "version_id", "publication_status"]
-                        )
+                        fieldnames.extend(["pipeline_id", "version_id"])
                     else:
                         fieldnames.extend(
                             [
                                 "dataset_id",
                                 "pipeline_id",
                                 "version_id",
-                                "publication_status",
                             ]
                         )
                     rows = list(reader)
@@ -317,9 +322,9 @@ def _load_config(db):
                         writer.writerow(fieldnames)
                         for row in rows:
                             if path.stem == "lookup":
-                                row.extend([p, 0, PublicationStatus.PUBLISHED.value])
+                                row.extend([p, 0])
                             else:
-                                row.extend([p, p, 0, PublicationStatus.PUBLISHED.value])
+                                row.extend([p, p, 0])
                             writer.writerow(row)
 
                 # run pg copy for lookup files due to number of records
@@ -337,7 +342,7 @@ def _load_config(db):
 
 
 def _get_insert_copy(row, current_file_key, skip_fields=[]):
-    insert_copy = {"publication_status": PublicationStatus.PUBLISHED.value}
+    insert_copy = {}
     for key, val in row.items():
         if key in skip_fields:
             continue

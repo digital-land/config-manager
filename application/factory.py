@@ -169,6 +169,8 @@ def register_templates(app):
 
 
 def register_commands(app):
+    from application.commands import publish_cli
     from application.data_commands import data_cli
 
     app.cli.add_command(data_cli)
+    app.cli.add_command(publish_cli)

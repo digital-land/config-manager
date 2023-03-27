@@ -1,6 +1,5 @@
 import enum
 
-from sqlalchemy import event
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import declarative_mixin, declared_attr
 
@@ -19,10 +18,6 @@ class VersionedMixin:
         return cls.__name__.lower()
 
     version_id = db.Column(db.Integer, nullable=False, default=0)
-    publication_status = db.Column(
-        db.Enum(PublicationStatus, name="publication_status"),
-        default=PublicationStatus.DRAFT,
-    )
 
     __mapper_args__ = {"version_id_col": version_id}
 
@@ -63,6 +58,11 @@ class Collection(DateModel):
     pipeline = db.relationship("Pipeline", uselist=False, back_populates="collection")
     datasets = db.relationship("Dataset", back_populates="collection")
     sources = db.relationship("Source", back_populates="collection")
+
+    publication_status = db.Column(
+        db.Enum(PublicationStatus, name="publication_status"),
+        default=PublicationStatus.DRAFT,
+    )
 
     @property
     def endpoints(self):
@@ -194,6 +194,11 @@ class Pipeline(db.Model):
     skip = db.relationship("Skip")
     transform = db.relationship("Transform")
 
+    publication_status = db.Column(
+        db.Enum(PublicationStatus, name="publication_status"),
+        default=PublicationStatus.DRAFT,
+    )
+
 
 class Source(DateModel, VersionedMixin):
     source = db.Column(db.Text, primary_key=True)
@@ -227,6 +232,7 @@ class Source(DateModel, VersionedMixin):
                     setattr(self, f"{key}_id", val)
                 else:
                     setattr(self, key, val)
+        self.collection.publication_status = PublicationStatus.DRAFT.name
 
 
 class Endpoint(DateModel, VersionedMixin):
@@ -399,10 +405,11 @@ class Filter(DateModel, VersionedMixin):
 
 
 # Set publication status to draft on update for all versionable classes
-@event.listens_for(VersionedMixin, "before_update", propagate=True)
-def handle_before_update(mapper, connection, target):
-    if (
-        hasattr(target, "publication_status")
-        and target.publication_status == PublicationStatus.PUBLISHED
-    ):
-        target.publication_status = PublicationStatus.DRAFT
+# @event.listens_for(Source, "before_update", propagate=True)
+# def handle_before_update(mapper, connection, target):
+#     if (
+#         hasattr(target, "collection")
+#         and target.collection.publication_status == PublicationStatus.PUBLISHED
+#     ):
+#         print('updating')
+#         target.collection.publication_status = PublicationStatus.DRAFT
