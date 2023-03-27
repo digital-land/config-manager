@@ -59,6 +59,7 @@ class EndpointModel(ConfigDateModel):
 
 
 class ConfigPipelineModel(ConfigBaseModel):
+    id: int
     dataset: Optional[str]
     endpoint: Optional[str]
     resource: Optional[str]
