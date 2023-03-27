@@ -2,7 +2,11 @@ from flask import Blueprint, abort, make_response, render_template
 
 from application.db.models import Dataset
 from application.export.models import CollectionModel, PipelineModel
-from application.spec_helpers import count_pipeline_rules, get_expected_pipeline_specs
+from application.spec_helpers import (
+    PIPELINE_MODELS,
+    count_pipeline_rules,
+    get_expected_pipeline_specs,
+)
 
 dataset_bp = Blueprint("dataset", __name__, url_prefix="/dataset")
 
@@ -69,17 +73,31 @@ def ruletype(dataset_id, ruletype_name):
     )
 
 
-@dataset_bp.get("/<string:dataset_id>/rules/<string:ruletype_name>/rule_id")
-def editrule(dataset_id, ruletype_name):
+def get_rule(id, ruletype):
+    return PIPELINE_MODELS[ruletype].query.get(id)
+
+
+@dataset_bp.get("/<string:dataset_id>/rules/<string:ruletype_name>/<int:rule_id>")
+def editrule(dataset_id, ruletype_name, rule_id):
     dataset = Dataset.query.get(dataset_id)
 
     if dataset is None or dataset.collection_id is None:
         return abort(404)
 
+    specification_pipelines = get_expected_pipeline_specs()
+    if ruletype_name not in specification_pipelines.keys():
+        return abort(404)
+
+    rule = get_rule(rule_id, ruletype_name)
+    if rule is None:
+        pass
+
     return render_template(
         "dataset/editrule.html",
         dataset=dataset,
         ruletype_name=ruletype_name,
+        ruletype_specification=specification_pipelines[ruletype_name],
+        rule=rule,
     )
 
 

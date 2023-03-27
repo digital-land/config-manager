@@ -1,4 +1,17 @@
-from application.db.models import Dataset
+from application.db.models import (
+    Column,
+    Combine,
+    Concat,
+    Convert,
+    Dataset,
+    Default,
+    DefaultValue,
+    Filter,
+    Lookup,
+    Patch,
+    Skip,
+    Transform,
+)
 
 # hard code names of pipeline specifications until there
 # is a way to extract the list from specification
@@ -15,6 +28,20 @@ PIPELINE_SPECIFICATIONS = [
     "skip",
     "transform",
 ]
+
+PIPELINE_MODELS = {
+    "column": Column,
+    "combine": Combine,
+    "concat": Concat,
+    "convert": Convert,
+    "default": Default,
+    "default-value": DefaultValue,
+    "filter": Filter,
+    "lookup": Lookup,
+    "patch": Patch,
+    "skip": Skip,
+    "transform": Transform,
+}
 
 
 def get_expected_pipeline_specs():
