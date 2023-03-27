@@ -69,6 +69,20 @@ def ruletype(dataset_id, ruletype_name):
     )
 
 
+@dataset_bp.get("/<string:dataset_id>/rules/<string:ruletype_name>/rule_id")
+def editrule(dataset_id, ruletype_name):
+    dataset = Dataset.query.get(dataset_id)
+
+    if dataset is None or dataset.collection_id is None:
+        return abort(404)
+
+    return render_template(
+        "dataset/editrule.html",
+        dataset=dataset,
+        ruletype_name=ruletype_name,
+    )
+
+
 @dataset_bp.get("/<string:dataset_id>.json")
 def download_pipeline(dataset_id):
     dataset = Dataset.query.get(dataset_id)

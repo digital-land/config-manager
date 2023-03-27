@@ -4,6 +4,9 @@
     {% for field in params.fields  %}
     <th scope="col" class="govuk-table__header">{{ field.name }}</th>
     {% endfor %}
+    {% if params.editable == 'true' %}
+    <th scope="col" class="govuk-table__header"></th>
+    {% endif %}
   </tr>
 </thead>
 {% endmacro %}

@@ -31,7 +31,7 @@
 
 <p class="govuk-body">Showing {{ rules|length }} {{ rule_type_name }} rule{{ '' if rules|length == 1 else 's' }}</p>
 <table class="dl-data-table">
-  {{ ruleTableHead({ "fields": ruletype_specification.fields }) }}
+  {{ ruleTableHead({ "fields": ruletype_specification.fields, "editable": "true" }) }}
   <tbody class="govuk-table__body">
   {% if rules|length > 0 %}
   {% for rule in rules %}
@@ -39,6 +39,7 @@
     {%- for field in ruletype_specification.fields %}
       <td class="govuk-table__cell">{% if rule[field.field] %}{{ rule[field.field] }}{% endif %}</td>
     {% endfor -%}
+      <td class="govuk-table__cell"><a href="{{ url_for('dataset.editrule', dataset_id=dataset.dataset, ruletype_name=ruletype_name) }}" class="govuk-link">edit<span class="govuk-visually-hidden"> pipeline rule</span></a></td>
     </tr>
   {% endfor %}
   {% endif %}
