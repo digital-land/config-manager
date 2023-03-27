@@ -13,22 +13,6 @@ from application.db.models import (
     Transform,
 )
 
-# hard code names of pipeline specifications until there
-# is a way to extract the list from specification
-PIPELINE_SPECIFICATIONS = [
-    "column",
-    "combine",
-    "concat",
-    "convert",
-    "default",
-    "default-value",
-    "filter",
-    "lookup",
-    "patch",
-    "skip",
-    "transform",
-]
-
 PIPELINE_MODELS = {
     "column": Column,
     "combine": Combine,
@@ -42,6 +26,10 @@ PIPELINE_MODELS = {
     "skip": Skip,
     "transform": Transform,
 }
+
+# hard code names of pipeline specifications until there
+# is a way to extract the list from specification
+PIPELINE_SPECIFICATIONS = list(PIPELINE_MODELS.keys())
 
 
 def get_expected_pipeline_specs():
