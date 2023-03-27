@@ -132,13 +132,14 @@ class FilterModel(ConfigPipelineModel):
 
 
 class PipelineModel(ConfigBaseModel):
+    pipeline: str
     column: Optional[List[ColumnModel]]
     combine: Optional[List[CombineModel]]
     concat: Optional[List[ConcatModel]]
     convert: Optional[List[ConvertModel]]
     default: Optional[List[DefaultModel]]
     default_value: Optional[List[DefaultValueModel]]
-    # lookup: Optional[List[LookupModel]]
+    lookup: Optional[List[LookupModel]]
     patch: Optional[List[PatchModel]]
     skip: Optional[List[SkipModel]]
     transform: Optional[List[TransformModel]]
