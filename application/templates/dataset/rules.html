@@ -24,7 +24,7 @@
 <span class="govuk-caption-xl">{{ dataset.name }}</span>
 <h1 class="govuk-heading-xl">{{ ruletype_name|capitalize }} rules</h1>
 
-<a class='govuk-button govuk-button--secondary' data-module='govuk-button'>
+<a href="{{ url_for('dataset.editrule', dataset_id=dataset.dataset, ruletype_name=ruletype_name, rule_id='new') }}" class='govuk-button govuk-button--secondary' data-module='govuk-button'>
   Add new rule
 </a>
 

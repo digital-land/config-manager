@@ -4,3 +4,8 @@
   padding: 3px govuk-spacing(2);
   border-left: 4px solid govuk-colour('yellow');
 }
+
+.app-text-input__readonly {
+  border-color:  $govuk-border-colour;
+  color: $govuk-secondary-text-colour;
+}

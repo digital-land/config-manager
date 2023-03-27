@@ -17,7 +17,7 @@
     <li class="govuk-breadcrumbs__list-item">
       <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.ruletype', dataset_id=dataset.dataset, ruletype_name=rule_type_name) }}">{{ ruletype_name|capitalize }} rules</a>
     </li>
-    <li class="govuk-breadcrumbs__list-item">{{ rule.id }}</li>
+    <li class="govuk-breadcrumbs__list-item">{{ rule.id|default('new') }}</li>
   </ol>
 </div>
 {% endblock beforeContent %}
@@ -25,49 +25,55 @@
 {% block content %}
 
 <span class="govuk-caption-xl">{{ dataset.name }} - {{ ruletype_name }} rules</span>
-<h1 class="govuk-heading-xl">Edit rule #{{ rule.id }}</h1>
+<h1 class="govuk-heading-xl">{% if rule.id %}Edit rule #{{ rule.id }}{% else %}Add new rule{% endif %}</h1>
 
-<form action="" class="govuk-form">
-  <div class="govuk-form-group">
-    <label class="govuk-label" for="width-10">
-      Dataset
-    </label>
-    <input class="govuk-input govuk-input--width-10" id="dataset" name="dataset" type="text" readonly="readonly" value="{{ rule['dataset'].name }}">
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <form action="" class="govuk-form">
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="width-10">
+          Dataset
+        </label>
+        <input class="govuk-input govuk-input--width-10 app-text-input__readonly" id="dataset" name="dataset" type="text" readonly="readonly" value="{{ rule['dataset'].name }}">
+      </div>
+      {% for field in ruletype_specification.fields %}
+        {%- if field.field not in ['dataset', 'start-date', 'end-date', 'entry-date'] -%}
+        <div class="govuk-form-group">
+          <label class="govuk-label" for="width-10">
+            {{ field.name }}
+          </label>
+          <input class="govuk-input govuk-input--width-10" id="width-10" name="width-10" type="text" {% if rule[field.field] %}value="{{ rule[field.field] }}"{% endif %}>
+        </div>
+        {%- endif -%}
+      {% endfor %}
+      <p class="govuk-body">The dates determine when this rule will be used by the pipeline and when it is no longer needed.</p>
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="entry-date">
+          Entry date
+        </label>
+        <input class="govuk-input govuk-input--width-10" id="entry-date" name="entry-date" type="text" readonly="readonly" value="{{ rule['entry-date'] if rule['entry-date'] }}">
+      </div>
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="start-date">
+          Start date
+        </label>
+        <input class="govuk-input govuk-input--width-10" id="start-date" name="start-date" type="text" readonly="readonly" value="{{ rule['start-date'] if rule['start-date'] }}">
+      </div>
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="end-date">
+          End date
+        </label>
+        <input class="govuk-input govuk-input--width-10" id="end-date" name="end-date" type="text" readonly="readonly" value="{{ rule['end-date'] if rule['end-date'] }}">
+      </div>
+      <div class="govuk-button-group">
+        <button class="govuk-button" data-module="govuk-button">
+          Save and continue
+        </button>
+        <a class="govuk-link" href="{{ url_for('dataset.ruletype', dataset_id=dataset.dataset, ruletype_name=ruletype_name) }}">Cancel</a>
+      </div>
+    </form>
+
   </div>
-  {% for field in ruletype_specification.fields %}
-    {%- if field.field not in ['dataset', 'start-date', 'end-date', 'entry-date'] -%}
-    <div class="govuk-form-group">
-      <label class="govuk-label" for="width-10">
-        {{ field.name }}
-      </label>
-      <input class="govuk-input govuk-input--width-10" id="width-10" name="width-10" type="text" {% if rule[field.field] %}value="{{ rule[field.field] }}"{% endif %}>
-    </div>
-    {%- endif -%}
-  {% endfor %}
-  <p class="govuk-body">---</p>
-  <div class="govuk-form-group">
-    <label class="govuk-label" for="entry-date">
-      Entry date
-    </label>
-    <input class="govuk-input govuk-input--width-10" id="entry-date" name="entry-date" type="text" readonly="readonly" value="{{ rule['entry-date'] }}">
-  </div>
-  <div class="govuk-form-group">
-    <label class="govuk-label" for="start-date">
-      Start date
-    </label>
-    <input class="govuk-input govuk-input--width-10" id="start-date" name="start-date" type="text" readonly="readonly" value="{{ rule['start-date'] }}">
-  </div>
-  <div class="govuk-form-group">
-    <label class="govuk-label" for="end-date">
-      End date
-    </label>
-    <input class="govuk-input govuk-input--width-10" id="end-date" name="end-date" type="text" readonly="readonly" value="{{ rule['end-date'] }}">
-  </div>
-  <div class="govuk-button-group">
-    <button class="govuk-button" data-module="govuk-button">
-      Save and continue
-    </button>
-    <a class="govuk-link" href="{{ url_for('dataset.ruletype', dataset_id=dataset.dataset, ruletype_name=ruletype_name) }}">Cancel</a>
-  </div>
-</form>
+</div>
 {% endblock content %}

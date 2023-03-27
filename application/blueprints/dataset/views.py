@@ -77,7 +77,7 @@ def get_rule(id, ruletype):
     return PIPELINE_MODELS[ruletype].query.get(id)
 
 
-@dataset_bp.get("/<string:dataset_id>/rules/<string:ruletype_name>/<int:rule_id>")
+@dataset_bp.get("/<string:dataset_id>/rules/<string:ruletype_name>/<rule_id>")
 def editrule(dataset_id, ruletype_name, rule_id):
     dataset = Dataset.query.get(dataset_id)
 
@@ -88,9 +88,13 @@ def editrule(dataset_id, ruletype_name, rule_id):
     if ruletype_name not in specification_pipelines.keys():
         return abort(404)
 
-    rule = get_rule(rule_id, ruletype_name)
-    if rule is None:
-        pass
+    if rule_id == "new":
+        # create empty rule except for dataset
+        rule = {"dataset": dataset}
+    else:
+        rule = get_rule(rule_id, ruletype_name)
+        if rule is None:
+            return abort(404)
 
     return render_template(
         "dataset/editrule.html",
