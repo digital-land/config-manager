@@ -33,6 +33,7 @@ To test out github app integration locally you need to set the following in a `.
     GITHUB_CLIENT_SECRET=[the secret]
     GITHUB_APP_ID=[github app id]
     GITHUB_APP_PRIVATE_KEY=[base64 encoded private key for github app]
+    CONFIG_BRANCH=[the config repo brach this app pushes to]
 
 Speak to @ashimali about where to find the above
 
