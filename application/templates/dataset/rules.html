@@ -24,7 +24,7 @@
 <span class="govuk-caption-xl">{{ dataset.name }}</span>
 <h1 class="govuk-heading-xl">{{ ruletype_name|capitalize }} rules</h1>
 
-<a href="{{ url_for('dataset.editrule', dataset_id=dataset.dataset, ruletype_name=ruletype_name, rule_id='new') }}" class='govuk-button govuk-button--secondary' data-module='govuk-button'>
+<a href="{{ url_for('dataset.edit_rule', dataset_id=dataset.dataset, ruletype_name=ruletype_name, rule_id='new') }}" class='govuk-button govuk-button--secondary' data-module='govuk-button'>
   Add new rule
 </a>
 
@@ -51,11 +51,11 @@
         <td class="govuk-table__cell">{% if rule|attr(field.field) %}{{ rule|render_field_value(field.field) }}{% endif %}</td>
         {%- endif -%}
       {% endfor -%}
-      <td class="govuk-table__cell">{{ rule['entry-date'] }}</td>
-      <td class="govuk-table__cell">{{ rule['start-date'] }}</td>
-      <td class="govuk-table__cell">{{ rule['end-date'] }}</td>
+      <td class="govuk-table__cell">{% if rule.entry_date %}{{ rule.entry_date }}{% endif %}</td>
+      <td class="govuk-table__cell">{% if rule.start_date %}{{ rule.start_date }}{% endif  %}</td>
+      <td class="govuk-table__cell">{% if rule.end_date %}{{ rule.end_date }}{%  endif %}</td>
       <td class="govuk-table__cell app-rule-actions">
-        <a href="{{ url_for('dataset.editrule', dataset_id=dataset.dataset, ruletype_name=ruletype_name, rule_id=rule['id']) }}" class="govuk-link">Edit<span class="govuk-visually-hidden"> pipeline rule</span></a>
+        <a href="{{ url_for('dataset.edit_rule', dataset_id=dataset.dataset, ruletype_name=ruletype_name, rule_id=rule['id']) }}" class="govuk-link">Edit<span class="govuk-visually-hidden"> pipeline rule</span></a>
         <a href="#" class="govuk-link app-rule-actions__delete">Delete<span class="govuk-visually-hidden"> pipeline rule</span></a>
       </td>
     </tr>

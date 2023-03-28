@@ -1,5 +1,6 @@
 from flask import Blueprint, abort, render_template
 
+from application.blueprints.dataset.forms import PIPELINE_FORMS, EditColumnForm
 from application.db.models import Dataset
 from application.spec_helpers import (
     PIPELINE_MODELS,
@@ -80,8 +81,11 @@ def get_rule(id, ruletype):
     return PIPELINE_MODELS[ruletype].query.get(id)
 
 
-@dataset_bp.get("/<string:dataset_id>/rules/<string:ruletype_name>/<rule_id>")
-def editrule(dataset_id, ruletype_name, rule_id):
+@dataset_bp.route(
+    "/<string:dataset_id>/rules/<string:ruletype_name>/<rule_id>",
+    methods=["GET", "POST"],
+)
+def edit_rule(dataset_id, ruletype_name, rule_id):
     dataset = Dataset.query.get(dataset_id)
 
     if dataset is None or dataset.collection_id is None:
@@ -91,16 +95,28 @@ def editrule(dataset_id, ruletype_name, rule_id):
     if ruletype_name not in specification_pipelines.keys():
         return abort(404)
 
+    form_class = PIPELINE_FORMS.get(ruletype_name)
+
     if rule_id == "new":
         # create empty rule except for dataset
-        rule = {"dataset": dataset}
+        form = EditColumnForm(dataset_id=dataset.dataset)
+        rule = {"dataset": dataset.dataset}
     else:
         rule = get_rule(rule_id, ruletype_name)
         if rule is None:
             return abort(404)
 
+        form = form_class(obj=rule)
+        if hasattr(form, "field"):
+            form.field.choices = [
+                (field.field, field.field) for field in dataset.fields
+            ]
+            if rule.field:
+                form.field.data = rule.field.field
+
     return render_template(
         "dataset/editrule.html",
+        form=form,
         dataset=dataset,
         ruletype_name=ruletype_name,
         ruletype_specification=specification_pipelines[ruletype_name],

@@ -27,6 +27,7 @@ PIPELINE_MODELS = {
     "transform": Transform,
 }
 
+
 # hard code names of pipeline specifications until there
 # is a way to extract the list from specification
 PIPELINE_SPECIFICATIONS = list(PIPELINE_MODELS.keys())

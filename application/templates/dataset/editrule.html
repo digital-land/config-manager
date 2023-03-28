@@ -30,52 +30,47 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <form action="" class="govuk-form">
+    <form action="{{url_for('dataset.edit_rule', dataset_id=dataset.dataset, ruletype_name=ruletype_name, rule_id=rule.id)}}" class="govuk-form" method="POST">
+      {{ form.hidden_tag() }}
       <div class="govuk-form-group">
         <label class="govuk-label" for="width-10">
           Dataset
         </label>
-        <input class="govuk-input govuk-input--width-10 app-text-input__readonly" id="dataset" name="dataset" type="text" readonly="readonly" value="{{ rule['dataset'].name }}">
+        {{ form.dataset_id(class="govuk-input govuk-input--width-10 app-text-input__readonly",  readonly=True) }}
       </div>
-      {% for field in ruletype_specification.fields %}
-        {% if field.field == 'field' %}
-        <div class="govuk-form-group">
-          <label class="govuk-label" for="field">
-            Field
-          </label>
-          <select class="govuk-select" id="field" name="field">
-            {% for dataset_field in dataset.fields %}
-            <option value="{{ dataset_field.field }}" {% if rule[field.field].field == dataset_field.field %}selected{% endif %}>{{ dataset_field.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        {%- elif field.field not in ['dataset', 'start-date', 'end-date', 'entry-date'] -%}
-        <div class="govuk-form-group">
-          <label class="govuk-label" for="width-10">
-            {{ field.name }}
-          </label>
-          <input class="govuk-input govuk-input--width-10" id="width-10" name="width-10" type="text" {% if rule[field.field] %}value="{{ rule[field.field] }}"{% endif %}>
-        </div>
-        {%- endif -%}
+      {% for input in form %}
+          {% if input.id not in ["dataset_id", "start_date", "end_date", "entry_date", "csrf_token"] %}
+            <div class="govuk-form-group">
+              {{ input.label(class="govuk-label") }}
+              {{ input(class="govuk-input govuk-input--width-10") }}
+          </div>
+        {% endif %}
       {% endfor %}
+
       <p class="govuk-body">The dates determine when this rule will be used by the pipeline and when it is no longer needed.</p>
       <div class="govuk-form-group">
-        <label class="govuk-label" for="entry-date">
-          Entry date
-        </label>
-        <input class="govuk-input govuk-input--width-10" id="entry-date" name="entry-date" type="text" readonly="readonly" value="{{ rule['entry-date'] if rule['entry-date'] }}">
+        {{ form.entry_date.label(class="govuk-label") }}
+        {% if rule.entry_date %}
+          {{ form.entry_date(class="govuk-input govuk-input--width-10", readonly=True)}}
+        {% else %}
+          {{ form.entry_date(class="govuk-input govuk-input--width-10")}}
+        {% endif %}
       </div>
       <div class="govuk-form-group">
-        <label class="govuk-label" for="start-date">
-          Start date
-        </label>
-        <input class="govuk-input govuk-input--width-10" id="start-date" name="start-date" type="text" readonly="readonly" value="{{ rule['start-date'] if rule['start-date'] }}">
+        {{ form.start_date.label(class="govuk-label") }}
+        {% if rule.start_date %}
+          {{ form.start_date(class="govuk-input govuk-input--width-10", readonly=True)}}
+        {% else %}
+          {{ form.start_date(class="govuk-input govuk-input--width-10")}}
+        {% endif %}
       </div>
       <div class="govuk-form-group">
-        <label class="govuk-label" for="end-date">
-          End date
-        </label>
-        <input class="govuk-input govuk-input--width-10" id="end-date" name="end-date" type="text" readonly="readonly" value="{{ rule['end-date'] if rule['end-date'] }}">
+        {{ form.end_date.label(class="govuk-label") }}
+        {% if rule.end_date %}
+          {{ form.end_date(class="govuk-input govuk-input--width-10", readonly=True)}}
+        {% else %}
+          {{ form.end_date(class="govuk-input govuk-input--width-10")}}
+        {% endif %}
       </div>
       <div class="govuk-button-group">
         <button class="govuk-button" data-module="govuk-button">
