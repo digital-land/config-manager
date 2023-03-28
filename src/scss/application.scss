@@ -83,3 +83,18 @@
 .js-hidden {
   display: none !important;
 }
+
+.app-rule-actions {
+  a {
+    padding-right: 10px;
+
+    &:last-of-type {
+      padding-right: 0;
+    }
+  }
+}
+
+.app-rule-actions__delete {
+  // using !important to cut a corner
+  color: darken(#d4351c, 25) !important;
+}

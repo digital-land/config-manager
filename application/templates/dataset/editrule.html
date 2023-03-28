@@ -15,7 +15,7 @@
       <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.dataset', dataset_id=dataset.dataset) }}">{{dataset.name}}</a>
     </li>
     <li class="govuk-breadcrumbs__list-item">
-      <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.ruletype', dataset_id=dataset.dataset, ruletype_name=rule_type_name) }}">{{ ruletype_name|capitalize }} rules</a>
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.ruletype', dataset_id=dataset.dataset, ruletype_name=ruletype_name) }}">{{ ruletype_name|capitalize }} rules</a>
     </li>
     <li class="govuk-breadcrumbs__list-item">{{ rule.id|default('new') }}</li>
   </ol>
@@ -68,7 +68,10 @@
       </div>
       <div class="govuk-button-group">
         <button class="govuk-button" data-module="govuk-button">
-          Save and continue
+          Save
+        </button>
+        <button class="govuk-button govuk-button--warning" data-module="govuk-button">
+          Delete
         </button>
         <a class="govuk-link" href="{{ url_for('dataset.ruletype', dataset_id=dataset.dataset, ruletype_name=ruletype_name) }}">Cancel</a>
       </div>
