@@ -1,7 +1,7 @@
-from flask import Blueprint, abort, make_response, render_template
+from flask import Blueprint, abort, render_template
 
 from application.db.models import Dataset
-from application.export.models import CollectionModel, PipelineModel
+from application.export.models import PipelineModel
 from application.spec_helpers import (
     PIPELINE_MODELS,
     count_pipeline_rules,
@@ -110,15 +110,3 @@ def editrule(dataset_id, ruletype_name, rule_id):
         ruletype_specification=specification_pipelines[ruletype_name],
         rule=rule,
     )
-
-
-@dataset_bp.get("/<string:dataset_id>.json")
-def download_pipeline(dataset_id):
-    dataset = Dataset.query.get(dataset_id)
-    if dataset is None or dataset.collection_id is None:
-        return abort(404)
-
-    collection = CollectionModel.from_orm(dataset.collection)
-    resp = make_response(collection.json(by_alias=True), 200)
-    resp.headers["Content-Type"] = "application/json"
-    return resp
