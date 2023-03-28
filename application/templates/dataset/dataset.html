@@ -90,15 +90,15 @@
           {% for n in range(rows) %}
             {% set rule = pipeline[rule_type_name][n] %}
             <tr class="govuk-table__row">
-              <td class="govuk-table__cell">{{ rule|render_field_value('dataset') }}</td>
+              <td class="govuk-table__cell">{{ rule['dataset'].dataset if rule['dataset'] }}</td>
               {%- for field in specification_pipelines[rule_type_name].fields %}
                 {%- if field.field not in ['dataset', 'start-date', 'end-date', 'entry-date'] -%}
                 <td class="govuk-table__cell">{% if rule|attr(field.field) %}{{ rule|render_field_value(field.field) }}{% endif %}</td>
                 {%- endif -%}
               {% endfor -%}
-              <td class="govuk-table__cell">{{ rule|render_field_value('entry-date') }}</td>
-              <td class="govuk-table__cell">{{ rule|render_field_value('start-date') }}</td>
-              <td class="govuk-table__cell">{{ rule|render_field_value('end-date') }}</td>
+              <td class="govuk-table__cell">{{ rule['entry-date'] }}</td>
+              <td class="govuk-table__cell">{{ rule['start-date'] }}</td>
+              <td class="govuk-table__cell">{{ rule['end-date'] }}</td>
             </tr>
           {% endfor %}
           </tbody>
