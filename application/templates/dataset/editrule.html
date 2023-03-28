@@ -38,7 +38,18 @@
         <input class="govuk-input govuk-input--width-10 app-text-input__readonly" id="dataset" name="dataset" type="text" readonly="readonly" value="{{ rule['dataset'].name }}">
       </div>
       {% for field in ruletype_specification.fields %}
-        {%- if field.field not in ['dataset', 'start-date', 'end-date', 'entry-date'] -%}
+        {% if field.field == 'field' %}
+        <div class="govuk-form-group">
+          <label class="govuk-label" for="field">
+            Field
+          </label>
+          <select class="govuk-select" id="field" name="field">
+            {% for dataset_field in dataset.fields %}
+            <option value="{{ dataset_field.field }}" {% if rule[field.field].field == dataset_field.field %}selected{% endif %}>{{ dataset_field.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {%- elif field.field not in ['dataset', 'start-date', 'end-date', 'entry-date'] -%}
         <div class="govuk-form-group">
           <label class="govuk-label" for="width-10">
             {{ field.name }}
