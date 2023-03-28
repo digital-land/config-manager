@@ -98,6 +98,7 @@ def edit_rule(dataset_id, ruletype_name, rule_id):
     if rule_id == "new":
         # create empty rule except for dataset
         form = EditRuleForm(dataset_id=dataset.dataset)
+        form.field.choices = [(field.field, field.field) for field in dataset.fields]
         rule = {"dataset": dataset.dataset}
     else:
         rule = get_rule(rule_id, ruletype_name)
