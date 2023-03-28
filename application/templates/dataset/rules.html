@@ -30,6 +30,15 @@
 
 
 <p class="govuk-body">Showing {{ rules|length }} {{ rule_type_name }} rule{{ '' if rules|length == 1 else 's' }}</p>
+{% if limited %}
+<div class="govuk-warning-text">
+  <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+  <strong class="govuk-warning-text__text">
+    <span class="govuk-warning-text__assistive">Warning</span>
+    More than 1000 {{ruletype_name}} rules have been configured. We can't display them at this time.
+  </strong>
+</div>
+{% endif %}
 <table class="dl-data-table">
   {{ ruleTableHead({ "fields": ruletype_specification.fields, "editable": "true" }) }}
   <tbody class="govuk-table__body">

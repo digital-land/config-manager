@@ -52,6 +52,7 @@ def dataset(dataset_id):
 
 @dataset_bp.get("/<string:dataset_id>/rules/<string:ruletype_name>")
 def ruletype(dataset_id, ruletype_name):
+    limited = False
     dataset = Dataset.query.get(dataset_id)
 
     if dataset is None or dataset.collection_id is None:
@@ -64,12 +65,18 @@ def ruletype(dataset_id, ruletype_name):
 
     pipeline = PipelineModel.from_orm(dataset.collection.pipeline).dict(by_alias=True)
 
+    rules = pipeline[ruletype_name]
+    if len(rules) > 1000:
+        rules = rules[:1000]
+        limited = True
+
     return render_template(
         "dataset/rules.html",
         dataset=dataset,
         ruletype_name=ruletype_name,
         ruletype_specification=specification_pipelines[ruletype_name],
-        rules=pipeline[ruletype_name],
+        rules=rules,
+        limited=limited,
     )
 
 
