@@ -1,7 +1,6 @@
 from flask import Blueprint, abort, render_template
 
 from application.db.models import Dataset
-from application.export.models import PipelineModel
 from application.spec_helpers import (
     PIPELINE_MODELS,
     count_pipeline_rules,
@@ -39,11 +38,9 @@ def dataset(dataset_id):
 
     rule_counts = count_pipeline_rules(dataset.collection.pipeline)
 
-    pipeline = PipelineModel.from_orm(dataset.collection.pipeline).dict(by_alias=True)
-
     return render_template(
         "dataset/dataset.html",
-        pipeline=pipeline,
+        pipeline=dataset.collection.pipeline,
         dataset=dataset,
         specification_pipelines=specification_pipelines,
         rule_counts=rule_counts,
@@ -63,9 +60,8 @@ def ruletype(dataset_id, ruletype_name):
     if ruletype_name not in specification_pipelines.keys():
         return abort(404)
 
-    pipeline = PipelineModel.from_orm(dataset.collection.pipeline).dict(by_alias=True)
+    rules = getattr(dataset.collection.pipeline, ruletype_name)
 
-    rules = pipeline[ruletype_name]
     if len(rules) > 1000:
         rules = rules[:1000]
         limited = True

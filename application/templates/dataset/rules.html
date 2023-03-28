@@ -45,15 +45,15 @@
   {% if rules|length > 0 %}
   {% for rule in rules %}
     <tr class="govuk-table__row">
-      <td class="govuk-table__cell">{{ rule['dataset'] }}</td>
+      <td class="govuk-table__cell">{{ rule|render_field_value('dataset') }}</td>
       {%- for field in ruletype_specification.fields %}
         {%- if field.field not in ['dataset', 'start-date', 'end-date', 'entry-date'] -%}
-        <td class="govuk-table__cell">{% if rule[field.field] %}{{ rule[field.field] }}{% endif %}</td>
+        <td class="govuk-table__cell">{% if rule|attr(field.field) %}{{ rule|render_field_value(field.field) }}{% endif %}</td>
         {%- endif -%}
       {% endfor -%}
-      <td class="govuk-table__cell">{{ rule['entry-date'] }}</td>
-      <td class="govuk-table__cell">{{ rule['start-date'] }}</td>
-      <td class="govuk-table__cell">{{ rule['end-date'] }}</td>
+      <td class="govuk-table__cell">{{ rule|render_field_value('entry-date') }}</td>
+      <td class="govuk-table__cell">{{ rule|render_field_value('start-date') }}</td>
+      <td class="govuk-table__cell">{{ rule|render_field_value('end-date') }}</td>
       <td class="govuk-table__cell app-rule-actions">
         <a href="{{ url_for('dataset.editrule', dataset_id=dataset.dataset, ruletype_name=ruletype_name, rule_id=rule['id']) }}" class="govuk-link">Edit<span class="govuk-visually-hidden"> pipeline rule</span></a>
         <a href="#" class="govuk-link app-rule-actions__delete">Delete<span class="govuk-visually-hidden"> pipeline rule</span></a>
