@@ -162,7 +162,6 @@ class Field(DateModel):
     wikidata_property = db.Column(db.Text)
     datatype_id = db.Column(db.Text, db.ForeignKey("datatype.datatype"), nullable=True)
     typology_id = db.Column(db.Text, db.ForeignKey("typology.typology"), nullable=True)
-    columns = db.relationship("Column", backref="field", lazy=True)
 
 
 class Datatype(DateModel):
@@ -257,6 +256,7 @@ class Column(DateModel, VersionedMixin):
 
     dataset = db.relationship("Dataset")
     endpoint = db.relationship("Endpoint")
+    field = db.relationship("Field")
 
 
 class Combine(DateModel, VersionedMixin):
@@ -270,6 +270,7 @@ class Combine(DateModel, VersionedMixin):
 
     dataset = db.relationship("Dataset")
     endpoint = db.relationship("Endpoint")
+    field = db.relationship("Field")
 
 
 class Concat(DateModel, VersionedMixin):
@@ -284,6 +285,7 @@ class Concat(DateModel, VersionedMixin):
 
     dataset = db.relationship("Dataset")
     endpoint = db.relationship("Endpoint")
+    field = db.relationship("Field")
 
 
 class Convert(DateModel, VersionedMixin):
@@ -313,6 +315,7 @@ class Default(DateModel, VersionedMixin):
 
     dataset = db.relationship("Dataset")
     endpoint = db.relationship("Endpoint")
+    field = db.relationship("Field")
 
 
 class DefaultValue(DateModel, VersionedMixin):
@@ -329,6 +332,7 @@ class DefaultValue(DateModel, VersionedMixin):
 
     dataset = db.relationship("Dataset")
     endpoint = db.relationship("Endpoint")
+    field = db.relationship("Field")
 
 
 class Lookup(DateModel, VersionedMixin):
@@ -346,6 +350,7 @@ class Lookup(DateModel, VersionedMixin):
     value = db.Column(db.Text)
 
     endpoint = db.relationship("Endpoint")
+    organisation = db.relationship("Organisation")
 
 
 class Patch(DateModel, VersionedMixin):
@@ -361,6 +366,7 @@ class Patch(DateModel, VersionedMixin):
 
     dataset = db.relationship("Dataset")
     endpoint = db.relationship("Endpoint")
+    field = db.relationship("Field")
 
 
 class Skip(DateModel, VersionedMixin):
@@ -388,6 +394,7 @@ class Transform(DateModel, VersionedMixin):
 
     dataset = db.relationship("Dataset")
     endpoint = db.relationship("Endpoint")
+    field = db.relationship("Field")
 
 
 class Filter(DateModel, VersionedMixin):
@@ -402,6 +409,7 @@ class Filter(DateModel, VersionedMixin):
 
     dataset = db.relationship("Dataset")
     endpoint = db.relationship("Endpoint")
+    field = db.relationship("Field")
 
 
 # Set publication status to draft on update for all versionable classes

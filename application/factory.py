@@ -84,9 +84,12 @@ def register_filters(app):
         make_link_filter,
     )
 
+    from application.filters import render_field_value
+
     app.add_template_filter(commanum_filter, name="commanum")
     app.add_template_filter(hex_to_rgb_string_filter, name="hex_to_rgb")
     app.add_template_filter(make_link_filter, name="makelink")
+    app.add_template_filter(render_field_value, name="render_field_value")
 
 
 def register_extensions(app):

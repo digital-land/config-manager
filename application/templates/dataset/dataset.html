@@ -91,7 +91,7 @@
             {% set rule = pipeline[rule_type_name][n] %}
             <tr class="govuk-table__row">
             {%- for field in specification_pipelines[rule_type_name].fields %}
-              <td class="govuk-table__cell">{% if rule[field.field] %}{{ rule[field.field] }}{% endif %}</td>
+              <td class="govuk-table__cell">{% if rule|attr(field.field) %}{{ rule|render_field_value(field.field) }}{% endif %}</td>
             {% endfor -%}
             </tr>
           {% endfor %}
