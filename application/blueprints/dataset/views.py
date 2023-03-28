@@ -1,6 +1,6 @@
 from flask import Blueprint, abort, render_template
 
-from application.blueprints.dataset.forms import PIPELINE_FORMS, EditColumnForm
+from application.blueprints.dataset.forms import EditRuleForm
 from application.db.models import Dataset
 from application.spec_helpers import (
     PIPELINE_MODELS,
@@ -95,18 +95,16 @@ def edit_rule(dataset_id, ruletype_name, rule_id):
     if ruletype_name not in specification_pipelines.keys():
         return abort(404)
 
-    form_class = PIPELINE_FORMS.get(ruletype_name)
-
     if rule_id == "new":
         # create empty rule except for dataset
-        form = EditColumnForm(dataset_id=dataset.dataset)
+        form = EditRuleForm(dataset_id=dataset.dataset)
         rule = {"dataset": dataset.dataset}
     else:
         rule = get_rule(rule_id, ruletype_name)
         if rule is None:
             return abort(404)
 
-        form = form_class(obj=rule)
+        form = EditRuleForm(obj=rule)
         if hasattr(form, "field"):
             form.field.choices = [
                 (field.field, field.field) for field in dataset.fields

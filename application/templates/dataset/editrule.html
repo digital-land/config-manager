@@ -38,14 +38,19 @@
         </label>
         {{ form.dataset_id(class="govuk-input govuk-input--width-10 app-text-input__readonly",  readonly=True) }}
       </div>
-      {% for input in form %}
-          {% if input.id not in ["dataset_id", "start_date", "end_date", "entry_date", "csrf_token"] %}
+       {% for field in ruletype_specification.fields %}
+          {% if field.field not in ["dataset", "start-date", "end-date", "entry-date"] %}
+            {% set input = form[field.field] %}
             <div class="govuk-form-group">
               {{ input.label(class="govuk-label") }}
-              {{ input(class="govuk-input govuk-input--width-10") }}
-          </div>
-        {% endif %}
-      {% endfor %}
+              {% if input.type == "SelectField" %}
+                {{ input(class="govuk-select govuk-input--width-10") }}
+              {% else %}
+                 {{ input(class="govuk-input govuk-input--width-10") }}
+              {% endif %}
+            </div>
+          {% endif %}
+       {% endfor %}
 
       <p class="govuk-body">The dates determine when this rule will be used by the pipeline and when it is no longer needed.</p>
       <div class="govuk-form-group">
