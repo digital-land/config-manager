@@ -118,7 +118,8 @@
   </a>
 
   {% set limit = 20 if dataset.sources|length > 10 else dataset.sources|length %}
-  <p class="govuk-body">Showing {{ limit }} source{{'s' if limit != 1 }}</p>
+  <p class="govuk-body">Showing {{ limit }} source{{'s' if limit != 1 }}.</p>
+  <p class="govuk-body"><a href="{{ url_for('dataset.sources', dataset_id=dataset.dataset) }}" class="govuk-link">See table of all sources for {{ dataset.name }} dataset.</a></p>
   <ul class="govuk-list govuk-list--bullet">
   {% for n in range(limit) %}
     <li><a class="govuk-link" href="{{ url_for('source.source', source_hash=dataset.sources[n].source)}}">{{ dataset.sources[n].source }}</a> - {{ dataset.sources[n].endpoint.endpoint_url }}</li>

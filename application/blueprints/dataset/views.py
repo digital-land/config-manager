@@ -78,6 +78,19 @@ def rule_type(dataset_id, rule_type_name):
     )
 
 
+@dataset_bp.get("/<string:dataset_id>/sources")
+def sources(dataset_id):
+    dataset = Dataset.query.get(dataset_id)
+
+    if dataset is None or dataset.collection_id is None:
+        return abort(404)
+
+    return render_template(
+        "dataset/sources.html",
+        dataset=dataset,
+    )
+
+
 def get_rule(id, rule_type):
     return PIPELINE_MODELS[rule_type].query.get(id)
 

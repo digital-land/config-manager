@@ -1,0 +1,55 @@
+{% extends 'layouts/base.html' %}
+
+{% from 'components/rule-table-header.html' import ruleTableHead %}
+
+{% block beforeContent %}
+<div class="govuk-breadcrumbs">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.index') }}">Datasets</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.dataset', dataset_id=dataset.dataset) }}">{{dataset.name}}</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">Sources</li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+
+{% block content %}
+
+<span class="govuk-caption-xl">{{ dataset.name }}</span>
+<h1 class="govuk-heading-xl">Sources</h1>
+
+<a href="#" class='govuk-button govuk-button--secondary' data-module='govuk-button'>
+  Add new source
+</a>
+
+
+<p class="govuk-body">Showing {{ dataset.sources|length }} source{{'s' if limit != 1 }}</p>
+
+<table class="dl-data-table">
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header">Hash</th>
+      <th scope="col" class="govuk-table__header">Endpoint url</th>
+      <th scope="col" class="govuk-table__header">Organisation</th>
+      <th scope="col" class="govuk-table__header">End date</th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for source in dataset.sources %}
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell"><a href="{{ url_for('source.source', source_hash=source.source) }}" class="govuk-link">{{ source.source|truncate(13) }}</a></td>
+      <td class="govuk-table__cell">{{ source.endpoint.endpoint_url|truncate(100) }}</td>
+      <td class="govuk-table__cell">{{ source.organisation.organisation }}</td>
+      <td class="govuk-table__cell">{{ source.end_date if source.end_date }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock content %}
