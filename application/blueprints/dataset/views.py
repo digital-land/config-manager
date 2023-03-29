@@ -96,9 +96,8 @@ def edit_rule(dataset_id, rule_type_name, rule_id):
     if rule_id == "new":
         # create empty rule except for dataset
 
-        form = EditRuleForm()
-        form.field.choices = [(field.field, field.field) for field in dataset.fields]
-        form.rule_type = rule_type_name
+        form = EditRuleForm(dataset_id=dataset.dataset)
+        form.field_id.choices = [(field.field, field.field) for field in dataset.fields]
         rule = {"dataset": dataset.dataset}
     else:
         rule = get_rule(rule_id, rule_type_name)
@@ -131,7 +130,19 @@ def edit_rule(dataset_id, rule_type_name, rule_id):
 def save_rule(dataset_id, rule_type_name, rule_id):
     form = EditRuleForm(request.form)
     if form.validate_on_submit():
-        rule = get_rule(rule_id, rule_type_name)
+        dataset = Dataset.query.get(dataset_id)
+        if dataset is None:
+            return abort(404)
+
+        if rule_id == "new":
+            rule_class = PIPELINE_MODELS[rule_type_name]
+            rule = rule_class()
+            rule.pipeline = dataset.collection.pipeline
+        else:
+            rule = get_rule(rule_id, rule_type_name)
+        if rule is None:
+            return abort(404)
+
         form.populate_obj(rule)
         rule.pipeline.publication_status = PublicationStatus.DRAFT.name
         db.session.add(rule)

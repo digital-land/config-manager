@@ -30,7 +30,7 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <form action="{{url_for('dataset.save_rule', dataset_id=dataset.dataset, rule_type_name=rule_type_name, rule_id=rule.id)}}" class="govuk-form" method="POST">
+    <form action="{{url_for('dataset.save_rule', dataset_id=dataset.dataset, rule_type_name=rule_type_name, rule_id=rule.id|default('new'))}}" class="govuk-form" method="POST">
       {{ form.hidden_tag() }}
       <div class="govuk-form-group">
         <label class="govuk-label" for="width-10">
