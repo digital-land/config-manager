@@ -24,7 +24,7 @@
 <span class="govuk-caption-xl">{{ dataset.name }}</span>
 <h1 class="govuk-heading-xl">{{ ruletype_name|capitalize }} rules</h1>
 
-<a href="{{ url_for('dataset.edit_rule', dataset_id=dataset.dataset, ruletype_name=ruletype_name, rule_id='new') }}" class='govuk-button govuk-button--secondary' data-module='govuk-button'>
+<a href="{{ url_for('dataset.edit_rule', dataset_id=dataset.dataset, rule_type_name=rule_type_name, rule_id='new') }}" class='govuk-button govuk-button--secondary' data-module='govuk-button'>
   Add new rule
 </a>
 
@@ -35,18 +35,18 @@
   <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
   <strong class="govuk-warning-text__text">
     <span class="govuk-warning-text__assistive">Warning</span>
-    More than 1000 {{ruletype_name}} rules have been configured. We can't display them at this time.
+    More than 1000 {{rule_type_name}} rules have been configured. We can't display them at this time.
   </strong>
 </div>
 {% endif %}
 <table class="dl-data-table">
-  {{ ruleTableHead({ "fields": ruletype_specification.fields, "editable": "true" }) }}
+  {{ ruleTableHead({ "fields": rule_type_specification.fields, "editable": "true" }) }}
   <tbody class="govuk-table__body">
   {% if rules|length > 0 %}
   {% for rule in rules %}
     <tr class="govuk-table__row">
       <td class="govuk-table__cell">{{ rule['dataset'].dataset if rule['dataset'] }}</td>
-      {%- for field in ruletype_specification.fields %}
+      {%- for field in rule_type_specification.fields %}
         {%- if field.field not in ['dataset', 'start-date', 'end-date', 'entry-date'] -%}
         <td class="govuk-table__cell">{% if rule|attr(field.field) %}{{ rule|render_field_value(field.field) }}{% endif %}</td>
         {%- endif -%}
@@ -55,7 +55,7 @@
       <td class="govuk-table__cell">{% if rule.start_date %}{{ rule.start_date }}{% endif  %}</td>
       <td class="govuk-table__cell">{% if rule.end_date %}{{ rule.end_date }}{%  endif %}</td>
       <td class="govuk-table__cell app-rule-actions">
-        <a href="{{ url_for('dataset.edit_rule', dataset_id=dataset.dataset, ruletype_name=ruletype_name, rule_id=rule['id']) }}" class="govuk-link">Edit<span class="govuk-visually-hidden"> pipeline rule</span></a>
+        <a href="{{ url_for('dataset.edit_rule', dataset_id=dataset.dataset, rule_type_name=rule_type_name, rule_id=rule['id']) }}" class="govuk-link">Edit<span class="govuk-visually-hidden"> pipeline rule</span></a>
         <a href="#" class="govuk-link app-rule-actions__delete">Delete<span class="govuk-visually-hidden"> pipeline rule</span></a>
       </td>
     </tr>

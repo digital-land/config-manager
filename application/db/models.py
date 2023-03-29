@@ -181,17 +181,17 @@ class Pipeline(db.Model):
     collection_id = db.Column(db.Text, db.ForeignKey("collection.collection"))
     collection = db.relationship("Collection", back_populates="pipeline")
 
-    column = db.relationship("Column")
-    combine = db.relationship("Combine")
-    concat = db.relationship("Concat")
-    convert = db.relationship("Convert")
-    default = db.relationship("Default")
-    default_value = db.relationship("DefaultValue")
-    filter = db.relationship("Filter")
-    lookup = db.relationship("Lookup")
-    patch = db.relationship("Patch")
-    skip = db.relationship("Skip")
-    transform = db.relationship("Transform")
+    column = db.relationship("Column", backref="pipeline")
+    combine = db.relationship("Combine", backref="pipeline")
+    concat = db.relationship("Concat", backref="pipeline")
+    convert = db.relationship("Convert", backref="pipeline")
+    default = db.relationship("Default", backref="pipeline")
+    default_value = db.relationship("DefaultValue", backref="pipeline")
+    filter = db.relationship("Filter", backref="pipeline")
+    lookup = db.relationship("Lookup", backref="pipeline")
+    patch = db.relationship("Patch", backref="pipeline")
+    skip = db.relationship("Skip", backref="pipeline")
+    transform = db.relationship("Transform", backref="pipeline")
 
     publication_status = db.Column(
         db.Enum(PublicationStatus, name="publication_status"),

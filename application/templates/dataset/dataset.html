@@ -103,7 +103,7 @@
           {% endfor %}
           </tbody>
         </table>
-        <p class="govuk-body govuk-!-margin-top-3"><a class="govuk-link" href="{{ url_for('dataset.ruletype', dataset_id=dataset.dataset, ruletype_name=rule_type_name) }}">See all {{ rule_type_name }} rules</a></p>
+        <p class="govuk-body govuk-!-margin-top-3"><a class="govuk-link" href="{{ url_for('dataset.rule_type', dataset_id=dataset.dataset, rule_type_name=rule_type_name) }}">See all {{ rule_type_name }} rules</a></p>
         {% endif %}
       </div>
     </div>

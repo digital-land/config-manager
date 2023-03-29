@@ -15,7 +15,7 @@
       <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.dataset', dataset_id=dataset.dataset) }}">{{dataset.name}}</a>
     </li>
     <li class="govuk-breadcrumbs__list-item">
-      <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.ruletype', dataset_id=dataset.dataset, ruletype_name=ruletype_name) }}">{{ ruletype_name|capitalize }} rules</a>
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.rule_type', dataset_id=dataset.dataset, rule_type_name=rule_type_name) }}">{{ rule_type_name|capitalize }} rules</a>
     </li>
     <li class="govuk-breadcrumbs__list-item">{{ rule.id|default('new') }}</li>
   </ol>
@@ -24,13 +24,13 @@
 
 {% block content %}
 
-<span class="govuk-caption-xl">{{ dataset.name }} - {{ ruletype_name }} rules</span>
+<span class="govuk-caption-xl">{{ dataset.name }} - {{ rule_type_name }} rules</span>
 <h1 class="govuk-heading-xl">{% if rule.id %}Edit rule #{{ rule.id }}{% else %}Add new rule{% endif %}</h1>
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <form action="{{url_for('dataset.edit_rule', dataset_id=dataset.dataset, ruletype_name=ruletype_name, rule_id=rule.id)}}" class="govuk-form" method="POST">
+    <form action="{{url_for('dataset.save_rule', dataset_id=dataset.dataset, rule_type_name=rule_type_name, rule_id=rule.id)}}" class="govuk-form" method="POST">
       {{ form.hidden_tag() }}
       <div class="govuk-form-group">
         <label class="govuk-label" for="width-10">
@@ -38,9 +38,9 @@
         </label>
         {{ form.dataset_id(class="govuk-input govuk-input--width-10 app-text-input__readonly",  readonly=True) }}
       </div>
-       {% for field in ruletype_specification.fields %}
-          {% if field.field not in ["dataset", "start-date", "end-date", "entry-date"] %}
-            {% set input = form[field.field] %}
+       {% for field_name in form_field_names %}
+          {% if field_name not in ["dataset_id", "start_date", "end_date", "entry_date"] %}
+            {% set input = form[field_name] %}
             <div class="govuk-form-group">
               {{ input.label(class="govuk-label") }}
               {% if input.type == "SelectField" %}
@@ -84,7 +84,7 @@
         <button class="govuk-button govuk-button--warning" data-module="govuk-button">
           Delete
         </button>
-        <a class="govuk-link" href="{{ url_for('dataset.ruletype', dataset_id=dataset.dataset, ruletype_name=ruletype_name) }}">Cancel</a>
+        <a class="govuk-link" href="{{ url_for('dataset.rule_type', dataset_id=dataset.dataset, rule_type_name=rule_type_name) }}">Cancel</a>
       </div>
     </form>
 
