@@ -14,7 +14,7 @@
     <li class="govuk-breadcrumbs__list-item">
       <a class="govuk-breadcrumbs__link" href="{{ url_for('dataset.dataset', dataset_id=dataset.dataset) }}">{{dataset.name}}</a>
     </li>
-    <li class="govuk-breadcrumbs__list-item">{{ ruletype_name|capitalize }} rules</li>
+    <li class="govuk-breadcrumbs__list-item">{{ rule_type_name|capitalize }} rules</li>
   </ol>
 </div>
 {% endblock beforeContent %}
@@ -22,7 +22,7 @@
 {% block content %}
 
 <span class="govuk-caption-xl">{{ dataset.name }}</span>
-<h1 class="govuk-heading-xl">{{ ruletype_name|capitalize }} rules</h1>
+<h1 class="govuk-heading-xl">{{ rule_type_name|capitalize }} rules</h1>
 
 <a href="{{ url_for('dataset.edit_rule', dataset_id=dataset.dataset, rule_type_name=rule_type_name, rule_id='new') }}" class='govuk-button govuk-button--secondary' data-module='govuk-button'>
   Add new rule
