@@ -156,9 +156,7 @@ psycopg2==2.9.5
 pycparser==2.21
     # via cffi
 pydantic==1.10.5
-    # via
-    #   -r requirements/requirements.in
-    #   digital-land
+    # via digital-land
 pygithub==1.58.1
     # via -r requirements/requirements.in
 pyjwt[crypto]==2.6.0
