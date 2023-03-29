@@ -198,6 +198,22 @@ class Pipeline(db.Model):
         default=PublicationStatus.DRAFT,
     )
 
+    # No lookups handled here yet - need a better way to process
+    # them as there are so many
+    def get_pipeline_rules(self):
+        return {
+            "column": self.column,
+            "combine": self.combine,
+            "concat": self.concat,
+            "convert": self.convert,
+            "default": self.default,
+            "default_value": self.default_value,
+            "filter": self.filter,
+            "patch": self.patch,
+            "skip": self.skip,
+            "transform": self.transform,
+        }
+
 
 class Source(DateModel, VersionedMixin):
     source = db.Column(db.Text, primary_key=True)
@@ -232,6 +248,21 @@ class Source(DateModel, VersionedMixin):
                 else:
                     setattr(self, key, val)
         self.collection.publication_status = PublicationStatus.DRAFT.name
+
+    def to_csv_dict(self):
+        return {
+            "source": self.source,
+            "attribution": self.attribution_id,
+            "collection": self.collection.collection,
+            "documentation-url": self.documentation_url,
+            "endpoint": self.endpoint_id,
+            "licence": self.licence_id,
+            "organisation": self.organisation.organisation,
+            "pipelines": self.collection.pipeline.pipeline,
+            "entry-date": self.entry_date,
+            "start-date": self.start_date,
+            "end-date": self.end_date,
+        }
 
 
 class Endpoint(DateModel, VersionedMixin):

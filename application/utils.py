@@ -1,4 +1,6 @@
+import csv
 import hashlib
+import io
 from functools import wraps
 
 import requests
@@ -34,3 +36,17 @@ def login_required(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+
+def csv_dict_to_string(csv_rows):
+    out = io.StringIO()
+    fieldnames = csv_rows[0].keys()
+    writer = csv.DictWriter(
+        out, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL, lineterminator="\n"
+    )
+    writer.writeheader()
+    for row in csv_rows:
+        writer.writerow(row)
+    content = out.getvalue()
+    out.close()
+    return content
