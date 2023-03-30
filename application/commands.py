@@ -1,6 +1,7 @@
 import base64
 import logging
 import os
+import sys
 
 import github
 from flask.cli import AppGroup
@@ -23,6 +24,7 @@ from application.publish.models import (
 )
 from application.utils import csv_dict_to_string
 
+logging.basicConfig(stream=sys.stdout)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
