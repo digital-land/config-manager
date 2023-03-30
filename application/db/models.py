@@ -217,13 +217,11 @@ class Pipeline(db.Model):
 
 class Source(DateModel, VersionedMixin):
     source = db.Column(db.Text, primary_key=True)
-
     attribution_id = db.Column(db.Text, db.ForeignKey("attribution.attribution"))
     documentation_url = db.Column(db.Text)
     endpoint_id = db.Column(db.Text, db.ForeignKey("endpoint.endpoint"), nullable=False)
     licence_id = db.Column(db.Text, db.ForeignKey("licence.licence"))
     organisation_id = db.Column(db.Text, db.ForeignKey("organisation.organisation"))
-
     collection_id = db.Column(db.Text, db.ForeignKey("collection.collection"))
     collection = db.relationship("Collection", back_populates="sources")
 
@@ -233,6 +231,16 @@ class Source(DateModel, VersionedMixin):
     datasets = db.relationship(
         "Dataset", secondary=source_dataset, lazy="subquery", back_populates="sources"
     )
+
+    @property
+    def pipelines(self):
+        datasets = [d.dataset for d in self.datasets]
+        if not datasets:
+            return None
+        if len(datasets) == 1:
+            return datasets[0]
+        else:
+            return ";".join(datasets)
 
     def update(self, data):
         for key, val in data.items():
@@ -249,21 +257,6 @@ class Source(DateModel, VersionedMixin):
                     setattr(self, key, val)
         self.collection.publication_status = PublicationStatus.DRAFT.name
 
-    def to_csv_dict(self):
-        return {
-            "source": self.source,
-            "attribution": self.attribution_id,
-            "collection": self.collection.collection,
-            "documentation-url": self.documentation_url,
-            "endpoint": self.endpoint_id,
-            "licence": self.licence_id,
-            "organisation": self.organisation.organisation,
-            "pipelines": self.collection.pipeline.pipeline,
-            "entry-date": self.entry_date,
-            "start-date": self.start_date,
-            "end-date": self.end_date,
-        }
-
 
 class Endpoint(DateModel, VersionedMixin):
     endpoint = db.Column(db.Text, primary_key=True)
@@ -274,6 +267,17 @@ class Endpoint(DateModel, VersionedMixin):
     sources = db.relationship(
         "Source", backref="endpoint", lazy=True, order_by="Source.entry_date"
     )
+
+    def to_csv_dict(self):
+        return {
+            "endpoint": self.endpoint,
+            "endpoint-url": self.endpoint_url,
+            "parameters": self.parameters,
+            "plugin": self.plugin,
+            "entry-date": self.entry_date,
+            "start-date": self.start_date,
+            "end-date": self.end_date,
+        }
 
 
 class Column(DateModel, VersionedMixin):
@@ -441,14 +445,3 @@ class Filter(DateModel, VersionedMixin):
     dataset = db.relationship("Dataset")
     endpoint = db.relationship("Endpoint")
     field = db.relationship("Field")
-
-
-# Set publication status to draft on update for all versionable classes
-# @event.listens_for(Source, "before_update", propagate=True)
-# def handle_before_update(mapper, connection, target):
-#     if (
-#         hasattr(target, "collection")
-#         and target.collection.publication_status == PublicationStatus.PUBLISHED
-#     ):
-#         print('updating')
-#         target.collection.publication_status = PublicationStatus.DRAFT
