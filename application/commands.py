@@ -77,8 +77,9 @@ def publish_config():
             )
 
 
-def _publish_collection_config(collection, repo, branch):
-    branch_sha = repo.get_branch(branch).commit.sha
+def _publish_collection_config(collection, repo, branch_name):
+    branch = repo.get_branch(branch_name)
+    branch_sha = branch.commit.sha
     base_tree = repo.get_git_tree(sha=branch_sha)
 
     sources = []
@@ -109,13 +110,14 @@ def _publish_collection_config(collection, repo, branch):
     parent = repo.get_git_commit(sha=branch_sha)
     message = f"Commit update of sources for {collection.collection}"
     commit = repo.create_git_commit(message, tree, [parent])
-    branch_refs = repo.get_git_ref(f"heads/{branch}")
+    branch_refs = repo.get_git_ref(f"heads/{branch_name}")
     branch_refs.edit(sha=commit.sha)
     logger.info(f"Commited collection config - commit sha: {commit.sha}")
 
 
-def _publish_pipeline_config(pipeline, repo, branch):
-    branch_sha = repo.get_branch(branch).commit.sha
+def _publish_pipeline_config(pipeline, repo, branch_name):
+    branch = repo.get_branch(branch_name)
+    branch_sha = branch.commit.sha
     base_tree = repo.get_git_tree(sha=branch_sha)
     elements = []
 

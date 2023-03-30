@@ -19,6 +19,7 @@ class RelatedObjectKeyGetter(GetterDict):
             "licence",
             "endpoint",
             "field",
+            "collection",
         }:
             if self._obj.__tablename__ != key:
                 obj = getattr(self._obj, key, None)
@@ -39,6 +40,7 @@ class ConfigBaseModel(BaseModel):
 class SourceModel(ConfigBaseModel):
     source: str
     attribution: Optional[str]
+    collection: Optional[str]
     documentation_url: Optional[str]
     endpoint: Optional[str]
     licence: Optional[str]
