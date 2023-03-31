@@ -104,7 +104,7 @@ def register_extensions(app):
 
     from flask_sslify import SSLify
 
-    SSLify(app)
+    sslify = SSLify(app)  # noqa
 
     oauth.register(
         name="github",
