@@ -14,3 +14,4 @@ digital_land_python @ git+https://github.com/digital-land/pipeline.git#egg=digit
 sentry-sdk[flask]
 PyGithub
 pydantic
+flask-sslify

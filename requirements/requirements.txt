@@ -69,6 +69,7 @@ flask==2.2.3
     #   -r requirements/requirements.in
     #   flask-migrate
     #   flask-sqlalchemy
+    #   flask-sslify
     #   flask-wtf
     #   sentry-sdk
 flask-migrate==4.0.4
@@ -77,6 +78,8 @@ flask-sqlalchemy==3.0.3
     # via
     #   -r requirements/requirements.in
     #   flask-migrate
+flask-sslify==0.1.5
+    # via -r requirements/requirements.in
 flask-talisman==1.0.0
     # via -r requirements/requirements.in
 flask-wtf==1.1.1

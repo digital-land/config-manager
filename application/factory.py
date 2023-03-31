@@ -102,6 +102,10 @@ def register_extensions(app):
     migrate.init_app(app)
     oauth.init_app(app)
 
+    from flask_sslify import SSLify
+
+    SSLify(app)
+
     oauth.register(
         name="github",
         client_id=app.config["GITHUB_CLIENT_ID"],
