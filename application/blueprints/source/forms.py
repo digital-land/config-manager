@@ -25,8 +25,8 @@ class SearchForm(FlaskForm):
 class EditSourceForm(FlaskForm):
     documentation_url = StringField("Documentation url")
     start_date = StringField("Start date")
-    attribution = SelectField("Attribution")
-    licence = SelectField("Licence")
+    attribution = SelectField("Attribution", choices=[])
+    licence = SelectField("Licence", choices=[])
 
 
 class NewSourceForm(EditSourceForm):
@@ -47,6 +47,7 @@ class NewSourceForm(EditSourceForm):
     organisation = SelectField(
         "Organisation",
         validators=[DataRequired(message="Please provide an organisation ID")],
+        choices=[],
     )
 
 

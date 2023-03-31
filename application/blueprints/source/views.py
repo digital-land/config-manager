@@ -11,7 +11,6 @@ from application.blueprints.source.forms import (
 )
 from application.db.models import (
     Attribution,
-    Collection,
     Dataset,
     Endpoint,
     Licence,
@@ -46,16 +45,6 @@ def dataset_choices():
 def get_datasets(s, sep=","):
     ids = s.split(sep)
     return Dataset.query.filter(Dataset.dataset.in_(ids)).all()
-
-
-# def set_form_values(form, data):
-#     form.endpoint_url.data = data["endpoint_url"]
-#     form.organisation.data = data["organisation"]
-#     # need to change this to work with multiple
-#     form.dataset.data = ",".join([dataset["dataset"] for dataset in data["datasets"]])
-#     form.licence.data = data["licence"]
-#     form.attribution.data = data["attribution"]
-#     form.start_date.data = data["start_date"]
 
 
 def create_source_data(form, _type="new"):
@@ -93,25 +82,27 @@ def create_or_update_endpoint(data):
             endpoint_url=endpoint_url,
             entry_date=datetime.now().isoformat(),
         )
-    datasets = dataset_str_to_objs(data.get("dataset"))
-    collection = Collection.query.get(datasets[0].collection)
-    organisation_id = data.get("organisation")
-    organisation = Organisation.query.get(organisation_id)
-    source_key = f"{collection}|{organisation.organisation}|{endpoint.endpoint}"
+    datasets = Dataset.query.filter(
+        Dataset.dataset.in_(data.get("dataset").split(";"))
+    ).all()
+    organisation = Organisation.query.get(data.get("organisation"))
+    collection = datasets[0].collection
+    source_key = (
+        f"{collection.collection}|{organisation.organisation}|{endpoint.endpoint}"
+    )
     source_key = compute_md5_hash(source_key)
     # check if source exists - can happen if user refreshes finish page
     source = Source.query.get(source_key)
     if source is None:
         source = Source(
             source=source_key,
-            collection=collection,
             organisation=organisation,
             entry_date=datetime.now().isoformat(),
+            collection=collection,
+            datasets=datasets,
         )
     source.update(data)
-    # add source to each dataset listed
-    for dataset in datasets:
-        dataset.sources.append(source)
+    db.session.add(source)
     endpoint.sources.append(source)
     return endpoint
 
@@ -156,6 +147,13 @@ def add():
         .order_by(Dataset.name)
         .all()
     )
+    form.attribution.choices = [("", "")] + [
+        (attribution.attribution, attribution.attribution)
+        for attribution in Attribution.query.all()
+    ]
+    form.licence.choices = [("", "")] + [
+        (licence.licence, licence.text) for licence in Licence.query.all()
+    ]
 
     if request.args and not request.args.get("_change") and form.validate():
         endpoint_hash = compute_hash(form.endpoint_url.data.strip())

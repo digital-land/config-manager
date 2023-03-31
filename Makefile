@@ -50,14 +50,3 @@ load-data:
 
 drop-data:
 	flask data drop
-
-test-functional:
-	python -m playwright install chromium
-	python -m pytest -p no:warnings tests/functional
-
-test-visual:
-	python -m playwright install chromium
-	pytest tests/functional/test_application.py  --headed --slowmo 1000
-
-test:
-	python -m pytest --ignore=tests/functional

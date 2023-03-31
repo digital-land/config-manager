@@ -59,7 +59,7 @@ def publish_config():
 
     for collection in Collection.query.order_by(Collection.name).all():
         if collection.publication_status == PublicationStatus.DRAFT:
-            logger.info("Publish sources and endpoints for", collection.collection)
+            logger.info(f"Publish sources and endpoints for {collection.collection}")
             _publish_collection_config(collection, repo, branch)
             collection.publication_status = PublicationStatus.PUBLISHED
             db.session.add(collection)
