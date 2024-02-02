@@ -65,6 +65,8 @@ def register_blueprints(app):
 
     app.register_blueprint(schema_bp)
 
+    # from application.blueprints.report.views import report_bp
+
 
 def register_context_processors(app):
     """

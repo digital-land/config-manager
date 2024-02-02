@@ -10,7 +10,7 @@ requests
 Authlib
 is-safe-url
 flask-talisman
-digital_land_python @ git+https://github.com/digital-land/pipeline.git#egg=digital-land
+digital_land @ git+https://github.com/digital-land/pipeline.git#egg=digital-land
 sentry-sdk[flask]
 PyGithub
 pydantic
