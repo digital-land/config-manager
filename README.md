@@ -5,18 +5,26 @@
 Create a python virtualenv then run:
 
     make init
+    * I had to comment out digital_land_python in requirements.txt
 
 Create a local development postgres db
 
     createdb config_manager
+    * I had to run "sudo -u postgres createdb config_manager"
+
 
 Create or update db schema
 
+    * I had to set a password for the postgres user with
+    * ALTER USER postgres PASSWORD 'newpassword';
+    * then I had to update the database url in the flaskenv file to
+    * DATABASE_URL=postgresql://postgres:postgres@localhost/config_manager
     make upgrade-db
 
 Load data
 
     make load-data
+    * this maybe worked, but there's lots of errors?
 
 Drop local data
 
