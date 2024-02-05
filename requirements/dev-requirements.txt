@@ -31,15 +31,11 @@ isort==5.11.4
 mccabe==0.7.0
     # via flake8
 mypy-extensions==1.0.0
-    # via
-    #   -c requirements/requirements.txt
-    #   black
+    # via black
 nodeenv==1.7.0
     # via pre-commit
 packaging==23.0
-    # via
-    #   -c requirements/requirements.txt
-    #   pytest
+    # via pytest
 pathspec==0.11.0
     # via black
 platformdirs==2.6.2
@@ -47,9 +43,7 @@ platformdirs==2.6.2
     #   black
     #   virtualenv
 pluggy==1.0.0
-    # via
-    #   -c requirements/requirements.txt
-    #   pytest
+    # via pytest
 pre-commit==3.0.0
     # via -r requirements/dev-requirements.in
 pycodestyle==2.10.0
@@ -59,9 +53,7 @@ pyflakes==3.0.1
 pytest==7.2.1
     # via -r requirements/dev-requirements.in
 pyyaml==6.0
-    # via
-    #   -c requirements/requirements.txt
-    #   pre-commit
+    # via pre-commit
 tomli==2.0.1
     # via
     #   black
