@@ -1,51 +1,48 @@
-# from flask import Blueprint, abort, redirect, render_template, request, url_for
+from flask import Blueprint
 
-# from application.blueprints.dataset.forms import EditRuleForm
-# from application.data_access.datasette_queries import (
-#     get_reporting_summary,
-#     get_reporting_ts,
-# )
-# from application.db.models import Dataset, PublicationStatus
-# from application.extensions import db
-# from application.spec_helpers import (
-#     PIPELINE_MODELS,
-#     count_pipeline_rules,
-#     get_expected_pipeline_specs,
-# )
+from application.data_access.datasette_queries import get_number_of_contributions
 
-# report_bp = Blueprint("report", __name__, url_prefix="/report")
+report_bp = Blueprint("report", __name__, url_prefix="/report")
 
 
-# @report_bp.get("/")
-# @report_bp.get("/overview")
-# def overview():
-#     reporting_summary = get_resporting_summary()
-#     reporting_ts = get_resporting_ts()
+# from flask import render_template
 
-#     # get tabbed elements
-#     odp_endpoint_summary = reporting_summary.groupby('dataset')  .....
-#     odp_active_resource_summary = ...
-#     dataset_summary = ....
-#     organisation_summary =  ...
 
-#     # get summary metric dict
-#     summary_metrics = get_summary_metrics(reporting_summary,reporting_ts)
+@report_bp.get("/")
+@report_bp.get("/overview")
+def overview():
+    # reporting_summary = get_resporting_summary()
+    # reporting_ts = get_resporting_ts()
 
-#     content_type_counts = sorted(
-#         get_content_type_counts(),
-#         key=lambda x: x["resource_count"],
-#         reverse=True,
-#     )
+    # get tabbed elements
+    # odp_endpoint_summary = reporting_summary.groupby('dataset')  .....
+    # odp_active_resource_summary = ...
+    # dataset_summary = ....
+    # organisation_summary =  ...
 
-#     return render_template(
-#         "overview.html",
-#         summary_metrics=summary_metrics,
-#         summary_ts=summary_ts,
-#         odp_endpoint_summary,
-#         odp_active_resource_summary,
-#         dataset_summary,
-#         organisation_summary
-#     )
+    # # get summary metric dict
+    # summary_metrics = get_summary_metrics(reporting_summary,reporting_ts)
+
+    # content_type_counts = sorted(
+    #     get_content_type_counts(),
+    #     key=lambda x: x["resource_count"],
+    #     reverse=True,
+    # )
+
+    active_contributions = get_number_of_contributions()
+    contributions = int(active_contributions.iloc[0]["c"])
+
+    # return render_template(
+    #     "overview.html",
+    #     summary_metrics=summary_metrics,
+    #     summary_ts=summary_ts,
+    #     odp_endpoint_summary,
+    #     odp_active_resource_summary,
+    #     dataset_summary,
+    #     organisation_summary
+    # )
+
+    return {"active_contributions": contributions}
 
 
 # @report_bp.get("/dataset")
