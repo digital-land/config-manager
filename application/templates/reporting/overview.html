@@ -1,0 +1,23 @@
+{% extends 'layouts/base.html' %}
+{% block beforeContent %}
+<div class="govuk-breadcrumbs">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      reporting
+    </li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+
+{% block content %}
+
+<h1 class="govuk-heading-xl">Reporting - overview</h1>
+
+<h2>Contributions: {{ overview.contributions }}</h2>
+<h2>Errors: {{ overview.errors }}</h2>
+
+
+{% endblock content %}

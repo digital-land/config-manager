@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime as dt
 
 import pandas as pd
 import requests
@@ -37,19 +38,41 @@ def get_datasette_query(db, sql, url="https://datasette.planning.data.gov.uk"):
 
 
 def get_number_of_contributions():
-    sql = """
-        select count(distinct l.endpoint) as c
+    current_date = dt.now().date()
+    date_query = f" where substr(l.entry_date, 1, 10) = '{current_date}'"
+    sql = f"""
+        select count(*) as count
             from log l
-            inner join endpoint e on e.endpoint = l.endpoint
-            where l.status = 200
-            and e.end_date = ''
+            {date_query}
+            and l.status = 200
     """
-    return get_datasette_query("digital-land", sql)
+    contributions_df = get_datasette_query("digital-land", sql)
+    if contributions_df is not None:
+        return int(contributions_df.iloc[0]["count"])
+    else:
+        return None
+
+
+def get_number_of_erroring_endpoints():
+    current_date = dt.now().date()
+    date_query = f" where substr(l.entry_date, 1, 10) = '{current_date}'"
+    sql = f"""
+        select count(*) as count
+            from log l
+            {date_query}
+            and l.status != 200
+    """
+    errors_df = get_datasette_query("digital-land", sql)
+    if errors_df is not None:
+        return int(errors_df.iloc[0]["count"])
+    else:
+        return None
 
 
 def get_overview():
     contributions = get_number_of_contributions()
-    return {"contributions": contributions}
+    errors = get_number_of_erroring_endpoints()
+    return {"contributions": contributions, "errors": errors}
 
 
 # def get_unhealthy_endpoints()

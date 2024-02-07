@@ -1,11 +1,8 @@
-from flask import Blueprint
+from flask import Blueprint, render_template
 
-from application.data_access.datasette_queries import get_number_of_contributions
+from application.data_access.datasette_queries import get_overview
 
-report_bp = Blueprint("report", __name__, url_prefix="/report")
-
-
-# from flask import render_template
+report_bp = Blueprint("reporting", __name__, url_prefix="/reporting")
 
 
 @report_bp.get("/")
@@ -29,8 +26,7 @@ def overview():
     #     reverse=True,
     # )
 
-    active_contributions = get_number_of_contributions()
-    contributions = int(active_contributions.iloc[0]["c"])
+    overview = get_overview()
 
     # return render_template(
     #     "overview.html",
@@ -41,8 +37,7 @@ def overview():
     #     dataset_summary,
     #     organisation_summary
     # )
-
-    return {"active_contributions": contributions}
+    return render_template("reporting/overview.html", overview=overview)
 
 
 # @report_bp.get("/dataset")
