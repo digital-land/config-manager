@@ -69,6 +69,50 @@ def get_number_of_erroring_endpoints():
         return None
 
 
+def get_resources_downloaded_per_week():
+    year = datetime.datetime.today().year
+    sql = f"""
+        select year, month, week, day, count
+        from (
+            select
+                status,
+                strftime('%Y',entry_date) as year,
+                strftime('%m',entry_date) as month,
+                strftime('%W',entry_date) as week,
+                strftime('%d',entry_date) as day,
+                count(endpoint) as count
+            from log
+                where status = '200'
+            group by year, week
+        ) as t1
+        where year = '{year}' or year = '{year-1}'
+    """
+    resources_downloaded_df = get_datasette_query("digital-land", sql)
+    if resources_downloaded_df is not None:
+        current_year_resources_downloaded_df = resources_downloaded_df[
+            resources_downloaded_df["year"].astype(int) == year
+        ]
+        last_year_resources_downloaded_df = resources_downloaded_df[
+            resources_downloaded_df["year"].astype(int) == year - 1
+        ]
+        dates = []
+        counts = []
+        for df in [
+            current_year_resources_downloaded_df,
+            last_year_resources_downloaded_df,
+        ]:
+            year = int(df["year"].iloc[0])
+            week_numbers = resources_downloaded_df["week"].tolist()
+            for week in week_numbers:
+                day = 1 + (int(week) - 1) * 7
+                date = datetime.datetime(year, 1, 1) + datetime.timedelta(day - 1)
+                dates.append(date.strftime("%d/%m/%Y"))
+            counts.extend(df["count"].tolist())
+        return {"dates": dates[-20:], "counts": counts[-20:]}
+    else:
+        return None
+
+
 def get_endpoints_added_by_week():
     sql = """
         select
@@ -108,10 +152,12 @@ def get_overview():
     contributions = get_number_of_contributions()
     errors = get_number_of_erroring_endpoints()
     endpoints_added = get_endpoints_added_by_week()
+    resources_downloaded = get_resources_downloaded_per_week()
     return {
         "contributions": contributions,
         "errors": errors,
         "endpoints_added": endpoints_added,
+        "resources_downloaded": resources_downloaded,
     }
 
 

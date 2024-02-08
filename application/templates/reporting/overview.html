@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 {% block beforeContent %}
-<script src="https://cdnjs.com/libraries/Chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="govuk-breadcrumbs">
   <ol class="govuk-breadcrumbs__list">
     <li class="govuk-breadcrumbs__list-item">
@@ -19,18 +19,22 @@
 
 <h2>Contributions: {{ overview.contributions }}</h2>
 <h2>Endpoint errors: {{ overview.errors }}</h2>
-<h2>Endpoints added per week:</h2>
 
+<h2>Endpoints added per week:</h2>
 <div>
-  <canvas id="myChart"></canvas>
+  <canvas id="endpoint_added_graph"></canvas>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<h2>Resources downloaded per week:</h2>
+<div>
+  <canvas id="resources_downloaded_graph"></canvas>
+</div>
 
 <script>
-  const ctx = document.getElementById('myChart');
+  const endpoints_ctx = document.getElementById('endpoint_added_graph');
 
-  new Chart(ctx, {
+  new Chart(endpoints_ctx, {
     type: 'line',
     data: {
       labels: {{overview.endpoints_added.dates | safe}},
@@ -58,7 +62,39 @@
     }
   }});
 </script>
+
 <script>
-  console.log({{overview.endpoints_added.counts | safe}})
+  const resources_ctx = document.getElementById('resources_downloaded_graph');
+
+  new Chart(resources_ctx, {
+    type: 'line',
+    data: {
+      labels: {{overview.resources_downloaded.dates | safe}},
+      datasets: [{
+        label: '# of resources downloaded per week',
+        data: {{overview.resources_downloaded.counts | safe}},
+        borderWidth: 1
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          title: {
+            display: true,
+            text: "Resources downloaded"
+        },
+        },
+        x: {
+          title: {
+            display: true,
+            text: "Week"
+        }
+      }
+    }
+  }});
+</script>
+
+<script>
+  console.log({{overview.resources_downloaded.counts | safe}})
 </script>
 {% endblock content %}
