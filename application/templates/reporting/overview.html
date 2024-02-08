@@ -1,5 +1,6 @@
 {% extends 'layouts/base.html' %}
 {% block beforeContent %}
+<script src="https://cdnjs.com/libraries/Chart.js"></script>
 <div class="govuk-breadcrumbs">
   <ol class="govuk-breadcrumbs__list">
     <li class="govuk-breadcrumbs__list-item">
@@ -17,7 +18,47 @@
 <h1 class="govuk-heading-xl">Reporting - overview</h1>
 
 <h2>Contributions: {{ overview.contributions }}</h2>
-<h2>Errors: {{ overview.errors }}</h2>
+<h2>Endpoint errors: {{ overview.errors }}</h2>
+<h2>Endpoints added per week:</h2>
 
+<div>
+  <canvas id="myChart"></canvas>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  const ctx = document.getElementById('myChart');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: {{overview.endpoints_added.dates | safe}},
+      datasets: [{
+        label: '# of endpoints added per week',
+        data: {{overview.endpoints_added.counts | safe}},
+        borderWidth: 1
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          title: {
+            display: true,
+            text: "Endpoints added"
+        },
+          beginAtZero: true
+        },
+        x: {
+          title: {
+            display: true,
+            text: "Week"
+        }
+      }
+    }
+  }});
+</script>
+<script>
+  console.log({{overview.endpoints_added.counts | safe}})
+</script>
 {% endblock content %}

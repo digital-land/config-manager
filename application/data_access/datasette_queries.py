@@ -1,5 +1,5 @@
+import datetime
 import logging
-from datetime import datetime as dt
 
 import pandas as pd
 import requests
@@ -38,7 +38,7 @@ def get_datasette_query(db, sql, url="https://datasette.planning.data.gov.uk"):
 
 
 def get_number_of_contributions():
-    current_date = dt.now().date()
+    current_date = datetime.datetime.now().date()
     date_query = f" where substr(l.entry_date, 1, 10) = '{current_date}'"
     sql = f"""
         select count(*) as count
@@ -54,7 +54,7 @@ def get_number_of_contributions():
 
 
 def get_number_of_erroring_endpoints():
-    current_date = dt.now().date()
+    current_date = datetime.datetime.now().date()
     date_query = f" where substr(l.entry_date, 1, 10) = '{current_date}'"
     sql = f"""
         select count(*) as count
@@ -69,10 +69,50 @@ def get_number_of_erroring_endpoints():
         return None
 
 
+def get_endpoints_added_by_week():
+    sql = """
+        select
+            strftime('%Y',entry_date) as year,
+            strftime('%m',entry_date) as month,
+            strftime('%W',entry_date) as week,
+            strftime('%d',entry_date) as day,
+            count(endpoint)
+        from endpoint
+        group by year, week
+    """
+    endpoints_added_df = get_datasette_query("digital-land", sql)
+    year = datetime.datetime.today().year
+    if endpoints_added_df is not None:
+        current_year_endpoints_added_df = endpoints_added_df[
+            endpoints_added_df["year"].astype(int) == year
+        ]
+        last_year_endpoints_added_df = endpoints_added_df[
+            endpoints_added_df["year"].astype(int) == year - 1
+        ]
+        dates = []
+        counts = []
+        for df in [last_year_endpoints_added_df, current_year_endpoints_added_df]:
+            year = int(df["year"].iloc[0])
+            week_numbers = df["week"].tolist()
+            for week in week_numbers:
+                day = 1 + (int(week) - 1) * 7
+                date = datetime.datetime(year, 1, 1) + datetime.timedelta(day - 1)
+                dates.append(date.strftime("%d/%m/%Y"))
+            counts.extend(df["count(endpoint)"].tolist())
+        return {"dates": dates[-20:], "counts": counts[-20:]}
+    else:
+        return None
+
+
 def get_overview():
     contributions = get_number_of_contributions()
     errors = get_number_of_erroring_endpoints()
-    return {"contributions": contributions, "errors": errors}
+    endpoints_added = get_endpoints_added_by_week()
+    return {
+        "contributions": contributions,
+        "errors": errors,
+        "endpoints_added": endpoints_added,
+    }
 
 
 # def get_unhealthy_endpoints()
