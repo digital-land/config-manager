@@ -31,7 +31,7 @@
   <canvas id="resources_downloaded_graph"></canvas>
 </div>
 
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   const endpoints_ctx = document.getElementById('endpoint_added_graph');
 
   new Chart(endpoints_ctx, {
@@ -63,7 +63,7 @@
   }});
 </script>
 
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   const resources_ctx = document.getElementById('resources_downloaded_graph');
 
   new Chart(resources_ctx, {
@@ -94,7 +94,7 @@
   }});
 </script>
 
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   console.log({{overview.resources_downloaded.counts | safe}})
 </script>
 {% endblock content %}
