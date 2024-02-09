@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 {% block beforeContent %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="govuk-breadcrumbs">
   <ol class="govuk-breadcrumbs__list">
     <li class="govuk-breadcrumbs__list-item">
