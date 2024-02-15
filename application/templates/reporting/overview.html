@@ -17,9 +17,16 @@
 
 <h1 class="govuk-heading-xl">Reporting - overview</h1>
 
+<h2>Datasets</h2>
+<h2>Organisations</h2>
+<h2>Summary Tables</h2>
+
 <h2>Today's Summary: </h2>
 <p class="govuk-body">Contributions: {{ overview.contributions }}</p>
 <p class="govuk-body">Endpoint errors: {{ overview.errors }}</p>
+<p class="govuk-body">Data errors: </p>
+<p class="govuk-body">Data warnings: </p>
+
 <h2>Endpoints added per week:</h2>
 <div>
   <canvas id="endpoint_added_graph"></canvas>
@@ -31,20 +38,28 @@
   <canvas id="resources_downloaded_graph"></canvas>
 </div>
 
+<h2>Endpoint error % per week:</h2>
+<div>
+  <canvas id="endpoint_error_graph"></canvas>
+</div>
+
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   const endpoints_ctx = document.getElementById('endpoint_added_graph');
 
   new Chart(endpoints_ctx, {
     type: 'line',
     data: {
-      labels: {{overview.endpoints_added.dates | safe}},
       datasets: [{
         label: '# of endpoints added per week',
-        data: {{overview.endpoints_added.counts | safe}},
+        data: {{overview.endpoints_added | safe}},
         borderWidth: 1
       }]
     },
     options: {
+      parsing: {
+        xAxisKey: 'date',
+        yAxisKey: 'count'
+      },
       scales: {
         y: {
           title: {
@@ -69,14 +84,17 @@
   new Chart(resources_ctx, {
     type: 'line',
     data: {
-      labels: {{overview.resources_downloaded.dates | safe}},
       datasets: [{
         label: '# of resources downloaded per week',
-        data: {{overview.resources_downloaded.counts | safe}},
+        data: {{overview.resources_downloaded | safe}},
         borderWidth: 1
       }]
     },
     options: {
+      parsing: {
+        xAxisKey: 'date',
+        yAxisKey: 'count'
+      },
       scales: {
         y: {
           title: {
@@ -95,6 +113,36 @@
 </script>
 
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
-  console.log({{overview.resources_downloaded.counts | safe}})
+  const endpoint_errors_ctx = document.getElementById('endpoint_error_graph');
+
+  new Chart(endpoint_errors_ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: '% of active endpoints erroring',
+        data: {{overview.error_percentages | safe}},
+        borderWidth: 1
+      }]
+    },
+    options: {
+      parsing: {
+        xAxisKey: 'date',
+        yAxisKey: 'count'
+      },
+      scales: {
+        y: {
+          title: {
+            display: true,
+            text: "Error %"
+        },
+        },
+        x: {
+          title: {
+            display: true,
+            text: "Week"
+        }
+      }
+    }
+  }});
 </script>
 {% endblock content %}
