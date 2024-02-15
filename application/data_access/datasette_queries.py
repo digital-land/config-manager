@@ -209,25 +209,6 @@ def get_endpoint_errors_and_successes_by_week(logs_df):
     return successes_by_week, error_percentages_by_week
 
 
-# def get_overview():
-#     logs_df = get_logs()
-#     contributions = get_number_of_contributions()
-#     errors = get_number_of_erroring_endpoints()
-#     endpoints_added = get_endpoints_added_by_week()
-#     endpoint_successes, endpoint_errors = get_endpoint_errors_and_successes_by_week(
-#         logs_df
-#     )
-#     return {
-#         "contributions": contributions,
-#         "errors": errors,
-#         "endpoints_added": endpoints_added,
-#         "resources_downloaded": endpoint_successes,
-#         "error_percentages": endpoint_errors,
-#     }
-
-
-# def get_unhealthy_endpoints()
-
 # def get_datasets_summary():
 #     # get all the datasets listed with their active status
 #     all_datasets = index_by("dataset", get_datasets())
