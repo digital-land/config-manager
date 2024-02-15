@@ -22,8 +22,8 @@
 <h2>Summary Tables</h2>
 
 <h2>Today's Summary: </h2>
-<p class="govuk-body">Contributions: {{ overview.contributions }}</p>
-<p class="govuk-body">Endpoint errors: {{ overview.errors }}</p>
+<p class="govuk-body">Contributions: {{ summary_metrics.contributions }}</p>
+<p class="govuk-body">Endpoint errors: {{ summary_metrics.errors }}</p>
 <p class="govuk-body">Data errors: </p>
 <p class="govuk-body">Data warnings: </p>
 
@@ -51,7 +51,7 @@
     data: {
       datasets: [{
         label: '# of endpoints added per week',
-        data: {{overview.endpoints_added | safe}},
+        data: {{graphs.endpoints_added_timeseries | safe}},
         borderWidth: 1
       }]
     },
@@ -86,7 +86,7 @@
     data: {
       datasets: [{
         label: '# of resources downloaded per week',
-        data: {{overview.resources_downloaded | safe}},
+        data: {{graphs.endpoint_successes_timeseries | safe}},
         borderWidth: 1
       }]
     },
@@ -120,7 +120,7 @@
     data: {
       datasets: [{
         label: '% of active endpoints erroring',
-        data: {{overview.error_percentages | safe}},
+        data: {{graphs.endpoint_errors_timeseries | safe}},
         borderWidth: 1
       }]
     },

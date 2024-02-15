@@ -1,6 +1,12 @@
 from flask import Blueprint, render_template
 
-from application.data_access.datasette_queries import get_overview
+from application.data_access.datasette_queries import (
+    get_endpoint_errors_and_successes_by_week,
+    get_endpoints_added_by_week,
+    get_logs,
+    get_number_of_contributions,
+    get_number_of_erroring_endpoints,
+)
 
 report_bp = Blueprint("reporting", __name__, url_prefix="/reporting")
 
@@ -25,9 +31,24 @@ def overview():
     #     key=lambda x: x["resource_count"],
     #     reverse=True,
     # )
+    logs_df = get_logs()
+    summary_contributions = get_number_of_contributions()
+    summary_endpoint_errors = get_number_of_erroring_endpoints()
+    endpoints_added_timeseries = get_endpoints_added_by_week()
+    (
+        endpoint_successes_timeseries,
+        endpoint_errors_timeseries,
+    ) = get_endpoint_errors_and_successes_by_week(logs_df)
 
-    overview = get_overview()
-
+    summary_metrics = {
+        "contributions": summary_contributions,
+        "endpoint_errors": summary_endpoint_errors,
+    }
+    graphs = {
+        "endpoints_added_timeseries": endpoints_added_timeseries,
+        "endpoint_successes_timeseries": endpoint_successes_timeseries,
+        "endpoint_errors_timeseries": endpoint_errors_timeseries,
+    }
     # return render_template(
     #     "overview.html",
     #     summary_metrics=summary_metrics,
@@ -37,7 +58,9 @@ def overview():
     #     dataset_summary,
     #     organisation_summary
     # )
-    return render_template("reporting/overview.html", overview=overview)
+    return render_template(
+        "reporting/overview.html", summary_metrics=summary_metrics, graphs=graphs
+    )
 
 
 # @report_bp.get("/dataset")
