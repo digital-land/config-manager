@@ -58,7 +58,7 @@ deprecated==1.2.13
     # via pygithub
 digital-land @ git+https://github.com/digital-land/pipeline.git
     # via -r requirements/requirements.in
-digital_land_frontend @ git+https://github.com/digital-land/digital-land-frontend.git
+digital-land-frontend @ git+https://github.com/digital-land/digital-land-frontend.git
     # via -r requirements/requirements.in
 esridump==1.13.0
     # via digital-land
@@ -143,7 +143,9 @@ mergedeep==1.3.4
 mypy-extensions==1.0.0
     # via typing-inspect
 numpy==1.24.2
-    # via pandas
+    # via
+    #   pandas
+    #   shapely
 openpyxl==3.1.1
     # via digital-land
 packaging==23.0
@@ -165,7 +167,9 @@ pydantic==1.10.5
 pygithub==1.58.1
     # via -r requirements/requirements.in
 pyjwt[crypto]==2.6.0
-    # via pygithub
+    # via
+    #   pygithub
+    #   pyjwt
 pynacl==1.5.0
     # via pygithub
 pyparsing==3.0.9
@@ -193,10 +197,12 @@ requests==2.28.2
     #   esridump
     #   pygithub
 rfc3986[idna2008]==1.5.0
-    # via httpx
+    # via
+    #   httpx
+    #   rfc3986
 sentry-sdk[flask]==1.16.0
     # via -r requirements/requirements.in
-shapely==1.8.0
+shapely==2.0.2
     # via digital-land
 simplejson==3.18.3
     # via canonicaljson

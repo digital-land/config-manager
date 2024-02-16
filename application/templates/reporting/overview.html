@@ -1,0 +1,149 @@
+{% extends 'layouts/base.html' %}
+{% block beforeContent %}
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<div class="govuk-breadcrumbs">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      reporting
+    </li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+
+{% block content %}
+
+<h1 class="govuk-heading-xl">Reporting - overview</h1>
+
+<h2>Datasets</h2>
+<h2>Organisations</h2>
+<h2>Summary Tables</h2>
+
+<h2>Today's Summary: </h2>
+<p class="govuk-body">Contributions: {{ summary_metrics.contributions }}</p>
+<p class="govuk-body">Endpoint errors: {{ summary_metrics.endpoint_errors }}</p>
+<p class="govuk-body">Data errors: </p>
+<p class="govuk-body">Data warnings: </p>
+<p class="govuk-body">New resources: </p>
+
+<h2>Endpoints added per week:</h2>
+<div>
+  <canvas id="endpoint_added_graph"></canvas>
+</div>
+
+
+<h2>Resources downloaded per week:</h2>
+<div>
+  <canvas id="resources_downloaded_graph"></canvas>
+</div>
+
+<h2>Endpoint error % per week:</h2>
+<div>
+  <canvas id="endpoint_error_graph"></canvas>
+</div>
+
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
+  const endpoints_ctx = document.getElementById('endpoint_added_graph');
+
+  new Chart(endpoints_ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: '# of endpoints added per week',
+        data: {{graphs.endpoints_added_timeseries | safe}},
+        borderWidth: 1
+      }]
+    },
+    options: {
+      parsing: {
+        xAxisKey: 'date',
+        yAxisKey: 'count'
+      },
+      scales: {
+        y: {
+          title: {
+            display: true,
+            text: "Endpoints added"
+        },
+          beginAtZero: true
+        },
+        x: {
+          title: {
+            display: true,
+            text: "Week"
+        }
+      }
+    }
+  }});
+</script>
+
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
+  const resources_ctx = document.getElementById('resources_downloaded_graph');
+
+  new Chart(resources_ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: '# of resources downloaded per week',
+        data: {{graphs.endpoint_successes_timeseries | safe}},
+        borderWidth: 1
+      }]
+    },
+    options: {
+      parsing: {
+        xAxisKey: 'date',
+        yAxisKey: 'count'
+      },
+      scales: {
+        y: {
+          title: {
+            display: true,
+            text: "Resources downloaded"
+        },
+        },
+        x: {
+          title: {
+            display: true,
+            text: "Week"
+        }
+      }
+    }
+  }});
+</script>
+
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
+  const endpoint_errors_ctx = document.getElementById('endpoint_error_graph');
+
+  new Chart(endpoint_errors_ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: '% of active endpoints erroring',
+        data: {{graphs.endpoint_errors_timeseries | safe}},
+        borderWidth: 1
+      }]
+    },
+    options: {
+      parsing: {
+        xAxisKey: 'date',
+        yAxisKey: 'count'
+      },
+      scales: {
+        y: {
+          title: {
+            display: true,
+            text: "Error %"
+        },
+        },
+        x: {
+          title: {
+            display: true,
+            text: "Week"
+        }
+      }
+    }
+  }});
+</script>
+{% endblock content %}
