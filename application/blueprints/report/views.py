@@ -3,6 +3,7 @@ from flask import Blueprint, render_template
 from application.data_access.datasette_queries import (
     get_endpoint_errors_and_successes_by_week,
     get_endpoints_added_by_week,
+    get_issue_counts,
     get_logs,
     get_number_of_contributions,
     get_number_of_erroring_endpoints,
@@ -28,6 +29,7 @@ def overview():
     logs_df = get_logs()
     summary_contributions = get_number_of_contributions()
     summary_endpoint_errors = get_number_of_erroring_endpoints()
+    errors, warnings = get_issue_counts()
     endpoints_added_timeseries = get_endpoints_added_by_week()
     (
         endpoint_successes_timeseries,
@@ -37,6 +39,8 @@ def overview():
     summary_metrics = {
         "contributions": summary_contributions,
         "endpoint_errors": summary_endpoint_errors,
+        "errors": errors,
+        "warnings": warnings,
     }
     graphs = {
         "endpoints_added_timeseries": endpoints_added_timeseries,

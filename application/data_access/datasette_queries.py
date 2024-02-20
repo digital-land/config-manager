@@ -61,6 +61,24 @@ def get_logs():
         return None
 
 
+def get_issue_counts():
+    sql = """
+        select
+            it.severity, count(*) as count
+        from issue i
+        inner join issue_type it
+        where i.issue_type = it.issue_type
+        group by it.severity
+    """
+    issues_df = get_datasette_query("digital-land", sql)
+    if issues_df is not None:
+        errors = issues_df[issues_df["severity"] == "error"].iloc[0]["count"]
+        warning = issues_df[issues_df["severity"] == "warning"].iloc[0]["count"]
+        return errors, warning
+    else:
+        return None
+
+
 def get_number_of_contributions():
     current_date = datetime.datetime.now().date()
     date_query = f" where substr(l.entry_date, 1, 10) = '{current_date}'"
