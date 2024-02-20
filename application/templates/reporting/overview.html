@@ -24,8 +24,8 @@
 <h2>Today's Summary: </h2>
 <p class="govuk-body">Contributions: {{ summary_metrics.contributions }}</p>
 <p class="govuk-body">Endpoint errors: {{ summary_metrics.endpoint_errors }}</p>
-<p class="govuk-body">Data errors: </p>
-<p class="govuk-body">Data warnings: </p>
+<p class="govuk-body">Data errors: {{ summary_metrics.errors }}</p>
+<p class="govuk-body">Data warnings: {{ summary_metrics.warnings }}</p>
 <p class="govuk-body">New resources: </p>
 
 <h2>Endpoints added per week:</h2>
