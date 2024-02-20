@@ -61,6 +61,24 @@ def get_logs():
         return None
 
 
+def get_issue_counts():
+    sql = """
+        select
+            it.severity, count(*) as count
+        from issue i
+        inner join issue_type it
+        where i.issue_type = it.issue_type
+        group by it.severity
+    """
+    issues_df = get_datasette_query("digital-land", sql)
+    if issues_df is not None:
+        errors = issues_df[issues_df["severity"] == "error"].iloc[0]["count"]
+        warning = issues_df[issues_df["severity"] == "warning"].iloc[0]["count"]
+        return errors, warning
+    else:
+        return None
+
+
 def get_number_of_contributions():
     current_date = datetime.datetime.now().date()
     date_query = f" where substr(l.entry_date, 1, 10) = '{current_date}'"
@@ -120,7 +138,7 @@ def get_endpoints_added_by_week():
         last_year_endpoints_added_df["week"] = pd.to_numeric(
             last_year_endpoints_added_df["week"]
         )
-        dates = generate_dates(20)
+        dates = generate_weeks(20)
 
         endpoints_added = []
         for date in dates:
@@ -171,7 +189,7 @@ def get_endpoint_errors_and_successes_by_week(logs_df):
         last_year_endpoint_errors_df["week"]
     )
 
-    dates = generate_dates(20)
+    dates = generate_weeks(20)
 
     successes_by_week = []
     error_percentages_by_week = []
@@ -241,7 +259,7 @@ def get_endpoint_errors_and_successes_by_week(logs_df):
 #     return all_datasets
 
 
-def generate_dates(number_of_weeks):
+def generate_weeks(number_of_weeks):
     now = datetime.datetime.now()
     monday = now - datetime.timedelta(days=now.weekday())
     dates = []
