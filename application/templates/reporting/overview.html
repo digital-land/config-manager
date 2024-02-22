@@ -21,12 +21,28 @@
 <h2>Organisations</h2>
 <h2>Summary Tables</h2>
 
-<h2>Today's Summary: </h2>
-<p class="govuk-body">Contributions: {{ summary_metrics.contributions }}</p>
-<p class="govuk-body">Endpoint errors: {{ summary_metrics.endpoint_errors }}</p>
+<h2 id="summary-title">Today's Summary: </h2>
+<p id="contributions" class="govuk-body">Contributions: </p>
+<p id="errors" class="govuk-body">Endpoint errors: </p>
 <p class="govuk-body">Data errors: {{ summary_metrics.errors }}</p>
 <p class="govuk-body">Data warnings: {{ summary_metrics.warnings }}</p>
-<p class="govuk-body">New resources: </p>
+<p class="govuk-body">New resources: WIP</p>
+
+<input type="date" class="date-selector" id="date-selector" onchange="handleChange(event);"></input>
+
+<script>
+  const handleChange = (e) => {
+    console.log(e.target.value);
+    document.getElementById('summary-title').innerHTML = event.target.value.concat(" Summary")
+    contributions_index = {{ summary_metrics.contributions.dates | safe}}.indexOf(e.target.value)
+    errors_index = {{ summary_metrics.endpoint_errors.dates | safe}}.indexOf(e.target.value)
+    document.getElementById('contributions').innerHTML = "Contributions: ".concat({{ summary_metrics.contributions.contributions | safe}}[contributions_index])
+    document.getElementById('errors').innerHTML = "Endpoint errors: ".concat({{ summary_metrics.endpoint_errors.errors | safe}}[errors_index])
+  }
+  const dateSelector = document.querySelector("#date-selector")
+  dateSelector.addEventListener("selectionchange", handleChange)
+
+</script>
 
 <h2>Endpoints added per week:</h2>
 <div>
@@ -146,4 +162,17 @@
     }
   }});
 </script>
+<script>
+  console.log({{summary_metrics | safe}})
+</script>
+<script src="{{ assetPath | default('/assets') }}/javascripts/reporting-summary.js"></script>
+<script>
+  let today = new Date()
+  date = today.toISOString().split('T')[0]
+  contributions_index = {{ summary_metrics.contributions.dates | safe}}.indexOf(date)
+  errors_index = {{ summary_metrics.endpoint_errors.dates | safe}}.indexOf(date)
+  document.getElementById('contributions').innerHTML = "Contributions: ".concat({{ summary_metrics.contributions.contributions | safe}}[contributions_index])
+  document.getElementById('errors').innerHTML = "Endpoint errors: ".concat({{ summary_metrics.endpoint_errors.errors | safe}}[errors_index])
+</script>
+
 {% endblock content %}
