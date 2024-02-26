@@ -6,6 +6,14 @@ performance_bp = Blueprint("performance", __name__, url_prefix="/performance")
 @performance_bp.get("/")
 @performance_bp.get("/dataValidatorFrontEnd")
 def dataValidatorFrontEnd():
+    # We need to get
+    # 1. The total number of views of the start page this week
+    # 2. The total number of unique user views of the start page this week
+    # 3. The total number of return user views of the start page this week
+    # 4. The total number of views of the confirmation page this week
+    # 5. The total number of unique user views of the confirmation page this week
+    # 6. The total number of return user views of the confirmation page this week
+
     return render_template("performance/dataValidatorFrontEnd.html")
 
 
