@@ -19,5 +19,12 @@ module.exports = [
       file: 'application/static/javascripts/app-resource-mapping.js',
       format: 'iife'
     }
+  },
+  {
+    input: 'src/javascripts/reporting-summary.js',
+    output: {
+      file: 'application/static/javascripts/reporting-summary.js',
+      // format: 'iife'
+    }
   }
 ]

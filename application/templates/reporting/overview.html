@@ -24,23 +24,23 @@
 <h2 id="summary-title">Today's Summary: </h2>
 <p id="contributions" class="govuk-body">Contributions: </p>
 <p id="errors" class="govuk-body">Endpoint errors: </p>
+<input type="date" id="date-selector"></input>
 <p class="govuk-body">Data errors: {{ summary_metrics.errors }}</p>
 <p class="govuk-body">Data warnings: {{ summary_metrics.warnings }}</p>
 <p class="govuk-body">New resources: WIP</p>
 
-<input type="date" class="date-selector" id="date-selector" onchange="handleChange(event);"></input>
-
 <script>
   const handleChange = (e) => {
     console.log(e.target.value);
-    document.getElementById('summary-title').innerHTML = event.target.value.concat(" Summary")
+    document.getElementById('summary-title').innerHTML = e.target.value.concat(" Summary")
     contributions_index = {{ summary_metrics.contributions.dates | safe}}.indexOf(e.target.value)
     errors_index = {{ summary_metrics.endpoint_errors.dates | safe}}.indexOf(e.target.value)
     document.getElementById('contributions').innerHTML = "Contributions: ".concat({{ summary_metrics.contributions.contributions | safe}}[contributions_index])
-    document.getElementById('errors').innerHTML = "Endpoint errors: ".concat({{ summary_metrics.endpoint_errors.errors | safe}}[errors_index])
-  }
+    document.getElementById('errors').innerHTML = "Endpoint errors: ".concat({{ summary_metrics.endpoint_errors.errors | safe}}[errors_index])}
+
   const dateSelector = document.querySelector("#date-selector")
-  dateSelector.addEventListener("selectionchange", handleChange)
+  dateSelector.addEventListener("change", handleChange)
+
 
 </script>
 
@@ -165,14 +165,11 @@
 <script>
   console.log({{summary_metrics | safe}})
 </script>
-<script src="{{ assetPath | default('/assets') }}/javascripts/reporting-summary.js"></script>
-<script>
-  let today = new Date()
-  date = today.toISOString().split('T')[0]
-  contributions_index = {{ summary_metrics.contributions.dates | safe}}.indexOf(date)
-  errors_index = {{ summary_metrics.endpoint_errors.dates | safe}}.indexOf(date)
-  document.getElementById('contributions').innerHTML = "Contributions: ".concat({{ summary_metrics.contributions.contributions | safe}}[contributions_index])
-  document.getElementById('errors').innerHTML = "Endpoint errors: ".concat({{ summary_metrics.endpoint_errors.errors | safe}}[errors_index])
+<script type="module">
+    import SummaryMetrics from "{{ assetPath | default('/assets') }}/javascripts/reporting-summary.js"
+    const summary_metrics = new SummaryMetrics({{summary_metrics | safe}}).init()
+    // const dateSelector = document.querySelector("#date-selector")
+    // dateSelector.addEventListener("change", summary_metrics.updateMetrics)
 </script>
 
 {% endblock content %}
