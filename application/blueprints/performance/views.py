@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template
 
 from application.data_access.logging_queries import (
+    getAverageTimeToConfirmation,
     getConfirmationPageViews,
     getErrorsPageViews,
     getStartPageViews,
@@ -15,12 +16,14 @@ def dataValidatorFrontEnd():
     startPageViews = getStartPageViews()
     confirmationPageViews = getConfirmationPageViews()
     errorsPageViews = getErrorsPageViews()
+    averageTimeToComplete = getAverageTimeToConfirmation()
 
     return render_template(
         "performance/dataValidatorFrontEnd.html",
         startPageViews=startPageViews,
         confirmationPageViews=confirmationPageViews,
         errorsPageViews=errorsPageViews,
+        averageTimeToComplete=averageTimeToComplete,
     )
 
 

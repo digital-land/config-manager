@@ -181,3 +181,29 @@ def getAllPageViews():
     ).fetchall()
 
     return page_views_by_week
+
+
+# get the average time take for each session from the start page to the confirmation page
+def getAverageTimeToConfirmation():
+    con = getDuckdbConnection()
+
+    con.execute(
+        f'CREATE TABLE Requests AS SELECT * FROM read_parquet("{parquet_files}")'
+    )
+
+    page_views_by_week = pd.DataFrame(
+        con.execute(
+            """
+            SELECT sessionId, MIN(timestamp) AS start, MAX(timestamp) AS end
+            FROM Requests
+            WHERE pageRoute = '/dataset'
+            OR pageRoute = '/confirmation'
+            GROUP BY sessionId
+        """
+        ).fetchall(),
+        columns=["sessionId", "start", "end"],
+    )
+
+    page_views_by_week["time"] = page_views_by_week["end"] - page_views_by_week["start"]
+
+    return page_views_by_week["time"].mean()
