@@ -29,46 +29,29 @@
   }
 </style>
 
-<h1 class="govuk-heading-L">Start Page</h1>
-<div class="govuk-grid-row">
-  <div class="govuk-grid-column-one-third">
-    <div class="govuk-card">
-      <h2 class="govuk-heading-m">Total Visits this week</h2>
-      <h1 class="govuk-heading-L">112</h1>
-    </div>
-  </div>
-  <div class="govuk-grid-column-one-third">
-    <div class="govuk-card">
-      <h2 class="govuk-heading-m">Total unique users</h2>
-      <h1 class="govuk-heading-L">80</h1>
-    </div>
-  </div>
-  <div class="govuk-grid-column-one-third">
-    <div class="govuk-card">
-      <h2 class="govuk-heading-m">Total returning users</h2>
-      <h1 class="govuk-heading-L">34</h1>
-    </div>
-  </div>
-</div>
+<!-- <h1 class="govuk-heading-L">File size</h1> -->
+<!-- A graph here showing file sizes uploaded would be nice-->
 
-<h1 class="govuk-heading-L">Confirmation page</h1>
+
+
+<h1 class="govuk-heading-L">Session completion</h1>
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-one-third">
     <div class="govuk-card">
-      <h2 class="govuk-heading-m">Total Visits this week</h2>
-      <h1 class="govuk-heading-L">112</h1>
+      <h2 class="govuk-heading-m">Total sessions started this week</h2>
+      <h1 class="govuk-heading-L">{{startPageViews.iloc[-1]['count']}}</h1>
     </div>
   </div>
   <div class="govuk-grid-column-one-third">
     <div class="govuk-card">
-      <h2 class="govuk-heading-m">Total unique users</h2>
-      <h1 class="govuk-heading-L">80</h1>
+      <h2 class="govuk-heading-m">Total sessions that reach the errors page</h2>
+      <h1 class="govuk-heading-L">{{confirmationPageViews.iloc[-1]['count']}}</h1>
     </div>
   </div>
   <div class="govuk-grid-column-one-third">
     <div class="govuk-card">
-      <h2 class="govuk-heading-m">Total returning users</h2>
-      <h1 class="govuk-heading-L">34</h1>
+      <h2 class="govuk-heading-m">Total sessions that reach the confirmation page</h2>
+      <h1 class="govuk-heading-L">{{errorsPageViews.iloc[-1]['count']}}</h1>
     </div>
   </div>
 </div>
