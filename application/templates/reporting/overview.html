@@ -29,21 +29,6 @@
 <p class="govuk-body">Data warnings: {{ summary_metrics.warnings }}</p>
 <p class="govuk-body">New resources: WIP</p>
 
-<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
-  const handleChange = (e) => {
-    console.log(e.target.value);
-    document.getElementById('summary-title').innerHTML = e.target.value.concat(" Summary")
-    contributions_index = {{ summary_metrics.contributions.dates | safe}}.indexOf(e.target.value)
-    errors_index = {{ summary_metrics.endpoint_errors.dates | safe}}.indexOf(e.target.value)
-    document.getElementById('contributions').innerHTML = "Contributions: ".concat({{ summary_metrics.contributions.contributions | safe}}[contributions_index])
-    document.getElementById('errors').innerHTML = "Endpoint errors: ".concat({{ summary_metrics.endpoint_errors.errors | safe}}[errors_index])}
-
-  const dateSelector = document.querySelector("#date-selector")
-  dateSelector.addEventListener("change", handleChange)
-
-
-</script>
-
 <h2>Endpoints added per week:</h2>
 <div>
   <canvas id="endpoint_added_graph"></canvas>
@@ -168,8 +153,6 @@
 <script type="module" {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
     import SummaryMetrics from "{{ assetPath | default('/assets') }}/javascripts/reporting-summary.js"
     const summary_metrics = new SummaryMetrics({{summary_metrics | safe}}).init()
-    // const dateSelector = document.querySelector("#date-selector")
-    // dateSelector.addEventListener("change", summary_metrics.updateMetrics)
 </script>
 
 {% endblock content %}
