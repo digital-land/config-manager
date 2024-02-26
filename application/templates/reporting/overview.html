@@ -29,7 +29,7 @@
 <p class="govuk-body">Data warnings: {{ summary_metrics.warnings }}</p>
 <p class="govuk-body">New resources: WIP</p>
 
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   const handleChange = (e) => {
     console.log(e.target.value);
     document.getElementById('summary-title').innerHTML = e.target.value.concat(" Summary")
@@ -165,7 +165,7 @@
 <script>
   console.log({{summary_metrics | safe}})
 </script>
-<script type="module">
+<script type="module" {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
     import SummaryMetrics from "{{ assetPath | default('/assets') }}/javascripts/reporting-summary.js"
     const summary_metrics = new SummaryMetrics({{summary_metrics | safe}}).init()
     // const dateSelector = document.querySelector("#date-selector")
