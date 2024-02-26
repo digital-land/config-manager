@@ -60,6 +60,8 @@ digital-land @ git+https://github.com/digital-land/pipeline.git
     # via -r requirements/requirements.in
 digital-land-frontend @ git+https://github.com/digital-land/digital-land-frontend.git
     # via -r requirements/requirements.in
+duckdb==0.10.0
+    # via -r requirements/requirements.in
 esridump==1.13.0
     # via digital-land
 et-xmlfile==1.1.0
