@@ -69,6 +69,10 @@ def register_blueprints(app):
 
     app.register_blueprint(report_bp)
 
+    from application.blueprints.performance.views import performance_bp
+
+    app.register_blueprint(performance_bp)
+
 
 def register_context_processors(app):
     """
