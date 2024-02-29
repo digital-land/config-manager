@@ -26,5 +26,12 @@ module.exports = [
       file: 'application/static/javascripts/reporting-summary.js',
       // format: 'iife'
     }
+  },
+  {
+    input: 'src/javascripts/utilities/timeseries-chart.js',
+    output: {
+      file: 'application/static/javascripts/utilities/timeseries-chart.js',
+      // format: 'iife'
+    }
   }
 ]

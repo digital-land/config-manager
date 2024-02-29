@@ -6,7 +6,6 @@ class SummaryMetrics {
     }
 
     init() {
-        console.log("hello from init function");
         const today = new Date();
         const date = today.toISOString().split('T')[0];
         const contributions_index = this.summary_metrics.contributions.dates.indexOf(date);
@@ -17,10 +16,7 @@ class SummaryMetrics {
     }
 
     updateMetrics (e) {
-            console.log("hello from update function");
             if (e != undefined) {
-                console.log(e.target.value);
-                console.log(this)
                 document.getElementById('summary-title').innerHTML = e.target.value.concat(" Summary");
                 const contributions_index = this.summary_metrics.contributions.dates.indexOf(e.target.value);
                 const errors_index =this.summary_metrics.endpoint_errors.dates.indexOf(e.target.value);
