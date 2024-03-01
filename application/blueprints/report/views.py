@@ -1,12 +1,11 @@
 from flask import Blueprint, render_template
 
 from application.data_access.datasette_queries import (
+    get_contributions_and_erroring_endpoints,
     get_endpoint_errors_and_successes_by_week,
     get_endpoints_added_by_week,
     get_issue_counts,
     get_logs,
-    get_number_of_contributions,
-    get_number_of_erroring_endpoints,
 )
 
 report_bp = Blueprint("reporting", __name__, url_prefix="/reporting")
@@ -27,8 +26,10 @@ def overview():
     #     reverse=True,
     # )
     logs_df = get_logs()
-    summary_contributions = get_number_of_contributions()
-    summary_endpoint_errors = get_number_of_erroring_endpoints()
+    (
+        summary_contributions,
+        summary_endpoint_errors,
+    ) = get_contributions_and_erroring_endpoints()
     errors, warnings = get_issue_counts()
     endpoints_added_timeseries = get_endpoints_added_by_week()
     (

@@ -25,7 +25,7 @@ def get_datasette_http():
 
 def get_datasette_query(db, sql, url="https://datasette.planning.data.gov.uk"):
     url = f"{url}/{db}.json"
-    params = {"sql": sql, "_shape": "array"}
+    params = {"sql": sql, "_shape": "array", "_size": "max"}
     try:
         http = get_datasette_http()
         resp = http.get(url, params=params)
@@ -79,34 +79,38 @@ def get_issue_counts():
         return None
 
 
-def get_number_of_contributions():
+def get_contributions_and_erroring_endpoints():
     current_date = datetime.datetime.now().date()
-    date_query = f" where substr(l.entry_date, 1, 10) = '{current_date}'"
+    date_query = (
+        f" where year = '{current_date.year - 1}' or year = '{current_date.year}'"
+    )
     sql = f"""
-        select count(*) as count
+        select
+            count(*) as count,
+            status,
+            substr(entry_date,1,10) as entry_date,
+            strftime('%Y',entry_date) as year
             from log l
             {date_query}
-            and l.status = 200
+            group by substr(entry_date,1,10), case when status = '200' then status else 'not_200' end
     """
-    contributions_df = get_datasette_query("digital-land", sql)
-    if contributions_df is not None:
-        return int(contributions_df.iloc[0]["count"])
-    else:
-        return None
 
-
-def get_number_of_erroring_endpoints():
-    current_date = datetime.datetime.now().date()
-    date_query = f" where substr(l.entry_date, 1, 10) = '{current_date}'"
-    sql = f"""
-        select count(*) as count
-            from log l
-            {date_query}
-            and l.status != 200
-    """
-    errors_df = get_datasette_query("digital-land", sql)
-    if errors_df is not None:
-        return int(errors_df.iloc[0]["count"])
+    contributions_and_errors_df = get_datasette_query("digital-land", sql)
+    if contributions_and_errors_df is not None:
+        contributions_df = contributions_and_errors_df[
+            contributions_and_errors_df["status"] == "200"
+        ].reindex()
+        errors_df = contributions_and_errors_df[
+            contributions_and_errors_df["status"] != "200"
+        ].reindex()
+        contributions = contributions_df["count"].tolist()
+        contributions_dates = contributions_df["entry_date"].tolist()
+        errors = errors_df["count"].tolist()
+        errors_dates = errors_df["entry_date"].tolist()
+        return {"dates": contributions_dates, "contributions": contributions}, {
+            "dates": errors_dates,
+            "errors": errors,
+        }
     else:
         return None
 
