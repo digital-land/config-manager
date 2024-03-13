@@ -31,3 +31,20 @@
 .govuk-table__header:last-child, .govuk-table__cell:last-child {
   padding-right: 15px;
 }
+
+// styles for reporting tables*
+
+.red-background {
+  background: rgba(govuk-colour("red"),0.5);
+  // color: govuk-colour("white")
+}
+
+.green-background {
+  background: rgba(govuk-colour("green"),0.5);
+  // color: govuk-colour("white")
+}
+
+.yellow-background {
+  background: rgba(govuk-colour("yellow"),0.5);
+  // color: govuk-colour("white")
+}

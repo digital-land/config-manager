@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template
 
-from application.data_access.datasette_queries import (
+from application.data_access.odp_queries import get_odp_status_summary
+from application.data_access.summary_queries import (
     get_contributions_and_erroring_endpoints,
     get_endpoint_errors_and_successes_by_week,
     get_endpoints_added_by_week,
@@ -51,6 +52,14 @@ def overview():
 
     return render_template(
         "reporting/overview.html", summary_metrics=summary_metrics, graphs=graphs
+    )
+
+
+@report_bp.get("/odp-summary")
+def odp_summary():
+    odp_statuses_summary = get_odp_status_summary()
+    return render_template(
+        "reporting/odp_summary.html", odp_statuses_summary=odp_statuses_summary
     )
 
 
