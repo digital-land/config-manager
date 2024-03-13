@@ -44,6 +44,7 @@ def get_odp_status_summary():
     status_df = get_datasette_query("digital-land", sql)
     spatial_rows = []
     document_rows = []
+    both_rows = []
     if status_df is not None:
         organisation_cohort_dict_list = (
             status_df[["organisation", "cohort", "name"]]
@@ -114,19 +115,27 @@ def get_odp_status_summary():
                         {"text": "No endpoint", "classes": "yellow-background"}
                     )
             document_rows.append(document_row)
+            both_rows.append([*spatial_row, *document_row[2:]])
 
+        base_headers = [{"text": "Cohort"}, {"text": "Organisation"}]
+        spatial_headers = [*map(lambda dataset: {"text": dataset}, SPATIAL_DATASETS)]
+        document_headers = [*map(lambda dataset: {"text": dataset}, DOCUMENT_DATASETS)]
+        both_headers = [*spatial_headers, *document_headers]
         return {
             "spatial_rows": spatial_rows,
             "document_rows": document_rows,
+            "both_rows": both_rows,
             "spatial_headers": [
-                {"text": "Cohort"},
-                {"text": "Organisation"},
-                *map(lambda dataset: {"text": dataset}, SPATIAL_DATASETS),
+                *base_headers,
+                *spatial_headers,
             ],
             "document_headers": [
-                {"text": "Cohort"},
-                {"text": "Organisation"},
-                *map(lambda dataset: {"text": dataset}, DOCUMENT_DATASETS),
+                *base_headers,
+                *document_headers,
+            ],
+            "both_headers": [
+                *base_headers,
+                *both_headers,
             ],
         }
 
