@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 {% from "govuk_frontend_jinja/components/table/macro.html" import govukTable %}
-{% from "govuk_frontend_jinja/components/radios/macro.html" import govukRadios %}
+
 
 {% block beforeContent %}
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -20,74 +20,70 @@
 
 <h1 class="govuk-heading-xl">ODP Summary</h1>
 
-{{ govukRadios({
-    "classes": "govuk-radios--inline",
-    "name": "selectDatasetType",
-    "fieldset": {
-        "legend": {
-          "text": "Select dataset type",
-          "classes": "govuk-fieldset__legend--l"
-        }
-    },
-    "items": [
-      {
-        "value": "spatial",
-        "text": "Spatial",
-        "id": "spatialSelection"
-      },
-      {
-        "value": "document",
-        "text": "Document",
-        "id": "documentSelection"
-      },
-      {
-        "value": "both",
-        "text": "Both",
-        "id": "bothSelection"
-      }
-    ]
-  }) }}
 
-<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
-    const onChange = (e) => {
-        if (e.target.value == "spatial") {
-            document.getElementById("odp_document_table").hidden = true
-            document.getElementById("odp_both_table").hidden = true
-            document.getElementById("odp_spatial_table").hidden = false
-        } else if (e.target.value == "document") {
-            document.getElementById("odp_spatial_table").hidden = true
-            document.getElementById("odp_both_table").hidden = true
-            document.getElementById("odp_document_table").hidden = false
-        } else {
-            document.getElementById("odp_spatial_table").hidden = true
-            document.getElementById("odp_document_table").hidden = true
-            document.getElementById("odp_both_table").hidden = false
-        }
+
+  <form action="?cohort=cohortSelection&dataset_type=" method="GET">
+    <legend class="govuk-fieldset__legend govuk-fieldset__legend--l">
+        <h1 class="govuk-fieldset__heading">
+          Filter dataset type and cohort
+        </h1>
+      </legend>
+    <div class="govuk-radios govuk-radios--inline" data-module="govuk-radios">
+        <div class="govuk-radios__item">
+          <input class="govuk-radios__input" id="spatialSelection" name="dataset_type" type="radio" value="spatial">
+          <label class="govuk-label govuk-radios__label" for="dataset_type">
+            Spatial
+          </label>
+        </div>
+        <div class="govuk-radios__item">
+          <input class="govuk-radios__input" id="documentSelection" name="dataset_type" type="radio" value="document">
+          <label class="govuk-label govuk-radios__label" for="dataset_type">
+            Document
+          </label>
+        </div>
+        <div class="govuk-radios__item">
+          <input class="govuk-radios__input" id="bothSelection" name="dataset_type" type="radio" value="">
+          <label class="govuk-label govuk-radios__label" for="dataseet_type">
+            Both
+          </label>
+        </div>
+
+
+      </div>
+      <div class="govuk-form-group reporting-cohort-filter">
+        <select class="govuk-select" id="selectCohort" name="cohort">
+          <option value="">All</option>
+          <option value="ODP-Track1">ODP Track 1</option>
+          <option value="ODP-Track2">ODP Track 2</option>
+          <option value="ODP-Track3">ODP Track 3</option>
+          <option value="ODP-Track4">ODP Track 4</option>
+          <option value="RIPA-BOPS">RIPA-BOPS</option>
+        </select>
+      </div>
+      <button type="submit" class="govuk-button" data-module="govuk-button" value="go">
+        Filter
+      </button>
+  </form>
+
+<script>
+    // autofill form with current filters based on query parameters
+    let url = new URL(window.location.href)
+    let dataset_type_param = url.searchParams.get("dataset_type")
+    let cohort_param = url.searchParams.get("cohort")
+    if (dataset_type_param) {
+        document.getElementById(dataset_type_param.concat("Selection")).checked="checked"
     }
-
-    document.getElementById("documentSelection").addEventListener("change", onChange)
-    document.getElementById("spatialSelection").addEventListener("change", onChange)
-    document.getElementById("bothSelection").addEventListener("change", onChange)
+    if (cohort_param) {
+        document.getElementById("selectCohort").value=cohort_param
+    }
 </script>
 
-<div id="odp_spatial_table">
-{{ govukTable({
-  "head": odp_statuses_summary.spatial_headers,
-  "rows": odp_statuses_summary.spatial_rows
-}) }}
-</div>
 
-<div id="odp_document_table">
-{{ govukTable({
-    "head": odp_statuses_summary.document_headers,
-    "rows": odp_statuses_summary.document_rows
-  }) }}
-</div>
 
 <div id="odp_both_table">
     {{ govukTable({
-        "head": odp_statuses_summary.both_headers,
-        "rows": odp_statuses_summary.both_rows
+        "head": odp_statuses_summary.headers,
+        "rows": odp_statuses_summary.rows
       }) }}
     </div>
 

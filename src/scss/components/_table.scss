@@ -34,17 +34,14 @@
 
 // styles for reporting tables*
 
-.red-background {
+.reporting-bad-background {
   background: rgba(govuk-colour("red"),0.5);
-  // color: govuk-colour("white")
 }
 
-.green-background {
+.reporting-good-background {
   background: rgba(govuk-colour("green"),0.5);
-  // color: govuk-colour("white")
 }
 
-.yellow-background {
-  background: rgba(govuk-colour("yellow"),0.5);
-  // color: govuk-colour("white")
+.reporting-null-background {
+  background: rgba(govuk-colour("black"),0.1);
 }

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 
 from application.data_access.odp_queries import get_odp_status_summary
 from application.data_access.summary_queries import (
@@ -57,7 +57,9 @@ def overview():
 
 @report_bp.get("/odp-summary")
 def odp_summary():
-    odp_statuses_summary = get_odp_status_summary()
+    dataset_type = request.args.get("dataset_type")
+    cohort = request.args.get("cohort")
+    odp_statuses_summary = get_odp_status_summary(dataset_type, cohort)
     return render_template(
         "reporting/odp_summary.html", odp_statuses_summary=odp_statuses_summary
     )
