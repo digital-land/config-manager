@@ -3,7 +3,6 @@
 
 
 {% block beforeContent %}
-<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="govuk-breadcrumbs">
   <ol class="govuk-breadcrumbs__list">
     <li class="govuk-breadcrumbs__list-item">
@@ -19,9 +18,6 @@
 {% block content %}
 
 <h1 class="govuk-heading-xl">ODP Summary</h1>
-
-
-
   <form action="?cohort=cohortSelection&dataset_type=" method="GET">
     <legend class="govuk-fieldset__legend govuk-fieldset__legend--l">
         <h1 class="govuk-fieldset__heading">
@@ -47,8 +43,6 @@
             Both
           </label>
         </div>
-
-
       </div>
       <div class="govuk-form-group reporting-cohort-filter">
         <select class="govuk-select" id="selectCohort" name="cohort">
@@ -63,9 +57,9 @@
       <button type="submit" class="govuk-button" data-module="govuk-button" value="go">
         Filter
       </button>
-  </form>
+</form>
 
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
     // autofill form with current filters based on query parameters
     let url = new URL(window.location.href)
     let dataset_type_param = url.searchParams.get("dataset_type")
@@ -85,7 +79,7 @@
         "head": odp_statuses_summary.headers,
         "rows": odp_statuses_summary.rows
       }) }}
-    </div>
+</div>
 
 <script>
     console.log({{odp_statuses_summary | safe}})
