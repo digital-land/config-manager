@@ -1,6 +1,7 @@
 {% extends 'layouts/base.html' %}
 {% from "govuk_frontend_jinja/components/table/macro.html" import govukTable %}
 
+{% set containerClasses = 'reporting-page' %}
 
 {% block beforeContent %}
 <div class="govuk-breadcrumbs">
@@ -16,68 +17,96 @@
 {% endblock beforeContent %}
 
 {% block content %}
+<h1 class="govuk-heading-xl">ODP Endpoint Status Summary</h1>
 
-<h1 class="govuk-heading-xl">ODP Summary</h1>
-  <form action="?cohort=cohortSelection&dataset_type=" method="GET">
-    <legend class="govuk-fieldset__legend govuk-fieldset__legend--l">
-        <h1 class="govuk-fieldset__heading">
-          Filter dataset type and cohort
-        </h1>
-      </legend>
-    <div class="govuk-radios govuk-radios--inline" data-module="govuk-radios">
-        <div class="govuk-radios__item">
-          <input class="govuk-radios__input" id="spatialSelection" name="dataset_type" type="radio" value="spatial">
-          <label class="govuk-label govuk-radios__label" for="dataset_type">
-            Spatial
-          </label>
+
+
+<hr class="govuk-section-break--visible govuk-section-break--l" />
+
+<div class="govuk-grid-row">
+    <div class="govuk-grid-column-one-half">
+        <form action="?cohort=cohortSelection&dataset_type=" method="GET">
+            <legend class="govuk-fieldset__legend govuk-fieldset__legend--l">
+                <h1 class="govuk-fieldset__heading">
+                  Filter dataset type and cohort
+                </h1>
+              </legend>
+            <div class="govuk-radios govuk-radios--inline" data-module="govuk-radios">
+                <div class="govuk-radios__item">
+                    <input class="govuk-radios__input" id="bothSelection" name="dataset_type" type="radio" value="">
+                    <label class="govuk-label govuk-radios__label" for="dataseet_type">
+                      Both
+                    </label>
+                  </div>
+                <div class="govuk-radios__item">
+                  <input class="govuk-radios__input" id="spatialSelection" name="dataset_type" type="radio" value="spatial">
+                  <label class="govuk-label govuk-radios__label" for="dataset_type">
+                    Spatial
+                  </label>
+                </div>
+                <div class="govuk-radios__item">
+                  <input class="govuk-radios__input" id="documentSelection" name="dataset_type" type="radio" value="document">
+                  <label class="govuk-label govuk-radios__label" for="dataset_type">
+                    Document
+                  </label>
+                </div>
+              </div>
+              <div class="govuk-form-group reporting-cohort-filter">
+                <select class="govuk-select" id="selectCohort" name="cohort">
+                  <option value="">All Cohorts</option>
+                  <option value="ODP-Track1">ODP Track 1</option>
+                  <option value="ODP-Track2">ODP Track 2</option>
+                  <option value="ODP-Track3">ODP Track 3</option>
+                  <option value="ODP-Track4">ODP Track 4</option>
+                  <option value="RIPA-BOPS">RIPA-BOPS</option>
+                </select>
+              </div>
+              <button type="submit" class="govuk-button" data-module="govuk-button">
+                Apply Filter
+              </button>
+        </form>
+    </div>
+    <div class="govuk-grid-column-one-half">
+        <h1 class="govuk-heading-l">Overview stats:</h1>
+        <div class="govuk-grid-row">
+            <p class="govuk-body govuk-grid-column-two-thirds">Datasets added:</p>
+            <p class="govuk-body govuk-grid-column-one-third">{{odp_statuses_summary.datasets_added}}/{{odp_statuses_summary.max_datasets}}</p>
         </div>
-        <div class="govuk-radios__item">
-          <input class="govuk-radios__input" id="documentSelection" name="dataset_type" type="radio" value="document">
-          <label class="govuk-label govuk-radios__label" for="dataset_type">
-            Document
-          </label>
+        <div class="govuk-grid-row">
+            <p class="govuk-body govuk-grid-column-two-thirds">Percentage added:</p>
+            <p class="govuk-body govuk-grid-column-one-third">{{ odp_statuses_summary.percentage_datasets_added }}</p>
         </div>
-        <div class="govuk-radios__item">
-          <input class="govuk-radios__input" id="bothSelection" name="dataset_type" type="radio" value="">
-          <label class="govuk-label govuk-radios__label" for="dataseet_type">
-            Both
-          </label>
-        </div>
-      </div>
-      <div class="govuk-form-group reporting-cohort-filter">
-        <select class="govuk-select" id="selectCohort" name="cohort">
-          <option value="">All</option>
-          <option value="ODP-Track1">ODP Track 1</option>
-          <option value="ODP-Track2">ODP Track 2</option>
-          <option value="ODP-Track3">ODP Track 3</option>
-          <option value="ODP-Track4">ODP Track 4</option>
-          <option value="RIPA-BOPS">RIPA-BOPS</option>
-        </select>
-      </div>
-      <button type="submit" class="govuk-button" data-module="govuk-button" value="go">
-        Filter
-      </button>
-</form>
+
+    </div>
+  </div>
+
+
 
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
     // autofill form with current filters based on query parameters
     let url = new URL(window.location.href)
     let dataset_type_param = url.searchParams.get("dataset_type")
     let cohort_param = url.searchParams.get("cohort")
-    if (dataset_type_param) {
+    if (dataset_type_param && ["document", "spatial"].includes(dataset_type_param)) {
         document.getElementById(dataset_type_param.concat("Selection")).checked="checked"
+    } else {
+        document.getElementById("bothSelection").checked="checked"
     }
-    if (cohort_param) {
+    if (cohort_param && ["ODP-Track1", "ODP-Track2", "ODP-Track3", "ODP-Track4", "RIPA-BOPS"].includes(cohort_param)) {
         document.getElementById("selectCohort").value=cohort_param
+    } else {
+        document.getElementById("selectCohort").value=""
     }
 </script>
 
 
 
-<div id="odp_both_table">
+<div class="reporting-table-container">
+
     {{ govukTable({
         "head": odp_statuses_summary.headers,
-        "rows": odp_statuses_summary.rows
+        "rows": odp_statuses_summary.rows,
+        "classes": "reporting-table"
       }) }}
 </div>
 

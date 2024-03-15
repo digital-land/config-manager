@@ -76,12 +76,32 @@ def get_odp_status_summary(dataset_type, cohort):
                 )
             )
 
+        # Calculate overview stats
+        percentages = 0.0
+        datasets_added = 0
+        for row in rows:
+            percentages += float(row[-1]["text"].strip("%")) / 100
+            for cell in row:
+                print(cell)
+                if cell.get("data", None) and cell["text"] != "No endpoint":
+                    datasets_added += 1
+        average_percentage = str(100 * (percentages / len(rows)))[:2] + "%"
+        datasets_added = str(datasets_added)
+        max_datasets = len(rows) * len(datasets)
+
         headers = [
             {"text": "Cohort"},
             {"text": "Organisation"},
             *map(lambda dataset: {"text": dataset}, datasets),
+            {"text": "% provided"},
         ]
-        return {"rows": rows, "headers": headers}
+        return {
+            "rows": rows,
+            "headers": headers,
+            "percentage_datasets_added": average_percentage,
+            "datasets_added": datasets_added,
+            "max_datasets": max_datasets,
+        }
 
     else:
         return None
@@ -89,14 +109,16 @@ def get_odp_status_summary(dataset_type, cohort):
 
 def create_row(organisation, cohort, status_df, datasets):
     row = []
-    row.append({"text": cohort})
-    row.append({"text": organisation})
+    row.append({"text": cohort, "classes": "reporting-table-sticky-cell"})
+    row.append({"text": organisation, "classes": "reporting-table-sticky-cell"})
+    provided_score = 0
     for dataset in datasets:
         df_row = status_df[
             (status_df["organisation"] == organisation)
             & (status_df["pipeline"] == dataset)
         ]
         if len(df_row) != 0:
+            provided_score += 1
             if df_row["status"].values:
                 status = df_row["status"].values[0]
             else:
@@ -107,35 +129,27 @@ def create_row(organisation, cohort, status_df, datasets):
             status = "None"
 
         if status == "200":
-            row.append(
-                {
-                    "text": "Yes",
-                    "classes": "reporting-good-background",
-                    "data": df_row.fillna("").to_dict(orient="records")
-                    if (len(df_row) != 0)
-                    else {},
-                }
-            )
+            text = "Yes"
+            classes = "reporting-good-background reporting-table-cell"
         elif (
             status != "None" and status != "200" and df_row["endpoint"].values[0] != ""
         ):
-            row.append(
-                {
-                    "text": "Yes - erroring",
-                    "classes": "reporting-bad-background",
-                    "data": df_row.fillna("").to_dict(orient="records")
-                    if (len(df_row) != 0)
-                    else {},
-                }
-            )
+            text = "Yes - erroring"
+            classes = "reporting-bad-background reporting-table-cell"
         else:
-            row.append(
-                {
-                    "text": "No endpoint",
-                    "classes": "reporting-null-background",
-                    "data": df_row.fillna("").to_dict(orient="records")
-                    if (len(df_row) != 0)
-                    else {},
-                }
-            )
+            text = "No endpoint"
+            classes = "reporting-null-background reporting-table-cell"
+
+        row.append(
+            {
+                "text": text,
+                "classes": classes,
+                "data": df_row.fillna("").to_dict(orient="records")
+                if (len(df_row) != 0)
+                else {},
+            }
+        )
+    # Calculate % of endpoints provided
+    provided_percentage = str(int(provided_score / len(datasets) * 100)) + "%"
+    row.append({"text": provided_percentage, "classes": "reporting-table-cell"})
     return row

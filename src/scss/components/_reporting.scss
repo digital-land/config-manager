@@ -1,3 +1,20 @@
 .reporting-cohort-filter {
-    margin-top: 5px
+    margin-top: 8px
+}
+
+.reporting-table-cell {
+   padding-left: 1em
+}
+
+.reporting-table-sticky-cell {
+    position: sticky;
+ }
+
+.reporting-table-container{
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.reporting-page {
+    max-width: 80%;
 }
