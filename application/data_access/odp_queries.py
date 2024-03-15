@@ -1,3 +1,7 @@
+import tempfile
+
+import pandas as pd
+
 from application.data_access.datasette_utils import get_datasette_query
 
 SPATIAL_DATASETS = [
@@ -82,7 +86,6 @@ def get_odp_status_summary(dataset_type, cohort):
         for row in rows:
             percentages += float(row[-1]["text"].strip("%")) / 100
             for cell in row:
-                print(cell)
                 if cell.get("data", None) and cell["text"] != "No endpoint":
                     datasets_added += 1
         average_percentage = str(100 * (percentages / len(rows)))[:2] + "%"
@@ -95,12 +98,14 @@ def get_odp_status_summary(dataset_type, cohort):
             *map(lambda dataset: {"text": dataset}, datasets),
             {"text": "% provided"},
         ]
+        params = {"dataset_type": dataset_type, "cohort": cohort}
         return {
             "rows": rows,
             "headers": headers,
             "percentage_datasets_added": average_percentage,
             "datasets_added": datasets_added,
             "max_datasets": max_datasets,
+            "params": params,
         }
 
     else:
@@ -153,3 +158,18 @@ def create_row(organisation, cohort, status_df, datasets):
     provided_percentage = str(int(provided_score / len(datasets) * 100)) + "%"
     row.append({"text": provided_percentage, "classes": "reporting-table-cell"})
     return row
+
+
+def generate_csv(odp_summary):
+    dfs = []
+    for row in odp_summary["rows"]:
+        for cell in row:
+            try:
+                data = cell["data"]
+                dfs.append(pd.DataFrame.from_records(data))
+            except Exception:
+                pass
+    output_df = pd.concat(dfs)
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as csvfile:
+        output_df.to_csv(csvfile, index=False)
+        return csvfile.name
