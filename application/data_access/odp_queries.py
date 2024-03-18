@@ -28,7 +28,7 @@ COHORTS = [
 
 def get_odp_status_summary(dataset_types, cohorts):
     filtered_cohorts = [x for x in cohorts if cohorts[0] in COHORTS]
-    cohort_filter = (
+    cohort_clause = (
         "where "
         + " or ".join(("odp_orgs.cohort = '" + str(n) + "'" for n in filtered_cohorts))
         if filtered_cohorts
@@ -59,7 +59,7 @@ def get_odp_status_summary(dataset_types, cohorts):
         )
         as odp_orgs
         left join reporting_latest_endpoints rle on replace(rle.organisation, '-eng', '') = odp_orgs.organisation
-        {cohort_filter}
+        {cohort_clause}
         order by odp_orgs.cohort
     """
     status_df = get_datasette_query("digital-land", sql)
