@@ -70,12 +70,11 @@ def get_odp_status_summary(dataset_types, cohorts):
             .drop_duplicates()
             .to_dict(orient="records")
         )
-        datasets = []
-        if "spatial" in dataset_types:
-            datasets += SPATIAL_DATASETS
-        if "document" in dataset_types:
-            datasets += DOCUMENT_DATASETS
-        if datasets == []:
+        if dataset_types == ["spatial"]:
+            datasets = SPATIAL_DATASETS
+        elif dataset_types == ["document"]:
+            datasets = DOCUMENT_DATASETS
+        else:
             datasets = SPATIAL_DATASETS + DOCUMENT_DATASETS
         for organisation_cohort_dict in organisation_cohort_dict_list:
             rows.append(
@@ -96,9 +95,9 @@ def get_odp_status_summary(dataset_types, cohorts):
             for cell in row:
                 if cell.get("data", None) and cell["text"] != "No endpoint":
                     datasets_added += 1
-        average_percentage = str(int(100 * (percentages / len(rows))))[:2] + "%"
         datasets_added = str(datasets_added)
         max_datasets = len(rows) * len(datasets)
+        average_percentage_added = str(int(100 * (percentages / len(rows))))[:2] + "%"
 
         headers = [
             {"text": "Cohort"},
@@ -109,7 +108,7 @@ def get_odp_status_summary(dataset_types, cohorts):
         return {
             "rows": rows,
             "headers": headers,
-            "percentage_datasets_added": average_percentage,
+            "percentage_datasets_added": average_percentage_added,
             "datasets_added": datasets_added,
             "max_datasets": max_datasets,
         }
