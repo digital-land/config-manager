@@ -26,8 +26,14 @@ COHORTS = [
 ]
 
 
-def get_odp_status_summary(dataset_type, cohort):
-    cohort_filter = f"where odp_orgs.cohort = '{cohort}'" if cohort in COHORTS else ""
+def get_odp_status_summary(dataset_types, cohorts):
+    filtered_cohorts = [x for x in cohorts if cohorts[0] in COHORTS]
+    cohort_filter = (
+        "where "
+        + " or ".join(("odp_orgs.cohort = '" + str(n) + "'" for n in filtered_cohorts))
+        if filtered_cohorts
+        else ""
+    )
     sql = f"""
         select
             odp_orgs.organisation,
@@ -64,17 +70,19 @@ def get_odp_status_summary(dataset_type, cohort):
             .drop_duplicates()
             .to_dict(orient="records")
         )
-        if dataset_type == "spatial":
-            datasets = SPATIAL_DATASETS
-        elif dataset_type == "document":
-            datasets = DOCUMENT_DATASETS
-        else:
-            datasets = [*SPATIAL_DATASETS, *DOCUMENT_DATASETS]
+        datasets = []
+        if "spatial" in dataset_types:
+            datasets += SPATIAL_DATASETS
+        if "document" in dataset_types:
+            datasets += DOCUMENT_DATASETS
+        if datasets == []:
+            datasets = SPATIAL_DATASETS + DOCUMENT_DATASETS
         for organisation_cohort_dict in organisation_cohort_dict_list:
             rows.append(
                 create_row(
                     organisation_cohort_dict["organisation"],
                     organisation_cohort_dict["cohort"],
+                    organisation_cohort_dict["name"],
                     status_df,
                     datasets,
                 )
@@ -88,7 +96,7 @@ def get_odp_status_summary(dataset_type, cohort):
             for cell in row:
                 if cell.get("data", None) and cell["text"] != "No endpoint":
                     datasets_added += 1
-        average_percentage = str(100 * (percentages / len(rows)))[:2] + "%"
+        average_percentage = str(int(100 * (percentages / len(rows))))[:2] + "%"
         datasets_added = str(datasets_added)
         max_datasets = len(rows) * len(datasets)
 
@@ -98,24 +106,22 @@ def get_odp_status_summary(dataset_type, cohort):
             *map(lambda dataset: {"text": dataset}, datasets),
             {"text": "% provided"},
         ]
-        params = {"dataset_type": dataset_type, "cohort": cohort}
         return {
             "rows": rows,
             "headers": headers,
             "percentage_datasets_added": average_percentage,
             "datasets_added": datasets_added,
             "max_datasets": max_datasets,
-            "params": params,
         }
 
     else:
         return None
 
 
-def create_row(organisation, cohort, status_df, datasets):
+def create_row(organisation, cohort, name, status_df, datasets):
     row = []
     row.append({"text": cohort, "classes": "reporting-table-sticky-cell"})
-    row.append({"text": organisation, "classes": "reporting-table-sticky-cell"})
+    row.append({"text": name, "classes": "reporting-table-sticky-cell"})
     provided_score = 0
     for dataset in datasets:
         df_row = status_df[

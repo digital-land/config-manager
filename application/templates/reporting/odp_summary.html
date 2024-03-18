@@ -31,35 +31,76 @@
                   Filter dataset type and cohort
                 </h1>
               </legend>
-            <div class="govuk-radios govuk-radios--inline" data-module="govuk-radios">
-                <div class="govuk-radios__item">
-                    <input class="govuk-radios__input" id="bothSelection" name="dataset_type" type="radio" value="">
-                    <label class="govuk-label govuk-radios__label" for="dataseet_type">
-                      Both
+            <legend class="govuk-fieldset__legend">
+                Dataset type:
+            </legend>
+            <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+                <div class="govuk-grid-row govuk-!-padding-bottom-1">
+                    <div class="govuk-grid-column-one-half">
+                        <div class="govuk-checkboxes__item">
+                            <input class="govuk-checkboxes__input" id="spatialDataset" name="dataset_type" type="checkbox" value="spatial">
+                                <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
+                                    Spatial
+                                </label>
+                        </div>
+                    </div>
+                    <div class="govuk-grid-column-one-half">
+                        <div class="govuk-checkboxes__item">
+                            <input class="govuk-checkboxes__input" id="documentDataset" name="dataset_type" type="checkbox" value="document">
+                                <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
+                                    Document
+                                </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+              <legend class="govuk-fieldset__legend">
+                Cohort:
+              </legend>
+              <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+                <div class="govuk-grid-row govuk-!-padding-bottom-1">
+                    <div class="govuk-grid-column-one-half">
+                        <div class="govuk-checkboxes__item">
+                            <input class="govuk-checkboxes__input" id="ODP-Track1" name="cohort" type="checkbox" value="ODP-Track1">
+                                <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                                    ODP Track 1
+                                </label>
+                        </div>
+                    </div>
+                    <div class="govuk-grid-column-one-half">
+                        <div class="govuk-checkboxes__item">
+                            <input class="govuk-checkboxes__input" id="ODP-Track2" name="cohort" type="checkbox" value="ODP-Track2">
+                                <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                                    ODP Track 2
+                                </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="govuk-grid-row govuk-!-padding-bottom-1">
+                    <div class="govuk-grid-column-one-half">
+                        <div class="govuk-checkboxes__item">
+                            <input class="govuk-checkboxes__input" id="ODP-Track3" name="cohort" type="checkbox" value="ODP-Track3">
+                                <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                                    ODP Track 3
+                                </label>
+                        </div>
+                    </div>
+                    <div class="govuk-grid-column-one-half">
+                        <div class="govuk-checkboxes__item">
+                            <input class="govuk-checkboxes__input" id="ODP-Track4" name="cohort" type="checkbox" value="ODP-Track4">
+                                <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                                    ODP Track 4
+                                </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="govuk-checkboxes__item govuk-!-padding-bottom-2">
+                  <input class="govuk-checkboxes__input" id="RIPA-BOPS" name="cohort" type="checkbox" value="RIPA-BOPS">
+                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                        RIPA BOPS
                     </label>
-                  </div>
-                <div class="govuk-radios__item">
-                  <input class="govuk-radios__input" id="spatialSelection" name="dataset_type" type="radio" value="spatial">
-                  <label class="govuk-label govuk-radios__label" for="dataset_type">
-                    Spatial
-                  </label>
                 </div>
-                <div class="govuk-radios__item">
-                  <input class="govuk-radios__input" id="documentSelection" name="dataset_type" type="radio" value="document">
-                  <label class="govuk-label govuk-radios__label" for="dataset_type">
-                    Document
-                  </label>
-                </div>
-              </div>
-              <div class="govuk-form-group reporting-cohort-filter">
-                <select class="govuk-select" id="selectCohort" name="cohort">
-                  <option value="">All Cohorts</option>
-                  <option value="ODP-Track1">ODP Track 1</option>
-                  <option value="ODP-Track2">ODP Track 2</option>
-                  <option value="ODP-Track3">ODP Track 3</option>
-                  <option value="ODP-Track4">ODP Track 4</option>
-                  <option value="RIPA-BOPS">RIPA-BOPS</option>
-                </select>
               </div>
               <div class="govuk-button-group">
                 <button type="submit" class="govuk-button" data-module="govuk-button">
@@ -89,22 +130,41 @@
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
     // autofill form with current filters based on query parameters
     const url = new URL(window.location.href)
-    const dataset_type_param = url.searchParams.get("dataset_type")
-    const cohort_param = url.searchParams.get("cohort")
+    const dataset_type_params = url.searchParams.getAll("dataset_type")
+    const cohort_params = url.searchParams.getAll("cohort")
 
-    if (dataset_type_param && ["document", "spatial"].includes(dataset_type_param)) {
-        document.getElementById(dataset_type_param.concat("Selection")).checked="checked"
-    } else {
-        document.getElementById("bothSelection").checked="checked"
-    }
-    if (cohort_param && ["ODP-Track1", "ODP-Track2", "ODP-Track3", "ODP-Track4", "RIPA-BOPS"].includes(cohort_param)) {
-        document.getElementById("selectCohort").value=cohort_param
-    } else {
-        document.getElementById("selectCohort").value=""
-    }
+    let dataset_type_string = ""
+    dataset_type_params.forEach((dataset_type) => {
+        document.getElementById(dataset_type.concat("Dataset")).checked="checked"
+        if (dataset_type_string == "") {
+            dataset_type_string = "dataset_type=".concat(dataset_type)
+        } else {
+            dataset_type_string += "&dataset_type=".concat(dataset_type)
+        }
+    })
 
+    let cohort_string = ""
+    cohort_params.forEach((cohort) => {
+        document.getElementById(cohort).checked="checked"
+        if (cohort_string == "") {
+            cohort_string = "cohort=".concat(cohort)
+        } else {
+            cohort_string += "&cohort=".concat(cohort)
+        }
+    })
     // set download link href
-    const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-status&dataset_type=").concat(dataset_type_param).concat("&cohort=").concat(cohort_param)
+    let search_params= ""
+    if (dataset_type_string && cohort_string) {
+        search_params = "&".concat(dataset_type_string).concat("&").concat(cohort_string)
+    } else if (dataset_type_string) {
+        search_params = "&".concat(dataset_type_string)
+    } else if (cohort_string) {
+        search_params = "&".concat(cohort_string)
+    } else {
+        search_params = ""
+    }
+    const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-status").concat(search_params)
+    console.log(link)
     document.getElementById("download-button").setAttribute("href", link)
 </script>
 

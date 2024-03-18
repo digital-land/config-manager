@@ -57,9 +57,9 @@ def overview():
 
 @report_bp.get("/odp-summary")
 def odp_summary():
-    dataset_type = request.args.get("dataset_type")
-    cohort = request.args.get("cohort")
-    odp_statuses_summary = get_odp_status_summary(dataset_type, cohort)
+    dataset_types = request.args.getlist("dataset_type")
+    cohorts = request.args.getlist("cohort")
+    odp_statuses_summary = get_odp_status_summary(dataset_types, cohorts)
 
     return render_template(
         "reporting/odp_summary.html", odp_statuses_summary=odp_statuses_summary
@@ -70,9 +70,9 @@ def odp_summary():
 def download_csv():
     type = request.args.get("type")
     if type == "odp-status":
-        dataset_type = request.args.get("dataset_type")
-        cohort = request.args.get("cohort")
-        odp_statuses_summary = get_odp_status_summary(dataset_type, cohort)
+        dataset_types = request.args.getlist("dataset_type")
+        cohorts = request.args.getlist("cohort")
+        odp_statuses_summary = get_odp_status_summary(dataset_types, cohorts)
         file_path = generate_csv(odp_statuses_summary)
         return send_file(file_path, download_name="odp-status.csv")
 
