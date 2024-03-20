@@ -1,10 +1,12 @@
 {% extends 'layouts/base.html' %}
 {% from "govuk_frontend_jinja/components/table/macro.html" import govukTable %}
+{% from 'components/filter-checkboxes/macro.jinja' import dlFilterCheckboxes %}
+{%- from "components/filter-group/macro.jinja" import dlFilterGroup %}
 
 {% set containerClasses = 'reporting-page' %}
 
 {% block beforeContent %}
-<div class="govuk-breadcrumbs">
+<div class="govuk-breadcrumbs reporting-overview-container">
   <ol class="govuk-breadcrumbs__list">
     <li class="govuk-breadcrumbs__list-item">
       <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
@@ -17,114 +19,112 @@
 {% endblock beforeContent %}
 
 {% block content %}
-<h1 class="govuk-heading-xl">ODP Endpoint Status Summary</h1>
+
+<div class="reporting-overview-container">
+    <h1 class="govuk-heading-xl">ODP Endpoint Status Summary</h1>
 
 
+    <hr class="govuk-section-break--visible govuk-section-break--l" />
 
-<hr class="govuk-section-break--visible govuk-section-break--l" />
+    <div class="govuk-grid-row">
+        <div class="govuk-grid-column-one-half">
+            <form action="?cohort=cohortSelection&dataset_type=" method="GET">
+                <legend class="govuk-fieldset__legend govuk-fieldset__legend--l">
+                    <h1 class="govuk-fieldset__heading">
+                    Filter dataset type and cohort
+                    </h1>
+                </legend>
 
-<div class="govuk-grid-row">
-    <div class="govuk-grid-column-one-half">
-        <form action="?cohort=cohortSelection&dataset_type=" method="GET">
-            <legend class="govuk-fieldset__legend govuk-fieldset__legend--l">
-                <h1 class="govuk-fieldset__heading">
-                  Filter dataset type and cohort
-                </h1>
-              </legend>
-            <legend class="govuk-fieldset__legend">
-                Dataset type:
-            </legend>
-            <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                <div class="govuk-grid-row govuk-!-padding-bottom-1">
+                <div class="govuk-grid-row govuk-!-padding-bottom-2">
                     <div class="govuk-grid-column-one-half">
-                        <div class="govuk-checkboxes__item">
-                            <input class="govuk-checkboxes__input" id="spatialDataset" name="dataset_type" type="checkbox" value="spatial">
-                                <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
-                                    Spatial
-                                </label>
+                        {% call dlFilterGroup({
+                            "title": "Dataset type:",
+                            "is_open": True,
+                            "selected": odp_statuses_summary.params.dataset_types|length
+                        }) %}
+                        <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+                            <div class="govuk-checkboxes__item">
+                                <input class="govuk-checkboxes__input" id="spatialDataset" name="dataset_type" type="checkbox" value="spatial">
+                                    <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
+                                        Spatial
+                                    </label>
+                            </div>
+                            <div class="govuk-checkboxes__item">
+                                <input class="govuk-checkboxes__input" id="documentDataset" name="dataset_type" type="checkbox" value="document">
+                                    <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
+                                        Document
+                                    </label>
+                            </div>
                         </div>
+                        {% endcall %}
                     </div>
                     <div class="govuk-grid-column-one-half">
-                        <div class="govuk-checkboxes__item">
-                            <input class="govuk-checkboxes__input" id="documentDataset" name="dataset_type" type="checkbox" value="document">
-                                <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
-                                    Document
-                                </label>
+                        {% call dlFilterGroup({
+                            "title": "Cohort:",
+                            "is_open": True,
+                            "selected": odp_statuses_summary.params.cohorts|length
+                        }) %}
+
+                        <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+                            <div class="govuk-checkboxes__item">
+                                <input class="govuk-checkboxes__input" id="RIPA-BOPS" name="cohort" type="checkbox" value="RIPA-BOPS">
+                                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                                        RIPA BOPS
+                                    </label>
+                            </div>
+                            <div class="govuk-checkboxes__item">
+                                <input class="govuk-checkboxes__input" id="ODP-Track1" name="cohort" type="checkbox" value="ODP-Track1">
+                                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                                        ODP Track 1
+                                    </label>
+                            </div>
+                            <div class="govuk-checkboxes__item">
+                                <input class="govuk-checkboxes__input" id="ODP-Track2" name="cohort" type="checkbox" value="ODP-Track2">
+                                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                                        ODP Track 2
+                                    </label>
+                            </div>
+                            <div class="govuk-checkboxes__item">
+                                <input class="govuk-checkboxes__input" id="ODP-Track3" name="cohort" type="checkbox" value="ODP-Track3">
+                                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                                        ODP Track 3
+                                    </label>
+                            </div>
+                            <div class="govuk-checkboxes__item">
+                                <input class="govuk-checkboxes__input" id="ODP-Track4" name="cohort" type="checkbox" value="ODP-Track4">
+                                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                                        ODP Track 4
+                                    </label>
+                            </div>
                         </div>
+                        {% endcall %}
                     </div>
                 </div>
+
+                <div class="govuk-button-group">
+                    <button type="submit" class="govuk-button" data-module="govuk-button">
+                        Apply Filter
+                    </button>
+                    <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=odp-status" id="download-button">
+                        Download Current Table
+                    </a>
+                </div>
+            </form>
+        </div>
+        <div class="govuk-grid-column-one-half">
+            <h1 class="govuk-heading-l">Overview stats:</h1>
+            <div class="govuk-grid-row">
+                <p class="govuk-body govuk-grid-column-two-thirds">Datasets added:
+                    <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.datasets_added}}/{{odp_statuses_summary.max_datasets}}</p>
+                    </p>
             </div>
-
-              <legend class="govuk-fieldset__legend">
-                Cohort:
-              </legend>
-              <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                <div class="govuk-grid-row govuk-!-padding-bottom-1">
-                    <div class="govuk-grid-column-one-half">
-                        <div class="govuk-checkboxes__item">
-                            <input class="govuk-checkboxes__input" id="ODP-Track1" name="cohort" type="checkbox" value="ODP-Track1">
-                                <label class="govuk-label govuk-checkboxes__label" for="cohort">
-                                    ODP Track 1
-                                </label>
-                        </div>
-                    </div>
-                    <div class="govuk-grid-column-one-half">
-                        <div class="govuk-checkboxes__item">
-                            <input class="govuk-checkboxes__input" id="ODP-Track2" name="cohort" type="checkbox" value="ODP-Track2">
-                                <label class="govuk-label govuk-checkboxes__label" for="cohort">
-                                    ODP Track 2
-                                </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="govuk-grid-row govuk-!-padding-bottom-1">
-                    <div class="govuk-grid-column-one-half">
-                        <div class="govuk-checkboxes__item">
-                            <input class="govuk-checkboxes__input" id="ODP-Track3" name="cohort" type="checkbox" value="ODP-Track3">
-                                <label class="govuk-label govuk-checkboxes__label" for="cohort">
-                                    ODP Track 3
-                                </label>
-                        </div>
-                    </div>
-                    <div class="govuk-grid-column-one-half">
-                        <div class="govuk-checkboxes__item">
-                            <input class="govuk-checkboxes__input" id="ODP-Track4" name="cohort" type="checkbox" value="ODP-Track4">
-                                <label class="govuk-label govuk-checkboxes__label" for="cohort">
-                                    ODP Track 4
-                                </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="govuk-checkboxes__item govuk-!-padding-bottom-2">
-                  <input class="govuk-checkboxes__input" id="RIPA-BOPS" name="cohort" type="checkbox" value="RIPA-BOPS">
-                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
-                        RIPA BOPS
-                    </label>
-                </div>
-              </div>
-              <div class="govuk-button-group">
-                <button type="submit" class="govuk-button" data-module="govuk-button">
-                    Apply Filter
-                </button>
-                <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=odp-status" id="download-button">
-                    Download Current Table
-                </a>
-              </div>
-        </form>
-    </div>
-    <div class="govuk-grid-column-one-half">
-        <h1 class="govuk-heading-l">Overview stats:</h1>
-        <div class="govuk-grid-row">
-            <p class="govuk-body govuk-grid-column-two-thirds">Datasets added:</p>
-            <p class="govuk-body govuk-grid-column-one-third">{{odp_statuses_summary.datasets_added}}/{{odp_statuses_summary.max_datasets}}</p>
-        </div>
-        <div class="govuk-grid-row">
-            <p class="govuk-body govuk-grid-column-two-thirds">Percentage added:</p>
-            <p class="govuk-body govuk-grid-column-one-third">{{ odp_statuses_summary.percentage_datasets_added }}</p>
+            <div class="govuk-grid-row">
+                <p class="govuk-body govuk-grid-column-two-thirds">Percentage added:</p>
+                <p class="govuk-body govuk-grid-column-one-third">{{ odp_statuses_summary.percentage_datasets_added }}</p>
+            </div>
         </div>
     </div>
-  </div>
-
+</div>
 
 
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
@@ -164,14 +164,11 @@
         search_params = ""
     }
     const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-status").concat(search_params)
-    console.log(link)
     document.getElementById("download-button").setAttribute("href", link)
 </script>
 
 
-
 <div class="reporting-table-container">
-
     {{ govukTable({
         "head": odp_statuses_summary.headers,
         "rows": odp_statuses_summary.rows,

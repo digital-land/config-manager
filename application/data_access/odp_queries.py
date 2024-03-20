@@ -52,15 +52,15 @@ def get_odp_status_summary(dataset_types, cohorts):
             rle.resource_start_date,
             rle.resource_end_date
         from (
-            select p.organisation, p.cohort, o.name from provision p
+            select p.organisation, p.cohort, o.name, p.start_date from provision p
                 inner join organisation o on o.organisation = p.organisation
                 where "cohort" not like "RIPA-Beta" and "project" like "open-digital-planning"
             group by p.organisation
+            order by p.start_date, p.cohort, o.name
         )
         as odp_orgs
         left join reporting_latest_endpoints rle on replace(rle.organisation, '-eng', '') = odp_orgs.organisation
         {cohort_clause}
-        order by odp_orgs.cohort
     """
     status_df = get_datasette_query("digital-land", sql)
     rows = []
@@ -100,17 +100,22 @@ def get_odp_status_summary(dataset_types, cohorts):
         average_percentage_added = str(int(100 * (percentages / len(rows))))[:2] + "%"
 
         headers = [
-            {"text": "Cohort"},
-            {"text": "Organisation"},
-            *map(lambda dataset: {"text": dataset}, datasets),
-            {"text": "% provided"},
+            {"text": "Cohort", "classes": "reporting-table-header"},
+            {"text": "Organisation", "classes": "reporting-table-header"},
+            *map(
+                lambda dataset: {"text": dataset, "classes": "reporting-table-header"},
+                sorted(datasets),
+            ),
+            {"text": "% provided", "classes": "reporting-table-header"},
         ]
+        params = {"dataset_types": dataset_types, "cohorts": cohorts}
         return {
             "rows": rows,
             "headers": headers,
             "percentage_datasets_added": average_percentage_added,
             "datasets_added": datasets_added,
             "max_datasets": max_datasets,
+            "params": params,
         }
 
     else:
@@ -119,10 +124,10 @@ def get_odp_status_summary(dataset_types, cohorts):
 
 def create_row(organisation, cohort, name, status_df, datasets):
     row = []
-    row.append({"text": cohort, "classes": "reporting-table-sticky-cell"})
-    row.append({"text": name, "classes": "reporting-table-sticky-cell"})
+    row.append({"text": cohort, "classes": "reporting-table-cell"})
+    row.append({"text": name, "classes": "reporting-table-cell"})
     provided_score = 0
-    for dataset in datasets:
+    for dataset in sorted(datasets):
         df_row = status_df[
             (status_df["organisation"] == organisation)
             & (status_df["pipeline"] == dataset)
