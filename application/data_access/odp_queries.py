@@ -184,7 +184,7 @@ def create_row(organisation, cohort, name, status_df, datasets):
     return row
 
 
-def generate_csv(odp_summary):
+def generate_odp_summary_csv(odp_summary):
     dfs = []
     for row in odp_summary["rows"]:
         for cell in row:
