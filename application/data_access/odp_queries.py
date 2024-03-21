@@ -17,17 +17,26 @@ DOCUMENT_DATASETS = [
     "tree-preservation-order",
 ]
 
+# Configs to pass to front end
+
+DATASET_TYPES = [
+    {"name": "Spatial", "id": "spatial"},
+    {"name": "Document", "id": "document"},
+]
+
 COHORTS = [
-    "ODP-Track1",
-    "ODP-Track2",
-    "ODP-Track3",
-    "ODP-Track4",
-    "RIPA-BOPS",
+    {"name": "RIPA BOPS", "id": "RIPA-BOPS"},
+    {"name": "ODP Track 1", "id": "ODP-Track1"},
+    {"name": "ODP Track 2", "id": "ODP-Track2"},
+    {"name": "ODP Track 3", "id": "ODP-Track3"},
+    {"name": "ODP Track 4", "id": "ODP-Track4"},
 ]
 
 
 def get_odp_status_summary(dataset_types, cohorts):
-    filtered_cohorts = [x for x in cohorts if cohorts[0] in COHORTS]
+    filtered_cohorts = [
+        x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
+    ]
     cohort_clause = (
         "where "
         + " or ".join(("odp_orgs.cohort = '" + str(n) + "'" for n in filtered_cohorts))
@@ -108,7 +117,12 @@ def get_odp_status_summary(dataset_types, cohorts):
             ),
             {"text": "% provided", "classes": "reporting-table-header"},
         ]
-        params = {"dataset_types": dataset_types, "cohorts": cohorts}
+        params = {
+            "cohorts": COHORTS,
+            "dataset_types": DATASET_TYPES,
+            "selected_dataset_types": dataset_types,
+            "selected_cohorts": cohorts,
+        }
         return {
             "rows": rows,
             "headers": headers,

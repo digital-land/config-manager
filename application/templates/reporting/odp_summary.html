@@ -1,6 +1,5 @@
 {% extends 'layouts/base.html' %}
 {% from "govuk_frontend_jinja/components/table/macro.html" import govukTable %}
-{% from 'components/filter-checkboxes/macro.jinja' import dlFilterCheckboxes %}
 {%- from "components/filter-group/macro.jinja" import dlFilterGroup %}
 
 {% set containerClasses = 'reporting-page' %}
@@ -40,21 +39,17 @@
                         {% call dlFilterGroup({
                             "title": "Dataset type:",
                             "is_open": True,
-                            "selected": odp_statuses_summary.params.dataset_types|length
+                            "selected": odp_statuses_summary.params.selected_dataset_types|length
                         }) %}
                         <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+                            {% for dataset_type in odp_statuses_summary.params.dataset_types %}
                             <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="spatialDataset" name="dataset_type" type="checkbox" value="spatial">
+                                <input class="govuk-checkboxes__input" id="{{dataset_type.id}}Dataset" name="dataset_type" type="checkbox" value="{{dataset_type.id}}">
                                     <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
-                                        Spatial
+                                        {{dataset_type.name}}
                                     </label>
                             </div>
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="documentDataset" name="dataset_type" type="checkbox" value="document">
-                                    <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
-                                        Document
-                                    </label>
-                            </div>
+                            {% endfor %}
                         </div>
                         {% endcall %}
                     </div>
@@ -62,40 +57,17 @@
                         {% call dlFilterGroup({
                             "title": "Cohort:",
                             "is_open": True,
-                            "selected": odp_statuses_summary.params.cohorts|length
+                            "selected": odp_statuses_summary.params.selected_cohorts|length
                         }) %}
-
                         <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+                            {% for cohort in odp_statuses_summary.params.cohorts %}
                             <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="RIPA-BOPS" name="cohort" type="checkbox" value="RIPA-BOPS">
+                                <input class="govuk-checkboxes__input" id="{{cohort.id}}" name="cohort" type="checkbox" value="{{cohort.id}}">
                                     <label class="govuk-label govuk-checkboxes__label" for="cohort">
-                                        RIPA BOPS
+                                        {{cohort.name}}
                                     </label>
                             </div>
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="ODP-Track1" name="cohort" type="checkbox" value="ODP-Track1">
-                                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
-                                        ODP Track 1
-                                    </label>
-                            </div>
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="ODP-Track2" name="cohort" type="checkbox" value="ODP-Track2">
-                                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
-                                        ODP Track 2
-                                    </label>
-                            </div>
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="ODP-Track3" name="cohort" type="checkbox" value="ODP-Track3">
-                                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
-                                        ODP Track 3
-                                    </label>
-                            </div>
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="ODP-Track4" name="cohort" type="checkbox" value="ODP-Track4">
-                                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
-                                        ODP Track 4
-                                    </label>
-                            </div>
+                            {% endfor %}
                         </div>
                         {% endcall %}
                     </div>
@@ -126,9 +98,16 @@
     </div>
 </div>
 
+<div class="reporting-table-container">
+    {{ govukTable({
+        "head": odp_statuses_summary.headers,
+        "rows": odp_statuses_summary.rows,
+        "classes": "reporting-table"
+      }) }}
+</div>
 
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
-    // autofill form with current filters based on query parameters
+    // autofill form with current filters based on query parameters and generate download link
     const url = new URL(window.location.href)
     const dataset_type_params = url.searchParams.getAll("dataset_type")
     const cohort_params = url.searchParams.getAll("cohort")
@@ -166,15 +145,6 @@
     const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-status").concat(search_params)
     document.getElementById("download-button").setAttribute("href", link)
 </script>
-
-
-<div class="reporting-table-container">
-    {{ govukTable({
-        "head": odp_statuses_summary.headers,
-        "rows": odp_statuses_summary.rows,
-        "classes": "reporting-table"
-      }) }}
-</div>
 
 <script>
     console.log({{odp_statuses_summary | safe}})
