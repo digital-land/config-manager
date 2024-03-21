@@ -17,6 +17,18 @@ DOCUMENT_DATASETS = [
     "tree-preservation-order",
 ]
 
+# Separate variable for all datasets as arbitrary ordering required
+ALL_DATASETS = [
+    "article-4-direction",
+    "article-4-direction-area",
+    "conservation-area",
+    "conservation-area-document",
+    "listed-building-outline",
+    "tree-preservation-order",
+    "tree-preservation-zone",
+    "tree",
+]
+
 # Configs to pass to front end
 
 DATASET_TYPES = [
@@ -84,7 +96,7 @@ def get_odp_status_summary(dataset_types, cohorts):
         elif dataset_types == ["document"]:
             datasets = DOCUMENT_DATASETS
         else:
-            datasets = SPATIAL_DATASETS + DOCUMENT_DATASETS
+            datasets = ALL_DATASETS
         for organisation_cohort_dict in organisation_cohort_dict_list:
             rows.append(
                 create_row(
@@ -113,7 +125,7 @@ def get_odp_status_summary(dataset_types, cohorts):
             {"text": "Organisation", "classes": "reporting-table-header"},
             *map(
                 lambda dataset: {"text": dataset, "classes": "reporting-table-header"},
-                sorted(datasets),
+                datasets,
             ),
             {"text": "% provided", "classes": "reporting-table-header"},
         ]
@@ -141,7 +153,7 @@ def create_row(organisation, cohort, name, status_df, datasets):
     row.append({"text": cohort, "classes": "reporting-table-cell"})
     row.append({"text": name, "classes": "reporting-table-cell"})
     provided_score = 0
-    for dataset in sorted(datasets):
+    for dataset in datasets:
         df_row = status_df[
             (status_df["organisation"] == organisation)
             & (status_df["pipeline"] == dataset)
