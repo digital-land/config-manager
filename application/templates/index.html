@@ -59,13 +59,22 @@
     <h2 class="govuk-heading-m govuk-!-margin-top-9">Reporting (under construction)</h2>
 
     <div class="govuk-grid-row">
-      <div class="govuk-grid-column-one-third">
+      <div class="govuk-grid-column-one-half">
         <a class="app-tools-list__item" href="{{ url_for('reporting.overview')}}">
           <h3 class="govuk-heading-s app-tools-list__item__heading">Overview</h3>
           <p class="govuk-body">General metrics on the platform</p>
         </a>
       </div>
+      <div class="govuk-grid-column-one-half">
+        <a class="app-tools-list__item" href="{{ url_for('reporting.odp_summary')}}">
+          <h3 class="govuk-heading-s app-tools-list__item__heading">ODP Summary</h3>
+          <p class="govuk-body">Summary metrics for ODP cohorts</p>
+        </a>
+      </div>
     </div><!-- /.govuk-grid-row -->
+
+
+
 
     <h2 class="govuk-heading-m govuk-!-margin-top-9">Sources and endpoints</h2>
 

@@ -1,0 +1,28 @@
+.reporting-overview-container {
+    max-width: 80%;
+    margin:auto
+}
+
+.reporting-cohort-filter {
+    margin-top: 8px
+}
+
+.reporting-table-cell {
+   padding-left: 1em;
+   @include govuk-font($size: 16);
+}
+
+.reporting-table-header {
+    padding-left: 1em;
+    @include govuk-font($size: 16);
+    font-weight: bold;
+ }
+
+.reporting-table-container{
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.reporting-page {
+    max-width: 100%;
+}

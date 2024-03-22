@@ -1,5 +1,6 @@
 class TimeseriesChart {
-    constructor (xAxisTitle, xAxisKey, yAxisTitle, yAxisKey, label, data, htmlId, options) {
+    constructor (options) {
+        const {xAxisTitle, xAxisKey, yAxisTitle, yAxisKey, label, data, htmlId} = options
         this.xAxisTitle = xAxisTitle
         this.xAxisKey = xAxisKey
         this.yAxisTitle = yAxisTitle
@@ -7,7 +8,6 @@ class TimeseriesChart {
         this.label = label
         this.data = data
         this.htmlId = htmlId
-        this.options = options
     }
 
     init() {

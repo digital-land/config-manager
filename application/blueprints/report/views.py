@@ -1,6 +1,10 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request, send_file
 
-from application.data_access.datasette_queries import (
+from application.data_access.odp_queries import (
+    generate_odp_summary_csv,
+    get_odp_status_summary,
+)
+from application.data_access.summary_queries import (
     get_contributions_and_erroring_endpoints,
     get_endpoint_errors_and_successes_by_week,
     get_endpoints_added_by_week,
@@ -52,6 +56,28 @@ def overview():
     return render_template(
         "reporting/overview.html", summary_metrics=summary_metrics, graphs=graphs
     )
+
+
+@report_bp.get("/odp-summary")
+def odp_summary():
+    dataset_types = request.args.getlist("dataset_type")
+    cohorts = request.args.getlist("cohort")
+    odp_statuses_summary = get_odp_status_summary(dataset_types, cohorts)
+
+    return render_template(
+        "reporting/odp_summary.html", odp_statuses_summary=odp_statuses_summary
+    )
+
+
+@report_bp.get("/download")
+def download_csv():
+    type = request.args.get("type")
+    if type == "odp-status":
+        dataset_types = request.args.getlist("dataset_type")
+        cohorts = request.args.getlist("cohort")
+        odp_statuses_summary = get_odp_status_summary(dataset_types, cohorts)
+        file_path = generate_odp_summary_csv(odp_statuses_summary)
+        return send_file(file_path, download_name="odp-status.csv")
 
 
 # @report_bp.get("/dataset")

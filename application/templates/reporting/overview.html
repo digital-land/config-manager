@@ -1,4 +1,5 @@
 {% extends 'layouts/base.html' %}
+{% from "govuk_frontend_jinja/components/table/macro.html" import govukTable %}
 {% block beforeContent %}
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="govuk-breadcrumbs">
@@ -7,7 +8,7 @@
       <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
     </li>
     <li class="govuk-breadcrumbs__list-item">
-      reporting
+      Reporting
     </li>
   </ol>
 </div>
@@ -47,9 +48,37 @@
 
 <script type="module" {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   import TimeseriesChart from "{{ assetPath | default('/assets') }}/javascripts/utilities/timeseries-chart.js"
-  const endpoint_added_timeseries = new TimeseriesChart("Week", "date", "Endpoints added", "count", '# of endpoints added per week', {{graphs.endpoints_added_timeseries | safe}}, "endpoint_added_graph").init()
-  const resources_downloaded_timeseries = new TimeseriesChart("Week", "date", "Resources downloaded", "count", "# of resources downloaded per week", {{graphs.endpoint_successes_timeseries | safe}}, "resources_downloaded_graph").init()
-  const endpoint_errors_timeseries = new TimeseriesChart("Week", "date", "Error %", "count", "% of active endpoints erroring per week", {{graphs.endpoint_errors_timeseries | safe}}, "endpoint_error_graph").init()
+  const baseOptions = {xAxisTitle: "Week", xAxisKey: "date", yAxisKey: "count"}
+
+  const endpoint_added_timeseries = new TimeseriesChart(
+    {
+      ...baseOptions,
+      yAxisTitle: "Endpoints added",
+      label:"# of endpoints added per week",
+      data: {{graphs.endpoints_added_timeseries | safe}},
+      htmlId: "endpoint_added_graph"
+    }
+  ).init()
+
+  const resources_downloaded_timeseries = new TimeseriesChart(
+    {
+      ...baseOptions,
+      yAxisTitle: "Resources downloaded",
+      label:"# of resources downloaded per week",
+      data: {{graphs.endpoint_successes_timeseries | safe}},
+      htmlId: "resources_downloaded_graph"
+    }
+  ).init()
+
+  const endpoint_errors_timeseries = new TimeseriesChart(
+    {
+      ...baseOptions,
+      yAxisTitle: "Error %",
+      label:"% of active endpoints erroring per week",
+      data: {{graphs.endpoint_errors_timeseries | safe}},
+      htmlId: "endpoint_error_graph"
+    }
+  ).init()
 </script>
 
 <script type="module" {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
