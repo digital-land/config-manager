@@ -196,6 +196,201 @@ def create_row(organisation, cohort, name, status_df, datasets):
     return row
 
 
+def get_odp_issue_summary(dataset_types, cohorts):
+    filtered_cohorts = [
+        x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
+    ]
+    cohort_clause = (
+        "and ("
+        + " or ".join(("odp_orgs.cohort = '" + str(n) + "'" for n in filtered_cohorts))
+        + ")"
+        if filtered_cohorts
+        else ""
+    )
+    print(cohort_clause)
+    sql = f"""
+        SELECT
+    odp_orgs.organisation,
+    odp_orgs.cohort,
+    odp_orgs.name,
+    i.field,
+    i.issue_type,
+    it.severity,
+    COUNT(it.severity),
+    rle.collection,
+    rle.pipeline,
+    rle.endpoint,
+    rle.endpoint_url,
+    rle.status,
+    rle.exception,
+    rle.resource,
+    rle.latest_log_entry_date,
+    rle.endpoint_entry_date,
+    rle.endpoint_end_date,
+    rle.resource_start_date,
+    rle.resource_end_date
+FROM (
+    SELECT
+        p.organisation,
+        p.cohort,
+        o.name,
+        p.start_date
+    FROM
+        provision p
+    INNER JOIN
+        organisation o ON o.organisation = p.organisation
+    WHERE
+        p.cohort != 'RIPA-Beta' AND
+        p.project = 'open-digital-planning'
+    GROUP BY
+        p.organisation,
+        p.cohort,
+        o.name,
+        p.start_date
+) AS odp_orgs
+LEFT JOIN
+    reporting_latest_endpoints rle ON REPLACE(rle.organisation, '-eng', '') = odp_orgs.organisation
+LEFT JOIN
+    issue i ON rle.resource = i.resource
+LEFT JOIN
+    issue_type it ON i.issue_type = it.issue_type
+WHERE
+    (it.severity != 'info' OR it.severity IS NULL)
+    {cohort_clause}
+GROUP BY
+    odp_orgs.organisation,
+    it.severity,
+    rle.resource
+ORDER BY
+    odp_orgs.start_date,
+    odp_orgs.cohort,
+    odp_orgs.name;
+    """
+    issues_df = get_datasette_query("digital-land", sql)
+    rows = []
+    if issues_df is not None:
+        organisation_cohort_dict_list = (
+            issues_df[["organisation", "cohort", "name"]]
+            .drop_duplicates()
+            .to_dict(orient="records")
+        )
+        if dataset_types == ["spatial"]:
+            datasets = SPATIAL_DATASETS
+        elif dataset_types == ["document"]:
+            datasets = DOCUMENT_DATASETS
+        else:
+            datasets = ALL_DATASETS
+        for organisation_cohort_dict in organisation_cohort_dict_list:
+            rows.append(
+                create_issue_row(
+                    organisation_cohort_dict["organisation"],
+                    organisation_cohort_dict["cohort"],
+                    organisation_cohort_dict["name"],
+                    issues_df,
+                    datasets,
+                )
+            )
+
+        # # Calculate overview stats
+        # percentages = 0.0
+        # datasets_added = 0
+        # for row in rows:
+        #     percentages += float(row[-1]["text"].strip("%")) / 100
+        #     for cell in row:
+        #         if cell.get("data", None) and cell["text"] != "No endpoint":
+        #             datasets_added += 1
+        # datasets_added = str(datasets_added)
+        # max_datasets = len(rows) * len(datasets)
+        # average_percentage_added = str(int(100 * (percentages / len(rows))))[:2] + "%"
+
+        headers = [
+            {"text": "Cohort", "classes": "reporting-table-header"},
+            {"text": "Organisation", "classes": "reporting-table-header"},
+            *map(
+                lambda dataset: {"text": dataset, "classes": "reporting-table-header"},
+                datasets,
+            ),
+        ]
+        params = {
+            "cohorts": COHORTS,
+            "dataset_types": DATASET_TYPES,
+            "selected_dataset_types": dataset_types,
+            "selected_cohorts": cohorts,
+        }
+        return {
+            "rows": rows,
+            "headers": headers,
+            # "percentage_datasets_added": average_percentage_added,
+            # "datasets_added": datasets_added,
+            # "max_datasets": max_datasets,
+            "params": params,
+        }
+
+    else:
+        return None
+
+
+def create_issue_row(organisation, cohort, name, issue_df, datasets):
+    row = []
+    row.append({"text": cohort, "classes": "reporting-table-cell"})
+    row.append({"text": name, "classes": "reporting-table-cell"})
+    # provided_score = 0
+    # severity_counts = {}
+    for dataset in datasets:
+        df_rows = issue_df[
+            (issue_df["organisation"] == organisation)
+            & (issue_df["pipeline"] == dataset)
+        ]
+        if len(df_rows) != 0:
+            severities_with_counts = df_rows[
+                ["severity", "COUNT(it.severity)"]
+            ].to_dict("records")
+            severities = []
+            for severity in severities_with_counts:
+                severities.append(severity["severity"])
+                # Count severities here
+            print(severities)
+
+            if severities[0] is None:
+                text = "No issues"
+                classes = "reporting-table-cell reporting-good-background"
+            elif "error" in severities or "notice" in severities:
+                text = ", ".join(severities)
+                classes = "reporting-table-cell reporting-bad-background"
+            else:
+                text = ", ".join(severities)
+                classes = "reporting-table-cell reporting-medium-background"
+        else:
+            text = "No endpoint"
+            classes = "reporting-table-cell reporting-null-background"
+
+        # if status == "200":
+        #     text = "Yes"
+        #     classes = "reporting-good-background reporting-table-cell"
+        # elif (
+        #     status != "None" and status != "200" and df_row["endpoint"].values[0] != ""
+        # ):
+        #     text = "Yes - erroring"
+        #     classes = "reporting-bad-background reporting-table-cell"
+        # else:
+        #     text = "No endpoint"
+        #     classes = "reporting-null-background reporting-table-cell"
+
+        row.append(
+            {
+                "text": text,
+                "classes": classes,
+                # # "data": df_rows.fillna("").to_dict(orient="records")
+                # if (len(df_rows) != 0)
+                # else {},
+            }
+        )
+    # Calculate % of endpoints provided
+    # provided_percentage = str(int(provided_score / len(datasets) * 100)) + "%"
+    # row.append({"text": provided_percentage, "classes": "reporting-table-cell"})
+    return row
+
+
 def generate_odp_summary_csv(odp_summary):
     dfs = []
     for row in odp_summary["rows"]:

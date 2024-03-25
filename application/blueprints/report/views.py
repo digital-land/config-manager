@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, send_file
 
 from application.data_access.odp_queries import (
     generate_odp_summary_csv,
+    get_odp_issue_summary,
     get_odp_status_summary,
 )
 from application.data_access.summary_queries import (
@@ -66,6 +67,17 @@ def odp_summary():
 
     return render_template(
         "reporting/odp_summary.html", odp_statuses_summary=odp_statuses_summary
+    )
+
+
+@report_bp.get("/odp-summary/issue")
+def odp_issue_summary():
+    dataset_types = request.args.getlist("dataset_type")
+    cohorts = request.args.getlist("cohort")
+    odp_issues_summary = get_odp_issue_summary(dataset_types, cohorts)
+
+    return render_template(
+        "reporting/odp_issue_summary.html", odp_issues_summary=odp_issues_summary
     )
 
 
