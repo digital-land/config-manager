@@ -212,13 +212,23 @@ def get_odp_issue_summary(dataset_types, cohorts):
     odp_orgs.organisation,
     odp_orgs.cohort,
     odp_orgs.name,
-
-
-    case when (it.severity = 'info') then '' else it.severity end as severity,
+    case
+        when (it.severity = 'info') then ''
+        else it.severity
+    end as severity,
     COUNT(it.severity) as severity_count,
-    COUNT(case when it.responsibility = 'internal' then 1 else null end) as internal_responsibility_count,
-    COUNT(case when it.responsibility = 'external' then 1 else null end) as external_responsibility_count,
-
+    COUNT(
+        case
+        when it.responsibility = 'internal' then 1
+        else null
+        end
+    ) as internal_responsibility_count,
+    COUNT(
+        case
+        when it.responsibility = 'external' then 1
+        else null
+        end
+    ) as external_responsibility_count,
     rle.collection,
     rle.pipeline,
     rle.endpoint,
@@ -231,42 +241,40 @@ def get_odp_issue_summary(dataset_types, cohorts):
     rle.endpoint_end_date,
     rle.resource_start_date,
     rle.resource_end_date
-FROM (
-    SELECT
-        p.organisation,
-        p.cohort,
-        o.name,
-        p.start_date
-    FROM
-        provision p
-    INNER JOIN
-        organisation o ON o.organisation = p.organisation
-    WHERE
-        p.cohort != 'RIPA-Beta' AND
-        p.project = 'open-digital-planning'
+    FROM (
+        SELECT
+            p.organisation,
+            p.cohort,
+            o.name,
+            p.start_date
+        FROM
+            provision p
+        INNER JOIN
+            organisation o ON o.organisation = p.organisation
+        WHERE
+            p.cohort != 'RIPA-Beta' AND
+            p.project = 'open-digital-planning'
+        GROUP BY
+            p.organisation,
+            p.cohort,
+            o.name,
+            p.start_date
+    ) AS odp_orgs
+    LEFT JOIN
+        reporting_latest_endpoints rle ON REPLACE(rle.organisation, '-eng', '') = odp_orgs.organisation
+    LEFT JOIN
+        issue i ON rle.resource = i.resource
+    LEFT JOIN
+        issue_type it ON i.issue_type = it.issue_type
+    {cohort_clause}
     GROUP BY
-        p.organisation,
-        p.cohort,
-        o.name,
-        p.start_date
-) AS odp_orgs
-LEFT JOIN
-    reporting_latest_endpoints rle ON REPLACE(rle.organisation, '-eng', '') = odp_orgs.organisation
-LEFT JOIN
-    issue i ON rle.resource = i.resource
-LEFT JOIN
-    issue_type it ON i.issue_type = it.issue_type
-
-
-{cohort_clause}
-GROUP BY
-    odp_orgs.organisation,
-    it.severity,
-    rle.pipeline
-ORDER BY
-    odp_orgs.start_date,
-    odp_orgs.cohort,
-    odp_orgs.name;
+        odp_orgs.organisation,
+        it.severity,
+        rle.pipeline
+    ORDER BY
+        odp_orgs.start_date,
+        odp_orgs.cohort,
+        odp_orgs.name;
     """
     issues_df = get_datasette_query("digital-land", sql)
     rows = []
