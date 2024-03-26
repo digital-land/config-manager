@@ -85,15 +85,11 @@
         </div>
         <div class="govuk-grid-column-one-half">
             <h1 class="govuk-heading-l">Overview stats:</h1>
-            <!-- <div class="govuk-grid-row">
-                <p class="govuk-body govuk-grid-column-two-thirds">Datasets added:
-                    <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">/</p>
-                    </p>
-            </div>
-            <div class="govuk-grid-row">
-                <p class="govuk-body govuk-grid-column-two-thirds">Percentage added:</p>
-                <p class="govuk-body govuk-grid-column-one-third"></p>
-            </div> -->
+            {{ govukTable({
+                "head": odp_issues_summary.stats_headers,
+                "rows": odp_issues_summary.stats_rows,
+                "classes": "reporting-table"
+              }) }}
         </div>
     </div>
 </div>

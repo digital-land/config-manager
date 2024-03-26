@@ -201,22 +201,24 @@ def get_odp_issue_summary(dataset_types, cohorts):
         x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
     ]
     cohort_clause = (
-        "and ("
+        "WHERE "
         + " or ".join(("odp_orgs.cohort = '" + str(n) + "'" for n in filtered_cohorts))
-        + ")"
         if filtered_cohorts
         else ""
     )
     print(cohort_clause)
     sql = f"""
-        SELECT
+    SELECT
     odp_orgs.organisation,
     odp_orgs.cohort,
     odp_orgs.name,
-    i.field,
-    i.issue_type,
-    it.severity,
-    COUNT(it.severity),
+
+
+    case when (it.severity = 'info') then '' else it.severity end as severity,
+    COUNT(it.severity) as severity_count,
+    COUNT(case when it.responsibility = 'internal' then 1 else null end) as internal_responsibility_count,
+    COUNT(case when it.responsibility = 'external' then 1 else null end) as external_responsibility_count,
+
     rle.collection,
     rle.pipeline,
     rle.endpoint,
@@ -254,13 +256,13 @@ LEFT JOIN
     issue i ON rle.resource = i.resource
 LEFT JOIN
     issue_type it ON i.issue_type = it.issue_type
-WHERE
-    (it.severity != 'info' OR it.severity IS NULL)
-    {cohort_clause}
+
+
+{cohort_clause}
 GROUP BY
     odp_orgs.organisation,
     it.severity,
-    rle.resource
+    rle.pipeline
 ORDER BY
     odp_orgs.start_date,
     odp_orgs.cohort,
@@ -291,17 +293,132 @@ ORDER BY
                 )
             )
 
-        # # Calculate overview stats
-        # percentages = 0.0
-        # datasets_added = 0
-        # for row in rows:
-        #     percentages += float(row[-1]["text"].strip("%")) / 100
-        #     for cell in row:
-        #         if cell.get("data", None) and cell["text"] != "No endpoint":
-        #             datasets_added += 1
-        # datasets_added = str(datasets_added)
-        # max_datasets = len(rows) * len(datasets)
-        # average_percentage_added = str(int(100 * (percentages / len(rows))))[:2] + "%"
+        # Overview Stats
+        # Dict to store helpful metrics
+        issue_severity_counts = [
+            {
+                "display_severity": "No endpoint",
+                "severity": "",
+                "total_count_percentage": 0.0,
+                "internal_count": 0,
+                "external_count": 0,
+                "total_count": 0,
+                "classes": "reporting-null-background",
+            },
+            {
+                "display_severity": "No issues",
+                "severity": "",
+                "total_count_percentage": 0.0,
+                "internal_count": 0,
+                "external_count": 0,
+                "total_count": 0,
+                "classes": "reporting-good-background",
+            },
+            {
+                "display_severity": "Warning",
+                "severity": "warning",
+                "total_count_percentage": 0.0,
+                "internal_count": 0,
+                "external_count": 0,
+                "total_count": 0,
+                "classes": "reporting-medium-background",
+            },
+            {
+                "display_severity": "Error",
+                "severity": "error",
+                "total_count_percentage": 0.0,
+                "internal_count": 0,
+                "external_count": 0,
+                "total_count": 0,
+                "classes": "reporting-bad-background",
+            },
+            {
+                "display_severity": "Notice",
+                "severity": "notice",
+                "total_count_percentage": 0.0,
+                "internal_count": 0,
+                "external_count": 0,
+                "total_count": 0,
+                "classes": "reporting-bad-background",
+            },
+        ]
+        # Metric for how many endpoints have issues with each severity
+        for row in rows:
+            for cell in row:
+                text = cell.get("text", None)
+                if text is not None or text != "":
+                    for issue_severity in issue_severity_counts:
+                        if issue_severity["display_severity"] in text:
+                            issue_severity["total_count"] += 1
+                # Metrics for how many endpoints have internal/external issues
+                data = cell.get("data", {})
+                if data != {}:
+                    for line in data:
+                        severity = line["severity"]
+                        if severity != "":
+                            if line["internal_responsibility_count"] > 0:
+                                for i in issue_severity_counts:
+                                    if i["severity"] == severity:
+                                        i["internal_count"] += 1
+                            if line["external_responsibility_count"] > 0:
+                                for i in issue_severity_counts:
+                                    if i["severity"] == severity:
+                                        i["external_count"] += 1
+
+        total_cells = len(rows) * (len(rows[0]) - 2)
+        total_internal = 0
+        total_external = 0
+        stats_rows = []
+        # Compute totals/percentages
+        for issue_severity in issue_severity_counts:
+            issue_severity["total_count_percentage"] = (
+                str(int((issue_severity["total_count"] / total_cells) * 100)) + "%"
+            )
+            total_internal += issue_severity["internal_count"]
+            total_external += issue_severity["external_count"]
+            # Write all the metrics to row
+            stats_rows.append(
+                [
+                    {
+                        "text": issue_severity["display_severity"],
+                        "classes": issue_severity["classes"] + " reporting-table-cell",
+                    },
+                    {
+                        "text": issue_severity["total_count"],
+                        "classes": "reporting-table-cell",
+                    },
+                    {
+                        "text": issue_severity["total_count_percentage"],
+                        "classes": "reporting-table-cell",
+                    },
+                    {
+                        "text": issue_severity["internal_count"],
+                        "classes": "reporting-table-cell",
+                    },
+                    {
+                        "text": issue_severity["external_count"],
+                        "classes": "reporting-table-cell",
+                    },
+                ]
+            )
+        # Add totals row
+        stats_rows.append(
+            [
+                {"text": "Total", "classes": "reporting-table-cell"},
+                {"text": total_cells, "classes": "reporting-table-cell"},
+                {"text": "100%", "classes": "reporting-table-cell"},
+                {"text": total_internal, "classes": "reporting-table-cell"},
+                {"text": total_external, "classes": "reporting-table-cell"},
+            ]
+        )
+
+        stats_headers = [
+            {"text": "Issue Severity"},
+            {"text": "Count"},
+            {"text": "% Count"},
+            {"text": "Internal"},
+            {"text": "External"},
+        ]
 
         headers = [
             {"text": "Cohort", "classes": "reporting-table-header"},
@@ -320,9 +437,9 @@ ORDER BY
         return {
             "rows": rows,
             "headers": headers,
-            # "percentage_datasets_added": average_percentage_added,
-            # "datasets_added": datasets_added,
-            # "max_datasets": max_datasets,
+            "issue_severity_counts": issue_severity_counts,
+            "stats_headers": stats_headers,
+            "stats_rows": stats_rows,
             "params": params,
         }
 
@@ -334,60 +451,41 @@ def create_issue_row(organisation, cohort, name, issue_df, datasets):
     row = []
     row.append({"text": cohort, "classes": "reporting-table-cell"})
     row.append({"text": name, "classes": "reporting-table-cell"})
-    # provided_score = 0
-    # severity_counts = {}
     for dataset in datasets:
         df_rows = issue_df[
             (issue_df["organisation"] == organisation)
             & (issue_df["pipeline"] == dataset)
         ]
         if len(df_rows) != 0:
-            severities_with_counts = df_rows[
-                ["severity", "COUNT(it.severity)"]
-            ].to_dict("records")
-            severities = []
-            for severity in severities_with_counts:
-                severities.append(severity["severity"])
-                # Count severities here
-            print(severities)
-
-            if severities[0] is None:
+            present_severities = df_rows["severity"].tolist()
+            # Filter out blank/info severities
+            present_severities = [i for i in present_severities if i != ""]
+            if present_severities == [] or present_severities == [None]:
                 text = "No issues"
                 classes = "reporting-table-cell reporting-good-background"
-            elif "error" in severities or "notice" in severities:
-                text = ", ".join(severities)
+            elif "error" in present_severities or "notice" in present_severities:
+                text = ", ".join(
+                    severity.capitalize() for severity in present_severities
+                )
                 classes = "reporting-table-cell reporting-bad-background"
             else:
-                text = ", ".join(severities)
+                text = ", ".join(
+                    severity.capitalize() for severity in present_severities
+                )
                 classes = "reporting-table-cell reporting-medium-background"
         else:
             text = "No endpoint"
             classes = "reporting-table-cell reporting-null-background"
 
-        # if status == "200":
-        #     text = "Yes"
-        #     classes = "reporting-good-background reporting-table-cell"
-        # elif (
-        #     status != "None" and status != "200" and df_row["endpoint"].values[0] != ""
-        # ):
-        #     text = "Yes - erroring"
-        #     classes = "reporting-bad-background reporting-table-cell"
-        # else:
-        #     text = "No endpoint"
-        #     classes = "reporting-null-background reporting-table-cell"
-
         row.append(
             {
                 "text": text,
                 "classes": classes,
-                # # "data": df_rows.fillna("").to_dict(orient="records")
-                # if (len(df_rows) != 0)
-                # else {},
+                "data": df_rows.fillna("").to_dict(orient="records")
+                if (len(df_rows) != 0)
+                else {},
             }
         )
-    # Calculate % of endpoints provided
-    # provided_percentage = str(int(provided_score / len(datasets) * 100)) + "%"
-    # row.append({"text": provided_percentage, "classes": "reporting-table-cell"})
     return row
 
 

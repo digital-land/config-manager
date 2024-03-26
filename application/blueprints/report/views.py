@@ -59,14 +59,15 @@ def overview():
     )
 
 
-@report_bp.get("/odp-summary")
-def odp_summary():
+@report_bp.get("/odp-summary/status")
+@report_bp.get("/odp-summary/")
+def odp_status_summary():
     dataset_types = request.args.getlist("dataset_type")
     cohorts = request.args.getlist("cohort")
     odp_statuses_summary = get_odp_status_summary(dataset_types, cohorts)
 
     return render_template(
-        "reporting/odp_summary.html", odp_statuses_summary=odp_statuses_summary
+        "reporting/odp_status_summary.html", odp_statuses_summary=odp_statuses_summary
     )
 
 
