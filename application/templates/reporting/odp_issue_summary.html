@@ -13,6 +13,9 @@
     <li class="govuk-breadcrumbs__list-item">
       Reporting
     </li>
+    <li class="govuk-breadcrumbs__list-item">
+      ODP Summary
+    </li>
   </ol>
 </div>
 {% endblock beforeContent %}
@@ -20,10 +23,25 @@
 {% block content %}
 
 <div class="reporting-overview-container">
-    <h1 class="govuk-heading-xl">ODP Endpoint Issue Summary</h1>
-
+    <div class="govuk-grid-row govuk-heading-l">
+        <div class="govuk-grid-column-one-third reporting-odp-summary-link">
+            <a href="{{ url_for('reporting.odp_status_summary')}}" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Status</a>
+        </div>
+        <div class="govuk-grid-column-one-third reporting-odp-summary-link">
+            <a href="{{ url_for('reporting.odp_issue_summary')}}" class="govuk-link govuk-link--no-visited-state">Issue</a>
+        </div>
+        <div class="govuk-grid-column-one-third reporting-odp-summary-link">
+            <a href="#" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Compliance</a>
+        </div>
+    </div>
 
     <hr class="govuk-section-break--visible govuk-section-break--l" />
+
+    <!-- <h1 class="govuk-heading-xl">ODP Endpoint Issue Summary</h1> -->
+
+
+
+
 
     <div class="govuk-grid-row">
         <div class="govuk-grid-column-one-half">
@@ -138,7 +156,7 @@
     } else {
         search_params = ""
     }
-    const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-issues").concat(search_params)
+    const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-issue").concat(search_params)
     document.getElementById("download-button").setAttribute("href", link)
 </script>
 

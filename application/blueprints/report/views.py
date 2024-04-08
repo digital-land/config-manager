@@ -60,7 +60,6 @@ def overview():
 
 
 @report_bp.get("/odp-summary/status")
-@report_bp.get("/odp-summary/")
 def odp_status_summary():
     dataset_types = request.args.getlist("dataset_type")
     cohorts = request.args.getlist("cohort")
@@ -91,6 +90,13 @@ def download_csv():
         odp_statuses_summary = get_odp_status_summary(dataset_types, cohorts)
         file_path = generate_odp_summary_csv(odp_statuses_summary)
         return send_file(file_path, download_name="odp-status.csv")
+    if type == "odp-issue":
+        dataset_types = request.args.getlist("dataset_type")
+        cohorts = request.args.getlist("cohort")
+        odp_issues_summary = get_odp_issue_summary(dataset_types, cohorts)
+        file_path = generate_odp_summary_csv(odp_issues_summary)
+        print(file_path)
+        return send_file(file_path, download_name="odp-issue.csv")
 
 
 # @report_bp.get("/dataset")

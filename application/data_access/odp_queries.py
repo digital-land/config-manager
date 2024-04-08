@@ -304,15 +304,15 @@ def get_odp_issue_summary(dataset_types, cohorts):
         # Overview Stats
         # Dict to store helpful metrics
         issue_severity_counts = [
-            {
-                "display_severity": "No endpoint",
-                "severity": "",
-                "total_count_percentage": 0.0,
-                "internal_count": 0,
-                "external_count": 0,
-                "total_count": 0,
-                "classes": "reporting-null-background",
-            },
+            # {
+            #     "display_severity": "No endpoint",
+            #     "severity": "",
+            #     "total_count_percentage": 0.0,
+            #     "internal_count": 0,
+            #     "external_count": 0,
+            #     "total_count": 0,
+            #     "classes": "reporting-null-background",
+            # },
             {
                 "display_severity": "No issues",
                 "severity": "",
@@ -351,6 +351,7 @@ def get_odp_issue_summary(dataset_types, cohorts):
             },
         ]
         # Metric for how many endpoints have issues with each severity
+        total_endpoints = 0
         for row in rows:
             for cell in row:
                 text = cell.get("text", None)
@@ -361,6 +362,7 @@ def get_odp_issue_summary(dataset_types, cohorts):
                 # Metrics for how many endpoints have internal/external issues
                 data = cell.get("data", {})
                 if data != {}:
+                    total_endpoints += 1
                     for line in data:
                         severity = line["severity"]
                         if severity != "":
@@ -373,14 +375,14 @@ def get_odp_issue_summary(dataset_types, cohorts):
                                     if i["severity"] == severity:
                                         i["external_count"] += 1
 
-        total_cells = len(rows) * (len(rows[0]) - 2)
+        # total_cells = len(rows) * (len(rows[0]) - 2)
         total_internal = 0
         total_external = 0
         stats_rows = []
         # Compute totals/percentages
         for issue_severity in issue_severity_counts:
             issue_severity["total_count_percentage"] = (
-                str(int((issue_severity["total_count"] / total_cells) * 100)) + "%"
+                str(int((issue_severity["total_count"] / total_endpoints) * 100)) + "%"
             )
             total_internal += issue_severity["internal_count"]
             total_external += issue_severity["external_count"]
@@ -413,8 +415,8 @@ def get_odp_issue_summary(dataset_types, cohorts):
         stats_rows.append(
             [
                 {"text": "Total", "classes": "reporting-table-cell"},
-                {"text": total_cells, "classes": "reporting-table-cell"},
-                {"text": "100%", "classes": "reporting-table-cell"},
+                {"text": total_endpoints, "classes": "reporting-table-cell"},
+                {"text": "", "classes": "reporting-table-cell"},
                 {"text": total_internal, "classes": "reporting-table-cell"},
                 {"text": total_external, "classes": "reporting-table-cell"},
             ]
