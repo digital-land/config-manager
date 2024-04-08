@@ -206,7 +206,6 @@ def get_odp_issue_summary(dataset_types, cohorts):
         if filtered_cohorts
         else ""
     )
-    print(cohort_clause)
     sql = f"""
     SELECT
     odp_orgs.organisation,
@@ -216,16 +215,20 @@ def get_odp_issue_summary(dataset_types, cohorts):
         when (it.severity = 'info') then ''
         else it.severity
     end as severity,
-    COUNT(it.severity) as severity_count,
+    COUNT(case
+        when it.severity != 'info' then 1
+        else null
+        end
+    ) as severity_count,
     COUNT(
         case
-        when it.responsibility = 'internal' then 1
+        when it.responsibility = 'internal' and it.severity != 'info' then 1
         else null
         end
     ) as internal_responsibility_count,
     COUNT(
         case
-        when it.responsibility = 'external' then 1
+        when it.responsibility = 'external' and it.severity != 'info' then 1
         else null
         end
     ) as external_responsibility_count,
@@ -304,15 +307,6 @@ def get_odp_issue_summary(dataset_types, cohorts):
         # Overview Stats
         # Dict to store helpful metrics
         issue_severity_counts = [
-            # {
-            #     "display_severity": "No endpoint",
-            #     "severity": "",
-            #     "total_count_percentage": 0.0,
-            #     "internal_count": 0,
-            #     "external_count": 0,
-            #     "total_count": 0,
-            #     "classes": "reporting-null-background",
-            # },
             {
                 "display_severity": "No issues",
                 "severity": "",
@@ -351,71 +345,88 @@ def get_odp_issue_summary(dataset_types, cohorts):
             },
         ]
         # Metric for how many endpoints have issues with each severity
+        total_issues = 0
+        endpoints_with_no_issues_count = 0
         total_endpoints = 0
         for row in rows:
             for cell in row:
                 text = cell.get("text", None)
                 if text is not None or text != "":
-                    for issue_severity in issue_severity_counts:
-                        if issue_severity["display_severity"] in text:
-                            issue_severity["total_count"] += 1
-                # Metrics for how many endpoints have internal/external issues
-                data = cell.get("data", {})
-                if data != {}:
-                    total_endpoints += 1
-                    for line in data:
-                        severity = line["severity"]
-                        if severity != "":
-                            if line["internal_responsibility_count"] > 0:
-                                for i in issue_severity_counts:
-                                    if i["severity"] == severity:
-                                        i["internal_count"] += 1
-                            if line["external_responsibility_count"] > 0:
-                                for i in issue_severity_counts:
-                                    if i["severity"] == severity:
-                                        i["external_count"] += 1
+                    data = cell.get("data", {})
+                    if data != {}:
+                        total_endpoints += 1
+                        for issue_severity in issue_severity_counts:
+                            if issue_severity["display_severity"] in text:
+                                for line in data:
+                                    severity = line["severity"]
+                                    if (
+                                        severity != ""
+                                        and severity == issue_severity["severity"]
+                                    ):
+                                        issue_severity["internal_count"] += line[
+                                            "internal_responsibility_count"
+                                        ]
+                                        issue_severity["external_count"] += line[
+                                            "external_responsibility_count"
+                                        ]
+                                        issue_severity["total_count"] += (
+                                            line["internal_responsibility_count"]
+                                            + line["external_responsibility_count"]
+                                        )
+                                        total_issues += (
+                                            line["internal_responsibility_count"]
+                                            + line["external_responsibility_count"]
+                                        )
+                                    elif (
+                                        severity == ""
+                                        and severity == issue_severity["severity"]
+                                    ):
+                                        endpoints_with_no_issues_count += 1
 
-        # total_cells = len(rows) * (len(rows[0]) - 2)
-        total_internal = 0
-        total_external = 0
         stats_rows = []
         # Compute totals/percentages
+        total_internal = 0
+        total_external = 0
         for issue_severity in issue_severity_counts:
             issue_severity["total_count_percentage"] = (
-                str(int((issue_severity["total_count"] / total_endpoints) * 100)) + "%"
+                str(int((issue_severity["total_count"] / total_issues) * 100)) + "%"
             )
+
             total_internal += issue_severity["internal_count"]
             total_external += issue_severity["external_count"]
-            # Write all the metrics to row
-            stats_rows.append(
-                [
-                    {
-                        "text": issue_severity["display_severity"],
-                        "classes": issue_severity["classes"] + " reporting-table-cell",
-                    },
-                    {
-                        "text": issue_severity["total_count"],
-                        "classes": "reporting-table-cell",
-                    },
-                    {
-                        "text": issue_severity["total_count_percentage"],
-                        "classes": "reporting-table-cell",
-                    },
-                    {
-                        "text": issue_severity["internal_count"],
-                        "classes": "reporting-table-cell",
-                    },
-                    {
-                        "text": issue_severity["external_count"],
-                        "classes": "reporting-table-cell",
-                    },
-                ]
-            )
+
+            # Write all the metrics to row except for No issues
+            if issue_severity["severity"] != "":
+                stats_rows.append(
+                    [
+                        {
+                            "text": issue_severity["display_severity"],
+                            "classes": issue_severity["classes"]
+                            + " reporting-table-cell",
+                        },
+                        {
+                            "text": issue_severity["total_count"],
+                            "classes": "reporting-table-cell",
+                        },
+                        {
+                            "text": issue_severity["total_count_percentage"],
+                            "classes": "reporting-table-cell",
+                        },
+                        {
+                            "text": issue_severity["internal_count"],
+                            "classes": "reporting-table-cell",
+                        },
+                        {
+                            "text": issue_severity["external_count"],
+                            "classes": "reporting-table-cell",
+                        },
+                    ]
+                )
         # Add totals row
         stats_rows.append(
             [
                 {"text": "Total", "classes": "reporting-table-cell"},
-                {"text": total_endpoints, "classes": "reporting-table-cell"},
+                {"text": total_issues, "classes": "reporting-table-cell"},
                 {"text": "", "classes": "reporting-table-cell"},
                 {"text": total_internal, "classes": "reporting-table-cell"},
                 {"text": total_external, "classes": "reporting-table-cell"},
@@ -450,6 +461,10 @@ def get_odp_issue_summary(dataset_types, cohorts):
             "issue_severity_counts": issue_severity_counts,
             "stats_headers": stats_headers,
             "stats_rows": stats_rows,
+            "endpoints_no_issues": {
+                "count": endpoints_with_no_issues_count,
+                "total_endpoints": total_endpoints,
+            },
             "params": params,
         }
 
