@@ -37,12 +37,6 @@
 
     <hr class="govuk-section-break--visible govuk-section-break--l" />
 
-    <!-- <h1 class="govuk-heading-xl">ODP Endpoint Issue Summary</h1> -->
-
-
-
-
-
     <div class="govuk-grid-row">
         <div class="govuk-grid-column-one-half">
             <form action="?cohort=cohortSelection&dataset_type=" method="GET">
@@ -160,10 +154,5 @@
     const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-issue").concat(search_params)
     document.getElementById("download-button").setAttribute("href", link)
 </script>
-
-<script>
-    console.log({{odp_issues_summary | safe}})
-</script>
-
 
 {% endblock content %}
