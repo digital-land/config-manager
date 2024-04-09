@@ -95,7 +95,6 @@ def download_csv():
         cohorts = request.args.getlist("cohort")
         odp_issues_summary = get_odp_issue_summary(dataset_types, cohorts)
         file_path = generate_odp_summary_csv(odp_issues_summary)
-        print(file_path)
         return send_file(file_path, download_name="odp-issue.csv")
 
 
