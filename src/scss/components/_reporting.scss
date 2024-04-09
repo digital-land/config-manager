@@ -1,8 +1,16 @@
 .reporting-overview-container {
-    max-width: 80%;
+    max-width: 90%;
     margin:auto
 }
 
+.reporting-odp-summary-link {
+    text-align: center;
+}
+
+.reporting-odp-summary-link-unselected {
+    margin:auto;
+    color: rgba(govuk-colour("black"),1);
+}
 .reporting-cohort-filter {
     margin-top: 8px
 }

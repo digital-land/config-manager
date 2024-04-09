@@ -1,0 +1,158 @@
+{% extends 'layouts/base.html' %}
+{% from "govuk_frontend_jinja/components/table/macro.html" import govukTable %}
+{%- from "components/filter-group/macro.jinja" import dlFilterGroup %}
+
+{% set containerClasses = 'reporting-page' %}
+
+{% block beforeContent %}
+<div class="govuk-breadcrumbs reporting-overview-container">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      Reporting
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      ODP Summary
+    </li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+
+{% block content %}
+
+<div class="reporting-overview-container">
+    <div class="govuk-grid-row govuk-heading-l">
+        <div class="govuk-grid-column-one-third reporting-odp-summary-link">
+            <a href="{{ url_for('reporting.odp_status_summary')}}" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Status</a>
+        </div>
+        <div class="govuk-grid-column-one-third reporting-odp-summary-link">
+            <a href="{{ url_for('reporting.odp_issue_summary')}}" class="govuk-link govuk-link--no-visited-state">Issue</a>
+        </div>
+        <div class="govuk-grid-column-one-third reporting-odp-summary-link">
+            <a href="#" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Compliance</a>
+        </div>
+    </div>
+
+    <hr class="govuk-section-break--visible govuk-section-break--l" />
+
+    <div class="govuk-grid-row">
+        <div class="govuk-grid-column-one-half">
+            <form action="?cohort=cohortSelection&dataset_type=" method="GET">
+                <legend class="govuk-fieldset__legend govuk-fieldset__legend--l">
+                    <h1 class="govuk-fieldset__heading">
+                    Filter dataset type and cohort
+                    </h1>
+                </legend>
+
+                <div class="govuk-grid-row govuk-!-padding-bottom-2">
+                    <div class="govuk-grid-column-one-half">
+                        {% call dlFilterGroup({
+                            "title": "Dataset type:",
+                            "is_open": True,
+                            "selected": odp_issues_summary.params.selected_dataset_types|length
+                        }) %}
+                        <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+                            {% for dataset_type in odp_issues_summary.params.dataset_types %}
+                            <div class="govuk-checkboxes__item">
+                                <input class="govuk-checkboxes__input" id="{{dataset_type.id}}Dataset" name="dataset_type" type="checkbox" value="{{dataset_type.id}}">
+                                    <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
+                                        {{dataset_type.name}}
+                                    </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endcall %}
+                    </div>
+                    <div class="govuk-grid-column-one-half">
+                        {% call dlFilterGroup({
+                            "title": "Cohort:",
+                            "is_open": True,
+                            "selected": odp_issues_summary.params.selected_cohorts|length
+                        }) %}
+                        <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+                            {% for cohort in odp_issues_summary.params.cohorts %}
+                            <div class="govuk-checkboxes__item">
+                                <input class="govuk-checkboxes__input" id="{{cohort.id}}" name="cohort" type="checkbox" value="{{cohort.id}}">
+                                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                                        {{cohort.name}}
+                                    </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endcall %}
+                    </div>
+                </div>
+
+                <div class="govuk-button-group">
+                    <button type="submit" class="govuk-button" data-module="govuk-button">
+                        Apply Filter
+                    </button>
+                    <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=odp-issue" id="download-button">
+                        Download Current Table
+                    </a>
+                </div>
+            </form>
+        </div>
+        <div class="govuk-grid-column-one-half">
+            <h1 class="govuk-heading-l">Overview stats:</h1>
+            {{ govukTable({
+                "head": odp_issues_summary.stats_headers,
+                "rows": odp_issues_summary.stats_rows,
+                "classes": "reporting-table"
+              }) }}
+            <p class="govuk-!-text-align-centre govuk-body govuk-!-width-full"><strong class="govuk-!-font-size-36">{{odp_issues_summary.endpoints_no_issues.count}}</strong> / {{odp_issues_summary.endpoints_no_issues.total_endpoints}} endpoints with no issues</p>
+        </div>
+    </div>
+</div>
+
+<div class="reporting-table-container">
+    {{ govukTable({
+        "head": odp_issues_summary.headers,
+        "rows": odp_issues_summary.rows,
+        "classes": "reporting-table"
+      }) }}
+</div>
+
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
+    // autofill form with current filters based on query parameters and generate download link
+    const url = new URL(window.location.href)
+    const dataset_type_params = url.searchParams.getAll("dataset_type")
+    const cohort_params = url.searchParams.getAll("cohort")
+
+    let dataset_type_string = ""
+    dataset_type_params.forEach((dataset_type) => {
+        document.getElementById(dataset_type.concat("Dataset")).checked="checked"
+        if (dataset_type_string == "") {
+            dataset_type_string = "dataset_type=".concat(dataset_type)
+        } else {
+            dataset_type_string += "&dataset_type=".concat(dataset_type)
+        }
+    })
+
+    let cohort_string = ""
+    cohort_params.forEach((cohort) => {
+        document.getElementById(cohort).checked="checked"
+        if (cohort_string == "") {
+            cohort_string = "cohort=".concat(cohort)
+        } else {
+            cohort_string += "&cohort=".concat(cohort)
+        }
+    })
+    // set download link href
+    let search_params= ""
+    if (dataset_type_string && cohort_string) {
+        search_params = "&".concat(dataset_type_string).concat("&").concat(cohort_string)
+    } else if (dataset_type_string) {
+        search_params = "&".concat(dataset_type_string)
+    } else if (cohort_string) {
+        search_params = "&".concat(cohort_string)
+    } else {
+        search_params = ""
+    }
+    const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-issue").concat(search_params)
+    document.getElementById("download-button").setAttribute("href", link)
+</script>
+
+{% endblock content %}

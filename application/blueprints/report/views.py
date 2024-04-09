@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, send_file
 
 from application.data_access.odp_queries import (
     generate_odp_summary_csv,
+    get_odp_issue_summary,
     get_odp_status_summary,
 )
 from application.data_access.summary_queries import (
@@ -58,14 +59,25 @@ def overview():
     )
 
 
-@report_bp.get("/odp-summary")
-def odp_summary():
+@report_bp.get("/odp-summary/status")
+def odp_status_summary():
     dataset_types = request.args.getlist("dataset_type")
     cohorts = request.args.getlist("cohort")
     odp_statuses_summary = get_odp_status_summary(dataset_types, cohorts)
 
     return render_template(
-        "reporting/odp_summary.html", odp_statuses_summary=odp_statuses_summary
+        "reporting/odp_status_summary.html", odp_statuses_summary=odp_statuses_summary
+    )
+
+
+@report_bp.get("/odp-summary/issue")
+def odp_issue_summary():
+    dataset_types = request.args.getlist("dataset_type")
+    cohorts = request.args.getlist("cohort")
+    odp_issues_summary = get_odp_issue_summary(dataset_types, cohorts)
+
+    return render_template(
+        "reporting/odp_issue_summary.html", odp_issues_summary=odp_issues_summary
     )
 
 
@@ -78,6 +90,12 @@ def download_csv():
         odp_statuses_summary = get_odp_status_summary(dataset_types, cohorts)
         file_path = generate_odp_summary_csv(odp_statuses_summary)
         return send_file(file_path, download_name="odp-status.csv")
+    if type == "odp-issue":
+        dataset_types = request.args.getlist("dataset_type")
+        cohorts = request.args.getlist("cohort")
+        odp_issues_summary = get_odp_issue_summary(dataset_types, cohorts)
+        file_path = generate_odp_summary_csv(odp_issues_summary)
+        return send_file(file_path, download_name="odp-issue.csv")
 
 
 # @report_bp.get("/dataset")
