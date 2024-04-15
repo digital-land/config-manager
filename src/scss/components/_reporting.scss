@@ -34,3 +34,18 @@
 .reporting-page {
     max-width: 100%;
 }
+
+.reporting-log-table{
+    overflow-y: scroll;
+    height: 25rem;
+}
+
+.reporting-resource-table{
+    overflow-y: scroll;
+    height: 25rem;
+}
+
+.reporting-endpoint-details{
+    height: 100%;
+    word-wrap: break-word;
+}

@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, send_file
 
+from application.data_access.endpoint.endpoint_queries import get_endpoint_details
 from application.data_access.odp_queries import (
     generate_odp_summary_csv,
     get_odp_issue_summary,
@@ -19,17 +20,6 @@ report_bp = Blueprint("reporting", __name__, url_prefix="/reporting")
 @report_bp.get("/")
 @report_bp.get("/overview")
 def overview():
-    # get tabbed elements
-    # odp_endpoint_summary = reporting_summary.groupby('dataset')  .....
-    # odp_active_resource_summary = ...
-    # dataset_summary = ....
-    # organisation_summary =  ...
-
-    # content_type_counts = sorted(
-    #     get_content_type_counts(),
-    #     key=lambda x: x["resource_count"],
-    #     reverse=True,
-    # )
     logs_df = get_logs()
     (
         summary_contributions,
@@ -96,6 +86,14 @@ def download_csv():
         odp_issues_summary = get_odp_issue_summary(dataset_types, cohorts)
         file_path = generate_odp_summary_csv(odp_issues_summary)
         return send_file(file_path, download_name="odp-issue.csv")
+
+
+@report_bp.get("endpoint/<endpoint_hash>")
+def endpoint_details(endpoint_hash):
+    endpoint_details = get_endpoint_details(endpoint_hash)
+    return render_template(
+        "reporting/endpoint_details.html", endpoint_details=endpoint_details
+    )
 
 
 # @report_bp.get("/dataset")

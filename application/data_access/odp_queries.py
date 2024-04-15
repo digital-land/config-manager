@@ -29,8 +29,7 @@ ALL_DATASETS = [
     "tree",
 ]
 
-# Configs to pass to front end
-
+# Configs that are passed to the front end
 DATASET_TYPES = [
     {"name": "Spatial", "id": "spatial"},
     {"name": "Document", "id": "document"},
@@ -99,7 +98,7 @@ def get_odp_status_summary(dataset_types, cohorts):
             datasets = ALL_DATASETS
         for organisation_cohort_dict in organisation_cohort_dict_list:
             rows.append(
-                create_row(
+                create_status_row(
                     organisation_cohort_dict["organisation"],
                     organisation_cohort_dict["cohort"],
                     organisation_cohort_dict["name"],
@@ -148,7 +147,7 @@ def get_odp_status_summary(dataset_types, cohorts):
         return None
 
 
-def create_row(organisation, cohort, name, status_df, datasets):
+def create_status_row(organisation, cohort, name, status_df, datasets):
     row = []
     row.append({"text": cohort, "classes": "reporting-table-cell"})
     row.append({"text": name, "classes": "reporting-table-cell"})
@@ -164,8 +163,8 @@ def create_row(organisation, cohort, name, status_df, datasets):
                 status = df_row["status"].values[0]
             else:
                 # Look at exception for status
-                if df_row["status"].values:
-                    status = df_row["status"].values[0]
+                if df_row["exception"].values:
+                    status = df_row["exception"].values[0]
         else:
             status = "None"
 
@@ -175,15 +174,23 @@ def create_row(organisation, cohort, name, status_df, datasets):
         elif (
             status != "None" and status != "200" and df_row["endpoint"].values[0] != ""
         ):
+            # Case where an endpoint exists but the status isn't 200
             text = "Yes - erroring"
             classes = "reporting-bad-background reporting-table-cell"
         else:
             text = "No endpoint"
             classes = "reporting-null-background reporting-table-cell"
 
+        endpoint_hash = df_row["endpoint"]
+        if len(endpoint_hash) > 0:
+            html = f'<a href="../endpoint/{endpoint_hash.values[0]} ">' + text + "</a>"
+        else:
+            html = ""
+
         row.append(
             {
                 "text": text,
+                "html": html,
                 "classes": classes,
                 "data": df_row.fillna("").to_dict(orient="records")
                 if (len(df_row) != 0)
@@ -345,6 +352,7 @@ def get_odp_issue_summary(dataset_types, cohorts):
             },
         ]
         # Metric for how many endpoints have issues with each severity
+        # This could likely be entirely replaced by querying the original pandas dataframe
         total_issues = 0
         endpoints_with_no_issues_count = 0
         total_endpoints = 0
