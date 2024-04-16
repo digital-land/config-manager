@@ -96,9 +96,12 @@
         <div class="govuk-grid-column-one-half">
             <h1 class="govuk-heading-l">Overview stats:</h1>
             <div class="govuk-grid-row">
+                <p class="govuk-body govuk-grid-column-two-thirds">No. of LPAs:
+                <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.number_of_lpas}}</p>
+            </div>
+            <div class="govuk-grid-row">
                 <p class="govuk-body govuk-grid-column-two-thirds">No. of datasets added:
-                    <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.datasets_added}}/{{odp_statuses_summary.max_datasets}}</p>
-                    </p>
+                <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.datasets_added}}/{{odp_statuses_summary.max_datasets}}</p>
             </div>
             <div class="govuk-grid-row">
                 <p class="govuk-body govuk-grid-column-two-thirds">% of datasets added:</p>

@@ -117,6 +117,7 @@ def get_odp_status_summary(dataset_types, cohorts):
                     datasets_added += 1
         datasets_added = str(datasets_added)
         max_datasets = len(rows) * len(datasets)
+        number_of_lpas = len(rows)
         average_percentage_added = str(int(100 * (percentages / len(rows))))[:2] + "%"
 
         headers = [
@@ -138,6 +139,7 @@ def get_odp_status_summary(dataset_types, cohorts):
             "rows": rows,
             "headers": headers,
             "percentage_datasets_added": average_percentage_added,
+            "number_of_lpas": number_of_lpas,
             "datasets_added": datasets_added,
             "max_datasets": max_datasets,
             "params": params,
