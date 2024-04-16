@@ -29,7 +29,7 @@ ALL_DATASETS = [
     "tree",
 ]
 
-# Configs that are passed to the front end
+# Configs that are passed to the front end for the filters
 DATASET_TYPES = [
     {"name": "Spatial", "id": "spatial"},
     {"name": "Document", "id": "document"},
@@ -183,7 +183,11 @@ def create_status_row(organisation, cohort, name, status_df, datasets):
 
         endpoint_hash = df_row["endpoint"]
         if len(endpoint_hash) > 0:
-            html = f'<a href="../endpoint/{endpoint_hash.values[0]} ">' + text + "</a>"
+            html = (
+                f'<a classes = "govuk-link--no-visited-state" href="../endpoint/{endpoint_hash.values[0]} ">'
+                + text
+                + "</a>"
+            )
         else:
             html = ""
 
