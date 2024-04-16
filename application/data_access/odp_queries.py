@@ -169,13 +169,13 @@ def create_status_row(organisation, cohort, name, status_df, datasets):
             status = "None"
 
         if status == "200":
-            text = "Yes"
+            text = "Endpoint added"
             classes = "reporting-good-background reporting-table-cell"
         elif (
             status != "None" and status != "200" and df_row["endpoint"].values[0] != ""
         ):
             # Case where an endpoint exists but the status isn't 200
-            text = "Yes - erroring"
+            text = "Endpoint broken"
             classes = "reporting-bad-background reporting-table-cell"
         else:
             text = "No endpoint"
