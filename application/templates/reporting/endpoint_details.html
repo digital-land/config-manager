@@ -1,0 +1,63 @@
+{% extends 'layouts/base.html' %}
+
+{% set containerClasses = 'reporting-page' %}
+
+{% block beforeContent %}
+<div class="govuk-breadcrumbs reporting-overview-container">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('reporting.odp_status_summary') }}">ODP Summary</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      Endpoint Details
+    </li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+
+{% block content %}
+<div class="reporting-endpoint-details">
+<div class="govuk-grid-row govuk-!-width-full">
+    <div class="govuk-grid-column-one-half govuk-!-padding-left-9 reporting-endpoint-info">
+        <div class="govuk-heading-l">
+          Endpoint Details
+        </div>
+        <div class="">
+          <p class="govuk-body"> <strong> Endpoint: </strong>{{endpoint_details.endpoint_info.endpoint}}</p>
+          <p class="govuk-body"> <strong> Endpoint URL: </strong><a href="{{endpoint_details.endpoint_info.endpoint_url}}">{{endpoint_details.endpoint_info.endpoint_url}}</a></p>
+          <p class="govuk-body"> <strong> Organisation: </strong>{{endpoint_details.endpoint_info.organisation_name}}</p>
+          <p class="govuk-body"> <strong> Organisation Code: </strong>{{endpoint_details.endpoint_info.organisation}}</p>
+          <p class="govuk-body"> <strong> Dataset: </strong>{{endpoint_details.endpoint_info.pipeline}}</p>
+          <p class="govuk-body"> <strong> Start Date: </strong>{{endpoint_details.endpoint_info.start_date}}</p>
+          <p class="govuk-body"> <strong> Entry Date: </strong>{{endpoint_details.endpoint_info.entry_date}}</p>
+        </div>
+    </div>
+    <div class="govuk-grid-column-one-half">
+      <div class="govuk-heading-l">
+        Resource History
+      </div>
+      <div class="reporting-resource-table">
+        {{ govukTable({
+            "head": endpoint_details.resources_headers,
+            "rows": endpoint_details.resources_rows,
+            "classes": "govuk-table--small-text-until-tablet reporting-table"
+          }) }}
+      </div>
+    </div>
+</div>
+
+<div class="govuk-!-margin-8">
+  <p class="govuk-heading-l">Log History</p>
+  <div class="reporting-log-table">
+    {{ govukTable({
+        "head": endpoint_details.logs_headers,
+        "rows": endpoint_details.logs_rows,
+        "classes": "reporting-table"
+      }) }}
+  </div>
+</div>
+</div>
+{% endblock content %}

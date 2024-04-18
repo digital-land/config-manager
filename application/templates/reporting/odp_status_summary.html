@@ -11,9 +11,6 @@
       <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
     </li>
     <li class="govuk-breadcrumbs__list-item">
-      Reporting
-    </li>
-    <li class="govuk-breadcrumbs__list-item">
       ODP Summary
     </li>
   </ol>
@@ -30,7 +27,6 @@
         </div>
         <div class="govuk-grid-column-one-third reporting-odp-summary-link">
             <a href="{{ url_for('reporting.odp_issue_summary')}}" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Issue</a>
-            <!-- <a onclick="window.location='{{ url_for('reporting.odp_issue_summary')}}'+window.location.search;" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Issue</a> -->
         </div>
         <div class="govuk-grid-column-one-third reporting-odp-summary-link">
             <a href="#" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Compliance</a>
@@ -38,8 +34,6 @@
     </div>
 
     <hr class="govuk-section-break--visible govuk-section-break--l" />
-
-    <!-- <h1 class="govuk-heading-xl">ODP Endpoint Status Summary</h1> -->
 
     <div class="govuk-grid-row">
         <div class="govuk-grid-column-one-half">
@@ -102,12 +96,15 @@
         <div class="govuk-grid-column-one-half">
             <h1 class="govuk-heading-l">Overview stats:</h1>
             <div class="govuk-grid-row">
-                <p class="govuk-body govuk-grid-column-two-thirds">Datasets added:
-                    <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.datasets_added}}/{{odp_statuses_summary.max_datasets}}</p>
-                    </p>
+                <p class="govuk-body govuk-grid-column-two-thirds">No. of LPAs:
+                <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.number_of_lpas}}</p>
             </div>
             <div class="govuk-grid-row">
-                <p class="govuk-body govuk-grid-column-two-thirds">Percentage added:</p>
+                <p class="govuk-body govuk-grid-column-two-thirds">No. of datasets added:
+                <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.datasets_added}}/{{odp_statuses_summary.max_datasets}}</p>
+            </div>
+            <div class="govuk-grid-row">
+                <p class="govuk-body govuk-grid-column-two-thirds">% of datasets added:</p>
                 <p class="govuk-body govuk-grid-column-one-third">{{ odp_statuses_summary.percentage_datasets_added }}</p>
             </div>
         </div>
@@ -161,10 +158,5 @@
     const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-status").concat(search_params)
     document.getElementById("download-button").setAttribute("href", link)
 </script>
-
-<script>
-    console.log({{odp_statuses_summary | safe}})
-</script>
-
 
 {% endblock content %}
