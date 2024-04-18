@@ -36,6 +36,7 @@ DATASET_TYPES = [
 ]
 
 COHORTS = [
+    {"name": "RIPA Beta", "id": "RIPA-Beta"},
     {"name": "RIPA BOPS", "id": "RIPA-BOPS"},
     {"name": "ODP Track 1", "id": "ODP-Track1"},
     {"name": "ODP Track 2", "id": "ODP-Track2"},
@@ -74,9 +75,10 @@ def get_odp_status_summary(dataset_types, cohorts):
         from (
             select p.organisation, p.cohort, o.name, p.start_date from provision p
                 inner join organisation o on o.organisation = p.organisation
-                where "cohort" not like "RIPA-Beta" and "project" like "open-digital-planning"
+                inner join cohort c on p.cohort = c.cohort
+                where p.project = "open-digital-planning"
             group by p.organisation
-            order by p.start_date, p.cohort, o.name
+            order by c.start_date, p.start_date, p.cohort, o.name
         )
         as odp_orgs
         left join reporting_latest_endpoints rle on replace(rle.organisation, '-eng', '') = odp_orgs.organisation
@@ -262,14 +264,15 @@ def get_odp_issue_summary(dataset_types, cohorts):
             p.organisation,
             p.cohort,
             o.name,
-            p.start_date
+            c.start_date
         FROM
             provision p
         INNER JOIN
             organisation o ON o.organisation = p.organisation
+        INNER JOIN
+            cohort c on p.cohort = c.cohort
         WHERE
-            p.cohort != 'RIPA-Beta' AND
-            p.project = 'open-digital-planning'
+            p.project = "open-digital-planning"
         GROUP BY
             p.organisation,
             p.cohort,
