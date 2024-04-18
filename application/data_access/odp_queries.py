@@ -604,13 +604,15 @@ def get_odp_issues_by_issue_type(dataset_types, cohorts):
             p.organisation,
             p.cohort,
             o.name,
-            p.start_date
+            c.start_date
         FROM
             provision p
-        INNER JOIN organisation o ON o.organisation = p.organisation
+        INNER JOIN
+            organisation o ON o.organisation = p.organisation
+        INNER JOIN
+            cohort c on p.cohort = c.cohort
         WHERE
-            p.cohort != 'RIPA-Beta'
-            AND p.project = 'open-digital-planning'
+            p.project = "open-digital-planning"
         GROUP BY
             p.organisation,
             p.cohort,
