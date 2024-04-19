@@ -501,7 +501,9 @@ def create_issue_row(organisation, cohort, name, issue_df, datasets):
         if len(df_rows) != 0:
             present_severities = df_rows["severity"].tolist()
             # Filter out blank/info severities
-            present_severities = [i for i in present_severities if i != ""]
+            present_severities = [
+                i for i in present_severities if (i != "" and i is not None)
+            ]
             if present_severities == [] or present_severities == [None]:
                 text = "No issues"
                 classes = "reporting-table-cell reporting-good-background"
