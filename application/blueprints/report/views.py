@@ -4,6 +4,7 @@ from application.data_access.endpoint.endpoint_queries import get_endpoint_detai
 from application.data_access.odp_queries import (
     generate_odp_summary_csv,
     get_odp_issue_summary,
+    get_odp_issues_by_issue_type,
     get_odp_status_summary,
 )
 from application.data_access.summary_queries import (
@@ -83,8 +84,10 @@ def download_csv():
     if type == "odp-issue":
         dataset_types = request.args.getlist("dataset_type")
         cohorts = request.args.getlist("cohort")
-        odp_issues_summary = get_odp_issue_summary(dataset_types, cohorts)
-        file_path = generate_odp_summary_csv(odp_issues_summary)
+        odp_issues_by_type_summary = get_odp_issues_by_issue_type(
+            dataset_types, cohorts
+        )
+        file_path = generate_odp_summary_csv(odp_issues_by_type_summary)
         return send_file(file_path, download_name="odp-issue.csv")
 
 

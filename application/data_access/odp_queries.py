@@ -533,16 +533,132 @@ def create_issue_row(organisation, cohort, name, issue_df, datasets):
     return row
 
 
+def get_odp_issues_by_issue_type(dataset_types, cohorts):
+    # Separate method for issue download as granularity required is different from the issue summary
+    filtered_cohorts = [
+        x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
+    ]
+    cohort_clause = (
+        "and ("
+        + " or ".join(
+            ("odp_orgs.cohort = '" + str(cohort) + "'" for cohort in filtered_cohorts)
+        )
+        + ")"
+        if filtered_cohorts
+        else ""
+    )
+    if dataset_types == ["spatial"]:
+        dataset_clause = (
+            "and ("
+            + " or ".join(
+                (
+                    "rle.pipeline = '" + str(dataset) + "'"
+                    for dataset in SPATIAL_DATASETS
+                )
+            )
+            + ")"
+        )
+    elif dataset_types == ["document"]:
+        dataset_clause = (
+            "and ("
+            + " or ".join(
+                (
+                    "rle.pipeline = '" + str(dataset) + "'"
+                    for dataset in DOCUMENT_DATASETS
+                )
+            )
+            + ")"
+        )
+    else:
+        dataset_clause = ""
+    sql = f"""
+    SELECT
+        odp_orgs.organisation,
+        odp_orgs.cohort,
+        odp_orgs.name,
+        rle.pipeline,
+        case
+            when (it.severity = 'info') then ''
+            else i.issue_type
+        end as issue_type,
+        case
+            when (it.severity = 'info') then ''
+            else it.severity
+        end as severity,
+        it.responsibility,
+        COUNT(
+            case
+            when it.severity != 'info' then 1
+            else null
+            end
+        ) as count,
+        rle.collection,
+        rle.endpoint,
+        rle.endpoint_url,
+        rle.resource,
+        rle.latest_log_entry_date,
+        rle.endpoint_entry_date,
+        rle.endpoint_end_date,
+        rle.resource_start_date,
+        rle.resource_end_date
+    FROM
+    (
+        SELECT
+            p.organisation,
+            p.cohort,
+            o.name,
+            c.start_date
+        FROM
+            provision p
+        INNER JOIN
+            organisation o ON o.organisation = p.organisation
+        INNER JOIN
+            cohort c on p.cohort = c.cohort
+        WHERE
+            p.project = "open-digital-planning"
+        GROUP BY
+            p.organisation,
+            p.cohort,
+            o.name,
+            p.start_date
+    ) AS odp_orgs
+    LEFT JOIN reporting_latest_endpoints rle ON REPLACE(rle.organisation, '-eng', '') = odp_orgs.organisation
+    LEFT JOIN issue i ON rle.resource = i.resource
+    LEFT JOIN issue_type it ON i.issue_type = it.issue_type
+    WHERE
+        it.severity != 'info'
+        {cohort_clause}
+        {dataset_clause}
+    GROUP BY
+        odp_orgs.organisation,
+        rle.pipeline,
+        i.issue_type
+    ORDER BY
+        odp_orgs.start_date,
+        odp_orgs.cohort,
+        odp_orgs.name;
+    """
+    issues_df = get_datasette_query("digital-land", sql)
+    return issues_df
+
+
 def generate_odp_summary_csv(odp_summary):
-    dfs = []
-    for row in odp_summary["rows"]:
-        for cell in row:
-            try:
-                data = cell["data"]
-                dfs.append(pd.DataFrame.from_records(data))
-            except Exception:
-                pass
-    output_df = pd.concat(dfs)
-    with tempfile.NamedTemporaryFile(mode="w", delete=False) as csvfile:
-        output_df.to_csv(csvfile, index=False)
-        return csvfile.name
+    # Can convert any Dataframe to csv
+    if type(odp_summary) is pd.DataFrame:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as csvfile:
+            odp_summary.to_csv(csvfile, index=False)
+            return csvfile.name
+    # Else assume odp summary structure
+    else:
+        dfs = []
+        for row in odp_summary["rows"]:
+            for cell in row:
+                try:
+                    data = cell["data"]
+                    dfs.append(pd.DataFrame.from_records(data))
+                except Exception:
+                    pass
+        output_df = pd.concat(dfs)
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as csvfile:
+            output_df.to_csv(csvfile, index=False)
+            return csvfile.name
