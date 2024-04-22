@@ -65,6 +65,7 @@ def get_odp_status_summary(dataset_types, cohorts):
             rle.endpoint,
             rle.endpoint_url,
             rle.status,
+            rle.days_since_200,
             rle.exception,
             rle.resource,
             rle.latest_log_entry_date,
@@ -162,25 +163,13 @@ def create_status_row(organisation, cohort, name, status_df, datasets):
             & (status_df["pipeline"] == dataset)
         ]
         if len(df_row) != 0:
-            provided_score += 1
-            if df_row["status"].values:
-                status = df_row["status"].values[0]
+            days_since_200 = df_row["days_since_200"].values[0]
+            if days_since_200 < 5:
+                text = "Endpoint added"
+                classes = "reporting-good-background reporting-table-cell"
             else:
-                # Look at exception for status
-                if df_row["exception"].values:
-                    status = df_row["exception"].values[0]
-        else:
-            status = "None"
-
-        if status == "200":
-            text = "Endpoint added"
-            classes = "reporting-good-background reporting-table-cell"
-        elif (
-            status != "None" and status != "200" and df_row["endpoint"].values[0] != ""
-        ):
-            # Case where an endpoint exists but the status isn't 200
-            text = "Endpoint broken"
-            classes = "reporting-bad-background reporting-table-cell"
+                text = "Endpoint broken"
+                classes = "reporting-bad-background reporting-table-cell"
         else:
             text = "No endpoint"
             classes = "reporting-null-background reporting-table-cell"
