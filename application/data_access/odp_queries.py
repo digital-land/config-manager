@@ -163,6 +163,7 @@ def create_status_row(organisation, cohort, name, status_df, datasets):
             & (status_df["pipeline"] == dataset)
         ]
         if len(df_row) != 0:
+            provided_score += 1
             days_since_200 = df_row["days_since_200"].values[0]
             if days_since_200 < 5:
                 text = "Endpoint added"
