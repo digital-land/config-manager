@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, send_file
 
 from application.data_access.endpoint.endpoint_queries import get_endpoint_details
+from application.data_access.odp.compliance import get_odp_compliance_summary
 from application.data_access.odp_queries import (
     generate_odp_summary_csv,
     get_odp_issue_summary,
@@ -70,6 +71,14 @@ def odp_issue_summary():
     return render_template(
         "reporting/odp_issue_summary.html", odp_issues_summary=odp_issues_summary
     )
+
+
+@report_bp.get("/odp-summary/compliance")
+def odp_compliance_summary():
+    dataset_types = request.args.getlist("dataset_type")
+    cohorts = request.args.getlist("cohort")
+    odp_compliance_summary = get_odp_compliance_summary(dataset_types, cohorts)
+    return odp_compliance_summary
 
 
 @report_bp.get("/download")
