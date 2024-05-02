@@ -55,8 +55,8 @@ def get_endpoint_resource_column_field_data(dataset_clause, offset):
         left join (
             select * from column_field
         ) cf on cf.resource = rle.resource
-        where {dataset_clause}
-        and status = '200'
+        where ({dataset_clause})
+        and rle.status = '200'
         and rle.endpoint_end_date = ""
         and rle.resource_end_date = ""
         order by rle.organisation
@@ -80,8 +80,8 @@ def get_endpoint_resource_issue_data(dataset_clause, offset):
         left join (
             select * from issue
         ) i on i.resource = rle.resource
-        where {dataset_clause}
-        and status = '200'
+        where ({dataset_clause})
+        and rle.status = '200'
         and rle.endpoint_end_date = ""
         and rle.resource_end_date = ""
         group by i.field, i.issue_type, rle.resource, rle.pipeline
@@ -95,31 +95,28 @@ def get_endpoint_resource_issue_data(dataset_clause, offset):
     return issue_df
 
 
-def get_provisions():
-    sql = """
-        SELECT
-          cohort,
-          notes,
-          organisation,
-          project,
-          provision_reason,
-          start_date
-        FROM
-          provision p
-        WHERE
-          cohort IN (
-            "ODP-Track1",
-            "ODP-Track3",
-            "ODP-Track2",
-            "RIPA-BOPS"
-          )
-          AND provision_reason = "expected"
-          AND p.project == "open-digital-planning"
-        GROUP BY
-          organisation
-        ORDER BY
-          cohort
-        """
+def get_provisions(cohort_clause):
+    sql = f"""
+    SELECT
+        p.cohort,
+        p.notes,
+        p.organisation,
+        p.project,
+        p.provision_reason,
+        c.start_date as cohort_start_date
+    FROM
+        provision p
+    INNER JOIN
+        cohort c on c.cohort = p.cohort
+    WHERE
+        p.provision_reason = "expected"
+    AND p.project == "open-digital-planning"
+    {cohort_clause}
+    GROUP BY
+        p.organisation
+    ORDER BY
+        cohort_start_date
+    """
     provision_df = get_datasette_query("digital-land", sql)
     provision_df["organisation"] = provision_df["organisation"].str.replace(
         ":", "-eng:"
@@ -138,15 +135,20 @@ def get_issue_types_by_severity(severity_list):
 
 
 def get_odp_compliance_summary(dataset_types, cohorts):
-    # filtered_cohorts = [
-    #     x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
-    # ]
-    # cohort_clause = (
-    #     "where "
-    #     + " or ".join(("odp_orgs.cohort = '" + str(n) + "'" for n in filtered_cohorts))
-    #     if filtered_cohorts
-    #     else ""
-    # )
+    params = {
+        "cohorts": COHORTS,
+        "dataset_types": DATASET_TYPES,
+        "selected_dataset_types": dataset_types,
+        "selected_cohorts": cohorts,
+    }
+    filtered_cohorts = [
+        x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
+    ]
+    cohort_clause = (
+        "and " + " or ".join(("p.cohort = '" + str(n) + "'" for n in filtered_cohorts))
+        if filtered_cohorts
+        else ""
+    )
     if dataset_types == ["spatial"]:
         datasets = SPATIAL_DATASETS
     elif dataset_types == ["document"]:
@@ -157,9 +159,9 @@ def get_odp_compliance_summary(dataset_types, cohorts):
         ("rle.pipeline = '" + str(dataset) + "'" for dataset in datasets)
     )
 
-    provision_df = get_provisions()
+    provision_df = get_provisions(cohort_clause)
 
-    # Download all endpoint/resources along with their column mappings
+    # Download all endpoint/resources combined with their column mappings (to minimise no. of requests)
     # Use pagination in case rows returned > 1000
     pagination_incomplete = True
     offset = 0
@@ -171,6 +173,8 @@ def get_odp_compliance_summary(dataset_types, cohorts):
         endpoint_resource_column_field_df_list.append(endpoint_resource_column_field_df)
         pagination_incomplete = len(endpoint_resource_column_field_df) == 1000
         offset += 1000
+    if len(endpoint_resource_column_field_df_list) == 0:
+        return {"params": params, "rows": [], "headers": []}
     endpoint_resource_column_field_df = pd.concat(
         endpoint_resource_column_field_df_list
     )
@@ -184,13 +188,13 @@ def get_odp_compliance_summary(dataset_types, cohorts):
         issue_df_list.append(issue_df)
         pagination_incomplete = len(issue_df) == 1000
         offset += 1000
-        print(dataset_clause, offset, pagination_incomplete)
     issue_df = pd.concat(issue_df_list)
 
-    # split df into endpoint_resource df and column_field df
-    endpoint_resource_df = endpoint_resource_column_field_df.groupby(
-        ["organisation", "pipeline"], as_index=False
-    ).apply(lambda x: x)
+    # split combined df into endpoint_resource df and column_field df
+    # use drop_duplicates because pandas groupby apparently can't group correctly
+    endpoint_resource_df = endpoint_resource_column_field_df.drop_duplicates(
+        ["pipeline", "organisation"]
+    )
     column_field_df = endpoint_resource_column_field_df[
         ["pipeline", "resource", "column", "field"]
     ].rename(columns={"pipeline": "dataset"})
@@ -219,7 +223,9 @@ def get_odp_compliance_summary(dataset_types, cohorts):
         issue_df[issue_df["resource"] == r["resource"]]
         for index, r in resource_df.iterrows()
     ]
-
+    # Exit early is no results
+    if len(results_col_map) == 0 or len(results_issues) == 0:
+        return {"params": params, "rows": [], "headers": []}
     # concat the results, resources which errored with have NaNs in query results fields
     results_col_map_df = pd.concat(results_col_map)
     results_issues_df = pd.concat(results_issues)
@@ -277,6 +283,7 @@ def get_odp_compliance_summary(dataset_types, cohorts):
             "endpoint_entry_date",
             "resource",
             "licence",
+            "cohort_start_date",
         ]
     ].merge(dataset_field_df[["dataset", "field"]], on="dataset")
 
@@ -330,6 +337,7 @@ def get_odp_compliance_summary(dataset_types, cohorts):
                 "status",
                 "latest_log_entry_date",
                 "endpoint_entry_date",
+                "cohort_start_date",
             ]
         )
         .agg(
@@ -341,7 +349,6 @@ def get_odp_compliance_summary(dataset_types, cohorts):
             }
         )
         .reset_index()
-        .sort_values(["name"])
     )
 
     final_count["field_error_free"] = (
@@ -378,39 +385,62 @@ def get_odp_compliance_summary(dataset_types, cohorts):
     )
 
     final_count.reset_index(drop=True, inplace=True)
-    # csv_out_cols = [
-    #     "organisation",
-    #     "name",
-    #     "cohort",
-    #     "dataset",
-    #     "endpoint",
-    #     "licence",
-    #     "resource",
-    #     "status",
-    #     "latest_log_entry_date",
-    #     "endpoint_entry_date",
-    #     "field",
-    #     "field_supplied",
-    #     "field_matched",
-    #     "field_errors",
-    #     "field_error_free",
-    #     "field_supplied_pct",
-    #     "field_error_free_pct",
-    #     "field_matched_pct",
-    # ]
-    print(final_count)
+    final_count.sort_values(
+        ["cohort_start_date", "cohort", "name", "dataset"], inplace=True
+    )
+    print(final_count[["organisation", "cohort", "cohort_start_date"]].head(20))
+
+    out_cols = [
+        "organisation",
+        "name",
+        "cohort",
+        "dataset",
+        "licence",
+        "field_supplied_count",
+        "field_supplied_pct",
+        "field_matched_count",
+        "field_matched_pct",
+    ]
 
     headers = [
         *map(
-            lambda column: {"text": column},
-            final_count.columns.values,
+            lambda column: {
+                "text": make_pretty(column).title(),
+                "classes": "reporting-table-header",
+            },
+            out_cols,
         )
     ]
-    rows = []
-    for index, r in final_count.iterrows():
-        row = []
-        for cell in r:
-            text = cell
-            row.append({"text": text})
-        rows.append(row)
-    return {"headers": headers, "rows": rows}
+
+    rows = [
+        [
+            {
+                "text": make_pretty(cell),
+                "classes": "reporting-table-cell " + get_background_class(cell),
+            }
+            for cell in r
+        ]
+        for index, r in final_count[out_cols].iterrows()
+    ]
+
+    return {"headers": headers, "rows": rows, "params": params}
+
+
+def make_pretty(text):
+    if type(text) is float:
+        # text is a float, make a percentage
+        return str(int(100 * text)) + "%"
+    elif "_" in text:
+        # text is a column name
+        return text.replace("_", " ").replace("pct", "%").replace("count", "")
+    return text
+
+
+def get_background_class(text):
+    if type(text) is float:
+        group = int((text * 100) / 10)
+        if group == 10:
+            return "reporting-100-background"
+        else:
+            return "reporting-" + str(group) + "0-" + str(group + 1) + "0-background"
+    return ""

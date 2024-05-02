@@ -78,7 +78,10 @@ def odp_compliance_summary():
     dataset_types = request.args.getlist("dataset_type")
     cohorts = request.args.getlist("cohort")
     odp_compliance_summary = get_odp_compliance_summary(dataset_types, cohorts)
-    return odp_compliance_summary
+    return render_template(
+        "reporting/odp_compliance_summary.html",
+        odp_compliance_summary=odp_compliance_summary,
+    )
 
 
 @report_bp.get("/download")

@@ -21,14 +21,14 @@
 
 <div class="reporting-overview-container">
     <div class="govuk-grid-row govuk-heading-l">
-        <div class="govuk-grid-column-one-third reporting-odp-summary-link">
+        <div class="govuk-grid-column-one-third govuk-!-text-align-centre">
             <a href="{{ url_for('reporting.odp_status_summary')}}" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Status</a>
         </div>
-        <div class="govuk-grid-column-one-third reporting-odp-summary-link">
-            <a href="{{ url_for('reporting.odp_issue_summary')}}" class="govuk-link govuk-link--no-visited-state">Issue</a>
+        <div class="govuk-grid-column-one-third govuk-!-text-align-centre">
+            <a href="{{ url_for('reporting.odp_issue_summary')}}" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Issue</a>
         </div>
-        <div class="govuk-grid-column-one-third reporting-odp-summary-link">
-            <a href="{{ url_for('reporting.odp_compliance_summary')}}" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Compliance</a>
+        <div class="govuk-grid-column-one-third govuk-!-text-align-centre">
+            <a href="{{ url_for('reporting.odp_compliance_summary')}}" class="govuk-link govuk-link--no-visited-state">Compliance</a>
         </div>
     </div>
 
@@ -48,10 +48,10 @@
                         {% call dlFilterGroup({
                             "title": "Dataset type:",
                             "is_open": True,
-                            "selected": odp_issues_summary.params.selected_dataset_types|length
+                            "selected": odp_compliance_summary.params.selected_dataset_types|length
                         }) %}
                         <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                            {% for dataset_type in odp_issues_summary.params.dataset_types %}
+                            {% for dataset_type in odp_compliance_summary.params.dataset_types %}
                             <div class="govuk-checkboxes__item">
                                 <input class="govuk-checkboxes__input" id="{{dataset_type.id}}Dataset" name="dataset_type" type="checkbox" value="{{dataset_type.id}}">
                                     <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
@@ -66,10 +66,10 @@
                         {% call dlFilterGroup({
                             "title": "Cohort:",
                             "is_open": True,
-                            "selected": odp_issues_summary.params.selected_cohorts|length
+                            "selected": odp_compliance_summary.params.selected_cohorts|length
                         }) %}
                         <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                            {% for cohort in odp_issues_summary.params.cohorts %}
+                            {% for cohort in odp_compliance_summary.params.cohorts %}
                             <div class="govuk-checkboxes__item">
                                 <input class="govuk-checkboxes__input" id="{{cohort.id}}" name="cohort" type="checkbox" value="{{cohort.id}}">
                                     <label class="govuk-label govuk-checkboxes__label" for="cohort">
@@ -86,7 +86,7 @@
                     <button type="submit" class="govuk-button" data-module="govuk-button">
                         Apply Filter
                     </button>
-                    <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=odp-issue" id="download-button">
+                    <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=odp-compliance" id="download-button">
                         Download Current Table
                     </a>
                 </div>
@@ -94,22 +94,20 @@
         </div>
         <div class="govuk-grid-column-one-half">
             <h1 class="govuk-heading-l">Overview stats:</h1>
-            {{ govukTable({
-                "head": odp_issues_summary.stats_headers,
-                "rows": odp_issues_summary.stats_rows,
-                "classes": "reporting-table"
-              }) }}
-            <p class="govuk-!-text-align-centre govuk-body govuk-!-width-full"><strong class="govuk-!-font-size-36">{{odp_issues_summary.endpoints_no_issues.count}}</strong> / {{odp_issues_summary.endpoints_no_issues.total_endpoints}} endpoints with no issues</p>
         </div>
     </div>
 </div>
 
 <div class="reporting-table-container">
+    {% if odp_compliance_summary.rows == [] %}
+    <h1 class="govuk-heading-l govuk-!-text-align-centre">No data for current filtering</h1>
+    {% else %}
     {{ govukTable({
-        "head": odp_issues_summary.headers,
-        "rows": odp_issues_summary.rows,
+        "head": odp_compliance_summary.headers,
+        "rows": odp_compliance_summary.rows,
         "classes": "reporting-table"
       }) }}
+    {% endif %}
 </div>
 
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
@@ -148,7 +146,7 @@
     } else {
         search_params = ""
     }
-    const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-issue").concat(search_params)
+    const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-compliance").concat(search_params)
     document.getElementById("download-button").setAttribute("href", link)
 </script>
 
