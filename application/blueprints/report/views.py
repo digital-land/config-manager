@@ -77,7 +77,9 @@ def odp_issue_summary():
 def odp_compliance_summary():
     dataset_types = request.args.getlist("dataset_type")
     cohorts = request.args.getlist("cohort")
-    odp_compliance_summary = get_odp_compliance_summary(dataset_types, cohorts)
+    odp_compliance_summary, compliance_df = get_odp_compliance_summary(
+        dataset_types, cohorts
+    )
     return render_template(
         "reporting/odp_compliance_summary.html",
         odp_compliance_summary=odp_compliance_summary,
@@ -87,20 +89,24 @@ def odp_compliance_summary():
 @report_bp.get("/download")
 def download_csv():
     type = request.args.get("type")
+    dataset_types = request.args.getlist("dataset_type")
+    cohorts = request.args.getlist("cohort")
     if type == "odp-status":
-        dataset_types = request.args.getlist("dataset_type")
-        cohorts = request.args.getlist("cohort")
         odp_statuses_summary = get_odp_status_summary(dataset_types, cohorts)
         file_path = generate_odp_summary_csv(odp_statuses_summary)
         return send_file(file_path, download_name="odp-status.csv")
     if type == "odp-issue":
-        dataset_types = request.args.getlist("dataset_type")
-        cohorts = request.args.getlist("cohort")
         odp_issues_by_type_summary = get_odp_issues_by_issue_type(
             dataset_types, cohorts
         )
         file_path = generate_odp_summary_csv(odp_issues_by_type_summary)
         return send_file(file_path, download_name="odp-issue.csv")
+    if type == "odp-compliance":
+        odp_compliance_summary, compliance_df = get_odp_compliance_summary(
+            dataset_types, cohorts
+        )
+        file_path = generate_odp_summary_csv(compliance_df)
+        return send_file(file_path, download_name="odp-compliance.csv")
 
 
 @report_bp.get("endpoint/<endpoint_hash>")

@@ -388,7 +388,6 @@ def get_odp_compliance_summary(dataset_types, cohorts):
     final_count.sort_values(
         ["cohort_start_date", "cohort", "name", "dataset"], inplace=True
     )
-    print(final_count[["organisation", "cohort", "cohort_start_date"]].head(20))
 
     out_cols = [
         "organisation",
@@ -399,6 +398,27 @@ def get_odp_compliance_summary(dataset_types, cohorts):
         "field_supplied_count",
         "field_supplied_pct",
         "field_matched_count",
+        "field_matched_pct",
+    ]
+
+    csv_out_cols = [
+        "organisation",
+        "name",
+        "cohort",
+        "dataset",
+        "endpoint",
+        "licence",
+        "resource",
+        "status",
+        "latest_log_entry_date",
+        "endpoint_entry_date",
+        "field",
+        "field_supplied",
+        "field_matched",
+        "field_errors",
+        "field_error_free",
+        "field_supplied_pct",
+        "field_error_free_pct",
         "field_matched_pct",
     ]
 
@@ -423,13 +443,15 @@ def get_odp_compliance_summary(dataset_types, cohorts):
         for index, r in final_count[out_cols].iterrows()
     ]
 
-    return {"headers": headers, "rows": rows, "params": params}
+    return {"headers": headers, "rows": rows, "params": params}, final_count[
+        csv_out_cols
+    ]
 
 
 def make_pretty(text):
     if type(text) is float:
         # text is a float, make a percentage
-        return str(int(100 * text)) + "%"
+        return str((round(100 * text))) + "%"
     elif "_" in text:
         # text is a column name
         return text.replace("_", " ").replace("pct", "%").replace("count", "")
