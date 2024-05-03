@@ -1,13 +1,13 @@
 from flask import Blueprint, render_template, request, send_file
 
 from application.data_access.endpoint.endpoint_queries import get_endpoint_details
-from application.data_access.odp.compliance import get_odp_compliance_summary
-from application.data_access.odp_queries import (
-    generate_odp_summary_csv,
+from application.data_access.odp_summaries.compliance import get_odp_compliance_summary
+from application.data_access.odp_summaries.issue import (
     get_odp_issue_summary,
     get_odp_issues_by_issue_type,
-    get_odp_status_summary,
 )
+from application.data_access.odp_summaries.status import get_odp_status_summary
+from application.data_access.odp_summaries.utils import generate_odp_summary_csv
 from application.data_access.summary_queries import (
     get_contributions_and_erroring_endpoints,
     get_endpoint_errors_and_successes_by_week,
