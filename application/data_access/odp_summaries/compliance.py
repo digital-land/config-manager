@@ -54,7 +54,7 @@ def get_endpoint_resource_column_field_data(dataset_clause, offset):
         ) s on rle.endpoint = s.endpoint
         left join (
             select * from column_field
-        ) cf on cf.resource = rle.resource
+        ) cf on cf.resource = rle.resource and rle.pipeline = cf.dataset
         where ({dataset_clause})
         and rle.status = '200'
         and rle.endpoint_end_date = ""
@@ -216,14 +216,17 @@ def get_odp_compliance_summary(dataset_types, cohorts):
 
     # get results for col mappings and fields in arrays
     results_col_map = [
-        column_field_df[column_field_df["resource"] == r["resource"]]
+        column_field_df[
+            (column_field_df["resource"] == r["resource"])
+            & (column_field_df["dataset"] == r["pipeline"])
+        ]
         for index, r in resource_df.iterrows()
     ]
     results_issues = [
         issue_df[issue_df["resource"] == r["resource"]]
         for index, r in resource_df.iterrows()
     ]
-    # Exit early is no results
+    # Exit early if no results
     if len(results_col_map) == 0 or len(results_issues) == 0:
         return {"params": params, "rows": [], "headers": []}
     # concat the results, resources which errored with have NaNs in query results fields
