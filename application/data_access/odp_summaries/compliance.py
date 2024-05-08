@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 from application.data_access.datasette_utils import get_datasette_query
-from application.filters import csp_nonce
 
 SPATIAL_DATASETS = [
     "article-4-direction-area",
@@ -443,7 +442,7 @@ def get_odp_compliance_summary(dataset_types, cohorts):
                 "classes": "reporting-table-cell",
                 "attributes": {
                     "style": f"background:rgba(0, 112, 60, {round(float(cell),2) if type(cell) is float else 0});",
-                    "nonce": csp_nonce(),
+                    "nonce": "8IBTHwOdqNKAWeKl7plt8g==",
                 },
             }
             for cell in r
