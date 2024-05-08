@@ -98,7 +98,7 @@
     </div>
 </div>
 
-<div {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} class="reporting-table-container">
+<div class="reporting-table-container">
     {% if odp_compliance_summary.rows == [] %}
     <h1 class="govuk-heading-l govuk-!-text-align-centre">No data for current filtering</h1>
     {% else %}

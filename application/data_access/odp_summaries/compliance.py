@@ -441,7 +441,8 @@ def get_odp_compliance_summary(dataset_types, cohorts):
                 "text": make_pretty(cell),
                 "classes": "reporting-table-cell",
                 "attributes": {
-                    "style": f"background:rgba(0, 112, 60, {round(float(cell),2) if type(cell) is float else 0});"
+                    "style": f"background:rgba(0, 112, 60, {round(float(cell),2) if type(cell) is float else 0});",
+                    "nonce": "",
                 },
             }
             for cell in r
