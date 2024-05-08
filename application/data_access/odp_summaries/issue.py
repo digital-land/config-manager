@@ -116,6 +116,7 @@ def get_odp_issue_summary(dataset_types, cohorts):
     LEFT JOIN
         issue_type it ON i.issue_type = it.issue_type
     {cohort_clause}
+    and rle.collection in ("article-4-direction", "conservation-area", "listed-building", "tree-preservation-order")
     GROUP BY
         odp_orgs.organisation,
         it.severity,
@@ -355,9 +356,11 @@ def create_issue_row(organisation, cohort, name, issue_df, datasets):
             {
                 "text": text,
                 "classes": classes,
-                "data": df_rows.fillna("").to_dict(orient="records")
-                if (len(df_rows) != 0)
-                else {},
+                "data": (
+                    df_rows.fillna("").to_dict(orient="records")
+                    if (len(df_rows) != 0)
+                    else {}
+                ),
             }
         )
     return row
@@ -400,7 +403,13 @@ def get_odp_issues_by_issue_type(dataset_types, cohorts):
             + ")"
         )
     else:
-        dataset_clause = ""
+        dataset_clause = (
+            "and ("
+            + " or ".join(
+                ("rle.pipeline = '" + str(dataset) + "'" for dataset in ALL_DATASETS)
+            )
+            + ")"
+        )
     sql = f"""
     SELECT
         odp_orgs.organisation,
