@@ -439,7 +439,7 @@ def get_odp_compliance_summary(dataset_types, cohorts):
         [
             {
                 "text": make_pretty(cell),
-                "classes": "reporting-table-cell" + get_background_class(cell),
+                "classes": "reporting-table-cell " + get_background_class(cell),
             }
             for cell in r
         ]
