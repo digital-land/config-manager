@@ -80,7 +80,6 @@ def get_odp_status_summary(dataset_types, cohorts):
         as odp_orgs
         left join reporting_latest_endpoints rle on replace(rle.organisation, '-eng', '') = odp_orgs.organisation
         {cohort_clause}
-        and rle.collection in ("article-4-direction", "conservation-area", "listed-building", "tree-preservation-order")
     """
     status_df = get_datasette_query("digital-land", sql)
     rows = []

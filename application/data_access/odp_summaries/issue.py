@@ -116,7 +116,6 @@ def get_odp_issue_summary(dataset_types, cohorts):
     LEFT JOIN
         issue_type it ON i.issue_type = it.issue_type
     {cohort_clause}
-    and rle.collection in ("article-4-direction", "conservation-area", "listed-building", "tree-preservation-order")
     GROUP BY
         odp_orgs.organisation,
         it.severity,

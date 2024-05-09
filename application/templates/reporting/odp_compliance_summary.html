@@ -94,6 +94,11 @@
         </div>
         <div class="govuk-grid-column-one-half">
             <h1 class="govuk-heading-l">Overview stats:</h1>
+            {{ govukTable({
+                "head": odp_compliance_summary.stats_headers,
+                "rows": odp_compliance_summary.stats_rows,
+                "classes": "reporting-table"
+              }) }}
         </div>
     </div>
 </div>

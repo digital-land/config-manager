@@ -446,9 +446,73 @@ def get_odp_compliance_summary(dataset_types, cohorts):
         for index, r in final_count[out_cols].iterrows()
     ]
 
-    return {"headers": headers, "rows": rows, "params": params}, final_count[
-        csv_out_cols
+    # Calculate overview stats
+    overview_datasets = [
+        "article-4-direction-area",
+        "conservation-area",
+        "listed-building-outline",
+        "tree",
+        "tree-preservation-zone",
     ]
+    overview_stats_df = pd.DataFrame()
+    overview_stats_df["dataset"] = overview_datasets
+    overview_stats_df = overview_stats_df.merge(
+        final_count[["dataset", "field_supplied_pct"]][
+            final_count["field_supplied_pct"] < 0.5
+        ]
+        .groupby("dataset")
+        .count(),
+        on="dataset",
+        how="left",
+    ).rename(columns={"field_supplied_pct": "< 50% Fields Supplied"})
+    overview_stats_df = overview_stats_df.merge(
+        final_count[["dataset", "field_supplied_pct"]][
+            (final_count["field_supplied_pct"] >= 0.5)
+            & (final_count["field_supplied_pct"] < 0.8)
+        ]
+        .groupby("dataset")
+        .count(),
+        on="dataset",
+        how="left",
+    ).rename(columns={"field_supplied_pct": "50% - 80% Fields Supplied"})
+    overview_stats_df = overview_stats_df.merge(
+        final_count[["dataset", "field_supplied_pct"]][
+            final_count["field_supplied_pct"] >= 0.8
+        ]
+        .groupby("dataset")
+        .count(),
+        on="dataset",
+        how="left",
+    ).rename(columns={"field_supplied_pct": "> 80% Fields Supplied"})
+    overview_stats_df.replace(np.nan, 0, inplace=True)
+    overview_stats_df = overview_stats_df.astype(
+        {
+            "< 50% Fields Supplied": int,
+            "50% - 80% Fields Supplied": int,
+            "> 80% Fields Supplied": int,
+        }
+    )
+
+    stats_headers = [
+        *map(
+            lambda column: {
+                "text": column.title(),
+                "classes": "reporting-table-header",
+            },
+            overview_stats_df.columns.values,
+        )
+    ]
+    stats_rows = [
+        [{"text": cell, "classes": "reporting-table-cell"} for cell in r]
+        for index, r in overview_stats_df.iterrows()
+    ]
+    return {
+        "headers": headers,
+        "rows": rows,
+        "stats_headers": stats_headers,
+        "stats_rows": stats_rows,
+        "params": params,
+    }, final_count[csv_out_cols]
 
 
 def make_pretty(text):
