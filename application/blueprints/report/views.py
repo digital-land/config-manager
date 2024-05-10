@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, request, send_file
 
 from application.data_access.endpoint.endpoint_queries import get_endpoint_details
-from application.data_access.odp_summaries.compliance import get_odp_compliance_summary
+from application.data_access.odp_summaries.conformance import (
+    get_odp_conformance_summary,
+)
 from application.data_access.odp_summaries.issue import (
     get_odp_issue_summary,
     get_odp_issues_by_issue_type,
@@ -73,16 +75,16 @@ def odp_issue_summary():
     )
 
 
-@report_bp.get("/odp-summary/compliance")
-def odp_compliance_summary():
+@report_bp.get("/odp-summary/conformance")
+def odp_conformance_summary():
     dataset_types = request.args.getlist("dataset_type")
     cohorts = request.args.getlist("cohort")
-    odp_compliance_summary, compliance_df = get_odp_compliance_summary(
+    odp_conformance_summary, conformance_df = get_odp_conformance_summary(
         dataset_types, cohorts
     )
     return render_template(
-        "reporting/odp_compliance_summary.html",
-        odp_compliance_summary=odp_compliance_summary,
+        "reporting/odp_conformance_summary.html",
+        odp_conformance_summary=odp_conformance_summary,
     )
 
 
@@ -101,12 +103,12 @@ def download_csv():
         )
         file_path = generate_odp_summary_csv(odp_issues_by_type_summary)
         return send_file(file_path, download_name="odp-issue.csv")
-    if type == "odp-compliance":
-        odp_compliance_summary, compliance_df = get_odp_compliance_summary(
+    if type == "odp-conformance":
+        odp_conformance_summary, conformance_df = get_odp_conformance_summary(
             dataset_types, cohorts
         )
-        file_path = generate_odp_summary_csv(compliance_df)
-        return send_file(file_path, download_name="odp-compliance.csv")
+        file_path = generate_odp_summary_csv(conformance_df)
+        return send_file(file_path, download_name="odp-conformance.csv")
 
 
 @report_bp.get("endpoint/<endpoint_hash>")

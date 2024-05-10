@@ -134,7 +134,7 @@ def get_issue_types_by_severity(severity_list):
     return df
 
 
-def get_odp_compliance_summary(dataset_types, cohorts):
+def get_odp_conformance_summary(dataset_types, cohorts):
     params = {
         "cohorts": COHORTS,
         "dataset_types": DATASET_TYPES,

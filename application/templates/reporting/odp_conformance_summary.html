@@ -28,7 +28,7 @@
             <a href="{{ url_for('reporting.odp_issue_summary')}}" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Issue</a>
         </div>
         <div class="govuk-grid-column-one-third govuk-!-text-align-centre">
-            <a href="{{ url_for('reporting.odp_compliance_summary')}}" class="govuk-link govuk-link--no-visited-state">Compliance</a>
+            <a href="{{ url_for('reporting.odp_conformance_summary')}}" class="govuk-link govuk-link--no-visited-state">Conformance</a>
         </div>
     </div>
 
@@ -48,10 +48,10 @@
                         {% call dlFilterGroup({
                             "title": "Dataset type:",
                             "is_open": True,
-                            "selected": odp_compliance_summary.params.selected_dataset_types|length
+                            "selected": odp_conformance_summary.params.selected_dataset_types|length
                         }) %}
                         <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                            {% for dataset_type in odp_compliance_summary.params.dataset_types %}
+                            {% for dataset_type in odp_conformance_summary.params.dataset_types %}
                             <div class="govuk-checkboxes__item">
                                 <input class="govuk-checkboxes__input" id="{{dataset_type.id}}Dataset" name="dataset_type" type="checkbox" value="{{dataset_type.id}}">
                                     <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
@@ -66,10 +66,10 @@
                         {% call dlFilterGroup({
                             "title": "Cohort:",
                             "is_open": True,
-                            "selected": odp_compliance_summary.params.selected_cohorts|length
+                            "selected": odp_conformance_summary.params.selected_cohorts|length
                         }) %}
                         <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                            {% for cohort in odp_compliance_summary.params.cohorts %}
+                            {% for cohort in odp_conformance_summary.params.cohorts %}
                             <div class="govuk-checkboxes__item">
                                 <input class="govuk-checkboxes__input" id="{{cohort.id}}" name="cohort" type="checkbox" value="{{cohort.id}}">
                                     <label class="govuk-label govuk-checkboxes__label" for="cohort">
@@ -86,7 +86,7 @@
                     <button type="submit" class="govuk-button" data-module="govuk-button">
                         Apply Filter
                     </button>
-                    <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=odp-compliance" id="download-button">
+                    <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=odp-conformance" id="download-button">
                         Download Current Table
                     </a>
                 </div>
@@ -95,8 +95,8 @@
         <div class="govuk-grid-column-one-half">
             <h1 class="govuk-heading-l">Overview stats:</h1>
             {{ govukTable({
-                "head": odp_compliance_summary.stats_headers,
-                "rows": odp_compliance_summary.stats_rows,
+                "head": odp_conformance_summary.stats_headers,
+                "rows": odp_conformance_summary.stats_rows,
                 "classes": "reporting-table"
               }) }}
         </div>
@@ -104,12 +104,12 @@
 </div>
 
 <div class="reporting-table-container">
-    {% if odp_compliance_summary.rows == [] %}
+    {% if odp_conformance_summary.rows == [] %}
     <h1 class="govuk-heading-l govuk-!-text-align-centre">No data for current filtering</h1>
     {% else %}
     {{ govukTable({
-        "head": odp_compliance_summary.headers,
-        "rows": odp_compliance_summary.rows,
+        "head": odp_conformance_summary.headers,
+        "rows": odp_conformance_summary.rows,
         "classes": "reporting-table"
       }) }}
     {% endif %}
@@ -151,7 +151,7 @@
     } else {
         search_params = ""
     }
-    const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-compliance").concat(search_params)
+    const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-conformance").concat(search_params)
     document.getElementById("download-button").setAttribute("href", link)
 </script>
 
