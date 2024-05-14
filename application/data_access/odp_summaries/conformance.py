@@ -393,9 +393,9 @@ def get_odp_conformance_summary(dataset_types, cohorts):
     )
 
     out_cols = [
-        "organisation",
-        "name",
         "cohort",
+        "name",
+        "organisation",
         "dataset",
         "licence",
         "field_supplied_count",
@@ -464,7 +464,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         .count(),
         on="dataset",
         how="left",
-    ).rename(columns={"field_supplied_pct": "< 50% Fields Supplied"})
+    ).rename(columns={"field_supplied_pct": "< 50%"})
     overview_stats_df = overview_stats_df.merge(
         final_count[["dataset", "field_supplied_pct"]][
             (final_count["field_supplied_pct"] >= 0.5)
@@ -474,7 +474,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         .count(),
         on="dataset",
         how="left",
-    ).rename(columns={"field_supplied_pct": "50% - 80% Fields Supplied"})
+    ).rename(columns={"field_supplied_pct": "50% - 80%"})
     overview_stats_df = overview_stats_df.merge(
         final_count[["dataset", "field_supplied_pct"]][
             final_count["field_supplied_pct"] >= 0.8
@@ -483,13 +483,13 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         .count(),
         on="dataset",
         how="left",
-    ).rename(columns={"field_supplied_pct": "> 80% Fields Supplied"})
+    ).rename(columns={"field_supplied_pct": "> 80%"})
     overview_stats_df.replace(np.nan, 0, inplace=True)
     overview_stats_df = overview_stats_df.astype(
         {
-            "< 50% Fields Supplied": int,
-            "50% - 80% Fields Supplied": int,
-            "> 80% Fields Supplied": int,
+            "< 50%": int,
+            "50% - 80%": int,
+            "> 80%": int,
         }
     )
 
