@@ -1,3 +1,5 @@
+import ast
+
 import numpy as np
 import pandas as pd
 
@@ -266,9 +268,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "entity", "reference"
     )
 
-    dataset_field_df = pd.read_csv(
-        "https://raw.githubusercontent.com/digital-land/specification/main/specification/dataset-field.csv"
-    )
+    dataset_field_df = get_dataset_field()
 
     # rename pipeline to dataset in endpoint_resource table
     endpoint_resource_df.rename(columns={"pipeline": "dataset"}, inplace=True)
@@ -305,6 +305,11 @@ def get_odp_conformance_summary(dataset_types, cohorts):
     # join on field errors flag for each resource and field
     resource_fields_map_issues = resource_fields_map_match.merge(
         resource_issue_errors_df, how="left", on=["dataset", "resource", "field"]
+    )
+
+    # handle cases of multiple mappings per field
+    resource_fields_map_issues.drop_duplicates(
+        ["dataset", "resource", "field"], inplace=True
     )
 
     # remove fields that are auto-created in the pipeline from final table to avoid mis-counting
@@ -533,3 +538,18 @@ def get_background_class(text):
         else:
             return "reporting-" + str(group) + "0-" + str(group + 1) + "0-background"
     return ""
+
+
+def get_dataset_field():
+    specification_df = pd.read_csv(
+        "https://raw.githubusercontent.com/digital-land/specification/main/specification/specification.csv"
+    )
+    rows = []
+    for index, row in specification_df.iterrows():
+        specification_dicts = ast.literal_eval(row["json"])
+        for dict in specification_dicts:
+            dataset = dict["dataset"]
+            fields = [field["field"] for field in dict["fields"]]
+            for field in fields:
+                rows.append({"dataset": dataset, "field": field})
+    return pd.DataFrame(rows)
