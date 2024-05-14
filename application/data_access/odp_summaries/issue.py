@@ -112,7 +112,7 @@ def get_odp_issue_summary(dataset_types, cohorts):
     LEFT JOIN
         reporting_latest_endpoints rle ON REPLACE(rle.organisation, '-eng', '') = odp_orgs.organisation
     LEFT JOIN
-        issue i ON rle.resource = i.resource
+        issue i ON rle.resource = i.resource and rle.pipeline = i.dataset
     LEFT JOIN
         issue_type it ON i.issue_type = it.issue_type
     {cohort_clause}
