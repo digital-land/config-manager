@@ -35,7 +35,6 @@ def overview():
         endpoint_successes_timeseries,
         endpoint_errors_timeseries,
     ) = get_endpoint_errors_and_successes_by_week(logs_df)
-
     summary_metrics = {
         "contributions": summary_contributions,
         "endpoint_errors": summary_endpoint_errors,

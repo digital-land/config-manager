@@ -69,16 +69,41 @@ def get_datasette_query(db, sql, url="https://datasette.planning.data.gov.uk"):
 #     return all_datasets
 
 
-def generate_weeks(number_of_weeks):
+def generate_weeks(number_of_weeks=None, date_from=None):
     now = datetime.datetime.now()
     monday = now - datetime.timedelta(days=now.weekday())
     dates = []
-    for week in range(0, number_of_weeks):
-        date = monday - datetime.timedelta(weeks=week)
-        week_number = int(date.strftime("%W"))
-        year_number = int(date.year)
-        dates.append(
-            {"date": date, "week_number": week_number, "year_number": year_number}
-        )
 
-    return list(reversed(dates))
+    if date_from:
+        date = datetime.datetime.strptime(date_from, "%Y-%m-%d")
+        while date < now:
+            week_number = int(date.strftime("%W"))
+            year_number = int(date.year)
+            dates.append(
+                {"date": date, "week_number": week_number, "year_number": year_number}
+            )
+            date = date + datetime.timedelta(days=7)
+        return dates
+    elif number_of_weeks:
+        for week in range(0, number_of_weeks):
+            date = monday - datetime.timedelta(weeks=week)
+            week_number = int(date.strftime("%W"))
+            year_number = int(date.year)
+            dates.append(
+                {"date": date, "week_number": week_number, "year_number": year_number}
+            )
+        return list(reversed(dates))
+
+
+# def generate_days(number_of_days):
+#     today = datetime.datetime.today()
+#     dates = []
+#     for day in range(0, number_of_days):
+#         date = today - datetime.timedelta(days=day)
+#         week_number = int(date.strftime("%W"))
+#         year_number = int(date.year)
+#         day_number = int(date.day)
+#         dates.append(
+#             {"date": date, "week_number": week_number, "year_number": year_number, "day_number": day_number}
+#         )
+# return list(reversed(dates))

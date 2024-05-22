@@ -6,21 +6,22 @@ from application.data_access.datasette_utils import generate_weeks, get_datasett
 
 
 def get_logs():
-    year = datetime.datetime.today().year
-    sql = f"""
-        select year, month, week, day, status, count
+    sql = """
+        select year, month, week, day, status, entry_date, count
         from (
             select
-                status,
+                case when (status = '200') then '200' else 'Not 200' end as status,
                 strftime('%Y',entry_date) as year,
                 strftime('%m',entry_date) as month,
                 strftime('%W',entry_date) as week,
                 strftime('%d',entry_date) as day,
-                count(endpoint) as count
+                substr(entry_date,1,10) as entry_date,
+                count(*) as count
             from log
             group by year, week, status
         ) as t1
-        where year = '{year}' or year = '{year-1}'
+        where cast(year as int) > 2018
+        group by year, week, status
     """
     logs_df = get_datasette_query("digital-land", sql)
     if logs_df is not None:
@@ -62,7 +63,6 @@ def get_contributions_and_erroring_endpoints():
             {date_query}
             group by substr(entry_date,1,10), case when status = '200' then status else 'not_200' end
     """
-
     contributions_and_errors_df = get_datasette_query("digital-land", sql)
     if contributions_and_errors_df is not None:
         contributions_df = contributions_and_errors_df[
@@ -90,110 +90,69 @@ def get_endpoints_added_by_week():
             strftime('%m',entry_date) as month,
             strftime('%W',entry_date) as week,
             strftime('%d',entry_date) as day,
-            count(endpoint)
+            count(endpoint),
+            substr(entry_date,1,10) as entry_date
         from endpoint
+        where year >= '2018'
         group by year, week
     """
     endpoints_added_df = get_datasette_query("digital-land", sql)
-    year = datetime.datetime.today().year
     if endpoints_added_df is not None:
-        current_year_endpoints_added_df = endpoints_added_df[
-            endpoints_added_df["year"].astype(int) == year
-        ]
-        last_year_endpoints_added_df = endpoints_added_df[
-            endpoints_added_df["year"].astype(int) == year - 1
-        ]
-        # Cast week numbers to int now to prevent repeatedly converting in loop
-        current_year_endpoints_added_df["week"] = pd.to_numeric(
-            current_year_endpoints_added_df["week"]
-        )
-        last_year_endpoints_added_df["week"] = pd.to_numeric(
-            last_year_endpoints_added_df["week"]
-        )
-        dates = generate_weeks(20)
-
+        endpoints_added_df["week"] = pd.to_numeric(endpoints_added_df["week"])
+        endpoints_added_df["year"] = pd.to_numeric(endpoints_added_df["year"])
+        min_entry_date = endpoints_added_df["entry_date"].min()
+        dates = generate_weeks(date_from=min_entry_date)
         endpoints_added = []
         for date in dates:
-            year = date["year_number"]
-            week = date["week_number"]
-            for df in [last_year_endpoints_added_df, current_year_endpoints_added_df]:
-                df_year = int(df["year"].iloc[0])
-                if year == df_year:
-                    df_week_numbers = df["week"].tolist()
-                    if week in df_week_numbers:
-                        count = df.loc[df["week"] == week, "count(endpoint)"].values[0]
-                    else:
-                        count = 0
-                    endpoints_added.append(
-                        {"date": date["date"].strftime("%d/%m/%Y"), "count": count}
-                    )
-
+            current_date_data_df = endpoints_added_df[
+                (endpoints_added_df["week"] == date["week_number"])
+                & (endpoints_added_df["year"] == date["year_number"])
+            ]
+            if len(current_date_data_df) != 0:
+                count = current_date_data_df["count(endpoint)"].values[0]
+            else:
+                count = 0
+            endpoints_added.append(
+                {"date": date["date"].strftime("%d/%m/%Y"), "count": count}
+            )
         return endpoints_added
     else:
         return None
 
 
 def get_endpoint_errors_and_successes_by_week(logs_df):
-    year = datetime.datetime.today().year
-    current_year_endpoint_successes_df = logs_df[
-        (logs_df["year"].astype(int) == year) & (logs_df["status"] == "200")
-    ]
-    last_year_endpoint_successes_df = logs_df[
-        (logs_df["year"].astype(int) == year - 1) & (logs_df["status"] == "200")
-    ]
-    current_year_endpoint_errors_df = logs_df[
-        (logs_df["year"].astype(int) == year) & (logs_df["status"] != "200")
-    ]
-    last_year_endpoint_errors_df = logs_df[
-        (logs_df["year"].astype(int) == year - 1) & (logs_df["status"] != "200")
-    ]
-
-    current_year_endpoint_successes_df["week"] = pd.to_numeric(
-        current_year_endpoint_successes_df["week"]
-    )
-    last_year_endpoint_successes_df["week"] = pd.to_numeric(
-        last_year_endpoint_successes_df["week"]
-    )
-    current_year_endpoint_errors_df["week"] = pd.to_numeric(
-        current_year_endpoint_errors_df["week"]
-    )
-    last_year_endpoint_errors_df["week"] = pd.to_numeric(
-        last_year_endpoint_errors_df["week"]
-    )
-
-    dates = generate_weeks(20)
-
+    logs_df["year"] = pd.to_numeric(logs_df["year"])
+    logs_df["week"] = pd.to_numeric(logs_df["week"])
+    min_entry_date = logs_df["entry_date"].min()
+    dates = generate_weeks(date_from=min_entry_date)
     successes_by_week = []
-    error_percentages_by_week = []
+    errors_by_week = []
     for date in dates:
-        year = date["year_number"]
-        week = date["week_number"]
-        for df in [last_year_endpoint_successes_df, current_year_endpoint_successes_df]:
-            df_year = int(df["year"].iloc[0])
-            if year == df_year:
-                df_week_numbers = df["week"].tolist()
-                if week in df_week_numbers:
-                    successes = sum(df[(df["week"] == week)]["count"].tolist())
-                else:
-                    successes = 0
-                successes_by_week.append(
-                    {"date": date["date"].strftime("%d/%m/%Y"), "count": successes}
-                )
+        current_date_data_df = logs_df[
+            (logs_df["week"] == date["week_number"])
+            & (logs_df["year"] == date["year_number"])
+        ]
+        if len(current_date_data_df) > 0:
+            successes_df = current_date_data_df[current_date_data_df["status"] == "200"]
+            if len(successes_df) > 0:
+                successes = successes_df["count"].values[0]
+            else:
+                successes = 0
+            errors_df = current_date_data_df[
+                current_date_data_df["status"] == "Not 200"
+            ]
+            if len(errors_df) > 0:
+                errors = errors_df["count"].values[0]
+            else:
+                errors = 0
+        else:
+            successes = 0
+            errors = 0
 
-        for df in [last_year_endpoint_errors_df, current_year_endpoint_errors_df]:
-            df_year = int(df["year"].iloc[0])
-            if year == df_year:
-                df_week_numbers = df["week"].tolist()
-                if week in df_week_numbers:
-                    errors = sum(df[(df["week"] == week)]["count"].tolist())
-                    error_percentage = 100 * errors / (errors + successes)
-                else:
-                    error_percentage = 0
-                error_percentages_by_week.append(
-                    {
-                        "date": date["date"].strftime("%d/%m/%Y"),
-                        "count": error_percentage,
-                    }
-                )
-
-    return successes_by_week, error_percentages_by_week
+        successes_by_week.append(
+            {"date": date["date"].strftime("%d/%m/%Y"), "count": successes}
+        )
+        errors_by_week.append(
+            {"date": date["date"].strftime("%d/%m/%Y"), "count": errors}
+        )
+    return successes_by_week, errors_by_week
