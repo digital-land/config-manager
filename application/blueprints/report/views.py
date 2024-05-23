@@ -33,7 +33,8 @@ def overview():
     endpoints_added_timeseries = get_endpoints_added_by_week()
     (
         endpoint_successes_timeseries,
-        endpoint_errors_timeseries,
+        endpoint_successes_percentages_timeseries,
+        endpoint_errors_percentages_timeseries,
     ) = get_endpoint_errors_and_successes_by_week(logs_df)
     summary_metrics = {
         "contributions": summary_contributions,
@@ -44,7 +45,8 @@ def overview():
     graphs = {
         "endpoints_added_timeseries": endpoints_added_timeseries,
         "endpoint_successes_timeseries": endpoint_successes_timeseries,
-        "endpoint_errors_timeseries": endpoint_errors_timeseries,
+        "endpoint_successes_percentages_timeseries": endpoint_successes_percentages_timeseries,
+        "endpoint_errors_percentages_timeseries": endpoint_errors_percentages_timeseries,
     }
 
     return render_template(

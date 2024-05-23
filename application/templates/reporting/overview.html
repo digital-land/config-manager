@@ -44,7 +44,7 @@
 
 <script type="module" {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   import TimeseriesChart from "{{ assetPath | default('/assets') }}/javascripts/utilities/timeseries-chart.js"
-  const baseOptions = {xAxisTitle: "Week", xAxisKey: "date", yAxisKey: "count"}
+  const baseOptions = {xAxisTitle: "Week", xAxisKey: "date", xMax: null, yAxisKey: "count"}
 
   const endpoint_added_timeseries = new TimeseriesChart(
     {
@@ -79,17 +79,18 @@
   const endpoint_errors_timeseries = new TimeseriesChart(
     {
       ...baseOptions,
-      yAxisTitle: "Endpoint Errors/Successes",
+      yAxisTitle: "Endpoint Errors %",
+      yMax: 100,
       datasets: [{
-                  label: "# of endpoints erroring per week",
-                  data: {{graphs.endpoint_errors_timeseries | safe}},
+                  label: "% of endpoints erroring per week",
+                  data: {{graphs.endpoint_errors_percentages_timeseries | safe}},
                   borderWidth: 1,
                   pointRadius: 0,
                   backgroundColor: "rgba(256,0,0,1)"
                 },
                 {
-                  label: "# of endpoint successes per week",
-                  data: {{graphs.endpoint_successes_timeseries | safe}},
+                  label: "% of endpoints successfully collected from per week",
+                  data: {{graphs.endpoint_successes_percentages_timeseries | safe}},
                   borderWidth: 1,
                   pointRadius: 0,
                   backgroundColor: "rgba(0,150,0,1)"

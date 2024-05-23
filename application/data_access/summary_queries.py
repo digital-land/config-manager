@@ -93,14 +93,16 @@ def get_endpoints_added_by_week():
             count(endpoint),
             substr(entry_date,1,10) as entry_date
         from endpoint
-        where year >= '2018'
+        where year > '2018'
         group by year, week
     """
     endpoints_added_df = get_datasette_query("digital-land", sql)
     if endpoints_added_df is not None:
         endpoints_added_df["week"] = pd.to_numeric(endpoints_added_df["week"])
         endpoints_added_df["year"] = pd.to_numeric(endpoints_added_df["year"])
-        min_entry_date = endpoints_added_df["entry_date"].min()
+        # min_entry_date = endpoints_added_df["entry_date"].min()
+        # Use hardcoded start date as data does not begin at the same date across all three graphs
+        min_entry_date = "2019-08-21"
         dates = generate_weeks(date_from=min_entry_date)
         endpoints_added = []
         for date in dates:
@@ -126,7 +128,8 @@ def get_endpoint_errors_and_successes_by_week(logs_df):
     min_entry_date = logs_df["entry_date"].min()
     dates = generate_weeks(date_from=min_entry_date)
     successes_by_week = []
-    errors_by_week = []
+    successes_percentages_by_week = []
+    errors_percentages_by_week = []
     for date in dates:
         current_date_data_df = logs_df[
             (logs_df["week"] == date["week_number"])
@@ -145,14 +148,22 @@ def get_endpoint_errors_and_successes_by_week(logs_df):
                 errors = errors_df["count"].values[0]
             else:
                 errors = 0
+            if errors == 0 and successes == 0:
+                success_percentage = 0
+                error_percentage = 0
+            else:
+                success_percentage = successes / (successes + errors) * 100
+                error_percentage = errors / (successes + errors) * 100
         else:
             successes = 0
             errors = 0
-
         successes_by_week.append(
             {"date": date["date"].strftime("%d/%m/%Y"), "count": successes}
         )
-        errors_by_week.append(
-            {"date": date["date"].strftime("%d/%m/%Y"), "count": errors}
+        successes_percentages_by_week.append(
+            {"date": date["date"].strftime("%d/%m/%Y"), "count": success_percentage}
         )
-    return successes_by_week, errors_by_week
+        errors_percentages_by_week.append(
+            {"date": date["date"].strftime("%d/%m/%Y"), "count": error_percentage}
+        )
+    return successes_by_week, successes_percentages_by_week, errors_percentages_by_week
