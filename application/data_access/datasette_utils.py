@@ -93,17 +93,3 @@ def generate_weeks(number_of_weeks=None, date_from=None):
                 {"date": date, "week_number": week_number, "year_number": year_number}
             )
         return list(reversed(dates))
-
-
-# def generate_days(number_of_days):
-#     today = datetime.datetime.today()
-#     dates = []
-#     for day in range(0, number_of_days):
-#         date = today - datetime.timedelta(days=day)
-#         week_number = int(date.strftime("%W"))
-#         year_number = int(date.year)
-#         day_number = int(date.day)
-#         dates.append(
-#             {"date": date, "week_number": week_number, "year_number": year_number, "day_number": day_number}
-#         )
-# return list(reversed(dates))
