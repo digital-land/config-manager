@@ -16,15 +16,32 @@
 
 {% block content %}
 
-<h1 class="govuk-heading-xl">Reporting - overview</h1>
+<h1 class="govuk-heading-xl">Overview</h1>
 
-<h2 id="summary-title">Today's Summary: </h2>
-<p id="contributions" class="govuk-body">Contributions: </p>
-<p id="errors" class="govuk-body">Endpoint errors: </p>
-<input type="date" id="date-selector"></input>
-<p class="govuk-body">Data errors: {{ summary_metrics.errors }}</p>
-<p class="govuk-body">Data warnings: {{ summary_metrics.warnings }}</p>
-<p class="govuk-body">New resources: WIP</p>
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-one-half reporting-overview-summary govuk-!-padding-left-5">
+    <div class="govuk-!-padding-top-2">
+      <h2>Endpoint Collection Stats</h2>
+      <div class="reporting-date-label govuk-!-padding-right-2">
+        <label class="reporting-date-input" for="date-from-selector">From</label>
+        <input type="date" class="reporting-date-input govuk-body-s" id="date-from-selector"></input>
+      </div>
+      <div class="reporting-date-label govuk-!-padding-left-2">
+        <label class="reporting-date-input" for="date-to-selector">To</label>
+        <input type="date" class="reporting-date-input govuk-body-s" id="date-to-selector"></input>
+      </div>
+    </div>
+    <p id="contributions" class="reporting-clear-both govuk-body">Resources downloaded: </p>
+    <p id="errors" class="reporting-clear-boths govuk-body">Endpoint errors: </p>
+  </div>
+  <div>
+    <div class="govuk-grid-column-one-half govuk-!-padding-left-9 govuk-!-padding-top-3">
+      <h2>Data Issues</h2>
+      <p class="govuk-body">Data errors: {{ summary_metrics.errors }}</p>
+      <p class="govuk-body">Data warnings: {{ summary_metrics.warnings }}</p>
+    </div>
+  </div>
+</div>
 
 <h2>Endpoints added per week:</h2>
 <div>
@@ -79,7 +96,7 @@
   const endpoint_errors_timeseries = new TimeseriesChart(
     {
       ...baseOptions,
-      yAxisTitle: "Endpoint Errors %",
+      yAxisTitle: "Endpoint Errors/Successes %",
       yMax: 100,
       datasets: [{
                   label: "% of endpoints erroring per week",

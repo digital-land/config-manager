@@ -1,5 +1,3 @@
-import datetime
-
 import pandas as pd
 
 from application.data_access.datasette_utils import generate_weeks, get_datasette_query
@@ -48,11 +46,7 @@ def get_issue_counts():
         return None
 
 
-def get_contributions_and_erroring_endpoints():
-    current_date = datetime.datetime.now().date()
-    date_query = (
-        f" where year = '{current_date.year - 1}' or year = '{current_date.year}'"
-    )
+def get_contributions_and_errors(offset):
     sql = f"""
         select
             count(*) as count,
@@ -60,10 +54,24 @@ def get_contributions_and_erroring_endpoints():
             substr(entry_date,1,10) as entry_date,
             strftime('%Y',entry_date) as year
             from log l
-            {date_query}
             group by substr(entry_date,1,10), case when status = '200' then status else 'not_200' end
+            limit 1000 offset {offset}
     """
-    contributions_and_errors_df = get_datasette_query("digital-land", sql)
+    return get_datasette_query("digital-land", sql)
+
+
+def get_contributions_and_erroring_endpoints():
+    # Use pagination in case rows returned > 1000
+    pagination_incomplete = True
+    offset = 0
+    contributions_and_errors_df_list = []
+    while pagination_incomplete:
+        contributions_and_errors_df = get_contributions_and_errors(offset)
+        contributions_and_errors_df_list.append(contributions_and_errors_df)
+        pagination_incomplete = len(contributions_and_errors_df) == 1000
+        offset += 1000
+    contributions_and_errors_df = pd.concat(contributions_and_errors_df_list)
+
     if contributions_and_errors_df is not None:
         contributions_df = contributions_and_errors_df[
             contributions_and_errors_df["status"] == "200"
