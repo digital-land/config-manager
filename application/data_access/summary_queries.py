@@ -3,29 +3,36 @@ import pandas as pd
 from application.data_access.datasette_utils import generate_weeks, get_datasette_query
 
 
-def get_logs():
-    sql = """
-        select year, month, week, day, status, entry_date, count
-        from (
-            select
-                case when (status = '200') then '200' else 'Not 200' end as status,
-                strftime('%Y',entry_date) as year,
-                strftime('%m',entry_date) as month,
-                strftime('%W',entry_date) as week,
-                strftime('%d',entry_date) as day,
-                substr(entry_date,1,10) as entry_date,
-                count(*) as count
-            from log
-            group by year, week, status
-        ) as t1
-        where cast(year as int) > 2018
-        group by year, week, status
+def get_contributions_and_errors(offset):
+    sql = f"""
+        select
+            count(*) as count,
+            case when (status = '200') then '200' else 'Not 200' end as status,
+            strftime('%Y',entry_date) as year,
+            strftime('%m',entry_date) as month,
+            strftime('%W',entry_date) as week,
+            strftime('%d',entry_date) as day,
+            substr(entry_date,1,10) as entry_date
+        from log l
+        where year > '2018'
+        group by substr(entry_date,1,10), case when status = '200' then status else 'not_200' end
+        limit 1000 offset {offset}
     """
-    logs_df = get_datasette_query("digital-land", sql)
-    if logs_df is not None:
-        return logs_df
-    else:
-        return None
+    return get_datasette_query("digital-land", sql)
+
+
+def get_contributions_and_errors_by_day():
+    # Use pagination in case rows returned > 1000
+    pagination_incomplete = True
+    offset = 0
+    contributions_and_errors_df_list = []
+    while pagination_incomplete:
+        contributions_and_errors_df = get_contributions_and_errors(offset)
+        contributions_and_errors_df_list.append(contributions_and_errors_df)
+        pagination_incomplete = len(contributions_and_errors_df) == 1000
+        offset += 1000
+    contributions_and_errors_df = pd.concat(contributions_and_errors_df_list)
+    return contributions_and_errors_df
 
 
 def get_issue_counts():
@@ -46,32 +53,7 @@ def get_issue_counts():
         return None
 
 
-def get_contributions_and_errors(offset):
-    sql = f"""
-        select
-            count(*) as count,
-            status,
-            substr(entry_date,1,10) as entry_date,
-            strftime('%Y',entry_date) as year
-            from log l
-            group by substr(entry_date,1,10), case when status = '200' then status else 'not_200' end
-            limit 1000 offset {offset}
-    """
-    return get_datasette_query("digital-land", sql)
-
-
-def get_contributions_and_erroring_endpoints():
-    # Use pagination in case rows returned > 1000
-    pagination_incomplete = True
-    offset = 0
-    contributions_and_errors_df_list = []
-    while pagination_incomplete:
-        contributions_and_errors_df = get_contributions_and_errors(offset)
-        contributions_and_errors_df_list.append(contributions_and_errors_df)
-        pagination_incomplete = len(contributions_and_errors_df) == 1000
-        offset += 1000
-    contributions_and_errors_df = pd.concat(contributions_and_errors_df_list)
-
+def get_contributions_and_erroring_endpoints(contributions_and_errors_df):
     if contributions_and_errors_df is not None:
         contributions_df = contributions_and_errors_df[
             contributions_and_errors_df["status"] == "200"
@@ -130,18 +112,27 @@ def get_endpoints_added_by_week():
         return None
 
 
-def get_endpoint_errors_and_successes_by_week(logs_df):
-    logs_df["year"] = pd.to_numeric(logs_df["year"])
-    logs_df["week"] = pd.to_numeric(logs_df["week"])
-    min_entry_date = logs_df["entry_date"].min()
+def get_endpoint_errors_and_successes_by_week(contributions_and_errors_by_day_df):
+    contributions_and_errors_by_day_df["year"] = pd.to_numeric(
+        contributions_and_errors_by_day_df["year"]
+    )
+    contributions_and_errors_by_day_df["week"] = pd.to_numeric(
+        contributions_and_errors_by_day_df["week"]
+    )
+    contributions_and_errors_by_week_df = (
+        contributions_and_errors_by_day_df.groupby(["year", "week", "status"])["count"]
+        .sum()
+        .reset_index()
+    )
+    min_entry_date = contributions_and_errors_by_day_df["entry_date"].min()
     dates = generate_weeks(date_from=min_entry_date)
     successes_by_week = []
     successes_percentages_by_week = []
     errors_percentages_by_week = []
     for date in dates:
-        current_date_data_df = logs_df[
-            (logs_df["week"] == date["week_number"])
-            & (logs_df["year"] == date["year_number"])
+        current_date_data_df = contributions_and_errors_by_week_df[
+            (contributions_and_errors_by_week_df["week"] == date["week_number"])
+            & (contributions_and_errors_by_week_df["year"] == date["year_number"])
         ]
         if len(current_date_data_df) > 0:
             successes_df = current_date_data_df[current_date_data_df["status"] == "200"]
