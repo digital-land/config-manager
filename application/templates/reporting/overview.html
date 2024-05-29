@@ -16,19 +16,32 @@
 
 {% block content %}
 
-<h1 class="govuk-heading-xl">Reporting - overview</h1>
+<h1 class="govuk-heading-xl">Overview</h1>
 
-<h2>Datasets</h2>
-<h2>Organisations</h2>
-<h2>Summary Tables</h2>
-
-<h2 id="summary-title">Today's Summary: </h2>
-<p id="contributions" class="govuk-body">Contributions: </p>
-<p id="errors" class="govuk-body">Endpoint errors: </p>
-<input type="date" id="date-selector"></input>
-<p class="govuk-body">Data errors: {{ summary_metrics.errors }}</p>
-<p class="govuk-body">Data warnings: {{ summary_metrics.warnings }}</p>
-<p class="govuk-body">New resources: WIP</p>
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-one-half reporting-overview-summary govuk-!-padding-left-5">
+    <div class="govuk-!-padding-top-2">
+      <h2>Endpoint Collection Stats</h2>
+      <div class="reporting-date-label govuk-!-padding-right-2">
+        <label class="reporting-date-input" for="date-from-selector">From</label>
+        <input type="date" class="reporting-date-input govuk-body-s" id="date-from-selector"></input>
+      </div>
+      <div class="reporting-date-label govuk-!-padding-left-2">
+        <label class="reporting-date-input" for="date-to-selector">To</label>
+        <input type="date" class="reporting-date-input govuk-body-s" id="date-to-selector"></input>
+      </div>
+    </div>
+    <p id="contributions" class="reporting-clear-both govuk-body">Resources downloaded: </p>
+    <p id="errors" class="reporting-clear-boths govuk-body">Endpoint errors: </p>
+  </div>
+  <div>
+    <div class="govuk-grid-column-one-half govuk-!-padding-left-9 govuk-!-padding-top-3">
+      <h2>Data Issues</h2>
+      <p class="govuk-body">Data errors: {{ summary_metrics.errors }}</p>
+      <p class="govuk-body">Data warnings: {{ summary_metrics.warnings }}</p>
+    </div>
+  </div>
+</div>
 
 <h2>Endpoints added per week:</h2>
 <div>
@@ -41,22 +54,27 @@
   <canvas id="resources_downloaded_graph"></canvas>
 </div>
 
-<h2>Endpoint error % per week:</h2>
+<h2>Endpoint errors and successes per week:</h2>
 <div>
   <canvas id="endpoint_error_graph"></canvas>
 </div>
 
 <script type="module" {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   import TimeseriesChart from "{{ assetPath | default('/assets') }}/javascripts/utilities/timeseries-chart.js"
-  const baseOptions = {xAxisTitle: "Week", xAxisKey: "date", yAxisKey: "count"}
+  const baseOptions = {xAxisTitle: "Week", xAxisKey: "date", xMax: null, yAxisKey: "count"}
 
   const endpoint_added_timeseries = new TimeseriesChart(
     {
       ...baseOptions,
       yAxisTitle: "Endpoints added",
-      label:"# of endpoints added per week",
-      data: {{graphs.endpoints_added_timeseries | safe}},
-      htmlId: "endpoint_added_graph"
+      datasets: [{
+                label: "# of endpoints added per week",
+                data: {{graphs.endpoints_added_timeseries | safe}},
+                borderWidth: 1,
+                pointRadius: 0
+            }],
+      htmlId: "endpoint_added_graph",
+      type: "line",
     }
   ).init()
 
@@ -64,19 +82,40 @@
     {
       ...baseOptions,
       yAxisTitle: "Resources downloaded",
-      label:"# of resources downloaded per week",
-      data: {{graphs.endpoint_successes_timeseries | safe}},
-      htmlId: "resources_downloaded_graph"
+      datasets: [{
+                  label: "# of resources downloaded per week",
+                  data: {{graphs.endpoint_successes_timeseries | safe}},
+                  borderWidth: 1,
+                  pointRadius: 0
+                }],
+      htmlId: "resources_downloaded_graph",
+      type: "line"
     }
   ).init()
 
   const endpoint_errors_timeseries = new TimeseriesChart(
     {
       ...baseOptions,
-      yAxisTitle: "Error %",
-      label:"% of active endpoints erroring per week",
-      data: {{graphs.endpoint_errors_timeseries | safe}},
-      htmlId: "endpoint_error_graph"
+      yAxisTitle: "Endpoint Errors/Successes %",
+      yMax: 100,
+      datasets: [{
+                  label: "% of endpoints erroring per week",
+                  data: {{graphs.endpoint_errors_percentages_timeseries | safe}},
+                  borderWidth: 1,
+                  pointRadius: 0,
+                  backgroundColor: "rgba(256,0,0,1)"
+                },
+                {
+                  label: "% of endpoints successfully collected from per week",
+                  data: {{graphs.endpoint_successes_percentages_timeseries | safe}},
+                  borderWidth: 1,
+                  pointRadius: 0,
+                  backgroundColor: "rgba(0,150,0,1)"
+                }
+                ],
+      htmlId: "endpoint_error_graph",
+      type:"bar",
+      stacked: true
     }
   ).init()
 </script>

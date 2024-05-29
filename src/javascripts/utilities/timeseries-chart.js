@@ -1,26 +1,25 @@
 class TimeseriesChart {
     constructor (options) {
-        const {xAxisTitle, xAxisKey, yAxisTitle, yAxisKey, label, data, htmlId} = options
+        const {xAxisTitle, xAxisKey, xMax, yAxisTitle, yAxisKey, yMax, datasets, htmlId, type, stacked} = options
         this.xAxisTitle = xAxisTitle
         this.xAxisKey = xAxisKey
+        this.xMax = xMax
         this.yAxisTitle = yAxisTitle
         this.yAxisKey = yAxisKey
-        this.label = label
-        this.data = data
+        this.yMax = yMax
+        this.datasets = datasets
         this.htmlId = htmlId
+        this.type = type
+        this.stacked = stacked
     }
 
     init() {
         const graph_ctx = document.getElementById(this.htmlId);
 
         return new Chart(graph_ctx, {
-            type: 'line',
+            type: this.type,
             data: {
-            datasets: [{
-                label: this.label,
-                data: this.data,
-                borderWidth: 1
-            }]
+            datasets: this.datasets
             },
             options: {
                 parsing: {
@@ -31,15 +30,19 @@ class TimeseriesChart {
                     y: {
                     title: {
                         display: true,
-                        text: this.yAxisTitle
+                        text: this.yAxisTitle,
                     },
-                    beginAtZero: true
+                    max: this.yMax,
+                    beginAtZero: true,
+                    stacked: this.stacked
                     },
                     x: {
                         title: {
                             display: true,
                             text: this.xAxisTitle
-                        }
+                        },
+                    max: this.xMax,
+                    stacked: this.stacked
                     }
                 }
             }

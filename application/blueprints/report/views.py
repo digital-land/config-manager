@@ -12,10 +12,10 @@ from application.data_access.odp_summaries.status import get_odp_status_summary
 from application.data_access.odp_summaries.utils import generate_odp_summary_csv
 from application.data_access.summary_queries import (
     get_contributions_and_erroring_endpoints,
+    get_contributions_and_errors_by_day,
     get_endpoint_errors_and_successes_by_week,
     get_endpoints_added_by_week,
     get_issue_counts,
-    get_logs,
 )
 
 report_bp = Blueprint("reporting", __name__, url_prefix="/reporting")
@@ -24,18 +24,18 @@ report_bp = Blueprint("reporting", __name__, url_prefix="/reporting")
 @report_bp.get("/")
 @report_bp.get("/overview")
 def overview():
-    logs_df = get_logs()
+    contributions_and_errors_by_day_df = get_contributions_and_errors_by_day()
     (
         summary_contributions,
         summary_endpoint_errors,
-    ) = get_contributions_and_erroring_endpoints()
+    ) = get_contributions_and_erroring_endpoints(contributions_and_errors_by_day_df)
     errors, warnings = get_issue_counts()
     endpoints_added_timeseries = get_endpoints_added_by_week()
     (
         endpoint_successes_timeseries,
-        endpoint_errors_timeseries,
-    ) = get_endpoint_errors_and_successes_by_week(logs_df)
-
+        endpoint_successes_percentages_timeseries,
+        endpoint_errors_percentages_timeseries,
+    ) = get_endpoint_errors_and_successes_by_week(contributions_and_errors_by_day_df)
     summary_metrics = {
         "contributions": summary_contributions,
         "endpoint_errors": summary_endpoint_errors,
@@ -45,7 +45,8 @@ def overview():
     graphs = {
         "endpoints_added_timeseries": endpoints_added_timeseries,
         "endpoint_successes_timeseries": endpoint_successes_timeseries,
-        "endpoint_errors_timeseries": endpoint_errors_timeseries,
+        "endpoint_successes_percentages_timeseries": endpoint_successes_percentages_timeseries,
+        "endpoint_errors_percentages_timeseries": endpoint_errors_percentages_timeseries,
     }
 
     return render_template(
