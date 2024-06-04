@@ -4,8 +4,8 @@ import hashlib
 import io
 from functools import wraps
 
-import dateutil
 import requests
+from dateutil.relativedelta import relativedelta
 from requests import HTTPError
 
 
@@ -77,9 +77,7 @@ def month_dict(num_months):
     counts = {}
     today = datetime.datetime.now()
     for m in list(reversed(range(0, num_months + 1))):
-        counts.setdefault(
-            (today - dateutil.relativedelta(months=m)).strftime("%Y-%m"), 0
-        )
+        counts.setdefault((today - relativedelta(months=m)).strftime("%Y-%m"), 0)
     return counts
 
 

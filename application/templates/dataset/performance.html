@@ -62,7 +62,7 @@
         </div>
         <div class="govuk-grid-column-one-third">
           {% if source_count is not none %}
-          {% set sourceLinkHTML %}<a href="{{ url_for('reporting.sources', pipeline=name) }}" class="govuk-link govuk-link--text-colour app-link--large-bold">{{ source_count[0]['active']|default('0') }}</a>{% endset %}
+          {% set sourceLinkHTML %}<span>{{ source_count[0]['active']|default('0') }}</span>{% endset %}
           {{ appDataItem({
             "label": "Active sources",
             "value": {
