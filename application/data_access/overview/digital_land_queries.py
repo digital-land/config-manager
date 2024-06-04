@@ -327,8 +327,7 @@ def get_resource_count_per_dataset(organisation=None):
         "source_pipeline.pipeline",
     ]
     sql = " ".join(query_lines)
-    # print("*********************")
-    # print("sql:check:",sql)
+
     rows = get_datasette_query("digital-land", sql)
     columns = rows.columns.tolist()
 
@@ -586,8 +585,7 @@ def get_resources(filters=None, limit=None):
     ]
 
     query_str = " ".join(query_lines)
-    # print("queery**",query_str)
-    # print("fitler*",filters)
+
     if filters:
         rows = get_datasette_query("digital-land", query_str, filters)
     else:

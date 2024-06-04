@@ -216,7 +216,6 @@ def dataset_overview(dataset):
 
     # publishers = fetch_publisher_stats(dataset_name)
     publishers = publisher_counts(dataset_name)
-    print("publishers:", publishers)
     publisher_splits = {"active": [], "noactive": []}
     for k, publisher in publishers.items():
         if publisher["active_resources"] == 0:
@@ -234,7 +233,6 @@ def dataset_overview(dataset):
         ),
         "zero": len(publisher_splits["noactive"]),
     }
-    print("resource_Stats:", resource_stats)
     resource_counts = index_by("pipeline", get_resource_count_per_dataset())
 
     resource_count = (
