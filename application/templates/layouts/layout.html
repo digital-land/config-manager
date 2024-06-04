@@ -1,0 +1,65 @@
+{% extends "digital-land-frontend/layouts/base.jinja" %}
+{% from 'macro/primary-nav.html' import primaryNavigation %}
+{% from 'macro/data-item.html' import appDataItem %}
+
+{% block stylesheets %}
+  <link rel="stylesheet" href="/static/stylesheets/application.css">
+{% endblock %}
+
+{% block mastHead %}
+<header class="govuk-header app-light-header" role="banner" data-module="govuk-header">
+  <div class="govuk-header__container govuk-width-container">
+    <div class="app-header__content">
+        <span class="app-header__team-name">
+          <a href="https://planning.data.gov.uk" class="govuk-header__link govuk-header__link--homepage">
+            <span class="govuk-header__logotype-text">
+            planning.data.gov.uk
+            </span>
+          </a>
+        </span>
+        <a href="/" class="govuk-header__link govuk-header__link--homepage">
+          <span class="govuk-header__product-name">
+            performance
+          </span>
+        </a>
+        <strong class="govuk-tag govuk-phase-banner__content__tag app-header__tag">
+          prototype
+        </strong>
+      </a>
+    </div>
+  </div>
+</header>
+{% block primaryNav %}
+{% include 'partials/primary-navigation.html' %}
+{% endblock primaryNav %}
+{% endblock %}
+
+
+{% block pageScripts %}
+<script>
+  // look for single back to top element
+  const $bttBanner = document.querySelector('[data-module="sticky-banner"]')
+  console.log($bttBanner)
+  // instantiate if it exists
+  if ($bttBanner) {
+    const bttComponent = new DLFrontend.BackToTop($bttBanner).init({
+      endElementSelector: '.govuk-footer',
+      startElementSelector: '#btt-hook',
+      fixClass: 'dl-sticky-banner--fixed'
+    })
+  }
+</script>
+{% if info_page %}
+<script>
+  document.addEventListener('keyup', function(e) {
+    // are control and alt keys pressed
+    if (e.altKey && e.ctrlKey) {
+      // if i key is pressed
+      if (e.keyCode === 73) {
+        window.location.href = window.location.href + "/info"
+      }
+    }
+  })
+</script>
+{% endif %}
+{% endblock %}

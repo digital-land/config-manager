@@ -23,9 +23,13 @@ def get_datasette_http():
     return http
 
 
-def get_datasette_query(db, sql, url="https://datasette.planning.data.gov.uk"):
+def get_datasette_query(
+    db, sql, filter=None, url="https://datasette.planning.data.gov.uk"
+):
     url = f"{url}/{db}.json"
     params = {"sql": sql, "_shape": "array", "_size": "max"}
+    if filter:
+        params.update(filter)
     try:
         http = get_datasette_http()
         resp = http.get(url, params=params)

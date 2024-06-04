@@ -1,0 +1,47 @@
+.app-data-item {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.app-data-item__number {
+  @include govuk-font($size: 48, $weight: bold);
+  margin-right: 5px;
+}
+
+.app-data-item__label {
+  display: block;
+  @include govuk-font($size: 24);
+  font-size: 32px;
+  margin-top: 3px;
+}
+
+.app-data-item--s {
+  .app-data-item__number {
+    @include govuk-font($size: 36, $weight: bold);
+  }
+
+  .app-data-item__label {
+    @include govuk-font($size: 19);
+  }
+}
+
+.app-data-item--inline {
+  .app-data-item__label {
+    display: inline;
+  }
+}
+
+.app-data-item__label {
+  @include govuk-responsive-margin(1, "bottom");
+  color: govuk-colour("dark-grey");
+  @include govuk-font($size: 24);
+}
+
+.app-data-item__number {
+  display: inline-block;
+  @include govuk-responsive-margin(1, "bottom");
+}
+
+.app-data-item__explainer {
+  margin-bottom: 0;
+}

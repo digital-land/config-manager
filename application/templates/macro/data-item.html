@@ -1,0 +1,34 @@
+{% macro appDataItem(params) %}
+<div class="app-data-item">
+  <p class="govuk-body app-data-item__label">{{ params.label }}</p>
+  <span class="app-data-item__number app-!-font-size-60">
+    {% if params.value.html %}{{ params.value.html }}{% else %}{{ params.value }}{% endif %}
+  </span>
+  {% if params.indicator %}
+  <div>
+    <span class="govuk-tag govuk-tag--green govuk-!-font-weight-regular app-!-text-lowercase">
+      <img src="/static/images/arrow-up-green.png" alt="Up arrow" width="12px" aria-hidden="true" class="govuk-!-margin-right-1" loading="lazy">
+      <span class="govuk-visually-hidden">There has been an increase of </span>
+      <strong>{{ params.indicator.value }}</strong><span class="govuk-visually-hidden"> {{ params.indicator.item }} </span>
+      (<span class="govuk-visually-hidden">compared to the </span>last {{ params.indicator.timeperiod }})
+    </span>
+  </div>
+  {% endif %}
+  {% if params.explainer %}
+  <details class="govuk-details govuk-details--small app-data-item__explainer" data-module="govuk-details">
+    <summary class="govuk-details__summary">
+      <span class="govuk-details__summary-text">
+        {{ params.explainer.summary }}
+      </span>
+    </summary>
+    <div class="govuk-details__text">
+      {% if params.explainer.html %}
+      {{ params.explainer.html|safe }}
+      {% else %}
+      {{ params.explainer.text }}
+      {% endif %}
+    </div>
+  </details>
+  {% endif %}
+</div>
+{% endmacro %}

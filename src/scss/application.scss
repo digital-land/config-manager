@@ -99,3 +99,7 @@
   // using !important to cut a corner
   color: darken(#d4351c, 25) !important;
 }
+
+.app-main-wrapper {
+  @include moj-width-container;
+}

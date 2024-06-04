@@ -1,0 +1,38 @@
+{% macro orgTableOnDataset(params) %}
+<div class="data-table__wrapper" data-module="data-table">
+  <table class="govuk-table">
+    {% if params.caption %}<caption class="govuk-table__caption govuk-table__caption--s">{{ params.caption }}</caption>{% endif %}
+    <thead class="govuk-table__head dl-table__head--sticky">
+      <tr class="govuk-table__row">
+        <th scope="col" class="govuk-table__header govuk-\!-width-one-quarter" aria-sort="none">Name</th>
+        <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Active sources</th>
+        <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Inactive sources</th>
+        <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Total resources</th>
+        <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Active resources</th>
+        <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Days since update</th>
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for org in params.organisations %}
+      {% set inactive_sources = org['sources']|to_int - org['active_sources']|to_int %}
+      {% set inactive_resources = org['resources']|to_int - org['active_resources']|to_int %}
+      {% set orgIdPieces = org['organisation'].split(':')  %}
+      <tr class="govuk-table__row">
+        <td class="govuk-table__cell" data-sort-value="{{ org['name'] }}"><a href="{{ url_for('publisher.organisation_performance', prefix=orgIdPieces[0], org_id=orgIdPieces[1]) }}" class="govuk-link">{{ org['name'] }}</a>
+          {% if org['organisation_end_date'] and org['organisation_end_date'] < params.today  %}
+          <strong class="govuk-tag govuk-tag--grey">
+            Dissolved
+          </strong>
+          {% endif %}
+        </td>
+        <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ org['active_sources']|to_int }}">{{ org['active_sources'] }}</td>
+        <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ inactive_sources }}">{{ inactive_sources }}</td>
+        <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ org['resources']|to_int }}">{{ org['resources']|to_int }}</td>
+        <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ org['active_resources']|to_int }}">{{ org['active_resources'] }}</td>
+        <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ org['days_since_update']|to_int }}">{{ org['days_since_update'] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}

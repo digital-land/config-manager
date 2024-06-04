@@ -1,0 +1,31 @@
+{{ primaryNavigation({
+    "items": [
+        {
+            "text": "Overview",
+            "href": url_for('reporting.overview_of_datasets'),
+            "active": True
+        },
+        {
+            "text": "Datasets",
+            "href": url_for('dataset.datasets')
+        },
+        {
+            "text": "Organisations",
+            "href": url_for('publisher.organisation')
+        },
+        {
+            "text": "Sources",
+            "href": url_for('reporting.sources')
+        },
+        {
+            "text": "Resources",
+            "href": url_for('reporting.resources')
+        },
+        {
+            "text": "Logs",
+            "href": url_for('reporting.logs')
+        },
+
+    ]
+})
+}}

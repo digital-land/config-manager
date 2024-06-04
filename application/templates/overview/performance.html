@@ -1,0 +1,341 @@
+{% extends "layouts/base.html" %}
+
+{% block beforeContent %}
+<div class="govuk-breadcrumbs reporting-overview-container">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      Overview of Datasets
+    </li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+
+{% block content %}
+<div class="app-summary-banner">
+    <div class="app-summary-banner__header">
+        <h3 class="govuk-heading-l">Summary</h3>
+    </div>
+    <div class="app-summary-banner__body">
+        <div class="app-summary-banner__row">
+            <div class="app-data-item">
+                <p class="govuk-body app-data-item__label">Entities</p>
+                <span class="app-data-item__number app-!-font-size-60">{{ entity_count|commanum }}</span>
+                <details class="govuk-details govuk-details--small app-data-item__explainer" data-module="govuk-details">
+                    <summary class="govuk-details__summary">
+                        <span class="govuk-details__summary-text">
+                            What is an entity?
+                        </span>
+                    </summary>
+                    <div class="govuk-details__text">
+                    An entity is a unit of data with a distinct and independent purpose, such as an organisation, document, location, policy, etc
+                    </div>
+                </details>
+            </div>
+        </div>
+        <div class="app-summary-banner__row">
+            <div class="govuk-grid-row">
+                <div class="govuk-grid-column-one-quarter">
+                  <div class="app-data-item">
+                    <p class="govuk-body app-data-item__label">Datasets</p>
+                    <span class="app-data-item__number app-!-font-size-60">{{ datasets_with_data_count }}<span class="govuk-!-font-size-19">/{{ datasets|length }}</span></span>
+                  </div>
+                </div>
+                <div class="govuk-grid-column-one-quarter">
+                  <div class="app-data-item">
+                    <p class="govuk-body app-data-item__label">Sources</p>
+                    <span class="app-data-item__number app-!-font-size-60">{{ source_counts | sum(attribute='sources_with_endpoint') }}</span>
+                  </div>
+                </div>
+                <div class="govuk-grid-column-one-quarter">
+                  <div class="app-data-item">
+                    <p class="govuk-body app-data-item__label" data-weekly-increase="{{ new_resources|length }}">Resources</p>
+                    <span class="app-data-item__number app-!-font-size-60">{{ resource_count }}</span>
+                  </div>
+                </div>
+                <div class="govuk-grid-column-one-quarter">
+                  <div class="app-data-item">
+                    <p class="govuk-body app-data-item__label">Organisations</p>
+                    <span class="app-data-item__number app-!-font-size-60">{{ publisher_count['active'] }}<span class="govuk-!-font-size-19">/{{ publisher_count['total'] }}</span></span>
+                    <details class="govuk-details govuk-details--small app-data-item__explainer" data-module="govuk-details">
+                        <summary class="govuk-details__summary">
+                          <span class="govuk-details__summary-text">
+                            What does this tell us?
+                          </span>
+                        </summary>
+                        <div class="govuk-details__text">
+                          It measures the number of organisations we have collected data from against the number we expect to collect data from. Ideally these numbers would be the same.
+                        </div>
+                      </details>
+                  </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<main class="app-main-wrapper {{ mainClasses }}" id="main-content" role="main"{% if mainLang %} lang="{{ mainLang }}"{% endif %}></main>
+<div class="govuk-tabs" data-module="dl-subnav">
+    <h2 class="govuk-tabs__title">
+      Contents
+    </h2>
+    <nav class="dl-subnav" aria-label="Sub navigation">
+        <ul class="dl-subnav__list">
+            <li class="dl-subnav__list-item dl-subnav__list-item--selected">
+                <a class="dl-subnav__list-item__link" href="#dataset" data-module-sub-nav="tab">
+                Datasets
+                </a>
+            </li>
+            <li class="dl-subnav__list-item">
+                <a class="dl-subnav__list-item__link" href="#sources" data-module-sub-nav="tab">
+                Sources and resources
+                </a>
+            </li>
+            <li class="dl-subnav__list-item">
+              <a class="dl-subnav__list-item__link" href="#publishers" data-module-sub-nav="tab">
+                Organisations
+              </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div id="dataset">
+      <h2 class="govuk-heading-l">Overview of datasets</h2>
+      <p class="govuk-body">The datasets used to make planning related decisions. Digital land are either collecting some data for each dataset listed or plan to do so in the future.</p>
+      {% include 'overview/main-dataset-table.html' %}
+    </div>
+
+    <div id="sources">
+      <h2 class="govuk-heading-l govuk-!-margin-top-9">Sources and resources</h2>
+
+      <h3 class="govuk-heading-m">Overview of sources</h3>
+
+      <div class="govuk-grid-row govuk-!-margin-bottom-9">
+        <div class="govuk-grid-column-one-half">
+          <div class="app-data-item govuk-!-margin-bottom-6">
+            <span class="app-data-item__number govuk-!-font-size-48">{{ source_counts | sum(attribute='sources_with_endpoint') }}</span>
+            <p class="govuk-body govuk-!-font-size-19">Total</p>
+          </div>
+          <details class="govuk-details" data-module="govuk-details">
+            <summary class="govuk-details__summary">
+              <span class="govuk-details__summary-text dl-small-text">
+                What does this tell us?
+              </span>
+            </summary>
+            <div class="govuk-details__text dl-small-text">
+              This is the number of places Digital land attempts to collect data from each night. The number shows the challenge anyone looking for planning data faces.
+            </div>
+          </details>
+        </div>
+        <div class="govuk-grid-column-one-half">
+          <div class="app-data-item govuk-!-margin-bottom-6">
+            <span class="app-data-item__number govuk-!-font-size-48">{{ source_counts | sum(attribute='sources_missing_document_url') }}</span>
+            <p class="govuk-body govuk-!-font-size-19">Without a documentation URL</p>
+          </div>
+          <details class="govuk-details" data-module="govuk-details">
+            <summary class="govuk-details__summary">
+              <span class="govuk-details__summary-text dl-small-text">
+                What does this tell us?
+              </span>
+            </summary>
+            <div class="govuk-details__text dl-small-text">
+              When we add a source we usually record a <code>documentation-url</code>. This is the place where we found the source. It helps us answer questions about where we found the source and why we are collecting it. Without it we are less confident about the origin of the source and therefore the authority of the data.
+            </div>
+          </details>
+          <div class="dl-collapsible__wrapper" data-module='app-collapsible'>
+            <div class="dl-collapsible no-doc-endpoints" data-collapsible="open">
+              <ul class="govuk-list">
+                {% for pipeline in source_counts %}
+                {%- if pipeline['sources_missing_document_url'] > 0 %}
+                <li>
+                  <a href="{{ url_for('dataset.dataset_overview', dataset=pipeline['pipeline'], _anchor='sources-missing-documentation-url') }}">{{ pipeline['pipeline'] }}</a>: {{ pipeline['sources_missing_document_url'] }}
+                </li>
+                {% endif -%}
+                {% endfor %}
+              </ul>
+            </div>
+            <div class="expanding-line-break">
+              <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible">
+              <span class="govuk-link dl-collapsible__btn open-section" data-action="open-section"><span class="dl-collapsible__icon">⊻</span>see breakdown by dataset</span>
+              <span class="govuk-link dl-collapsible__btn close-section" data-action="close-section"><span class="dl-collapsible__icon">⊼</span>close breakdown</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="govuk-heading-m">Sources and resources by month</h3>
+      <figure class="highcharts-figure govuk-!-margin-bottom-9">
+        <div id="container"></div>
+        <p class="highcharts-description govuk-body govuk-!-margin-top-4">
+          A chart showing the number of sources Digital land have added each month and the number of new resources collected each month.
+          enhanced readability.
+        </p>
+      </figure>
+
+      <h3 class="govuk-heading-m">Overview of resources</h3>
+      <div class="govuk-grid-row">
+        <div class="govuk-grid-column-one-half">
+          <div class="app-data-item govuk-!-margin-bottom-6">
+            <span class="app-data-item__number govuk-!-font-size-48">{{ resource_count }}</span>
+            <p class="govuk-body govuk-!-font-size-19">Resources</p>
+          </div>
+        </div>
+        <div class="govuk-grid-column-one-half">
+          <div class="app-data-item govuk-!-margin-bottom-6">
+            <span class="app-data-item__number govuk-!-font-size-48">{{ content_type_counts|length }}</span>
+            <p class="govuk-body govuk-!-font-size-19">Content types</p>
+          </div>
+
+          <div class="dl-collapsible__wrapper" data-module='app-collapsible'>
+            <div class="dl-collapsible no-doc-endpoints" data-collapsible="open">
+              <ul class="govuk-list">
+              {# only want to show most common types #}
+              {% for n in range(10) %}
+                <li>
+                  {% if content_type_counts[n]['content_type'] %}
+                  <span class="govuk-!-font-weight-bold">{{ content_type_counts[n]['content_type'] }}</span>:
+                  {% else %}
+                  <span class="govuk-tag govuk-tag--yellow">No content-type</span>
+                  {% endif %}
+                {{ content_type_counts[n]['resource_count'] }} resource{{ "" if content_type_counts[n]['resource_count'] == 1 else "s" }}
+                </li>
+              {% endfor %}
+              </ul>
+            </div>
+            <div class="expanding-line-break">
+              <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible">
+              <span class="govuk-link dl-collapsible__btn open-section" data-action="open-section"><span class="dl-collapsible__icon">⊻</span>see top 10 content types</span>
+              <span class="govuk-link dl-collapsible__btn close-section" data-action="close-section"><span class="dl-collapsible__icon">⊼</span>close breakdown</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="publishers">
+      <h3 class="govuk-heading-m">Overview of publishers</h3>
+      <div class="govuk-grid-row govuk-!-margin-bottom-9">
+        <div class="govuk-grid-column-one-half">
+          <div class="app-data-item govuk-!-margin-bottom-6">
+            <span class="app-data-item__number govuk-!-font-size-48">{{ publisher_count['active'] }}<span class="govuk-!-font-size-19">/{{ publisher_count['total'] }}</span></span>
+            <p class="govuk-body govuk-!-font-size-19">Publisher coverage</code></p>
+          </div>
+        </div>
+        <div class="govuk-grid-column-one-half">
+          <div class="app-data-item govuk-!-margin-bottom-6">
+            <span class="app-data-item__number govuk-!-font-size-48">{{ publisher_using_enddate_count }}</span>
+            <p class="govuk-body govuk-!-font-size-19">Have used <code>end-date</code></p>
+          </div>
+          <details class="govuk-details" data-module="govuk-details">
+            <summary class="govuk-details__summary">
+              <span class="govuk-details__summary-text dl-small-text">
+                What does this tell us?
+              </span>
+            </summary>
+            <div class="govuk-details__text dl-small-text">
+              {{ publisher_using_enddate_count }} different publishers have used an <code>end-date</code>. End dates are used to indicate something is historical. It is a concept we expected publishers to struggle with. Therefore it is good to know who is using them and who isn't.
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+</div>
+{% endblock content %}
+
+{% block pageScripts %}
+{% include 'overview/high-charts-scripts.html' %}
+<script src="/static/javascripts/vendor/jquery-3.4.1.min.js"></script>
+<script src="/static/javascripts/vendor/MOJFrontend.SortableTable.js"></script>
+<script>
+(function($) {
+    $(function() {
+      var tables = $('table')
+      console.log(tables[0])
+      var sTable = new MOJFrontend.SortableTable({
+          table: $('table')[0],
+          statusVisible: true,
+          tableWrapperSelector: ".data-table__wrapper"
+      });
+    });
+}(jQuery));
+</script>
+<script>
+  Highcharts.chart('container', {
+
+title: {
+  text: ''
+},
+
+yAxis: {
+  title: {
+    text: 'Number of items'
+  }
+},
+
+xAxis: {
+  categories: {{ stats['months']|tojson }},
+  labels: {
+    step: 7
+  },
+  accessibility: {
+    rangeDescription: 'Range: December 2016 to now'
+  }
+},
+
+legend: {
+  layout: 'vertical',
+  align: 'right',
+  verticalAlign: 'middle'
+},
+
+plotOptions: {
+  series: {
+    label: {
+      connectorAllowed: false
+    },
+    marker: {
+      symbol: 'circle',
+      lineWidth: 1
+    }
+  }
+},
+
+series: [{
+  name: 'Sources',
+  data: {{ stats['sources']|tojson }},
+  color: '#5694ca'
+}, {
+  name: 'Resources',
+  data:{{ stats['resources']|tojson }},
+  color: '#003078'
+}],
+
+responsive: {
+  rules: [{
+    condition: {
+      maxWidth: 500
+    },
+    chartOptions: {
+      legend: {
+        layout: 'horizontal',
+        align: 'center',
+        verticalAlign: 'bottom'
+      }
+    }
+  }]
+}
+
+});
+</script>
+<script src="/static/javascripts/collapsible-section.js"></script>
+<script>
+  const $collapsibles = document.querySelectorAll("[data-module='app-collapsible']")
+  $collapsibles.forEach(function($el) {
+    const $section = $el.querySelector(".dl-collapsible")
+    const $triggers = $el.querySelector(".expanding-line-break")
+    const collapsibleComponent = new CollapsibleSection($section, $triggers).init()
+  })
+</script>
+{% endblock pageScripts %}
