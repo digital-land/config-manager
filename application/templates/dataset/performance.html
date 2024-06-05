@@ -362,8 +362,8 @@
   console.log({{ dataset|tojson }})
 </script>
 
-<script src="/static/javascripts/vendor/jquery-3.4.1.min.js"></script>
-<script src="/static/javascripts/vendor/MOJFrontend.SortableTable.js"></script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="/static/javascripts/vendor/jquery-3.4.1.min.js"></script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="/static/javascripts/vendor/MOJFrontend.SortableTable.js"></script>
 
 {% if monthly_counts %}
 {{ sourcesAndResourcesByMonthJS({

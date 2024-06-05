@@ -247,8 +247,8 @@
 
 {% block pageScripts %}
 {% include 'overview/high-charts-scripts.html' %}
-<script src="/static/javascripts/vendor/jquery-3.4.1.min.js"></script>
-<script src="/static/javascripts/vendor/MOJFrontend.SortableTable.js"></script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="/static/javascripts/vendor/jquery-3.4.1.min.js"></script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="/static/javascripts/vendor/MOJFrontend.SortableTable.js"></script>
 <script>
 (function($) {
     $(function() {
@@ -330,7 +330,7 @@ responsive: {
 
 });
 </script>
-<script src="/static/javascripts/collapsible-section.js"></script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="/static/javascripts/collapsible-section.js"></script>
 <script>
   const $collapsibles = document.querySelectorAll("[data-module='app-collapsible']")
   $collapsibles.forEach(function($el) {
