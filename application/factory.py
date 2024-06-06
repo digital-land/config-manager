@@ -69,6 +69,10 @@ def register_blueprints(app):
 
     app.register_blueprint(report_bp)
 
+    from application.blueprints.publisher.views import publisher_pages
+
+    app.register_blueprint(publisher_pages)
+
 
 def register_context_processors(app):
     """
@@ -88,12 +92,22 @@ def register_filters(app):
         make_link_filter,
     )
 
-    from application.filters import render_field_value
+    from application.filters import (
+        clean_int_filter,
+        days_since,
+        remove_query_param_filter,
+        render_field_value,
+        split_filter,
+    )
 
     app.add_template_filter(commanum_filter, name="commanum")
     app.add_template_filter(hex_to_rgb_string_filter, name="hex_to_rgb")
     app.add_template_filter(make_link_filter, name="makelink")
     app.add_template_filter(render_field_value, name="render_field_value")
+    app.add_template_filter(split_filter, name="split")
+    app.add_template_filter(clean_int_filter, name="to_int")
+    app.add_template_filter(days_since, name="days_since")
+    app.add_template_filter(remove_query_param_filter, name="remove_query_param")
 
 
 def register_extensions(app):

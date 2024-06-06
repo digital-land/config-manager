@@ -1,0 +1,459 @@
+{% extends "layouts/base.html" %}
+
+{% from 'macro/resources-sources-by-month.html' import sourcesAndResourcesByMonthChart, sourcesAndResourcesByMonthJS %}
+{% from 'tables/org-table-on-dataset.html' import orgTableOnDataset %}
+{% block beforeContent %}
+<div class="govuk-breadcrumbs reporting-overview-container">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('reporting.overview_of_datasets') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      {{ name|replace("-", " ")|capitalize }}
+    </li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+{% block dl_breadcrumbs %}
+{{ govukBreadcrumbs({
+  "items": [
+    {
+      "text": "Datasets",
+      "href": url_for('dataset.datasets')
+    },
+    {
+      "text": name|replace("-", " ")|capitalize
+    }
+  ]
+}) }}
+{% endblock %}
+
+{% block content %}
+<div class="app-summary-banner">
+  <div class="app-summary-banner__header">
+    <h3 class="govuk-heading-l">{{ name|replace("-", " ")|capitalize }} summary</h3>
+  </div>
+  <div class="app-summary-banner__body">
+    <div class="app-summary-banner__row">
+      {% if entity_count is not none -%}
+        {{ appDataItem({
+          "label": "Entity" if entity_count == 1 else "Entities",
+          "value": entity_count|commanum
+        }) }}
+      {%- endif %}
+    </div>
+    <div class="app-summary-banner__row">
+      <div id="btt-hook" class="govuk-grid-row">
+        <div class="govuk-grid-column-one-third">
+          {% if coverage -%}
+          <div class="app-data-item">
+            <p class="govuk-body app-data-item__label">Organisations</p>
+            <span class="app-data-item__number app-!-font-size-60">{{ coverage['active'] }}<span class="govuk-!-font-size-19">/{{ coverage['total'] }}</span></span>
+          </div>
+          {%- endif %}
+        </div>
+        <div class="govuk-grid-column-one-third">
+          {% if resource_count is not none %}
+          {{ appDataItem({
+            "label": "Resources",
+            "value": resource_count|default('0')
+          }) }}
+          {%- endif %}
+        </div>
+        <div class="govuk-grid-column-one-third">
+          {% if source_count is not none %}
+          {% set sourceLinkHTML %}<span>{{ source_count[0]['active']|default('0') }}</span>{% endset %}
+          {{ appDataItem({
+            "label": "Active sources",
+            "value": {
+              "html": sourceLinkHTML
+            },
+            "explainer": {
+              "summary": "What is an active source?",
+              "text": "It is a source with an endpoint (a url) that the digital land collector visits looking for resources. A source can become inactive if an end-date is added."
+            }
+          }) }}
+          {%- endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<main class="app-main-wrapper {{ mainClasses }}" id="main-content" role="main"{% if mainLang %} lang="{{ mainLang }}"{% endif %}>
+  <span class="govuk-caption-xl govuk-!-margin-top-6">Dataset performance</span>
+  <h1 class="govuk-heading-xl">{{ name|replace("-", " ")|capitalize }}</h1>
+
+  <h3 class="govuk-heading-m">Dataset info</h3>
+  <dl class="govuk-summary-list govuk-!-margin-bottom-9">
+
+    {% if dataset['name'] %}
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Name
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ dataset['name'] }}
+      </dd>
+    </div>
+    {% endif %}
+
+    {% if dataset['project'] %}
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Project
+      </dt>
+      <dd class="govuk-summary-list__value">
+        <a href="https://digital-land.github.io/project'{{ dataset['project'] }}">{{ dataset['project'] }}</a>
+      </dd>
+    </div>
+    {% endif %}
+
+    {% if dataset['pipeline'] %}
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Pipeline
+      </dt>
+      <dd class="govuk-summary-list__value">
+        <a href="https://github.com/digital-land/{{ dataset['pipeline'] }}">{{ dataset['pipeline'] }}</a>
+      </dd>
+    </div>
+    {% endif %}
+
+    {% if dataset['data-provider'] %}
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Data provider
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ dataset['data-provider'] }}
+      </dd>
+    </div>
+    {% endif %}
+
+    {% if dataset['category'] %}
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Policy area
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ dataset['category'] }}
+      </dd>
+    </div>
+    {% endif %}
+
+    {% if latest_resource %}
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Date collected newest resource
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {% if latest_resource | count == 0 %}
+        <div class="govuk-error-message">Unable to get latest resource data</div>
+        {% else %}
+        {{ latest_resource[0]['start_date'] }}
+        <div class="dl-secondary-text dl-small-text govuk-!-margin-top-1">(<a href="{{ url_for('reporting.resource', resource=latest_resource['resource']) }}" class="govuk-link">{{ latest_resource['resource']|truncate(15) }}</a> was the resource collected)</div>
+        {% endif %}
+      </dd>
+    </div>
+    {% endif %}
+
+    {% if latest_logs.get(name) is not none %}
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">
+        Collector last ran on
+      </dt>
+      <dd class="govuk-summary-list__value">
+        {{ latest_logs.get(name)['latest_attempt'] }}
+      </dd>
+    </div>
+    {% endif %}
+
+  </dl>
+
+  <div class="govuk-tabs" data-module="dl-subnav">
+    <h2 class="govuk-tabs__title">
+      Contents
+    </h2>
+    <nav class="dl-subnav" aria-label="Sub navigation">
+      <ul class="dl-subnav__list">
+        <li class="dl-subnav__list-item">
+          <a class="dl-subnav__list-item__link" href="#sources-resources" data-module-sub-nav="tab">
+          Sources and resources
+          </a>
+        </li>
+        {% if publishers %}
+        <li class="dl-subnav__list-item dl-subnav__list-item--selected">
+          <a class="dl-subnav__list-item__link" href="#publishers" data-module-sub-nav="tab">
+          Organisations
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+
+    <div id="sources-resources">
+      {{ sourcesAndResourcesByMonthChart({}) }}
+
+      <h3 id="content-types" class="govuk-heading-m govuk-!-margin-top-9">Resource content-types</h3>
+      <div class="govuk-grid-row govuk-!-margin-bottom-9">
+        <div class="govuk-grid-column-one-half">
+          <div class="app-data-item govuk-!-margin-bottom-6">
+            <span class="app-data-item__number govuk-!-font-size-48">{{ content_type_counts|length }}</span>
+            <p class="govuk-body govuk-!-font-size-19">Content types</p>
+          </div>
+          <details class="govuk-details" data-module="govuk-details">
+            <summary class="govuk-details__summary">
+              <span class="govuk-details__summary-text dl-small-text">
+                What does this tell us?
+              </span>
+            </summary>
+            <div class="govuk-details__text dl-small-text">
+              The higher the number of different content-types, the more variety there is in the types of resource we have to process. It is easier to process, extract and combine data from the same type of resource.
+            </div>
+          </details>
+        </div>
+        <div class="govuk-grid-column-one-half">
+          {% if content_type_counts|length > 0 %}
+          <ul class="govuk-list">
+            <h4 class="govuk-heading-xs">Most common types</h4>
+            {# only want to show most common types #}
+            {% set items = content_type_counts|length if content_type_counts|length < 4 else 4 %}
+            {% for n in range(items) %}
+              <li>
+                {% if content_type_counts[n]['content_type'] %}
+                <span class="govuk-!-font-weight-bold">{{ content_type_counts[n]['content_type'] }}</span>:
+                {% else %}
+                <span class="govuk-tag govuk-tag--yellow">No content-type</span>
+                {% endif %}
+              {{ content_type_counts[n]['resource_count'] }} resource{{ "" if content_type_counts[n]['resource_count'] == 1 else "s" }}
+              </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="govuk-error-message">Error fetching content types from datasette.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if sources_no_doc_url|length > 0 %}
+      <h3 id="sources-missing-documentation-url" class="govuk-heading-m">Missing documentation urls</h3>
+      <p class="govuk-body">{{ sources_no_doc_url|length }} active sources are missing <code>documentation-urls</code>.</p>
+      <ul class="govuk-list">
+      {# only want to show 5 sources #}
+      {% set items = sources_no_doc_url|length if sources_no_doc_url|length < 5 else 5 %}
+      {% for n in range(items) %}
+        <li class="dl-data-record app-card govuk-!-margin-bottom-3">
+          <div class="dl-data-record__identifier">
+            <h4 class="govuk-heading-s govuk-!-margin-bottom-0">
+            Source <a href="{{ url_for('reporting.source', source=sources_no_doc_url[n]['source']) }}">{{ sources_no_doc_url[n]['source'] }}</a></h4>
+            {%- if sources_no_doc_url[n]['end_date'] or sources_no_doc_url[n]['documentation_url'] == "" -%}
+            <div class="app-card__flags govuk-!-margin-top-1">
+              {% if sources_no_doc_url[n]['end_date'] %}<span class="govuk-tag govuk-tag--grey">Historical</span>{% endif %}
+              {% if sources_no_doc_url[n]['documentation_url'] == "" %}<span class="govuk-tag govuk-tag--yellow">No documentation url</span>{% endif %}
+            </div>
+            {% endif -%}
+          </div>
+          <dl class="govuk-summary-list dl-data-record__properties app-card__properties govuk-!-margin-bottom-0">
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Organisation</dt>
+              <dd class="govuk-summary-list__value">{{ sources_no_doc_url[n]['name'] }}</dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Dataset</dt>
+              <dd class="govuk-summary-list__value">{{ sources_no_doc_url[n]['pipeline'] }}</dd>
+            </div>
+          </dl>
+        </li>
+      {% endfor %}
+      </ul>
+      {% if sources_no_doc_url|length > 5 %}
+      <p class="govuk-body">
+        <a href="{{ url_for('reporting.sources', pipeline=name, documentation_url='') }}" class="govuk-link">See all {{ name }} sources missing a <code>documentation-url</code></a>.
+      </p>
+      {% endif %}
+      {% endif %}
+
+    </div>
+
+    <div id="publishers">
+      {% if publishers %}
+      <h2 class="govuk-heading-l">Organisations</h2>
+
+      <figure class="highcharts-figure govuk-!-margin-bottom-9 govuk-grid-row">
+        <div class="govuk-grid-column-one-quarter">
+          <p class="govuk-body highcharts-description govuk-!-padding-top-9">
+          Chart showing the number of active resources per publishers. Ideally each publisher would have only 1 active resource, then we can be confident this is the resource containing the latest data.
+          </p>
+        </div>
+        <div class="govuk-grid-column-three-quarters">
+          <div id="resource-count-chart"></div>
+        </div>
+      </figure>
+
+      <h3 class="govuk-heading-m">Who has an active resource?</h3>
+      <div class="govuk-accordion" data-module="govuk-accordion" id="accordion-default">
+        <div class="govuk-accordion__section ">
+          <div class="govuk-accordion__section-header">
+            <h2 class="govuk-accordion__section-heading">
+              <span class="govuk-accordion__section-button" id="accordion-default-heading-1">
+                {{ publishers['active']|length }} publishers with an active resource
+              </span>
+            </h2>
+          </div>
+          <div id="accordion-default-content-1" class="govuk-accordion__section-content" aria-labelledby="accordion-default-heading-1">
+            {{ orgTableOnDataset({
+              "caption": "Organisations with an active resource",
+              "organisations": publishers['active'],
+              "today": today
+            }) }}
+          </div>
+        </div>
+        <div class="govuk-accordion__section ">
+          <div class="govuk-accordion__section-header">
+            <h2 class="govuk-accordion__section-heading">
+              <span class="govuk-accordion__section-button" id="accordion-default-heading-1">
+                {{ publishers['noactive']|length }} publishers with NO active resource
+              </span>
+            </h2>
+          </div>
+          <div id="accordion-default-content-1" class="govuk-accordion__section-content" aria-labelledby="accordion-default-heading-1">
+            {{ orgTableOnDataset({
+              "caption": "Organisations without an active resource",
+              "organisations": publishers['noactive'],
+              "today": today
+            }) }}
+          </div>
+        </div>
+        {% if blank_sources|length %}
+        <div class="govuk-accordion__section ">
+          <div class="govuk-accordion__section-header">
+            <h2 class="govuk-accordion__section-heading">
+              <span class="govuk-accordion__section-button" id="accordion-default-heading-3">
+                No data for {{ blank_sources|length }} expected publishers
+                <span class="govuk-tag govuk-tag--red app__tag--in-accordion">Missing</span>
+              </span>
+            </h2>
+          </div>
+          <div id="accordion-default-content-3" class="govuk-accordion__section-content" aria-labelledby="accordion-default-heading-3">
+            <ul class="govuk-list">
+              {% for source in blank_sources %}
+              {%- set prefix = source['organisation'].split(":")[0] %}
+              {%- set org_id = source['organisation'].split(":")[1] %}
+              <li>
+                <a href="{{ url_for('publisher.organisation_performance', prefix=prefix, org_id=org_id) }}" class="govuk-link">{{ source['name'] }}</a>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+{% endblock content %}
+
+
+{% block pageScripts %}
+{{ super() }}
+{% include 'overview/high-charts-scripts.html' %}
+<script>
+  console.log({{ dataset|tojson }})
+</script>
+
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="/static/javascripts/vendor/jquery-3.4.1.min.js"></script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="/static/javascripts/vendor/MOJFrontend.SortableTable.js"></script>
+
+{% if monthly_counts %}
+{{ sourcesAndResourcesByMonthJS({
+  "months": monthly_counts['months']|tojson,
+  "resources": monthly_counts['resources']|tojson,
+  "sources": monthly_counts['sources']|tojson
+}) }}
+{% else %}
+<p class="govuk-body">No sources and resources for {{name|replace("-", " ")|capitalize}}.</p>
+{% endif %}
+
+<script>
+(function($) {
+    $(function() {
+      var tables = document.querySelectorAll('table')
+      tables.forEach(function(table) {
+        var sTable = new MOJFrontend.SortableTable({
+            table: $(table),
+            statusVisible: true,
+            tableWrapperSelector: ".data-table__wrapper"
+        });
+      })
+    });
+}(jQuery));
+</script>
+{% if resource_stats %}
+<script>
+  Highcharts.chart('resource-count-chart', {
+  chart: {
+    type: 'bar'
+  },
+  title: {
+    text: 'Active resources per publisher'
+  },
+  xAxis: {
+    categories: ['Active resources'],
+    title: {
+      text: null
+    }
+  },
+  yAxis: {
+    min: 0,
+    title: {
+      text: 'Organisations',
+      align: 'high'
+    },
+    labels: {
+      overflow: 'justify'
+    }
+  },
+  tooltip: {
+    valueSuffix: ' organisations'
+  },
+  plotOptions: {
+    bar: {
+      dataLabels: {
+        enabled: true
+      }
+    }
+  },
+  legend: {
+    layout: 'vertical',
+    align: 'right',
+    verticalAlign: 'top',
+    x: -40,
+    y: 80,
+    floating: true,
+    borderWidth: 1,
+    backgroundColor:
+      Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
+    shadow: true
+  },
+  credits: {
+    enabled: false
+  },
+  series: [{
+    name: 'More than 1',
+    data: [{{ resource_stats['over_one'] }}],
+    color: '#ffdd00'
+  }, {
+    name: '1',
+    data: [{{ resource_stats['one'] }}],
+    color: '#003078'
+  }, {
+    name: 'None',
+    data: [{{ resource_stats['zero'] }}],
+    color: '#d4351c'
+  }]
+});
+
+</script>
+{% endif %}
+{% endblock pageScripts %}

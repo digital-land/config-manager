@@ -186,9 +186,11 @@ def create_status_row(organisation, cohort, name, status_df, datasets):
                 "text": text,
                 "html": html,
                 "classes": classes,
-                "data": df_row.fillna("").to_dict(orient="records")
-                if (len(df_row) != 0)
-                else {},
+                "data": (
+                    df_row.fillna("").to_dict(orient="records")
+                    if (len(df_row) != 0)
+                    else {}
+                ),
             }
         )
     # Calculate % of endpoints provided

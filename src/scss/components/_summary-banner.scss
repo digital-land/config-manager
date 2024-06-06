@@ -1,0 +1,27 @@
+.app-summary-banner {
+    background: govuk-colour("light-grey");
+    color: govuk-colour('black');
+    @include govuk-responsive-padding(6, "top");
+    @include govuk-responsive-padding(7, "bottom");
+  }
+
+  .app-summary-banner__header,
+  .app-summary-banner__body {
+    @include moj-width-container;
+  }
+
+  .app-summary-banner__row {
+    @include govuk-responsive-margin(6, "bottom");
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .app-summary-banner + .app-main-wrapper > .govuk-tabs {
+    margin-top: 0;
+  }
+
+  .moj-primary-navigation + .app-summary-banner {
+    border-top: 1px solid $govuk-border-colour; // only needed after primary nav element
+  }

@@ -1,0 +1,84 @@
+{% macro sourcesAndResourcesByMonthChart(params) %}
+<h3 class="govuk-heading-m">{{ params.heading|default("Sources and resources by month") }}</h3>
+<figure class="highcharts-figure govuk-!-margin-bottom-9">
+  <div id="{{ params.id|default('container') }}"></div>
+  <p class="highcharts-description govuk-body govuk-!-margin-top-4">
+    {% if params.caption %}
+      {{ params.caption }}
+    {% else %}
+      A chart showing the number of sources Digital land have added each month and the number of new resources collected each month.
+    {% endif %}
+  </p>
+</figure>
+{% endmacro %}
+
+{% macro sourcesAndResourcesByMonthJS(params) %}
+<script>
+Highcharts.chart('{{ params.id|default("container") }}', {
+
+title: {
+  text: ''
+},
+
+yAxis: {
+  title: {
+    text: 'Number of items'
+  }
+},
+
+xAxis: {
+  categories: {{ params.months }},
+  labels: {
+    step: 7
+  },
+  accessibility: {
+    rangeDescription: 'Range: December 2016 to now'
+  }
+},
+
+legend: {
+  layout: 'vertical',
+  align: 'right',
+  verticalAlign: 'middle'
+},
+
+plotOptions: {
+  series: {
+    label: {
+      connectorAllowed: false
+    },
+    marker: {
+      symbol: 'circle',
+      lineWidth: 1
+    }
+  }
+},
+
+series: [{
+  name: 'Sources',
+  data: {{ params.sources }},
+  color: '#5694ca'
+}, {
+  name: 'Resources',
+  data:{{ params.resources }},
+  color: '#003078'
+}],
+
+responsive: {
+  rules: [{
+    condition: {
+      maxWidth: 500
+    },
+    chartOptions: {
+      legend: {
+        layout: 'horizontal',
+        align: 'center',
+        verticalAlign: 'bottom'
+      }
+    }
+  }]
+}
+
+});
+</script>
+{% endmacro %}

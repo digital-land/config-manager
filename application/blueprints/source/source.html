@@ -1,0 +1,118 @@
+{% extends "source/base.html" %}
+
+{% block dl_breadcrumbs %}
+{{ govukBreadcrumbs({
+  "items": [
+    {
+      "text": "Sources",
+      "href": url_for('base.sources')
+    },
+    {
+      "text": source['source']
+    }
+  ]
+}) }}
+{% endblock %}
+
+{% block content %}
+
+<main id="content" role="main">
+  <h2 class="govuk-heading-l">Source</h2>
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds govuk-!-margin-bottom-9">
+      <article class="dl-data-record">
+        <h1 class="govuk-heading-s dl-data-record__identifier govuk-!-margin-bottom-0">{{ source['source'] }}</h1>
+        <dl class="govuk-summary-list dl-data-record__properties govuk-!-margin-bottom-0">
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Organisation</dt>
+            <dd class="govuk-summary-list__value">{{ source['organisation']}}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Endpoint</dt>
+            <dd class="govuk-summary-list__value">
+              {%- if source['endpoint_url'] %}
+              <a class="govuk-link" href="{{ source['endpoint_url'] }}">{{ source['endpoint_url'] }}</a>
+              <span title="Organisation identifier: local-authority-eng:BAB" class="govuk-!-font-size-16 secondary-text data-reference">(<span class="govuk-visually-hidden">Endpoint identifier is </span>{{ source['endpoint']|truncate(15) }})</span></dd>
+              {% endif -%}
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Documentation url</dt>
+            <dd class="govuk-summary-list__value">{% if source['documentation_url'] %}
+            <a href="{{ source['documentation_url'] }}">{{ source['documentation_url'] }}</a>
+            {% else %}
+            <span class="govuk-tag govuk-tag--yellow">Missing</span>
+            {% endif %}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Attribution</dt>
+            <dd class="govuk-summary-list__value">{% if source['attribution'] %}
+            {{ source['attribution'] }}
+            {% else %}
+            <span class="govuk-tag govuk-tag--yellow">Missing</span>
+            {% endif %}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Licence</dt>
+            <dd class="govuk-summary-list__value">{% if source['licence'] %}
+            {{ source['licence'] }}
+            {% else %}
+            <span class="govuk-tag govuk-tag--yellow">Missing</span>
+            {% endif %}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Entry date</dt>
+            <dd class="govuk-summary-list__value">{{ source['entry_date'] }}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Start date</dt>
+            <dd class="govuk-summary-list__value">{{ source['start_date'] }}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">End date</dt>
+            <dd class="govuk-summary-list__value">{{ source['end_date'] }}</dd>
+          </div>
+        </dl>
+      </article>
+    </div>
+  </div>
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <h2 class="govuk-heading-m">Resources</h2>
+      <p class="govuk-body">{{ resources|length }} resource{{ " has" if resources|length == 1 else "s have" }} been collected from this source.</p>
+      {% if resources|length > 0 %}
+      <ul class="govuk-list">
+        {% for resource in resources %}
+        <li class="dl-data-record app-card govuk-!-margin-bottom-3">
+          <h4 class="govuk-heading-s dl-data-record__identifier govuk-!-margin-bottom-0">Resource <a href="{{ url_for('base.resource', resource=resource['resource']) }}">{{ resource['resource']|truncate(15) }}</a></h4>
+          <dl class="govuk-summary-list dl-data-record__properties app-card__properties govuk-!-margin-bottom-0">
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Dataset</dt>
+              <dd class="govuk-summary-list__value">{{ resource['pipeline'] }}</dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Content type</dt>
+              <dd class="govuk-summary-list__value">{{ resource['content_type'] }}</dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Collected on</dt>
+              <dd class="govuk-summary-list__value">{{ resource['start_date'] }}</dd>
+            </div>
+          </dl>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+{% block pageScripts %}
+{{ super() }}
+<script>
+  console.log('source object', {{ source|tojson }})
+</script>
+{% endblock pageScripts %}

@@ -23,6 +23,8 @@
 @import "components/tools-list";
 @import "components/user-bar";
 @import "components/reporting";
+@import "objects/moj-width-container";
+@import "components/moj-sortable-table";
 
 // custom scss
 .app-input__warning {
@@ -98,4 +100,8 @@
 .app-rule-actions__delete {
   // using !important to cut a corner
   color: darken(#d4351c, 25) !important;
+}
+
+.app-main-wrapper {
+  @include moj-width-container;
 }
