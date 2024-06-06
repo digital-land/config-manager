@@ -249,7 +249,7 @@
 {% include 'overview/high-charts-scripts.html' %}
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="/static/javascripts/vendor/jquery-3.4.1.min.js"></script>
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="/static/javascripts/vendor/MOJFrontend.SortableTable.js"></script>
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
 (function($) {
     $(function() {
       var tables = $('table')

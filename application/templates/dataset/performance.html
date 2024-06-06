@@ -375,7 +375,7 @@
 <p class="govuk-body">No sources and resources for {{name|replace("-", " ")|capitalize}}.</p>
 {% endif %}
 
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
 (function($) {
     $(function() {
       var tables = document.querySelectorAll('table')
