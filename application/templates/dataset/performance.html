@@ -358,7 +358,7 @@
 {% block pageScripts %}
 {{ super() }}
 {% include 'overview/high-charts-scripts.html' %}
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   console.log({{ dataset|tojson }})
 </script>
 
@@ -390,7 +390,7 @@
 }(jQuery));
 </script>
 {% if resource_stats %}
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   Highcharts.chart('resource-count-chart', {
   chart: {
     type: 'bar'

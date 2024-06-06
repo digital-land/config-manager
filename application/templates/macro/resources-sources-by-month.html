@@ -13,7 +13,7 @@
 {% endmacro %}
 
 {% macro sourcesAndResourcesByMonthJS(params) %}
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
 Highcharts.chart('{{ params.id|default("container") }}', {
 
 title: {
