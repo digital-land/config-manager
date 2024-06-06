@@ -10,6 +10,8 @@ def get_datasets():
             dataset
         INNER JOIN
             dataset_theme ON dataset.dataset = dataset_theme.dataset
+        WHERE
+            collection != ''
         GROUP BY
             dataset.dataset"""
 
