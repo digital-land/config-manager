@@ -262,7 +262,7 @@
     });
 }(jQuery));
 </script>
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   Highcharts.chart('container', {
 
 title: {
@@ -331,7 +331,7 @@ responsive: {
 });
 </script>
 <script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %} src="/static/javascripts/collapsible-section.js"></script>
-<script>
+<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   const $collapsibles = document.querySelectorAll("[data-module='app-collapsible']")
   $collapsibles.forEach(function($el) {
     const $section = $el.querySelector(".dl-collapsible")
