@@ -14,15 +14,23 @@ def publisher_coverage():
     sql = """
             SELECT
               source_pipeline.pipeline,
-              count(DISTINCT source.organisation) as expected_publishers,
+              count(DISTINCT source.organisation),
+              count(DISTINCT provision.organisation),
+              CASE
+              WHEN COUNT(DISTINCT provision.organisation) = 0 THEN COUNT(DISTINCT source.organisation)
+              ELSE COUNT(DISTINCT provision.organisation)
+              END AS expected_publishers,
               COUNT(
                 DISTINCT CASE
-                  WHEN source.endpoint != '' THEN source.organisation
+                  WHEN source.endpoint != ''
+                  and source.organisation!='government-organisation:D1342'
+                  THEN source.organisation
                 END
               ) AS publishers
             FROM
               source
               INNER JOIN source_pipeline ON source.source = source_pipeline.source
+              LEFT JOIN provision on source_pipeline.pipeline=provision.dataset
             GROUP BY
             source_pipeline.pipeline
     """
@@ -89,6 +97,44 @@ def first_and_last_resource():
     return [dict(zip(columns, row)) for row in rows.to_numpy()]
 
 
+def latest_endpoint_entry_date():
+    # used by get_datasets_summary
+    sql = """
+          select pipeline,substr(MAX(endpoint_entry_date), 1,
+          instr(MAX(endpoint_entry_date), 'T') - 1) as latest_endpoint
+          from reporting_latest_endpoints group by pipeline"""
+
+    rows = get_datasette_query("digital-land", sql)
+    columns = rows.columns.tolist()
+
+    return [dict(zip(columns, row)) for row in rows.to_numpy()]
+
+
+def active_and_total_endpoints():
+    # used by get_datasets_summary
+    sql = """
+          select pipeline,count(status) as total,
+                  count(CASE WHEN status == '200' THEN status END) as active
+          from reporting_latest_endpoints
+          where endpoint_end_date='' group by pipeline"""
+
+    rows = get_datasette_query("digital-land", sql)
+    columns = rows.columns.tolist()
+
+    return [dict(zip(columns, row)) for row in rows.to_numpy()]
+
+
+def get_typology():
+    # used by get_datasets_summary
+    sql = """
+          select dataset as pipeline, typology from dataset group by dataset"""
+
+    rows = get_datasette_query("digital-land", sql)
+    columns = rows.columns.tolist()
+
+    return [dict(zip(columns, row)) for row in rows.to_numpy()]
+
+
 def get_datasets_summary():
     # get all the datasets listed with their active status
     all_datasets = index_by("dataset", get_datasets())
@@ -114,6 +160,30 @@ def get_datasets_summary():
     # add the first and last resource dates
     dataset_resource_dates = first_and_last_resource()
     for d in dataset_resource_dates:
+        if all_datasets.get(d["pipeline"]):
+            all_datasets[d["pipeline"]] = {**all_datasets[d["pipeline"]], **d}
+        else:
+            missing.append(d["pipeline"])
+
+    # add the most recent endpoint entry date
+    dataset_endpoint_entry_date = latest_endpoint_entry_date()
+    for d in dataset_endpoint_entry_date:
+        if all_datasets.get(d["pipeline"]):
+            all_datasets[d["pipeline"]] = {**all_datasets[d["pipeline"]], **d}
+        else:
+            missing.append(d["pipeline"])
+
+    # add endpoints coverage
+    dataset_endpoint_entry_date = active_and_total_endpoints()
+    for d in dataset_endpoint_entry_date:
+        if all_datasets.get(d["pipeline"]):
+            all_datasets[d["pipeline"]] = {**all_datasets[d["pipeline"]], **d}
+        else:
+            missing.append(d["pipeline"])
+
+    # add typology
+    dataset_endpoint_entry_date = get_typology()
+    for d in dataset_endpoint_entry_date:
         if all_datasets.get(d["pipeline"]):
             all_datasets[d["pipeline"]] = {**all_datasets[d["pipeline"]], **d}
         else:
