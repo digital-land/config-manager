@@ -35,12 +35,14 @@
   </div>
   <div class="app-summary-banner__body">
     <div class="app-summary-banner__row">
+      <h2>
       {% if entity_count is not none -%}
         {{ appDataItem({
           "label": "Entity" if entity_count == 1 else "Entities",
           "value": entity_count|commanum
         }) }}
       {%- endif %}
+      </h2>
     </div>
     <div class="app-summary-banner__row">
       <div id="btt-hook" class="govuk-grid-row">
@@ -48,19 +50,22 @@
           {% if coverage -%}
           <div class="app-data-item">
             <p class="govuk-body app-data-item__label">Organisations</p>
-            <span class="app-data-item__number app-!-font-size-60">{{ coverage['active'] }}<span class="govuk-!-font-size-19">/{{ coverage['total'] }}</span></span>
+            <h2>{{ coverage['active'] }}/{{ coverage['total'] }}</h2>
           </div>
           {%- endif %}
         </div>
         <div class="govuk-grid-column-one-third">
+          <h2>
           {% if resource_count is not none %}
           {{ appDataItem({
             "label": "Resources",
             "value": resource_count|default('0')
           }) }}
           {%- endif %}
+          </h2>
         </div>
         <div class="govuk-grid-column-one-third">
+          <h2>
           {% if source_count is not none %}
           {% set sourceLinkHTML %}<span>{{ source_count[0]['active']|default('0') }}</span>{% endset %}
           {{ appDataItem({
@@ -74,6 +79,7 @@
             }
           }) }}
           {%- endif %}
+          </h2>
         </div>
       </div>
     </div>
