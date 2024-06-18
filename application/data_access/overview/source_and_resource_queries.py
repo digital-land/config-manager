@@ -115,7 +115,7 @@ def active_and_total_endpoints():
     sql = """
           select pipeline,count(status) as total,
                   count(CASE WHEN status == '200' THEN status END) as active
-          from reporting_historic_endpoints
+          from reporting_latest_endpoints
           where endpoint_end_date='' group by pipeline"""
 
     rows = get_datasette_query("digital-land", sql)
