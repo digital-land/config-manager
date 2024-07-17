@@ -34,7 +34,6 @@ from application.data_access.overview.digital_land_queries import (
 from application.data_access.overview.entity_queries import (
     get_entity_count,
     get_grouped_entity_count,
-    get_organisation_entities_using_end_dates,
 )
 from application.data_access.overview.source_and_resource_queries import (
     get_datasets_summary,
@@ -177,7 +176,6 @@ def overview_of_datasets():
         entity_count=get_entity_count(),
         datasets_with_data_count=len(entity_counts.keys()),
         resource_count=fetch_total_resource_count(),
-        publisher_using_enddate_count=len(get_organisation_entities_using_end_dates()),
         content_type_counts=content_type_counts,
         new_resources=get_new_resources(dates=recent_dates(7)),
     )

@@ -5,10 +5,10 @@ from application.utils import split_organisation_id
 
 def get_grouped_entity_count(dataset=None, organisation_entity=None):
     query_lines = [
-        "SELECT COUNT(dataset) AS count,",
-        "dataset",
+        "select count(prefix)as count,",
+        "prefix",
         "FROM",
-        "entity",
+        "lookup",
     ]
     if organisation_entity:
         query_lines.append("WHERE")
@@ -21,41 +21,30 @@ def get_grouped_entity_count(dataset=None, organisation_entity=None):
         query_lines.append(f"dataset = '{dataset}'")
     else:
         query_lines.append("GROUP BY")
-        query_lines.append("dataset")
+        query_lines.append("prefix")
 
     query_str = " ".join(query_lines)
 
-    rows = get_datasette_query("entity", f"""{query_str}""")
+    rows = get_datasette_query("digital-land", f"""{query_str}""")
     if rows is not None and not rows.empty:
-        return {row["dataset"]: row["count"] for index, row in rows.iterrows()}
+        return {row["prefix"]: row["count"] for index, row in rows.iterrows()}
 
     return {}
 
 
 def get_total_entity_count():
-    sql = "select count(*) from (select * from entity)"
-    row = get_datasette_query("entity", sql)
+    sql = "select count(*) from lookup"
+    row = get_datasette_query("digital-land", sql)
 
     return row.iloc[0][0] if len(row) > 0 else 0
 
 
 def get_entity_count(pipeline=None):
     if pipeline is not None:
-        sql = "SELECT COUNT(*) FROM (SELECT * FROM entity WHERE dataset = :pipeline)"
-        row = get_datasette_query("entity", sql, {"pipeline": pipeline})
+        sql = "select count(*) from lookup WHERE prefix = :pipeline"
+        row = get_datasette_query("digital-land", sql, {"pipeline": pipeline})
         return row.iloc[0][0] if len(row) > 0 else 0
     return get_total_entity_count()
-
-
-def get_organisation_entities_using_end_dates():
-    sql = """
-        SELECT organisation_entity
-            FROM entity WHERE end_date != ""
-            AND ("organisation_entity" is not null and "organisation_entity" != "")
-            GROUP BY organisation_entity
-        """
-
-    return get_datasette_query("entity", f"{sql}")
 
 
 def get_organisation_entity_count(organisation, dataset=None):
