@@ -1,3 +1,5 @@
+import pandas as pd
+
 from application.data_access.datasette_utils import get_datasette_query
 
 SPATIAL_DATASETS = [
@@ -45,17 +47,11 @@ def get_odp_status_summary(dataset_types, cohorts):
     filtered_cohorts = [
         x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
     ]
-    cohort_clause = (
-        "where "
-        + " or ".join(("odp_orgs.cohort = '" + str(n) + "'" for n in filtered_cohorts))
-        if filtered_cohorts
-        else ""
-    )
-    sql = f"""
+    provision_cohort_data = get_provision_cohort_data()
+
+    sql = """
         select
-            odp_orgs.organisation,
-            odp_orgs.cohort,
-            odp_orgs.name,
+            rle.organisation,
             rle.collection,
             rle.pipeline,
             rle.endpoint,
@@ -69,23 +65,23 @@ def get_odp_status_summary(dataset_types, cohorts):
             rle.endpoint_end_date,
             rle.resource_start_date,
             rle.resource_end_date
-        from (
-            select p.organisation, p.cohort, o.name, p.start_date from provision p
-                inner join organisation o on o.organisation = p.organisation
-                inner join cohort c on p.cohort = c.cohort
-                where p.project = "open-digital-planning"
-            group by p.organisation
-            order by c.start_date, p.start_date, p.cohort, o.name
-        )
-        as odp_orgs
-        left join reporting_latest_endpoints rle on replace(rle.organisation, '-eng', '') = odp_orgs.organisation
-        {cohort_clause}
+        from reporting_latest_endpoints rle
     """
-    status_df = get_datasette_query("digital-land", sql)
+    status_df = get_datasette_query("performance", sql)
+    status_df["organisation"] = status_df["organisation"].str.replace("-eng", "")
+    result = pd.merge(
+        status_df,
+        provision_cohort_data,
+        left_on="organisation",
+        right_on="organisation",
+        how="right",
+    )
+    if filtered_cohorts:
+        result = result[result["cohort"].isin(filtered_cohorts)]
     rows = []
-    if status_df is not None:
+    if result is not None:
         organisation_cohort_dict_list = (
-            status_df[["organisation", "cohort", "name"]]
+            result[["organisation", "cohort", "name"]]
             .drop_duplicates()
             .to_dict(orient="records")
         )
@@ -197,3 +193,16 @@ def create_status_row(organisation, cohort, name, status_df, datasets):
     provided_percentage = str(int(provided_score / len(datasets) * 100)) + "%"
     row.append({"text": provided_percentage, "classes": "reporting-table-cell"})
     return row
+
+
+def get_provision_cohort_data():
+    sql = """
+            select p.organisation, o.name, p.cohort, p.start_date from provision p
+            inner join cohort c on p.cohort = c.cohort
+            inner join organisation o on o.organisation = p.organisation
+            where p.project = "open-digital-planning"
+            group by p.organisation
+            order by c.start_date, p.start_date, p.cohort, o.name
+        """
+    pc_df = get_datasette_query("digital-land", sql)
+    return pc_df
