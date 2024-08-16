@@ -94,6 +94,7 @@ def get_odp_issue_summary(dataset_types, cohorts):
     provision_issue_df = provisions_df.merge(
         provision_summary_df, how="left", on="organisation"
     )
+    provision_issue_df.sort_values(["cohort_start_date", "cohort", "name"])
     provision_issue_df.to_csv("test.csv")
     # Get list of organisations to iterate over
     organisation_cohorts_df = provision_issue_df.drop_duplicates(
@@ -117,15 +118,15 @@ def get_odp_issue_summary(dataset_types, cohorts):
             ):
                 issues = []
                 # Now check for individual issue severities
+                if issues_df_row["error_endpoint_count"].values[0] > 0:
+                    issues.append("Endpoint error")
+                    classes = "reporting-table-cell reporting-null-background"
                 if (
                     issues_df_row["count_internal_warning"].values[0] > 0
                     or issues_df_row["count_external_warning"].values[0] > 0
                 ):
                     issues.append("Warning")
                     classes = "reporting-table-cell reporting-medium-background"
-                if issues_df_row["error_endpoint_count"].values[0] > 0:
-                    issues.append("Endpoint error")
-                    classes = "reporting-table-cell reporting-null-background"
                 if (
                     issues_df_row["count_internal_error"].values[0] > 0
                     or issues_df_row["count_external_error"].values[0] > 0
