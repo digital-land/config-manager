@@ -1,7 +1,5 @@
 import datetime
 
-import pandas as pd
-
 from application.data_access.datasette_utils import get_datasette_query
 from application.data_access.overview.digital_land_queries import (
     get_datasets,
@@ -115,24 +113,10 @@ def latest_endpoint_entry_date():
 def active_and_total_endpoints():
     # used by get_datasets_summary
     sql = """
-          SELECT
-          pipeline,
-          COUNT(DISTINCT endpoint) AS total,
-          COUNT(CASE WHEN status == '200' THEN status END) as active
-          FROM (
-            SELECT
-                pipeline,
-                endpoint,
-                status
-            FROM
-                reporting_historic_endpoints
-            WHERE
-                endpoint_end_date = ""
-            GROUP BY
-                pipeline, endpoint
-        ) AS subquery
-      GROUP BY
-          pipeline;"""
+          select pipeline,count(status) as total,
+                  count(CASE WHEN status == '200' THEN status END) as active
+          from reporting_latest_endpoints
+          where endpoint_end_date='' group by pipeline"""
 
     rows = get_datasette_query("digital-land", sql)
     columns = rows.columns.tolist()
@@ -149,25 +133,6 @@ def get_typology():
     columns = rows.columns.tolist()
 
     return [dict(zip(columns, row)) for row in rows.to_numpy()]
-
-
-def get_frequency():
-    # used by get_datasets_summary
-    df = pd.read_csv(
-        "https://design.planning.data.gov.uk/planning-consideration/planning-considerations.csv"
-    )
-
-    if "name" not in df.columns or "frequency-of-updates" not in df.columns:
-        raise ValueError(
-            "CSV must contain 'dataset' and 'frequency-of-updates' columns"
-        )
-
-    df.rename(columns={"slug": "pipeline"}, inplace=True)
-    df["frequency-of-updates"].fillna("", inplace=True)
-    columns = ["pipeline", "frequency-of-updates"]
-    data = df[columns].to_dict(orient="records")
-
-    return data
 
 
 def get_datasets_summary():
@@ -219,14 +184,6 @@ def get_datasets_summary():
     # add typology
     dataset_endpoint_entry_date = get_typology()
     for d in dataset_endpoint_entry_date:
-        if all_datasets.get(d["pipeline"]):
-            all_datasets[d["pipeline"]] = {**all_datasets[d["pipeline"]], **d}
-        else:
-            missing.append(d["pipeline"])
-
-    # add frequency of updates
-    dataset_frequency = get_frequency()
-    for d in dataset_frequency:
         if all_datasets.get(d["pipeline"]):
             all_datasets[d["pipeline"]] = {**all_datasets[d["pipeline"]], **d}
         else:

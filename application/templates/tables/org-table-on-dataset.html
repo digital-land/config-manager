@@ -18,7 +18,7 @@
       {% set inactive_resources = org['resources']|to_int - org['active_resources']|to_int %}
       {% set orgIdPieces = org['organisation'].split(':')  %}
       <tr class="govuk-table__row">
-        <td class="govuk-table__cell" data-sort-value="{{ org['name'] }}">{{ org['name'] }}
+        <td class="govuk-table__cell" data-sort-value="{{ org['name'] }}"><a href="{{ url_for('publisher.organisation_performance', prefix=orgIdPieces[0], org_id=orgIdPieces[1]) }}" class="govuk-link">{{ org['name'] }}</a>
           {% if org['organisation_end_date'] and org['organisation_end_date'] < params.today  %}
           <strong class="govuk-tag govuk-tag--grey">
             Dissolved
