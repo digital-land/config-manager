@@ -11,14 +11,14 @@
         </tr>-->
         <tr class="govuk-table__row">
           <th scope="col" class="govuk-table__header dl-table__header--border-right govuk-\!-width-one-quarter" aria-sort="none">Name</th>
-          <th scope="col" class="govuk-table__header dl-cell-date" aria-sort="none">Started</th>
-          <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Organisations (current/expected)</th>
+          <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Typology</th>
+          <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Orgs (current/expected)</th>
+          <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Started</th>
           <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Resources</th>
           <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Days since update</th>
           <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Most recent endpoint</th>
           <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Endpoints (active/total)</th>
-          <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Typology</th>
-
+          <th scope="col" class="govuk-table__header govuk-table__header--numeric" aria-sort="none">Frequency of updates</th>
 
         </tr>
       </thead>
@@ -29,6 +29,8 @@
             {% set dataset_url_str = dataset.name|lower|replace(" ", "-") %}
             <a href="{{ url_for('dataset.dataset_overview', dataset=dataset_url_str) }}" class="govuk-link govuk-link--bold">{{ dataset.name }}</a>
           </td>
+          <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ dataset['typology'] }}">{{ dataset['typology'] }}</td>
+          <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ dataset['publishers']|to_int }}"><a class="govuk-link govuk-link--text-colour" href="{{ url_for('dataset.dataset_overview', dataset=dataset_url_str, _anchor='publishers') }}">{{ dataset['publishers'] }}</a> / {{ dataset['expected_publishers'] }}</td>
           <td class="govuk-table__cell">{% if dataset['first'] %}
             {{ dataset['first'] }}
           {% elif dataset.pipeline %}
@@ -36,12 +38,12 @@
           {% else %}
             <strong class="govuk-tag govuk-tag--grey">Backlog</strong>
           {% endif %}</td>
-          <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ dataset['publishers']|to_int }}"><a class="govuk-link govuk-link--text-colour" href="{{ url_for('dataset.dataset_overview', dataset=dataset_url_str, _anchor='publishers') }}">{{ dataset['publishers'] }}</a> / {{ dataset['expected_publishers'] }}</td>
           <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ dataset['total']|to_int }}"><span>{{ dataset['total'] }}</span></td>
           <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ dataset['latest']|days_since if dataset['latest'] }}">{{ dataset['latest']|days_since if dataset['latest'] }}</td>
           <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ dataset['latest_endpoint'] }}">{{ dataset['latest_endpoint'] }}</td>
           <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ dataset['active']|to_int }}"><a class="govuk-link govuk-link--text-colour" href="{{ url_for('dataset.dataset_overview', dataset=dataset_url_str, _anchor='publishers') }}">{{ dataset['active'] }}</a> / {{ dataset['total'] }}</td>
-          <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ dataset['typology'] }}">{{ dataset['typology'] }}</td>
+          <td class="govuk-table__cell govuk-table__cell--numeric" data-sort-value="{{ dataset['frequency-of-updates']}}">{{dataset['frequency-of-updates']}}</td>
+
         </tr>
         {% endfor %}
       </tbody>
