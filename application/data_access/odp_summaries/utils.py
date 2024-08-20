@@ -42,8 +42,6 @@ def get_provisions(selected_cohorts, all_cohorts):
     SELECT
         p.cohort,
         p.organisation,
-        p.project,
-        p.provision_reason,
         c.start_date as cohort_start_date
     FROM
         provision p

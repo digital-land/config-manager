@@ -52,17 +52,18 @@ def get_provision_summary(dataset_clause, offset):
         dataset,
         active_endpoint_count,
         error_endpoint_count,
-        count_internal_error,
-        count_external_error,
+        count_internal_issue as count_internal_error,
+        count_external_issue as count_external_error,
         count_internal_warning,
         count_external_warning,
         count_internal_notice,
         count_external_notice
     FROM
-        provision_summary
+        provsion_summary
     {dataset_clause}
     limit 1000 offset {offset}
     """
+    # change this table name here before merging
     return get_datasette_query("performance", sql)
 
 
@@ -269,162 +270,65 @@ def get_odp_issue_summary(dataset_types, cohorts):
     }
 
 
-def create_issue_row(organisation, cohort, name, issue_df, datasets):
-    row = []
-    row.append({"text": cohort, "classes": "reporting-table-cell"})
-    row.append({"text": name, "classes": "reporting-table-cell"})
-    for dataset in datasets:
-        df_rows = issue_df[
-            (issue_df["organisation"] == organisation)
-            & (issue_df["pipeline"] == dataset)
-        ]
-        if len(df_rows) != 0:
-            present_severities = df_rows["severity"].tolist()
-            # Filter out blank/info severities
-            present_severities = [
-                i for i in present_severities if (i != "" and i is not None)
-            ]
-            if present_severities == [] or present_severities == [None]:
-                text = "No issues"
-                classes = "reporting-table-cell reporting-good-background"
-            elif "error" in present_severities or "notice" in present_severities:
-                text = ", ".join(
-                    severity.capitalize() for severity in present_severities
-                )
-                classes = "reporting-table-cell reporting-bad-background"
-            else:
-                text = ", ".join(
-                    severity.capitalize() for severity in present_severities
-                )
-                classes = "reporting-table-cell reporting-medium-background"
-        else:
-            text = "No endpoint"
-            classes = "reporting-table-cell reporting-null-background"
-
-        row.append(
-            {
-                "text": text,
-                "classes": classes,
-                "data": (
-                    df_rows.fillna("").to_dict(orient="records")
-                    if (len(df_rows) != 0)
-                    else {}
-                ),
-            }
-        )
-    return row
+def get_issue_summary_by_issue_type(dataset_clause, offset):
+    sql = f"""
+    SELECT
+        *
+    FROM
+        issue_summary
+    {dataset_clause}
+    limit 1000 offset {offset}
+    """
+    print(sql)
+    return get_datasette_query("performance", sql)
 
 
 def get_odp_issues_by_issue_type(dataset_types, cohorts):
     # Separate method for issue download as granularity required is different from the issue summary
-    filtered_cohorts = [
-        x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
-    ]
-    cohort_clause = (
-        "and ("
-        + " or ".join(
-            ("odp_orgs.cohort = '" + str(cohort) + "'" for cohort in filtered_cohorts)
-        )
-        + ")"
-        if filtered_cohorts
-        else ""
-    )
+    provisions_df = get_provisions(cohorts, COHORTS)
     if dataset_types == ["spatial"]:
-        dataset_clause = (
-            "and ("
-            + " or ".join(
-                (
-                    "rle.pipeline = '" + str(dataset) + "'"
-                    for dataset in SPATIAL_DATASETS
-                )
-            )
-            + ")"
-        )
+        datasets = SPATIAL_DATASETS
     elif dataset_types == ["document"]:
-        dataset_clause = (
-            "and ("
-            + " or ".join(
-                (
-                    "rle.pipeline = '" + str(dataset) + "'"
-                    for dataset in DOCUMENT_DATASETS
-                )
-            )
-            + ")"
-        )
+        datasets = DOCUMENT_DATASETS
     else:
-        dataset_clause = (
-            "and ("
-            + " or ".join(
-                ("rle.pipeline = '" + str(dataset) + "'" for dataset in ALL_DATASETS)
-            )
-            + ")"
-        )
-    sql = f"""
-    SELECT
-        odp_orgs.organisation,
-        odp_orgs.cohort,
-        odp_orgs.name,
-        rle.pipeline,
-        case
-            when (it.severity = 'info') then ''
-            else i.issue_type
-        end as issue_type,
-        case
-            when (it.severity = 'info') then ''
-            else it.severity
-        end as severity,
-        it.responsibility,
-        COUNT(
-            case
-            when it.severity != 'info' then 1
-            else null
-            end
-        ) as count,
-        rle.collection,
-        rle.endpoint,
-        rle.endpoint_url,
-        rle.resource,
-        rle.latest_log_entry_date,
-        rle.endpoint_entry_date,
-        rle.endpoint_end_date,
-        rle.resource_start_date,
-        rle.resource_end_date
-    FROM
-    (
-        SELECT
-            p.organisation,
-            p.cohort,
-            o.name,
-            c.start_date
-        FROM
-            provision p
-        INNER JOIN
-            organisation o ON o.organisation = p.organisation
-        INNER JOIN
-            cohort c on p.cohort = c.cohort
-        WHERE
-            p.project = "open-digital-planning"
-        GROUP BY
-            p.organisation,
-            p.cohort,
-            o.name,
-            p.start_date
-    ) AS odp_orgs
-    LEFT JOIN reporting_latest_endpoints rle ON REPLACE(rle.organisation, '-eng', '') = odp_orgs.organisation
-    LEFT JOIN issue i ON rle.resource = i.resource and rle.pipeline = i.dataset
-    LEFT JOIN issue_type it ON i.issue_type = it.issue_type
-    WHERE
-        it.severity != 'info'
-        {cohort_clause}
-        {dataset_clause}
-    GROUP BY
-        odp_orgs.organisation,
-        rle.pipeline,
-        i.issue_type
-    ORDER BY
-        odp_orgs.start_date,
-        odp_orgs.cohort,
-        odp_orgs.name;
-    """
-    issues_df = get_datasette_query("digital-land", sql)
-    return issues_df
+        datasets = ALL_DATASETS
+
+    dataset_clause = "WHERE " + " or ".join(
+        ("dataset = '" + str(dataset) + "'" for dataset in datasets)
+    )
+
+    pagination_incomplete = True
+    offset = 0
+    provision_summary_df_list = []
+    while pagination_incomplete:
+        issue_summary_df = get_issue_summary_by_issue_type(dataset_clause, offset)
+        provision_summary_df_list.append(issue_summary_df)
+        pagination_incomplete = len(issue_summary_df) == 1000
+        offset += 1000
+    issue_summary_df = pd.concat(provision_summary_df_list)
+
+    provision_issue_df = provisions_df.merge(
+        issue_summary_df, how="inner", on=["organisation", "cohort"]
+    )
+
+    return provision_issue_df[
+        [
+            "organisation",
+            "cohort",
+            "name",
+            "pipeline",
+            "issue_type",
+            "severity",
+            "responsibility",
+            "count_issues",
+            "collection",
+            "endpoint",
+            "endpoint_url",
+            "resource",
+            "latest_log_entry_date",
+            "endpoint_entry_date",
+            "endpoint_end_date",
+            "resource_start_date",
+            "resource_end_date",
+        ]
+    ]
