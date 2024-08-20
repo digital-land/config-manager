@@ -97,7 +97,7 @@ def get_odp_status_summary(dataset_types, cohorts):
                     organisation_cohort_dict["organisation"],
                     organisation_cohort_dict["cohort"],
                     organisation_cohort_dict["name"],
-                    status_df,
+                    result,
                     datasets,
                 )
             )
@@ -139,7 +139,6 @@ def get_odp_status_summary(dataset_types, cohorts):
             "max_datasets": max_datasets,
             "params": params,
         }
-
     else:
         return None
 
