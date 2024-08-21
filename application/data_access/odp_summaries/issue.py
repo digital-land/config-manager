@@ -95,7 +95,9 @@ def get_odp_issue_summary(dataset_types, cohorts):
     provision_issue_df = provisions_df.merge(
         provision_summary_df, how="left", on="organisation"
     )
-    provision_issue_df.sort_values(["cohort_start_date", "cohort", "name"])
+    provision_issue_df = provision_issue_df.sort_values(
+        ["cohort_start_date", "cohort", "name"]
+    )
     # Get list of organisations to iterate over
     organisation_cohorts_df = provision_issue_df.drop_duplicates(
         subset=["cohort", "organisation"]
