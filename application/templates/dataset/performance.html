@@ -47,12 +47,14 @@
     <div class="app-summary-banner__row">
       <div id="btt-hook" class="govuk-grid-row">
         <div class="govuk-grid-column-one-third">
+          <h2>
           {% if coverage -%}
           <div class="app-data-item">
             <p class="govuk-body app-data-item__label">Organisations</p>
-            <h2>{{ coverage['active'] }}/{{ coverage['total'] }}</h2>
+            {{ coverage['active'] }}/{{ coverage['total'] }}
           </div>
           {%- endif %}
+          </h2>
         </div>
         <div class="govuk-grid-column-one-third">
           <h2>
@@ -346,7 +348,7 @@
               {%- set prefix = source['organisation'].split(":")[0] %}
               {%- set org_id = source['organisation'].split(":")[1] %}
               <li>
-                <a href="{{ url_for('publisher.organisation_performance', prefix=prefix, org_id=org_id) }}" class="govuk-link">{{ source['name'] }}</a>
+                {{ source['name'] }}
               </li>
               {% endfor %}
             </ul>
