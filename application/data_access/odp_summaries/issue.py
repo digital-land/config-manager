@@ -59,7 +59,7 @@ def get_provision_summary(dataset_clause, offset):
         count_internal_notice,
         count_external_notice
     FROM
-        provsion_summary
+        provision_summary
     {dataset_clause}
     limit 1000 offset {offset}
     """
@@ -96,7 +96,6 @@ def get_odp_issue_summary(dataset_types, cohorts):
         provision_summary_df, how="left", on="organisation"
     )
     provision_issue_df.sort_values(["cohort_start_date", "cohort", "name"])
-    provision_issue_df.to_csv("test.csv")
     # Get list of organisations to iterate over
     organisation_cohorts_df = provision_issue_df.drop_duplicates(
         subset=["cohort", "organisation"]
