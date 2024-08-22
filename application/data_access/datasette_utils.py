@@ -41,6 +41,52 @@ def get_datasette_query(
         return None
 
 
+def get_datasette_query_dev(
+    db, filter=None, url="https://datasette.development.digital-land.info"
+):
+    url = f"{url}/{db}.json"
+    params = {}
+
+    if filter:
+        params.update(filter)
+
+    try:
+        http = get_datasette_http()
+        all_rows = []
+
+        while True:
+            """
+            Datasette returns a max of 1000 rows. This should be able to be changed but for now,
+            if there is more than 1000 rows, a pagination next will be returned in the response.
+            We can use this to fetch the next 1000 rows repeatedly until all rows have been accumulated.
+            """
+
+            resp = http.get(url, params=params)
+            response_json = resp.json()
+            rows = response_json.get("rows", [])
+
+            # Accumulate rows
+            all_rows.extend(rows)
+
+            # Check if there's a "next" token for pagination
+            next_token = response_json.get("next")
+            if not next_token:
+                break
+
+            params["_next"] = next_token
+
+        if all_rows and response_json.get("columns"):
+            df = pd.DataFrame(all_rows, columns=response_json["columns"])
+            return df
+        else:
+            logging.error("No rows or columns available to create a DataFrame")
+            return None
+
+    except Exception as e:
+        logging.warning(f"Exception occurred: {e}")
+        return None
+
+
 # def get_datasets_summary():
 #     # get all the datasets listed with their active status
 #     all_datasets = index_by("dataset", get_datasets())
