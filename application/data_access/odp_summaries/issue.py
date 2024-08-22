@@ -63,7 +63,6 @@ def get_provision_summary(dataset_clause, offset):
     {dataset_clause}
     limit 1000 offset {offset}
     """
-    # change this table name here before merging
     return get_datasette_query("performance", sql)
 
 
