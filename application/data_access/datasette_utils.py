@@ -41,8 +41,8 @@ def get_datasette_query(
         return None
 
 
-def get_datasette_query_dev(
-    db, filter=None, url="https://datasette.development.digital-land.info"
+def get_datasette_query_issue_summary(
+    db, filter=None, url="https://datasette.planning.data.gov.uk"
 ):
     url = f"{url}/{db}.json"
     params = {}
@@ -74,7 +74,6 @@ def get_datasette_query_dev(
                 break
 
             params["_next"] = next_token
-
         if all_rows and response_json.get("columns"):
             df = pd.DataFrame(all_rows, columns=response_json["columns"])
             return df

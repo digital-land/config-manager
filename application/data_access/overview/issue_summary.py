@@ -1,8 +1,8 @@
-from application.data_access.datasette_utils import get_datasette_query_dev
+from application.data_access.datasette_utils import get_datasette_query_issue_summary
 
 
 def get_issue_summary():
-    issues_df = get_datasette_query_dev("performance/issue_summary")
+    issues_df = get_datasette_query_issue_summary("performance/issue_summary")
 
     # Convert DataFrame to a list of dictionaries (rows)
     rows = issues_df.to_dict(orient="records")
