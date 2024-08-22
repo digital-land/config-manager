@@ -120,7 +120,7 @@ def get_odp_issue_summary(dataset_types, cohorts):
                 issues = []
                 # Now check for individual issue severities
                 if issues_df_row["error_endpoint_count"].values[0] > 0:
-                    issues.insert(0, "Endpoint error")
+                    issues.insert(0, "Endpoint broken")
                     classes = "reporting-table-cell reporting-null-background"
                 if (
                     issues_df_row["count_internal_warning"].values[0] > 0
@@ -232,9 +232,12 @@ def get_odp_issue_summary(dataset_types, cohorts):
             & (provision_issue_df["count_internal_notice"] == 0)
             & (provision_issue_df["count_external_notice"] == 0)
             & (provision_issue_df["active_endpoint_count"] > 0)
+            & (provision_issue_df["error_endpoint_count"] == 0)
         ]
     )
-    total_endpoints = provision_issue_df["active_endpoint_count"].sum()
+    total_endpoints = len(
+        provision_issue_df[provision_issue_df["active_endpoint_count"] > 0]
+    )
 
     stats_headers = [
         {"text": "Issue Severity"},
@@ -324,6 +327,8 @@ def get_odp_issues_by_issue_type(dataset_types, cohorts):
             "collection",
             "endpoint",
             "endpoint_url",
+            "status",
+            "exception",
             "resource",
             "latest_log_entry_date",
             "endpoint_entry_date",
