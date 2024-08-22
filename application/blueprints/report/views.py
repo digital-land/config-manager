@@ -35,6 +35,7 @@ from application.data_access.overview.entity_queries import (
     get_entity_count,
     get_grouped_entity_count,
 )
+from application.data_access.overview.issue_summary import get_issue_summary
 from application.data_access.overview.source_and_resource_queries import (
     get_datasets_summary,
     get_monthly_counts,
@@ -86,8 +87,13 @@ def overview():
         "endpoint_errors_percentages_timeseries": endpoint_errors_percentages_timeseries,
     }
 
+    issue_summary = get_issue_summary()
+
     return render_template(
-        "reporting/overview.html", summary_metrics=summary_metrics, graphs=graphs
+        "reporting/overview.html",
+        summary_metrics=summary_metrics,
+        graphs=graphs,
+        issue_summary=issue_summary,
     )
 
 
