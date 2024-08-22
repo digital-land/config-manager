@@ -1,6 +1,7 @@
 import pandas as pd
 
 from application.data_access.datasette_utils import get_datasette_query
+from application.data_access.odp_summaries.utils import get_provisions
 
 SPATIAL_DATASETS = [
     "article-4-direction-area",
@@ -47,11 +48,11 @@ def get_odp_status_summary(dataset_types, cohorts):
     filtered_cohorts = [
         x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
     ]
-    provision_cohort_data = get_provision_cohort_data()
-
+    provision_cohort_data = get_provisions(cohorts, COHORTS)
     sql = """
         select
             rle.organisation,
+            rle.name,
             rle.collection,
             rle.pipeline,
             rle.endpoint,
@@ -76,6 +77,7 @@ def get_odp_status_summary(dataset_types, cohorts):
         right_on="organisation",
         how="right",
     )
+    result = result.sort_values(["cohort_start_date", "cohort", "name"])
     if filtered_cohorts:
         result = result[result["cohort"].isin(filtered_cohorts)]
     rows = []
@@ -192,16 +194,3 @@ def create_status_row(organisation, cohort, name, status_df, datasets):
     provided_percentage = str(int(provided_score / len(datasets) * 100)) + "%"
     row.append({"text": provided_percentage, "classes": "reporting-table-cell"})
     return row
-
-
-def get_provision_cohort_data():
-    sql = """
-            select p.organisation, o.name, p.cohort, p.start_date from provision p
-            inner join cohort c on p.cohort = c.cohort
-            inner join organisation o on o.organisation = p.organisation
-            where p.project = "open-digital-planning"
-            group by p.organisation
-            order by c.start_date, p.start_date, p.cohort, o.name
-        """
-    pc_df = get_datasette_query("digital-land", sql)
-    return pc_df

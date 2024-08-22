@@ -1,4 +1,7 @@
+import pandas as pd
+
 from application.data_access.datasette_utils import get_datasette_query
+from application.data_access.odp_summaries.utils import get_provisions
 
 SPATIAL_DATASETS = [
     "article-4-direction-area",
@@ -41,440 +44,296 @@ COHORTS = [
 ]
 
 
-def get_odp_issue_summary(dataset_types, cohorts):
-    filtered_cohorts = [
-        x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
-    ]
-    cohort_clause = (
-        "WHERE "
-        + " or ".join(("odp_orgs.cohort = '" + str(n) + "'" for n in filtered_cohorts))
-        if filtered_cohorts
-        else ""
-    )
+def get_provision_summary(dataset_clause, offset):
     sql = f"""
     SELECT
-    odp_orgs.organisation,
-    odp_orgs.cohort,
-    odp_orgs.name,
-    case
-        when (it.severity = 'info') then ''
-        else it.severity
-    end as severity,
-    COUNT(case
-        when it.severity != 'info' then 1
-        else null
-        end
-    ) as severity_count,
-    COUNT(
-        case
-        when it.responsibility = 'internal' and it.severity != 'info' then 1
-        else null
-        end
-    ) as internal_responsibility_count,
-    COUNT(
-        case
-        when it.responsibility = 'external' and it.severity != 'info' then 1
-        else null
-        end
-    ) as external_responsibility_count,
-    rle.collection,
-    rle.pipeline,
-    rle.endpoint,
-    rle.endpoint_url,
-    rle.status,
-    rle.exception,
-    rle.resource,
-    rle.latest_log_entry_date,
-    rle.endpoint_entry_date,
-    rle.endpoint_end_date,
-    rle.resource_start_date,
-    rle.resource_end_date
-    FROM (
-        SELECT
-            p.organisation,
-            p.cohort,
-            o.name,
-            c.start_date
-        FROM
-            provision p
-        INNER JOIN
-            organisation o ON o.organisation = p.organisation
-        INNER JOIN
-            cohort c on p.cohort = c.cohort
-        WHERE
-            p.project = "open-digital-planning"
-        GROUP BY
-            p.organisation,
-            p.cohort,
-            o.name,
-            p.start_date
-    ) AS odp_orgs
-    LEFT JOIN
-        reporting_latest_endpoints rle ON REPLACE(rle.organisation, '-eng', '') = odp_orgs.organisation
-    LEFT JOIN
-        issue i ON rle.resource = i.resource and rle.pipeline = i.dataset
-    LEFT JOIN
-        issue_type it ON i.issue_type = it.issue_type
-    {cohort_clause}
-    GROUP BY
-        odp_orgs.organisation,
-        it.severity,
-        rle.pipeline
-    ORDER BY
-        odp_orgs.start_date,
-        odp_orgs.cohort,
-        odp_orgs.name;
+        organisation,
+        name,
+        dataset,
+        active_endpoint_count,
+        error_endpoint_count,
+        count_internal_issue as count_internal_error,
+        count_external_issue as count_external_error,
+        count_internal_warning,
+        count_external_warning,
+        count_internal_notice,
+        count_external_notice
+    FROM
+        provision_summary
+    {dataset_clause}
+    limit 1000 offset {offset}
     """
-    issues_df = get_datasette_query("digital-land", sql)
+    return get_datasette_query("performance", sql)
+
+
+def get_full_provision_summary(datasets):
+    dataset_clause = "WHERE " + " or ".join(
+        ("dataset = '" + str(dataset) + "'" for dataset in datasets)
+    )
+
+    pagination_incomplete = True
+    offset = 0
+    provision_summary_df_list = []
+    while pagination_incomplete:
+        provision_summary_df = get_provision_summary(dataset_clause, offset)
+        provision_summary_df_list.append(provision_summary_df)
+        pagination_incomplete = len(provision_summary_df) == 1000
+        offset += 1000
+    return pd.concat(provision_summary_df_list)
+
+
+def get_odp_issue_summary(dataset_types, cohorts):
+    if dataset_types == ["spatial"]:
+        datasets = SPATIAL_DATASETS
+    elif dataset_types == ["document"]:
+        datasets = DOCUMENT_DATASETS
+    else:
+        datasets = ALL_DATASETS
+    provisions_df = get_provisions(cohorts, COHORTS)
+    provision_summary_df = get_full_provision_summary(datasets)
+    provision_issue_df = provisions_df.merge(
+        provision_summary_df, how="left", on="organisation"
+    )
+    provision_issue_df = provision_issue_df.sort_values(
+        ["cohort_start_date", "cohort", "name"]
+    )
+    # Get list of organisations to iterate over
+    organisation_cohorts_df = provision_issue_df.drop_duplicates(
+        subset=["cohort", "organisation"]
+    )
+
     rows = []
-    if issues_df is not None:
-        organisation_cohort_dict_list = (
-            issues_df[["organisation", "cohort", "name"]]
-            .drop_duplicates()
-            .to_dict(orient="records")
-        )
-        if dataset_types == ["spatial"]:
-            datasets = SPATIAL_DATASETS
-        elif dataset_types == ["document"]:
-            datasets = DOCUMENT_DATASETS
-        else:
-            datasets = ALL_DATASETS
-        for organisation_cohort_dict in organisation_cohort_dict_list:
-            rows.append(
-                create_issue_row(
-                    organisation_cohort_dict["organisation"],
-                    organisation_cohort_dict["cohort"],
-                    organisation_cohort_dict["name"],
-                    issues_df,
-                    datasets,
-                )
-            )
-
-        # Overview Stats
-        # Dict to store helpful metrics
-        issue_severity_counts = [
-            {
-                "display_severity": "No issues",
-                "severity": "",
-                "total_count_percentage": 0.0,
-                "internal_count": 0,
-                "external_count": 0,
-                "total_count": 0,
-                "classes": "reporting-good-background",
-            },
-            {
-                "display_severity": "Warning",
-                "severity": "warning",
-                "total_count_percentage": 0.0,
-                "internal_count": 0,
-                "external_count": 0,
-                "total_count": 0,
-                "classes": "reporting-medium-background",
-            },
-            {
-                "display_severity": "Error",
-                "severity": "error",
-                "total_count_percentage": 0.0,
-                "internal_count": 0,
-                "external_count": 0,
-                "total_count": 0,
-                "classes": "reporting-bad-background",
-            },
-            {
-                "display_severity": "Notice",
-                "severity": "notice",
-                "total_count_percentage": 0.0,
-                "internal_count": 0,
-                "external_count": 0,
-                "total_count": 0,
-                "classes": "reporting-bad-background",
-            },
+    for idx, df_row in organisation_cohorts_df.iterrows():
+        row = []
+        row.append({"text": df_row["cohort"], "classes": "reporting-table-cell"})
+        row.append({"text": df_row["name"], "classes": "reporting-table-cell"})
+        issues_df = provision_issue_df[
+            provision_issue_df["organisation"] == df_row["organisation"]
         ]
-        # Metric for how many endpoints have issues with each severity
-        # This could likely be entirely replaced by querying the original pandas dataframe
-        total_issues = 0
-        endpoints_with_no_issues_count = 0
-        total_endpoints = 0
-        for row in rows:
-            for cell in row:
-                text = cell.get("text", None)
-                if text is not None or text != "":
-                    data = cell.get("data", {})
-                    if data != {}:
-                        total_endpoints += 1
-                        for issue_severity in issue_severity_counts:
-                            if issue_severity["display_severity"] in text:
-                                for line in data:
-                                    severity = line["severity"]
-                                    if (
-                                        severity != ""
-                                        and severity == issue_severity["severity"]
-                                    ):
-                                        issue_severity["internal_count"] += line[
-                                            "internal_responsibility_count"
-                                        ]
-                                        issue_severity["external_count"] += line[
-                                            "external_responsibility_count"
-                                        ]
-                                        issue_severity["total_count"] += (
-                                            line["internal_responsibility_count"]
-                                            + line["external_responsibility_count"]
-                                        )
-                                        total_issues += (
-                                            line["internal_responsibility_count"]
-                                            + line["external_responsibility_count"]
-                                        )
-                                    elif (
-                                        severity == ""
-                                        and severity == issue_severity["severity"]
-                                    ):
-                                        endpoints_with_no_issues_count += 1
+        for dataset in datasets:
+            issues_df_row = issues_df[issues_df["dataset"] == dataset]
+            # Check if any endpoints exist
+            if (
+                issues_df_row["active_endpoint_count"].values[0] > 0
+                or issues_df_row["error_endpoint_count"].values[0] > 0
+            ):
+                issues = []
+                # Now check for individual issue severities
+                if issues_df_row["error_endpoint_count"].values[0] > 0:
+                    issues.insert(0, "Endpoint broken")
+                    classes = "reporting-table-cell reporting-null-background"
+                if (
+                    issues_df_row["count_internal_warning"].values[0] > 0
+                    or issues_df_row["count_external_warning"].values[0] > 0
+                ):
+                    issues.insert(0, "Warning")
+                    classes = "reporting-table-cell reporting-medium-background"
+                if (
+                    issues_df_row["count_internal_error"].values[0] > 0
+                    or issues_df_row["count_external_error"].values[0] > 0
+                ):
+                    issues.insert(0, "Error")
+                    classes = "reporting-table-cell reporting-bad-background"
+                if (
+                    issues_df_row["count_internal_notice"].values[0] > 0
+                    or issues_df_row["count_external_notice"].values[0] > 0
+                ):
+                    issues.insert(0, "Notice")
+                    classes = "reporting-table-cell reporting-bad-background"
 
-        stats_rows = []
-        # Compute totals/percentages
-        total_internal = 0
-        total_external = 0
-        for issue_severity in issue_severity_counts:
-            issue_severity["total_count_percentage"] = (
-                str(int((issue_severity["total_count"] / total_issues) * 100)) + "%"
-            )
+                if issues == []:
+                    text = "No issues"
+                    classes = "reporting-table-cell reporting-good-background"
+                else:
+                    text = ", ".join(issues)
+            else:
+                text = "No endpoint"
+                classes = "reporting-table-cell reporting-null-background"
 
-            total_internal += issue_severity["internal_count"]
-            total_external += issue_severity["external_count"]
+            row.append({"text": text, "classes": classes})
+        rows.append(row)
 
-            # Write all the metrics to row except for No issues
-            if issue_severity["severity"] != "":
-                stats_rows.append(
-                    [
-                        {
-                            "text": issue_severity["display_severity"],
-                            "classes": issue_severity["classes"]
-                            + " reporting-table-cell",
-                        },
-                        {
-                            "text": issue_severity["total_count"],
-                            "classes": "reporting-table-cell",
-                        },
-                        {
-                            "text": issue_severity["total_count_percentage"],
-                            "classes": "reporting-table-cell",
-                        },
-                        {
-                            "text": issue_severity["internal_count"],
-                            "classes": "reporting-table-cell",
-                        },
-                        {
-                            "text": issue_severity["external_count"],
-                            "classes": "reporting-table-cell",
-                        },
-                    ]
-                )
-        # Add totals row
+    # Calculate overview stats
+
+    # Total issues for percentage calculation
+    total_issues = (
+        provision_issue_df[
+            [
+                "count_internal_error",
+                "count_external_error",
+                "count_internal_warning",
+                "count_external_warning",
+                "count_internal_notice",
+                "count_external_notice",
+            ]
+        ]
+        .sum()
+        .sum()
+    )
+    total_internal = 0
+    total_external = 0
+
+    stats_rows = []
+    # Loop over severities counting internal, external, percentages
+    for severity in ["warning", "error", "notice"]:
+        internal = provision_issue_df[f"count_internal_{severity}"].sum()
+        total_internal += internal
+        external = provision_issue_df[f"count_external_{severity}"].sum()
+        total_external += external
+        total = internal + external
+        total_percentage = str(int((total / total_issues) * 100)) + "%"
+        classes = (
+            "reporting-medium-background"
+            if severity == "warning"
+            else "reporting-bad-background"
+        )
         stats_rows.append(
             [
-                {"text": "Total", "classes": "reporting-table-cell"},
-                {"text": total_issues, "classes": "reporting-table-cell"},
-                {"text": "", "classes": "reporting-table-cell"},
-                {"text": total_internal, "classes": "reporting-table-cell"},
-                {"text": total_external, "classes": "reporting-table-cell"},
+                {
+                    "text": severity.title(),
+                    "classes": classes + " reporting-table-cell",
+                },
+                {
+                    "text": total,
+                    "classes": "reporting-table-cell",
+                },
+                {
+                    "text": total_percentage,
+                    "classes": "reporting-table-cell",
+                },
+                {
+                    "text": internal,
+                    "classes": "reporting-table-cell",
+                },
+                {
+                    "text": external,
+                    "classes": "reporting-table-cell",
+                },
             ]
         )
 
-        stats_headers = [
-            {"text": "Issue Severity"},
-            {"text": "Count"},
-            {"text": "% Count"},
-            {"text": "Internal"},
-            {"text": "External"},
+    # Add totals row
+    stats_rows.append(
+        [
+            {"text": "Total", "classes": "reporting-table-cell"},
+            {"text": total_issues, "classes": "reporting-table-cell"},
+            {"text": "", "classes": "reporting-table-cell"},
+            {"text": total_internal, "classes": "reporting-table-cell"},
+            {"text": total_external, "classes": "reporting-table-cell"},
         ]
+    )
 
-        headers = [
-            {"text": "Cohort", "classes": "reporting-table-header"},
-            {"text": "Organisation", "classes": "reporting-table-header"},
-            *map(
-                lambda dataset: {"text": dataset, "classes": "reporting-table-header"},
-                datasets,
-            ),
+    endpoints_with_no_issues_count = len(
+        provision_issue_df[
+            (provision_issue_df["count_internal_error"] == 0)
+            & (provision_issue_df["count_external_error"] == 0)
+            & (provision_issue_df["count_internal_warning"] == 0)
+            & (provision_issue_df["count_external_warning"] == 0)
+            & (provision_issue_df["count_internal_notice"] == 0)
+            & (provision_issue_df["count_external_notice"] == 0)
+            & (provision_issue_df["active_endpoint_count"] > 0)
+            & (provision_issue_df["error_endpoint_count"] == 0)
         ]
-        params = {
-            "cohorts": COHORTS,
-            "dataset_types": DATASET_TYPES,
-            "selected_dataset_types": dataset_types,
-            "selected_cohorts": cohorts,
-        }
-        return {
-            "rows": rows,
-            "headers": headers,
-            "issue_severity_counts": issue_severity_counts,
-            "stats_headers": stats_headers,
-            "stats_rows": stats_rows,
-            "endpoints_no_issues": {
-                "count": endpoints_with_no_issues_count,
-                "total_endpoints": total_endpoints,
-            },
-            "params": params,
-        }
+    )
+    total_endpoints = len(
+        provision_issue_df[provision_issue_df["active_endpoint_count"] > 0]
+    )
 
-    else:
-        return None
+    stats_headers = [
+        {"text": "Issue Severity"},
+        {"text": "Count"},
+        {"text": "% Count"},
+        {"text": "Internal"},
+        {"text": "External"},
+    ]
+    headers = [
+        {"text": "Cohort", "classes": "reporting-table-header"},
+        {"text": "Organisation", "classes": "reporting-table-header"},
+        *map(
+            lambda dataset: {"text": dataset, "classes": "reporting-table-header"},
+            datasets,
+        ),
+    ]
+    params = {
+        "cohorts": COHORTS,
+        "dataset_types": DATASET_TYPES,
+        "selected_dataset_types": dataset_types,
+        "selected_cohorts": cohorts,
+    }
+    return {
+        "rows": rows,
+        "headers": headers,
+        "stats_headers": stats_headers,
+        "stats_rows": stats_rows,
+        "endpoints_no_issues": {
+            "count": endpoints_with_no_issues_count,
+            "total_endpoints": total_endpoints,
+        },
+        "params": params,
+    }
 
 
-def create_issue_row(organisation, cohort, name, issue_df, datasets):
-    row = []
-    row.append({"text": cohort, "classes": "reporting-table-cell"})
-    row.append({"text": name, "classes": "reporting-table-cell"})
-    for dataset in datasets:
-        df_rows = issue_df[
-            (issue_df["organisation"] == organisation)
-            & (issue_df["pipeline"] == dataset)
-        ]
-        if len(df_rows) != 0:
-            present_severities = df_rows["severity"].tolist()
-            # Filter out blank/info severities
-            present_severities = [
-                i for i in present_severities if (i != "" and i is not None)
-            ]
-            if present_severities == [] or present_severities == [None]:
-                text = "No issues"
-                classes = "reporting-table-cell reporting-good-background"
-            elif "error" in present_severities or "notice" in present_severities:
-                text = ", ".join(
-                    severity.capitalize() for severity in present_severities
-                )
-                classes = "reporting-table-cell reporting-bad-background"
-            else:
-                text = ", ".join(
-                    severity.capitalize() for severity in present_severities
-                )
-                classes = "reporting-table-cell reporting-medium-background"
-        else:
-            text = "No endpoint"
-            classes = "reporting-table-cell reporting-null-background"
-
-        row.append(
-            {
-                "text": text,
-                "classes": classes,
-                "data": (
-                    df_rows.fillna("").to_dict(orient="records")
-                    if (len(df_rows) != 0)
-                    else {}
-                ),
-            }
-        )
-    return row
+def get_issue_summary_by_issue_type(dataset_clause, offset):
+    sql = f"""
+    SELECT
+        *
+    FROM
+        issue_summary
+    {dataset_clause}
+    limit 1000 offset {offset}
+    """
+    print(sql)
+    return get_datasette_query("performance", sql)
 
 
 def get_odp_issues_by_issue_type(dataset_types, cohorts):
     # Separate method for issue download as granularity required is different from the issue summary
-    filtered_cohorts = [
-        x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
-    ]
-    cohort_clause = (
-        "and ("
-        + " or ".join(
-            ("odp_orgs.cohort = '" + str(cohort) + "'" for cohort in filtered_cohorts)
-        )
-        + ")"
-        if filtered_cohorts
-        else ""
-    )
+    provisions_df = get_provisions(cohorts, COHORTS)
     if dataset_types == ["spatial"]:
-        dataset_clause = (
-            "and ("
-            + " or ".join(
-                (
-                    "rle.pipeline = '" + str(dataset) + "'"
-                    for dataset in SPATIAL_DATASETS
-                )
-            )
-            + ")"
-        )
+        datasets = SPATIAL_DATASETS
     elif dataset_types == ["document"]:
-        dataset_clause = (
-            "and ("
-            + " or ".join(
-                (
-                    "rle.pipeline = '" + str(dataset) + "'"
-                    for dataset in DOCUMENT_DATASETS
-                )
-            )
-            + ")"
-        )
+        datasets = DOCUMENT_DATASETS
     else:
-        dataset_clause = (
-            "and ("
-            + " or ".join(
-                ("rle.pipeline = '" + str(dataset) + "'" for dataset in ALL_DATASETS)
-            )
-            + ")"
-        )
-    sql = f"""
-    SELECT
-        odp_orgs.organisation,
-        odp_orgs.cohort,
-        odp_orgs.name,
-        rle.pipeline,
-        case
-            when (it.severity = 'info') then ''
-            else i.issue_type
-        end as issue_type,
-        case
-            when (it.severity = 'info') then ''
-            else it.severity
-        end as severity,
-        it.responsibility,
-        COUNT(
-            case
-            when it.severity != 'info' then 1
-            else null
-            end
-        ) as count,
-        rle.collection,
-        rle.endpoint,
-        rle.endpoint_url,
-        rle.resource,
-        rle.latest_log_entry_date,
-        rle.endpoint_entry_date,
-        rle.endpoint_end_date,
-        rle.resource_start_date,
-        rle.resource_end_date
-    FROM
-    (
-        SELECT
-            p.organisation,
-            p.cohort,
-            o.name,
-            c.start_date
-        FROM
-            provision p
-        INNER JOIN
-            organisation o ON o.organisation = p.organisation
-        INNER JOIN
-            cohort c on p.cohort = c.cohort
-        WHERE
-            p.project = "open-digital-planning"
-        GROUP BY
-            p.organisation,
-            p.cohort,
-            o.name,
-            p.start_date
-    ) AS odp_orgs
-    LEFT JOIN reporting_latest_endpoints rle ON REPLACE(rle.organisation, '-eng', '') = odp_orgs.organisation
-    LEFT JOIN issue i ON rle.resource = i.resource and rle.pipeline = i.dataset
-    LEFT JOIN issue_type it ON i.issue_type = it.issue_type
-    WHERE
-        it.severity != 'info'
-        {cohort_clause}
-        {dataset_clause}
-    GROUP BY
-        odp_orgs.organisation,
-        rle.pipeline,
-        i.issue_type
-    ORDER BY
-        odp_orgs.start_date,
-        odp_orgs.cohort,
-        odp_orgs.name;
-    """
-    issues_df = get_datasette_query("digital-land", sql)
-    return issues_df
+        datasets = ALL_DATASETS
+
+    dataset_clause = "WHERE " + " or ".join(
+        ("dataset = '" + str(dataset) + "'" for dataset in datasets)
+    )
+
+    pagination_incomplete = True
+    offset = 0
+    provision_summary_df_list = []
+    while pagination_incomplete:
+        issue_summary_df = get_issue_summary_by_issue_type(dataset_clause, offset)
+        provision_summary_df_list.append(issue_summary_df)
+        pagination_incomplete = len(issue_summary_df) == 1000
+        offset += 1000
+    issue_summary_df = pd.concat(provision_summary_df_list)
+
+    provision_issue_df = provisions_df.merge(
+        issue_summary_df, how="inner", on=["organisation", "cohort"]
+    )
+
+    return provision_issue_df[
+        [
+            "organisation",
+            "cohort",
+            "name",
+            "pipeline",
+            "issue_type",
+            "severity",
+            "responsibility",
+            "count_issues",
+            "collection",
+            "endpoint",
+            "endpoint_url",
+            "status",
+            "exception",
+            "resource",
+            "latest_log_entry_date",
+            "endpoint_entry_date",
+            "endpoint_end_date",
+            "resource_start_date",
+            "resource_end_date",
+        ]
+    ]
