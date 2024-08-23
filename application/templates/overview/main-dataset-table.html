@@ -54,7 +54,7 @@
           class="govuk-table__header govuk-table__header--numeric govuk-!-text-align-centre"
           aria-sort="none"
         >
-          <span> Most recent endpoint </span>
+          Most recent endpoint
         </th>
         <th
           scope="col"
@@ -142,13 +142,13 @@
           class="govuk-table__cell govuk-table__cell--numeric govuk-!-text-align-centre"
           data-sort-value="{{ dataset['latest_endpoint'] }}"
         >
-          <span>{{ dataset['latest_endpoint'] }}</span>
+          {{ dataset['latest_endpoint'] }}
         </td>
         <td
           class="govuk-table__cell govuk-table__cell--numeric govuk-!-text-align-centre"
           data-sort-value="{{ dataset['total']|to_int }}"
         >
-          <span>{{ dataset['total'] }}</span>
+          {{ dataset['total'] }}
         </td>
         <td
           class="govuk-table__cell govuk-table__cell--numeric govuk-!-text-align-centre"
