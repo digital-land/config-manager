@@ -46,6 +46,7 @@ from application.data_access.summary_queries import (
     get_contributions_and_errors_by_day,
     get_endpoint_errors_and_successes_by_week,
     get_endpoints_added_by_week,
+    get_internal_issues_by_week,
     get_issue_counts,
 )
 from application.utils import (
@@ -80,11 +81,17 @@ def overview():
         "errors": errors,
         "warnings": warnings,
     }
+
+    internal_errors_timeseries = get_internal_issues_by_week()
+    print("============================ISSUES PER WEEK===============================")
+    print(internal_errors_timeseries)
+
     graphs = {
         "endpoints_added_timeseries": endpoints_added_timeseries,
         "endpoint_successes_timeseries": endpoint_successes_timeseries,
         "endpoint_successes_percentages_timeseries": endpoint_successes_percentages_timeseries,
         "endpoint_errors_percentages_timeseries": endpoint_errors_percentages_timeseries,
+        "internal_errors_timeseries": internal_errors_timeseries,
     }
 
     issue_summary = get_issue_summary()

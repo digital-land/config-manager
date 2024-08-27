@@ -63,6 +63,12 @@
   <canvas id="endpoint_error_graph"></canvas>
 </div>
 
+
+<h2>Interal errors  per week:</h2>
+<div>
+  <canvas id="internal_error_graph"></canvas>
+</div>
+
 <script type="module" {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   import TimeseriesChart from "{{ assetPath | default('/assets') }}/javascripts/utilities/timeseries-chart.js"
   const baseOptions = {xAxisTitle: "Week", xAxisKey: "date", xMax: null, yAxisKey: "count"}
@@ -122,6 +128,25 @@
       stacked: true
     }
   ).init()
+
+
+  // add new timeseres fot internal error graph
+  const interal_error_timeseries = new TimeseriesChart(
+    {
+      ...baseOptions,
+      yAxisTitle: "Internal errors",
+      datasets: [{
+                label: "# of internal errors per week",
+                data: {{graphs.internal_errors_timeseries | safe}},
+                borderWidth: 1,
+                pointRadius: 0
+            }],
+      htmlId: "internal_error_graph",
+      type: "line",
+    }
+  ).init()
+
+
 </script>
 
 <script type="module" {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
