@@ -115,7 +115,7 @@
         </td>
 
         <td
-          class="govuk-table__cell govuk-table__cell--numeric govuk-!-text-align-centre"
+          class="govuk-table__cell govuk-table__cell--numeric govuk-!-text-align-centre app-table_cell--date"
         >
           {% if dataset['first'] %} {{ dataset['first'] }} {% elif
           dataset.pipeline %}
@@ -139,7 +139,7 @@
         </td>
         <td
           id="latest-endpoint-cell"
-          class="govuk-table__cell govuk-table__cell--numeric govuk-!-text-align-centre"
+          class="govuk-table__cell govuk-table__cell--numeric govuk-!-text-align-centre app-table_cell--date"
           data-sort-value="{{ dataset['latest_endpoint'] }}"
         >
           {{ dataset['latest_endpoint'] }}
