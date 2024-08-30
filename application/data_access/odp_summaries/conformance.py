@@ -212,10 +212,10 @@ def get_odp_conformance_summary(dataset_types, cohorts):
     )
 
     # Create endpoint ID column to track multiple endpoints per organisation-dataset
-    column_field_df["endpoint_ID"] = (
+    column_field_df["endpoint_no."] = (
         column_field_df.groupby(["organisation", "dataset"]).cumcount() + 1
     )
-    column_field_df["endpoint_ID"] = column_field_df["endpoint_ID"].astype(str)
+    column_field_df["endpoint_no."] = column_field_df["endpoint_no."].astype(str)
 
     # group by and aggregate for final summaries
     final_count = (
@@ -226,7 +226,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
                 "cohort",
                 "dataset",
                 "endpoint",
-                "endpoint_ID",
+                "endpoint_no.",
                 "resource",
                 "status",
                 "latest_log_entry_date",
@@ -288,7 +288,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "name",
         "organisation",
         "dataset",
-        "endpoint_ID",
+        "endpoint_no.",
         "field_supplied_count",
         "field_supplied_pct",
         "field_matched_count",
@@ -301,7 +301,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "cohort",
         "dataset",
         "endpoint",
-        "endpoint_ID",
+        "endpoint_no.",
         "resource",
         "status",
         "latest_log_entry_date",
