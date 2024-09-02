@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from application.data_access.datasette_utils import get_datasette_query
+from application.data_access.odp_summaries.utils import get_provisions
 
 SPATIAL_DATASETS = [
     "article-4-direction-area",
@@ -46,94 +47,27 @@ COHORTS = [
 ]
 
 
-def get_endpoint_resource_column_field_data(dataset_clause, offset):
-    sql = (
-        f"""
-        select rle.*, s.licence, cf.column, cf.field
-        from reporting_latest_endpoints rle
-        left join (
-            select distinct endpoint, licence from source where length(licence) < 12
-        ) s on rle.endpoint = s.endpoint
-        left join (
-            select * from column_field
-        ) cf on cf.resource = rle.resource and rle.pipeline = cf.dataset
-        where ({dataset_clause})
-        and rle.status = '200'
-        and rle.endpoint_end_date = ""
-        and rle.resource_end_date = ""
-        order by rle.organisation
-        limit 1000 offset {offset}
-    """,
-    )
-
-    endpoint_resource_df = get_datasette_query("digital-land", sql)
-
-    return endpoint_resource_df
-
-
-def get_endpoint_resource_issue_data(dataset_clause, offset):
-    sql = (
-        f"""
-        select i.field, i.issue_type, count(*) as count_issues, rle.pipeline as dataset, i.resource
-        from reporting_latest_endpoints rle
-        left join (
-            select distinct endpoint, licence from source where length(licence) < 12
-        ) s on rle.endpoint = s.endpoint
-        left join (
-            select * from issue
-        ) i on i.resource = rle.resource
-        where ({dataset_clause})
-        and rle.status = '200'
-        and rle.endpoint_end_date = ""
-        and rle.resource_end_date = ""
-        group by i.field, i.issue_type, rle.resource, rle.pipeline
-        order by rle.organisation
-        limit 1000 offset {offset}
-    """,
-    )
-
-    issue_df = get_datasette_query("digital-land", sql)
-
-    return issue_df
-
-
-def get_provisions(cohort_clause):
+def get_column_field_summary(dataset_clause, offset):
     sql = f"""
-    SELECT
-        p.cohort,
-        p.notes,
-        p.organisation,
-        p.project,
-        p.provision_reason,
-        c.start_date as cohort_start_date
-    FROM
-        provision p
-    INNER JOIN
-        cohort c on c.cohort = p.cohort
-    WHERE
-        p.provision_reason = "expected"
-    AND p.project == "open-digital-planning"
-    {cohort_clause}
-    GROUP BY
-        p.organisation
-    ORDER BY
-        cohort_start_date
+    select * from column_field_summary
+    where resource != ''
+    and ({dataset_clause})
+    limit 1000 offset {offset}
     """
-    provision_df = get_datasette_query("digital-land", sql)
-    provision_df["organisation"] = provision_df["organisation"].str.replace(
-        ":", "-eng:"
-    )
-    return provision_df
+    column_field_df = get_datasette_query("performance", sql)
+
+    return column_field_df
 
 
-def get_issue_types_by_severity(severity_list):
-    sql = """
-    select issue_type, severity, responsibility
-    from issue_type
+def get_issue_summary(dataset_clause, offset):
+    sql = f"""
+    select  * from issue_summary
+    where ({dataset_clause})
+    limit 1000 offset {offset}
     """
-    all_issue_types_df = get_datasette_query("digital-land", sql)
-    df = all_issue_types_df.loc[all_issue_types_df["severity"].isin(severity_list)]
-    return df
+    issue_summary_df = get_datasette_query("performance", sql)
+
+    return issue_summary_df
 
 
 def get_odp_conformance_summary(dataset_types, cohorts):
@@ -143,14 +77,6 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "selected_dataset_types": dataset_types,
         "selected_cohorts": cohorts,
     }
-    filtered_cohorts = [
-        x for x in cohorts if cohorts[0] in [cohort["id"] for cohort in COHORTS]
-    ]
-    cohort_clause = (
-        "and " + " or ".join(("p.cohort = '" + str(n) + "'" for n in filtered_cohorts))
-        if filtered_cohorts
-        else ""
-    )
     if dataset_types == ["spatial"]:
         datasets = SPATIAL_DATASETS
     elif dataset_types == ["document"]:
@@ -158,189 +84,149 @@ def get_odp_conformance_summary(dataset_types, cohorts):
     else:
         datasets = ALL_DATASETS
     dataset_clause = " or ".join(
-        ("rle.pipeline = '" + str(dataset) + "'" for dataset in datasets)
+        ("pipeline = '" + str(dataset) + "'" for dataset in datasets)
     )
 
-    provision_df = get_provisions(cohort_clause)
+    provision_df = get_provisions(cohorts, COHORTS)
 
-    # Download all endpoint/resources combined with their column mappings (to minimise no. of requests)
+    # Download column field summary table
     # Use pagination in case rows returned > 1000
     pagination_incomplete = True
     offset = 0
-    endpoint_resource_column_field_df_list = []
+    column_field_df_list = []
     while pagination_incomplete:
-        endpoint_resource_column_field_df = get_endpoint_resource_column_field_data(
-            dataset_clause, offset
-        )
-        endpoint_resource_column_field_df_list.append(endpoint_resource_column_field_df)
-        pagination_incomplete = len(endpoint_resource_column_field_df) == 1000
+        column_field_df = get_column_field_summary(dataset_clause, offset)
+        column_field_df_list.append(column_field_df)
+        pagination_incomplete = len(column_field_df) == 1000
         offset += 1000
-    if len(endpoint_resource_column_field_df_list) == 0:
+    if len(column_field_df_list) == 0:
         return {"params": params, "rows": [], "headers": []}
-    endpoint_resource_column_field_df = pd.concat(
-        endpoint_resource_column_field_df_list
+    column_field_df = pd.concat(column_field_df_list)
+
+    column_field_df = pd.merge(
+        column_field_df, provision_df, on=["organisation", "cohort"], how="inner"
     )
 
-    # Download all issues we need
+    # Download issue summary table
     pagination_incomplete = True
     offset = 0
     issue_df_list = []
     while pagination_incomplete:
-        issue_df = get_endpoint_resource_issue_data(dataset_clause, offset)
+        issue_df = get_issue_summary(dataset_clause, offset)
         issue_df_list.append(issue_df)
         pagination_incomplete = len(issue_df) == 1000
         offset += 1000
     issue_df = pd.concat(issue_df_list)
 
-    # split combined df into endpoint_resource df and column_field df
-    # use drop_duplicates because pandas groupby apparently can't group correctly
-    endpoint_resource_df = endpoint_resource_column_field_df.drop_duplicates(
-        ["pipeline", "organisation"]
-    )
-    column_field_df = endpoint_resource_column_field_df[
-        ["pipeline", "resource", "column", "field"]
-    ].rename(columns={"pipeline": "dataset"})
-
-    # join to provision and bring through cohort and start date
-    endpoint_resource_df = endpoint_resource_df.merge(
-        provision_df, how="inner", on="organisation"
-    )
-
-    # replace licence NaNs with blank
-    endpoint_resource_df["licence"].replace(np.nan, "", inplace=True)
-
-    # table of unique resources and pipelines
-    resource_df = (
-        endpoint_resource_df[["pipeline", "resource"]].drop_duplicates().dropna(axis=0)
-    )
-
-    issue_severity_lookup = get_issue_types_by_severity(["error"])
-
-    # get results for col mappings and fields in arrays
-    results_col_map = [
-        column_field_df[
-            (column_field_df["resource"] == r["resource"])
-            & (column_field_df["dataset"] == r["pipeline"])
-        ]
-        for index, r in resource_df.iterrows()
-    ]
-    results_issues = [
-        issue_df[issue_df["resource"] == r["resource"]]
-        for index, r in resource_df.iterrows()
-    ]
-    # Exit early if no results
-    if len(results_col_map) == 0 or len(results_issues) == 0:
-        return {"params": params, "rows": [], "headers": []}
-    # concat the results, resources which errored with have NaNs in query results fields
-    results_col_map_df = pd.concat(results_col_map)
-    results_issues_df = pd.concat(results_issues)
-
-    # join on severity to issues
-    results_issues_df = results_issues_df.merge(
-        issue_severity_lookup, how="inner", on="issue_type"
-    )
-
-    # filter to just errors and get a unique list of fields with errors per dataset and resource
-    resource_issue_errors_df = results_issues_df[
-        ["dataset", "resource", "field"]
-    ].drop_duplicates()
-
-    # add in match field for column mappings (lowering so that we don't exclude case mis-matches)
-    results_col_map_df["field_matched"] = np.where(
-        (results_col_map_df["field"].isin(["geometry", "point"]))
-        | (
-            results_col_map_df["field"].str.lower()
-            == results_col_map_df["column"].str.lower()
-        ),
-        1,
-        0,
-    )
-
-    # add in flag for fields supplied (i.e. they're in the mapping table)
-    results_col_map_df["field_supplied"] = 1
-
-    # add in flag for fields with errors
-    resource_issue_errors_df["field_errors"] = 1
-
-    # in issues table reference not being supplied is linked to entity. we don't count entity as a supplied
-    # field (it is removed further down), so here it is re-mapped to reference field so it's included as an error
-    resource_issue_errors_df["field"] = resource_issue_errors_df["field"].replace(
-        "entity", "reference"
-    )
-
     dataset_field_df = get_dataset_field()
 
-    # rename pipeline to dataset in endpoint_resource table
-    endpoint_resource_df.rename(columns={"pipeline": "dataset"}, inplace=True)
-
-    # left join from endpoint resource table to all the fields that each dataset should have
-    resource_spec_fields_df = endpoint_resource_df[
-        [
-            "organisation",
-            "name",
-            "cohort",
-            "dataset",
-            "endpoint",
-            "status",
-            "latest_log_entry_date",
-            "endpoint_entry_date",
-            "resource",
-            "licence",
-            "cohort_start_date",
-        ]
-    ].merge(dataset_field_df[["dataset", "field"]], on="dataset")
-
-    # join on field loaded flag for each resource and field
-    resource_fields_match = resource_spec_fields_df
-
-    # join on field supplied and matched flag for each resource and field
-    resource_fields_map_match = resource_fields_match.merge(
-        results_col_map_df[
-            ["dataset", "resource", "field", "field_supplied", "field_matched"]
-        ],
-        how="left",
-        on=["dataset", "resource", "field"],
-    )
-
-    # join on field errors flag for each resource and field
-    resource_fields_map_issues = resource_fields_map_match.merge(
-        resource_issue_errors_df, how="left", on=["dataset", "resource", "field"]
-    )
-
-    # handle cases of multiple mappings per field
-    resource_fields_map_issues.drop_duplicates(
-        ["dataset", "resource", "field"], inplace=True
-    )
-
-    # remove fields that are auto-created in the pipeline from final table to avoid mis-counting
+    # remove fields that are auto-created in the pipeline from the dataset_field file to avoid mis-counting
     # ("entity", "organisation", "prefix", "point" for all but tree, and "entity", "organisation", "prefix" for tree)
-    resource_fields_scored = resource_fields_map_issues[
-        (
-            (resource_fields_map_issues["dataset"] != "tree")
-            & (
-                ~resource_fields_map_issues["field"].isin(
-                    ["entity", "organisation", "prefix", "point"]
-                )
-            )
-            | (resource_fields_map_issues["dataset"] == "tree")
-            & (
-                ~resource_fields_map_issues["field"].isin(
-                    ["entity", "organisation", "prefix"]
-                )
+    dataset_field_df = dataset_field_df[
+        (dataset_field_df["dataset"] != "tree")
+        & (
+            ~dataset_field_df["field"].isin(
+                ["entity", "organisation", "prefix", "point"]
             )
         )
+        | (dataset_field_df["dataset"] == "tree")
+        & (~dataset_field_df["field"].isin(["entity", "organisation", "prefix"]))
     ]
+
+    # Filter out fields not in spec
+    column_field_df["matching_field"] = column_field_df.replace({'"', ""}).apply(
+        lambda row: [
+            field
+            for field in (
+                row["matching_field"].split(",") if row["matching_field"] else ""
+            )
+            if field
+            in dataset_field_df[dataset_field_df["dataset"] == row["dataset"]][
+                "field"
+            ].values
+        ],
+        axis=1,
+    )
+    column_field_df["non_matching_field"] = column_field_df.replace({'"', ""}).apply(
+        lambda row: [
+            field
+            for field in (
+                row["non_matching_field"].split(",")
+                if row["non_matching_field"]
+                else ""
+            )
+            if field
+            in dataset_field_df[dataset_field_df["dataset"] == row["dataset"]][
+                "field"
+            ].values
+        ],
+        axis=1,
+    )
+
+    # Map entity errors to reference field
+    issue_df["fields"] = issue_df["fields"].replace("entity", "reference")
+    # Filter out issues for fields not in dataset field (specification)
+    issue_df["fields"] = issue_df.replace({'"', ""}).apply(
+        lambda row: [
+            field
+            for field in (row["fields"].split(",") if row["fields"] else "")
+            if field
+            in dataset_field_df[dataset_field_df["dataset"] == row["dataset"]][
+                "field"
+            ].values
+        ],
+        axis=1,
+    )
+
+    # Create field matched and field supplied scores
+    column_field_df["field_matched"] = column_field_df.apply(
+        lambda row: len(row["matching_field"]) if row["matching_field"] else 0, axis=1
+    )
+    column_field_df["field_supplied"] = column_field_df.apply(
+        lambda row: row["field_matched"]
+        + (len(row["non_matching_field"]) if row["non_matching_field"] else 0),
+        axis=1,
+    )
+    column_field_df["field"] = column_field_df.apply(
+        lambda row: len(
+            dataset_field_df[dataset_field_df["dataset"] == row["dataset"]]
+        ),
+        axis=1,
+    )
+
+    # Check for fields which have error issues
+    results_issues = [
+        issue_df[
+            (issue_df["resource"] == r["resource"]) & (issue_df["severity"] == "error")
+        ]
+        for index, r in column_field_df.iterrows()
+    ]
+    results_issues_df = pd.concat(results_issues)
+
+    # Create fields with errors column
+    column_field_df["field_errors"] = column_field_df.apply(
+        lambda row: len(
+            results_issues_df[row["resource"] == results_issues_df["resource"]]
+        ),
+        axis=1,
+    )
+
+    # Create endpoint ID column to track multiple endpoints per organisation-dataset
+    column_field_df["endpoint_no."] = (
+        column_field_df.groupby(["organisation", "dataset"]).cumcount() + 1
+    )
+    column_field_df["endpoint_no."] = column_field_df["endpoint_no."].astype(str)
 
     # group by and aggregate for final summaries
     final_count = (
-        resource_fields_scored.groupby(
+        column_field_df.groupby(
             [
                 "organisation",
                 "name",
                 "cohort",
                 "dataset",
                 "endpoint",
-                "licence",
+                "endpoint_no.",
                 "resource",
                 "status",
                 "latest_log_entry_date",
@@ -350,7 +236,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         )
         .agg(
             {
-                "field": "count",
+                "field": "sum",
                 "field_supplied": "sum",
                 "field_matched": "sum",
                 "field_errors": "sum",
@@ -402,7 +288,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "name",
         "organisation",
         "dataset",
-        "licence",
+        "endpoint_no.",
         "field_supplied_count",
         "field_supplied_pct",
         "field_matched_count",
@@ -415,7 +301,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "cohort",
         "dataset",
         "endpoint",
-        "licence",
+        "endpoint_no.",
         "resource",
         "status",
         "latest_log_entry_date",
