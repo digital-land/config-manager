@@ -35,12 +35,16 @@ from application.data_access.overview.entity_queries import (
     get_entity_count,
     get_grouped_entity_count,
 )
-from application.data_access.overview.issue_summary import get_issue_summary
+from application.data_access.overview.issue_summary import (
+    get_issue_summary,
+    get_issue_summary_for_csv,
+)
 from application.data_access.overview.source_and_resource_queries import (
     get_datasets_summary,
     get_monthly_counts,
     get_new_resources,
 )
+from application.data_access.overview.utils import generate_overview_issue_summary_csv
 from application.data_access.summary_queries import (
     get_contributions_and_erroring_endpoints,
     get_contributions_and_errors_by_day,
@@ -153,6 +157,10 @@ def download_csv():
         )
         file_path = generate_odp_summary_csv(conformance_df)
         return send_file(file_path, download_name="odp-conformance.csv")
+    if type == "issue-summary":
+        overview_issue_summary = get_issue_summary_for_csv()
+        file_path = generate_overview_issue_summary_csv(overview_issue_summary)
+        return send_file(file_path, download_name="overview_issue_summary.csv")
 
 
 @report_bp.get("endpoint/<endpoint_hash>")
