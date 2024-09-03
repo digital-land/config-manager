@@ -172,6 +172,7 @@ def get_overall_source_counts(groupby=None):
         "source",
         "INNER JOIN source_pipeline on source.source = source_pipeline.source",
         "INNER JOIN organisation on organisation.organisation = replace(source.organisation,'-eng','')",
+        "WHERE source.end_date is null or source.end_date ==''",
         (
             f"GROUP BY {groupby_options.get(groupby)}"
             if groupby and groupby_options.get(groupby)
@@ -193,7 +194,7 @@ def get_grouped_source_counts(organisation=None, **kwargs):
 
 
 def fetch_total_resource_count():
-    sql = "select count(distinct resource) from resource"
+    sql = "select count(distinct resource) from resource where end_date is null or end_date ==''"
     rows = get_datasette_query("digital-land", f"""{sql}""")
 
     return rows.iloc[0][0] if len(rows) > 0 else 0
