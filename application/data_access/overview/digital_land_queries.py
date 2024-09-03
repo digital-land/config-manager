@@ -88,7 +88,9 @@ def get_monthly_source_counts(pipeline=None):
 def get_publisher_coverage(dataset=None):
     query_lines = [
         "SELECT",
-        "count(DISTINCT source.organisation) AS total,",
+        "CASE WHEN COUNT(DISTINCT provision.organisation) = 0 THEN COUNT(DISTINCT source.organisation)",
+        "ELSE COUNT(DISTINCT provision.organisation)",
+        "END AS total,",
         "COUNT(",
         "DISTINCT CASE",
         "WHEN source.endpoint != '' THEN source.organisation",
@@ -97,6 +99,7 @@ def get_publisher_coverage(dataset=None):
         "FROM",
         "source",
         "INNER JOIN source_pipeline on source.source = source_pipeline.source",
+        "LEFT JOIN provision on source_pipeline.pipeline=provision.dataset",
         "WHERE",
         "source.organisation != ''",
         f" AND source_pipeline.pipeline = '{dataset}'" if dataset else "",
@@ -417,7 +420,7 @@ def get_sources(
         "FROM",
         "source",
         "INNER JOIN source_pipeline ON source.source = source_pipeline.source",
-        "INNER JOIN organisation ON source.organisation = organisation.organisation",
+        "INNER JOIN organisation ON replace(source.organisation, '-eng', '') = organisation.organisation",
         (
             ""
             if only_blanks or include_blanks

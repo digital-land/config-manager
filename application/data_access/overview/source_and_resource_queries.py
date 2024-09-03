@@ -47,7 +47,7 @@ def resources_by_dataset():
     # TODO handle when pipeline is not None
     sql = """
         SELECT
-      count(DISTINCT resource.resource) AS total,
+      count(DISTINCT resource.resource) AS total_resources,
       count(
         DISTINCT CASE
           WHEN resource.end_date == '' THEN resource.resource
