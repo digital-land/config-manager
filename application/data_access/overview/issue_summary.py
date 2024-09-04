@@ -140,3 +140,31 @@ def get_issue_summary():
             "total_endpoints": total_endpoints,
         },
     }
+
+
+def get_issue_summary_for_csv():
+    issue_summary_df = get_datasette_query_issue_summary("performance/issue_summary")
+    issue_summary_df = issue_summary_df[issue_summary_df["count_issues"].notna()]
+
+    return issue_summary_df[
+        [
+            "organisation",
+            "name",
+            "pipeline",
+            "issue_type",
+            "severity",
+            "responsibility",
+            "count_issues",
+            "collection",
+            "endpoint",
+            "endpoint_url",
+            "status",
+            "exception",
+            "resource",
+            "latest_log_entry_date",
+            "endpoint_entry_date",
+            "endpoint_end_date",
+            "resource_start_date",
+            "resource_end_date",
+        ]
+    ]
