@@ -20,10 +20,8 @@ def generate_overview_issue_summary_csv(overview_issue_summary):
                 except Exception:
                     pass
         output_df = pd.concat(dfs)
-        columns_order = ["organisation", "cohort", "name"] + [
-            col
-            for col in output_df.columns
-            if col not in ["organisation", "cohort", "name"]
+        columns_order = ["organisation", "name"] + [
+            col for col in output_df.columns if col not in ["organisation", "name"]
         ]
         output_df = output_df[columns_order]
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as csvfile:
