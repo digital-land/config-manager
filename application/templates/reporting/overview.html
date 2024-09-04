@@ -35,9 +35,12 @@
       <p id="contributions" class="reporting-clear-both govuk-body">Resources downloaded: </p>
       <p id="errors" class="reporting-clear-boths govuk-body">Endpoint errors: </p>
     </div>
-    <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=issue-summary" id="download-button">
-      Download Current Table
-  </a>
+    <div class="govuk-!-margin-top-6 govuk-!-width-full govuk-!-text-align-centre">
+      <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=issue-summary" id="download-button">
+      Download Issues Summary Table
+      </a>
+    </div>
+
   </div>
   <div class="govuk-grid-column-one-half govuk-!-padding-left-9">
     <h1 class="govuk-heading-xl">Issues summary:</h1>
