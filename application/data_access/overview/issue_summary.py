@@ -19,6 +19,15 @@ def get_issue_summary():
             "classes": "reporting-good-background",
         },
         {
+            "display_severity": "Info",
+            "severity": "info",
+            "total_count_percentage": 0.0,
+            "internal_count": 0,
+            "external_count": 0,
+            "total_count": 0,
+            "classes": "reporting-medium-background",
+        },
+        {
             "display_severity": "Warning",
             "severity": "warning",
             "total_count_percentage": 0.0,
