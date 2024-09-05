@@ -60,7 +60,7 @@
           <h2>
           {% if resource_count is not none %}
           {{ appDataItem({
-            "label": "Resources",
+            "label": "Total Resources",
             "value": resource_count|default('0')
           }) }}
           {%- endif %}
@@ -242,45 +242,6 @@
           {% endif %}
         </div>
       </div>
-
-      {% if sources_no_doc_url|length > 0 %}
-      <h3 id="sources-missing-documentation-url" class="govuk-heading-m">Missing documentation urls</h3>
-      <p class="govuk-body">{{ sources_no_doc_url|length }} active sources are missing <code>documentation-urls</code>.</p>
-      <ul class="govuk-list">
-      {# only want to show 5 sources #}
-      {% set items = sources_no_doc_url|length if sources_no_doc_url|length < 5 else 5 %}
-      {% for n in range(items) %}
-        <li class="dl-data-record app-card govuk-!-margin-bottom-3">
-          <div class="dl-data-record__identifier">
-            <h4 class="govuk-heading-s govuk-!-margin-bottom-0">
-            Source <a href="{{ url_for('reporting.source', source=sources_no_doc_url[n]['source']) }}">{{ sources_no_doc_url[n]['source'] }}</a></h4>
-            {%- if sources_no_doc_url[n]['end_date'] or sources_no_doc_url[n]['documentation_url'] == "" -%}
-            <div class="app-card__flags govuk-!-margin-top-1">
-              {% if sources_no_doc_url[n]['end_date'] %}<span class="govuk-tag govuk-tag--grey">Historical</span>{% endif %}
-              {% if sources_no_doc_url[n]['documentation_url'] == "" %}<span class="govuk-tag govuk-tag--yellow">No documentation url</span>{% endif %}
-            </div>
-            {% endif -%}
-          </div>
-          <dl class="govuk-summary-list dl-data-record__properties app-card__properties govuk-!-margin-bottom-0">
-            <div class="govuk-summary-list__row">
-              <dt class="govuk-summary-list__key">Organisation</dt>
-              <dd class="govuk-summary-list__value">{{ sources_no_doc_url[n]['name'] }}</dd>
-            </div>
-            <div class="govuk-summary-list__row">
-              <dt class="govuk-summary-list__key">Dataset</dt>
-              <dd class="govuk-summary-list__value">{{ sources_no_doc_url[n]['pipeline'] }}</dd>
-            </div>
-          </dl>
-        </li>
-      {% endfor %}
-      </ul>
-      {% if sources_no_doc_url|length > 5 %}
-      <p class="govuk-body">
-        <a href="{{ url_for('reporting.sources', pipeline=name, documentation_url='') }}" class="govuk-link">See all {{ name }} sources missing a <code>documentation-url</code></a>.
-      </p>
-      {% endif %}
-      {% endif %}
-
     </div>
 
     <div id="publishers">

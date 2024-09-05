@@ -409,6 +409,7 @@ def get_sources(
         "SELECT",
         "source.source,",
         "source.organisation,",
+        "REPLACE(provision.organisation, 'local-authority:', 'local-authority-eng:') AS provision_organisation,",
         "organisation.name,",
         "source.endpoint,",
         "" if only_blanks or include_blanks else "endpoint.endpoint_url,",
@@ -421,6 +422,8 @@ def get_sources(
         "source",
         "INNER JOIN source_pipeline ON source.source = source_pipeline.source",
         "INNER JOIN organisation ON replace(source.organisation, '-eng', '') = organisation.organisation",
+        "RIGHT JOIN provision ON provision.organisation = REPLACE(source.organisation, '-eng', '')",
+        "AND provision.end_date = ''",
         (
             ""
             if only_blanks or include_blanks

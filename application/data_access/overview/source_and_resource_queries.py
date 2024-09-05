@@ -33,6 +33,8 @@ def publisher_coverage():
               source
               INNER JOIN source_pipeline ON source.source = source_pipeline.source
               LEFT JOIN provision on source_pipeline.pipeline=provision.dataset
+              and
+              provision.end_date==""
             GROUP BY
             source_pipeline.pipeline
     """
