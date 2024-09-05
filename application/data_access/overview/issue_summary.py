@@ -25,7 +25,7 @@ def get_issue_summary():
             "internal_count": 0,
             "external_count": 0,
             "total_count": 0,
-            "classes": "reporting-medium-background",
+            "classes": "reporting-good-background",
         },
         {
             "display_severity": "Warning",
