@@ -56,11 +56,11 @@ def get_issue_counts():
 
 
 def get_internal_issues_by_day():
+    # gets all data until no pagination left
     pagination_incomplete = True
     offset = 0
     internal_issues_df_list = []
     while pagination_incomplete:
-        print("OFFSET: ", offset)
         internal_issues_df = get_internal_issues(offset)
         internal_issues_df_list.append(internal_issues_df)
         pagination_incomplete = len(internal_issues_df) == 1000
@@ -71,24 +71,15 @@ def get_internal_issues_by_day():
         print("No data returned.")
         return None
 
-    # Filter from 2024-09
     issues_df["entry-date"] = pd.to_datetime(issues_df["entry-date"], format="%Y-%m-%d")
-    # issues_df_2024 = issues_df[
-    #     (issues_df["entry-date"].dt.year == 2024) &
-    #     (issues_df["entry-date"].dt.month >= 9)
-    #     (issues_df["entry-date"].dt.day >= 20)
-    # ]
 
-    # print(issues_df_2024)
-    # Group by 'entry-date' -> sum issues per day
     daily_issues = (
-        issues_df.groupby("entry-date")  # Group by the original date column
-        .size()
-        .reset_index(name="issue_count")
+        issues_df.groupby("entry-date").size().reset_index(name="issue_count")
     )
 
-    start_date = datetime(2024, 9, 20)
-    end_date = datetime.now(timezone.utc).date()  #
+    start_date = datetime(2024, 9, 24)
+    end_date = datetime.now(timezone.utc).date()
+
     # Dataframe from start date till today
     all_days = pd.DataFrame({"date": pd.date_range(start=start_date, end=end_date)})
 
@@ -97,18 +88,12 @@ def get_internal_issues_by_day():
         all_days, daily_issues, left_on="date", right_on="entry-date", how="left"
     )
 
-    # Fill missing issue counts with 0
-    all_days_issues["issue_count"].fillna(0, inplace=True)  # 0 if no issues for the day
+    all_days_issues["issue_count"].fillna(0, inplace=True)
 
-    # issue_count to int because it's a float
-    all_days_issues["issue_count"] = all_days_issues["issue_count"].astype(int)
-
-    # DataFrame to the desired format with entry-date directly
     result = all_days_issues[["date", "issue_count"]].rename(
         columns={"issue_count": "count"}
     )
 
-    # Convert the 'date' column to string in 'YYYY-MM-DD' format
     result["date"] = result["date"].dt.strftime("%Y-%m-%d")
 
     # Convert the result to a dictionary
@@ -119,7 +104,7 @@ def get_internal_issues_by_day():
 
 def get_internal_issues(offset):
     sql = f"""SELECT
-  *  FROM operational_issue
+    [entry-date]  FROM operational_issue
     limit 1000 offset {offset}
 
   """
