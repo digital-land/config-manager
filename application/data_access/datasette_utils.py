@@ -87,10 +87,10 @@ def get_datasette_query_issue_summary(
 
 
 def get_datasette_query_issue_summary_test(
-    db, sql, filter=None, url="https://datasette.planning.data.gov.uk"
+    db, filter=None, url="https://datasette.planning.data.gov.uk"
 ):
     url = f"{url}/{db}.json"
-    params = {"sql": sql}
+    params = {}
 
     if filter:
         params.update(filter)
@@ -108,6 +108,8 @@ def get_datasette_query_issue_summary_test(
 
             resp = http.get(url, params=params)
             response_json = resp.json()
+            print("++++++RESPONSE+++++++++++++")
+            print(response_json)
             rows = response_json.get("rows", [])
 
             # Accumulate rows

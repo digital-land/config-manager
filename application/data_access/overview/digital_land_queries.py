@@ -88,7 +88,9 @@ def get_monthly_source_counts(pipeline=None):
 def get_publisher_coverage(dataset=None):
     query_lines = [
         "SELECT",
-        "count(DISTINCT source.organisation) AS total,",
+        "CASE WHEN COUNT(DISTINCT provision.organisation) = 0 THEN COUNT(DISTINCT source.organisation)",
+        "ELSE COUNT(DISTINCT provision.organisation)",
+        "END AS total,",
         "COUNT(",
         "DISTINCT CASE",
         "WHEN source.endpoint != '' THEN source.organisation",
@@ -97,6 +99,7 @@ def get_publisher_coverage(dataset=None):
         "FROM",
         "source",
         "INNER JOIN source_pipeline on source.source = source_pipeline.source",
+        "LEFT JOIN provision on source_pipeline.pipeline=provision.dataset",
         "WHERE",
         "source.organisation != ''",
         f" AND source_pipeline.pipeline = '{dataset}'" if dataset else "",
@@ -172,6 +175,7 @@ def get_overall_source_counts(groupby=None):
         "source",
         "INNER JOIN source_pipeline on source.source = source_pipeline.source",
         "INNER JOIN organisation on organisation.organisation = replace(source.organisation,'-eng','')",
+        "WHERE source.end_date is null or source.end_date ==''",
         (
             f"GROUP BY {groupby_options.get(groupby)}"
             if groupby and groupby_options.get(groupby)
@@ -193,7 +197,7 @@ def get_grouped_source_counts(organisation=None, **kwargs):
 
 
 def fetch_total_resource_count():
-    sql = "select count(distinct resource) from resource"
+    sql = "select count(distinct resource) from resource where end_date is null or end_date ==''"
     rows = get_datasette_query("digital-land", f"""{sql}""")
 
     return rows.iloc[0][0] if len(rows) > 0 else 0
@@ -405,6 +409,7 @@ def get_sources(
         "SELECT",
         "source.source,",
         "source.organisation,",
+        "REPLACE(provision.organisation, 'local-authority:', 'local-authority-eng:') AS provision_organisation,",
         "organisation.name,",
         "source.endpoint,",
         "" if only_blanks or include_blanks else "endpoint.endpoint_url,",
@@ -416,7 +421,9 @@ def get_sources(
         "FROM",
         "source",
         "INNER JOIN source_pipeline ON source.source = source_pipeline.source",
-        "INNER JOIN organisation ON source.organisation = organisation.organisation",
+        "INNER JOIN organisation ON replace(source.organisation, '-eng', '') = organisation.organisation",
+        "RIGHT JOIN provision ON provision.organisation = REPLACE(source.organisation, '-eng', '')",
+        "AND provision.end_date = ''",
         (
             ""
             if only_blanks or include_blanks

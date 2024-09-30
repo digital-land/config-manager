@@ -1,13 +1,8 @@
-import random
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pandas as pd
 
-from application.data_access.datasette_utils import (
-    generate_weeks,
-    get_datasette_query,
-    get_datasette_query_issue_summary_test,
-)
+from application.data_access.datasette_utils import generate_weeks, get_datasette_query
 
 
 def get_contributions_and_errors(offset):
@@ -60,90 +55,75 @@ def get_issue_counts():
         return None
 
 
-def get_internal_issues_by_week():
-    # SQL query to get only rows where responsibility = 'internal'
-    sql = """SELECT count_issues,
-  date,
-  responsibility FROM issue_summary WHERE responsibility = 'internal'
-  """
+def get_internal_issues_by_day():
+    pagination_incomplete = True
+    offset = 0
+    internal_issues_df_list = []
+    while pagination_incomplete:
+        print("OFFSET: ", offset)
+        internal_issues_df = get_internal_issues(offset)
+        internal_issues_df_list.append(internal_issues_df)
+        pagination_incomplete = len(internal_issues_df) == 1000
+        offset += 1000
+        issues_df = pd.concat(internal_issues_df_list, ignore_index=True)
 
-    data_df = get_datasette_query_issue_summary_test("performance", sql)
-    # print(data_df)
-
-    dummy_data = {
-        "count_issues": [
-            random.randint(20, 500) for _ in range(100)
-        ],  # Random issue count between 20 and 500
-        "date": [
-            datetime(2024, random.randint(1, 12), random.randint(1, 28)).strftime(
-                "%d-%m-%Y"
-            )
-            for _ in range(100)
-        ],  # Random dates in 2024
-    }
-
-    print("==================== DUMMY DATE ================")
-    print(dummy_data)
-
-    issues_df = pd.DataFrame(data_df)
-
-    print(issues_df)
     if issues_df.empty:
         print("No data returned.")
         return None
 
-    # Convert 'date' column to datetime format
-    issues_df["date"] = pd.to_datetime(issues_df["date"], format="%d-%m-%Y")
+    # Filter from 2024-09
+    issues_df["entry-date"] = pd.to_datetime(issues_df["entry-date"], format="%Y-%m-%d")
+    # issues_df_2024 = issues_df[
+    #     (issues_df["entry-date"].dt.year == 2024) &
+    #     (issues_df["entry-date"].dt.month >= 9)
+    #     (issues_df["entry-date"].dt.day >= 20)
+    # ]
 
-    # week and year
-    issues_df["week"] = issues_df["date"].dt.isocalendar().week
-    issues_df["year"] = issues_df["date"].dt.year
-
-    # Filter for 2024
-    issues_df_2024 = issues_df[issues_df["year"] == 2024]
-
-    # Group year and week -> sum issues per week
-    weekly_issues = (
-        issues_df_2024.groupby(["year", "week"])["count_issues"]
-        .sum()
+    # print(issues_df_2024)
+    # Group by 'entry-date' -> sum issues per day
+    daily_issues = (
+        issues_df.groupby("entry-date")  # Group by the original date column
+        .size()
         .reset_index(name="issue_count")
     )
 
-    # create DataFrame list up to next week in 2024
-    current_week = datetime.now(timezone.utc).isocalendar()[1]
-    all_weeks = pd.DataFrame(
-        {"week": range(1, current_week + 1), "year": [2024] * current_week}
+    start_date = datetime(2024, 9, 20)
+    end_date = datetime.now(timezone.utc).date()  #
+    # Dataframe from start date till today
+    all_days = pd.DataFrame({"date": pd.date_range(start=start_date, end=end_date)})
+
+    # Merge with the daily_issues to ensure every day is present
+    all_days_issues = pd.merge(
+        all_days, daily_issues, left_on="date", right_on="entry-date", how="left"
     )
 
-    # Merge with the weekly_issues to ensure every week is present
-    all_weeks_issues = pd.merge(
-        all_weeks, weekly_issues, on=["year", "week"], how="left"
-    )
-    all_weeks_issues["issue_count"].fillna(0, inplace=True)  # 0 if no issue :)
+    # Fill missing issue counts with 0
+    all_days_issues["issue_count"].fillna(0, inplace=True)  # 0 if no issues for the day
 
     # issue_count to int because it's a float
-    all_weeks_issues["issue_count"] = all_weeks_issues["issue_count"].astype(int)
+    all_days_issues["issue_count"] = all_days_issues["issue_count"].astype(int)
 
-    # set start date as start of this year (check what we wan the start date to be!)
-    start_date = datetime(2024, 1, 1)
-
-    # Convert week and year to the start date of the week (casting to int to avoid numpy.int64 issue,
-    # again probably won't need this with acrual data)
-    all_weeks_issues["date"] = all_weeks_issues.apply(
-        lambda x: (start_date + timedelta(weeks=int(x["week"]) - 1)).strftime(
-            "%d-%m-%Y"
-        ),
-        axis=1,
+    # DataFrame to the desired format with entry-date directly
+    result = all_days_issues[["date", "issue_count"]].rename(
+        columns={"issue_count": "count"}
     )
 
-    # DataFrame to the desired format
-    result = (
-        all_weeks_issues[["date", "issue_count"]]
-        .rename(columns={"issue_count": "count"})
-        .to_dict(orient="records")
-    )
+    # Convert the 'date' column to string in 'YYYY-MM-DD' format
+    result["date"] = result["date"].dt.strftime("%Y-%m-%d")
+
+    # Convert the result to a dictionary
+    result = result.to_dict(orient="records")
 
     return result
+
+
+def get_internal_issues(offset):
+    sql = f"""SELECT
+  *  FROM operational_issue
+    limit 1000 offset {offset}
+
+  """
+    return get_datasette_query("digital-land", sql)
 
 
 def get_contributions_and_erroring_endpoints(contributions_and_errors_df):

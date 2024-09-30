@@ -35,6 +35,12 @@
       <p id="contributions" class="reporting-clear-both govuk-body">Resources downloaded: </p>
       <p id="errors" class="reporting-clear-boths govuk-body">Endpoint errors: </p>
     </div>
+    <div class="govuk-!-margin-top-6 govuk-!-width-full govuk-!-text-align-centre">
+      <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=issue-summary" id="download-button">
+      Download Issues Summary Table
+      </a>
+    </div>
+
   </div>
   <div class="govuk-grid-column-one-half govuk-!-padding-left-9">
     <h1 class="govuk-heading-xl">Issues summary:</h1>
@@ -64,7 +70,7 @@
 </div>
 
 
-<h2>Interal errors  per week:</h2>
+<h2>Interal errors per day:</h2>
 <div>
   <canvas id="internal_error_graph"></canvas>
 </div>
@@ -134,9 +140,10 @@
   const interal_error_timeseries = new TimeseriesChart(
     {
       ...baseOptions,
+      xAxisTitle: "Day",
       yAxisTitle: "Internal errors",
       datasets: [{
-                label: "# of internal errors per week",
+                label: "# of internal errors per day",
                 data: {{graphs.internal_errors_timeseries | safe}},
                 borderWidth: 1,
                 pointRadius: 0

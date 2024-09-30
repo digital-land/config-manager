@@ -1,3 +1,6 @@
+import json
+import urllib.request
+
 from application.data_access.datasette_utils import get_datasette_query
 from application.data_access.overview.api_queries import get_organisation_entity_number
 from application.utils import split_organisation_id
@@ -32,19 +35,11 @@ def get_grouped_entity_count(dataset=None, organisation_entity=None):
     return {}
 
 
-def get_total_entity_count():
-    sql = "select count(*) from lookup"
-    row = get_datasette_query("digital-land", sql)
-
-    return row.iloc[0][0] if len(row) > 0 else 0
-
-
 def get_entity_count(pipeline=None):
-    if pipeline is not None:
-        sql = "select count(*) from lookup WHERE prefix = :pipeline"
-        row = get_datasette_query("digital-land", sql, {"pipeline": pipeline})
-        return row.iloc[0][0] if len(row) > 0 else 0
-    return get_total_entity_count()
+    url = f"https://www.planning.data.gov.uk/entity.json{f'?prefix={pipeline}' if pipeline else ''}"
+    with urllib.request.urlopen(url) as response:
+        data = json.load(response)
+        return data["count"]
 
 
 def get_organisation_entity_count(organisation, dataset=None):

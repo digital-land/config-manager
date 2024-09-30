@@ -1,4 +1,5 @@
 import datetime
+import re
 
 import pandas as pd
 
@@ -33,6 +34,8 @@ def publisher_coverage():
               source
               INNER JOIN source_pipeline ON source.source = source_pipeline.source
               LEFT JOIN provision on source_pipeline.pipeline=provision.dataset
+              and
+              provision.end_date==""
             GROUP BY
             source_pipeline.pipeline
     """
@@ -47,7 +50,7 @@ def resources_by_dataset():
     # TODO handle when pipeline is not None
     sql = """
         SELECT
-      count(DISTINCT resource.resource) AS total,
+      count(DISTINCT resource.resource) AS total_resources,
       count(
         DISTINCT CASE
           WHEN resource.end_date == '' THEN resource.resource
@@ -151,19 +154,36 @@ def get_typology():
     return [dict(zip(columns, row)) for row in rows.to_numpy()]
 
 
+def get_spec_filename(dataset_urls):
+    if pd.isna(dataset_urls) or not isinstance(dataset_urls, str):
+        return []
+
+    urls = dataset_urls.split(";")
+
+    # extract dataset name from specification file URL
+    filenames = [
+        re.search(r"/([^/]+)\.md", url).group(1)
+        for url in urls
+        if re.search(r"/([^/]+)\.md", url)
+    ]
+
+    return filenames
+
+
 def get_frequency():
     # used by get_datasets_summary
     df = pd.read_csv(
         "https://design.planning.data.gov.uk/planning-consideration/planning-considerations.csv"
     )
 
-    if "name" not in df.columns or "frequency-of-updates" not in df.columns:
+    if "datasets" not in df.columns or "frequency-of-updates" not in df.columns:
         raise ValueError(
-            "CSV must contain 'dataset' and 'frequency-of-updates' columns"
+            "CSV must contain 'datasets' and 'frequency-of-updates' columns"
         )
 
-    df.rename(columns={"slug": "pipeline"}, inplace=True)
     df["frequency-of-updates"].fillna("", inplace=True)
+    df["pipeline"] = df["datasets"].apply(get_spec_filename)
+    df = df.explode("pipeline")
     columns = ["pipeline", "frequency-of-updates"]
     data = df[columns].to_dict(orient="records")
 

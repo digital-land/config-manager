@@ -35,18 +35,22 @@ from application.data_access.overview.entity_queries import (
     get_entity_count,
     get_grouped_entity_count,
 )
-from application.data_access.overview.issue_summary import get_issue_summary
+from application.data_access.overview.issue_summary import (
+    get_issue_summary,
+    get_issue_summary_for_csv,
+)
 from application.data_access.overview.source_and_resource_queries import (
     get_datasets_summary,
     get_monthly_counts,
     get_new_resources,
 )
+from application.data_access.overview.utils import generate_overview_issue_summary_csv
 from application.data_access.summary_queries import (
     get_contributions_and_erroring_endpoints,
     get_contributions_and_errors_by_day,
     get_endpoint_errors_and_successes_by_week,
     get_endpoints_added_by_week,
-    get_internal_issues_by_week,
+    get_internal_issues_by_day,
     get_issue_counts,
 )
 from application.utils import (
@@ -82,10 +86,8 @@ def overview():
         "warnings": warnings,
     }
 
-    internal_errors_timeseries = get_internal_issues_by_week()
-    print("============================ISSUES PER WEEK===============================")
-    print(internal_errors_timeseries)
-
+    internal_errors_timeseries = get_internal_issues_by_day()
+    issue_summary = get_issue_summary()
     graphs = {
         "endpoints_added_timeseries": endpoints_added_timeseries,
         "endpoint_successes_timeseries": endpoint_successes_timeseries,
@@ -93,8 +95,6 @@ def overview():
         "endpoint_errors_percentages_timeseries": endpoint_errors_percentages_timeseries,
         "internal_errors_timeseries": internal_errors_timeseries,
     }
-
-    issue_summary = get_issue_summary()
 
     return render_template(
         "reporting/overview.html",
@@ -160,6 +160,10 @@ def download_csv():
         )
         file_path = generate_odp_summary_csv(conformance_df)
         return send_file(file_path, download_name="odp-conformance.csv")
+    if type == "issue-summary":
+        overview_issue_summary = get_issue_summary_for_csv()
+        file_path = generate_overview_issue_summary_csv(overview_issue_summary)
+        return send_file(file_path, download_name="overview_issue_summary.csv")
 
 
 @report_bp.get("endpoint/<endpoint_hash>")
