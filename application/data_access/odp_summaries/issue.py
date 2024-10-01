@@ -48,16 +48,16 @@ def get_provision_summary(dataset_clause, offset):
     sql = f"""
     SELECT
         organisation,
-        name,
+        organisation_name,
         dataset,
         active_endpoint_count,
         error_endpoint_count,
-        count_internal_issue as count_internal_error,
-        count_external_issue as count_external_error,
-        count_internal_warning,
-        count_external_warning,
-        count_internal_notice,
-        count_external_notice
+        count_issue_error_internal,
+        count_issue_error_external,
+        count_issue_warning_internal,
+        count_issue_warning_external,
+        count_issue_notice_internal,
+        count_issue_notice_external
     FROM
         provision_summary
     {dataset_clause}
@@ -95,7 +95,7 @@ def get_odp_issue_summary(dataset_types, cohorts):
         provision_summary_df, how="left", on="organisation"
     )
     provision_issue_df = provision_issue_df.sort_values(
-        ["cohort_start_date", "cohort", "name"]
+        ["cohort_start_date", "cohort", "organisation_name"]
     )
     # Get list of organisations to iterate over
     organisation_cohorts_df = provision_issue_df.drop_duplicates(
@@ -106,7 +106,9 @@ def get_odp_issue_summary(dataset_types, cohorts):
     for idx, df_row in organisation_cohorts_df.iterrows():
         row = []
         row.append({"text": df_row["cohort"], "classes": "reporting-table-cell"})
-        row.append({"text": df_row["name"], "classes": "reporting-table-cell"})
+        row.append(
+            {"text": df_row["organisation_name"], "classes": "reporting-table-cell"}
+        )
         issues_df = provision_issue_df[
             provision_issue_df["organisation"] == df_row["organisation"]
         ]
@@ -123,20 +125,20 @@ def get_odp_issue_summary(dataset_types, cohorts):
                     issues.insert(0, "Endpoint broken")
                     classes = "reporting-table-cell reporting-null-background"
                 if (
-                    issues_df_row["count_internal_warning"].values[0] > 0
-                    or issues_df_row["count_external_warning"].values[0] > 0
+                    issues_df_row["count_issue_warning_internal"].values[0] > 0
+                    or issues_df_row["count_issue_warning_external"].values[0] > 0
                 ):
                     issues.insert(0, "Warning")
                     classes = "reporting-table-cell reporting-medium-background"
                 if (
-                    issues_df_row["count_internal_error"].values[0] > 0
-                    or issues_df_row["count_external_error"].values[0] > 0
+                    issues_df_row["count_issue_error_internal"].values[0] > 0
+                    or issues_df_row["count_issue_error_external"].values[0] > 0
                 ):
                     issues.insert(0, "Error")
                     classes = "reporting-table-cell reporting-bad-background"
                 if (
-                    issues_df_row["count_internal_notice"].values[0] > 0
-                    or issues_df_row["count_external_notice"].values[0] > 0
+                    issues_df_row["count_issue_notice_internal"].values[0] > 0
+                    or issues_df_row["count_issue_notice_external"].values[0] > 0
                 ):
                     issues.insert(0, "Notice")
                     classes = "reporting-table-cell reporting-bad-background"
@@ -159,12 +161,12 @@ def get_odp_issue_summary(dataset_types, cohorts):
     total_issues = (
         provision_issue_df[
             [
-                "count_internal_error",
-                "count_external_error",
-                "count_internal_warning",
-                "count_external_warning",
-                "count_internal_notice",
-                "count_external_notice",
+                "count_issue_error_internal",
+                "count_issue_error_external",
+                "count_issue_warning_internal",
+                "count_issue_warning_external",
+                "count_issue_notice_internal",
+                "count_issue_notice_external",
             ]
         ]
         .sum()
@@ -176,9 +178,9 @@ def get_odp_issue_summary(dataset_types, cohorts):
     stats_rows = []
     # Loop over severities counting internal, external, percentages
     for severity in ["warning", "error", "notice"]:
-        internal = provision_issue_df[f"count_internal_{severity}"].sum()
+        internal = provision_issue_df[f"count_issue_{severity}_internal"].sum()
         total_internal += internal
-        external = provision_issue_df[f"count_external_{severity}"].sum()
+        external = provision_issue_df[f"count_issue_{severity}_external"].sum()
         total_external += external
         total = internal + external
         total_percentage = str(int((total / total_issues) * 100)) + "%"
@@ -225,12 +227,12 @@ def get_odp_issue_summary(dataset_types, cohorts):
 
     endpoints_with_no_issues_count = len(
         provision_issue_df[
-            (provision_issue_df["count_internal_error"] == 0)
-            & (provision_issue_df["count_external_error"] == 0)
-            & (provision_issue_df["count_internal_warning"] == 0)
-            & (provision_issue_df["count_external_warning"] == 0)
-            & (provision_issue_df["count_internal_notice"] == 0)
-            & (provision_issue_df["count_external_notice"] == 0)
+            (provision_issue_df["count_issue_error_internal"] == 0)
+            & (provision_issue_df["count_issue_error_external"] == 0)
+            & (provision_issue_df["count_issue_warning_internal"] == 0)
+            & (provision_issue_df["count_issue_warning_external"] == 0)
+            & (provision_issue_df["count_issue_notice_internal"] == 0)
+            & (provision_issue_df["count_issue_notice_external"] == 0)
             & (provision_issue_df["active_endpoint_count"] > 0)
             & (provision_issue_df["error_endpoint_count"] == 0)
         ]
@@ -278,7 +280,7 @@ def get_issue_summary_by_issue_type(dataset_clause, offset):
     SELECT
         *
     FROM
-        issue_summary
+        endpoint_dataset_issue_type_summary
     {dataset_clause}
     limit 1000 offset {offset}
     """
@@ -318,7 +320,7 @@ def get_odp_issues_by_issue_type(dataset_types, cohorts):
         [
             "organisation",
             "cohort",
-            "name",
+            "organisation_name",
             "pipeline",
             "issue_type",
             "severity",
