@@ -137,7 +137,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         lambda row: [
             field
             for field in (
-                row["mapping_field"].split(",") if row["mapping_field"] else ""
+                row["mapping_field"].split(";") if row["mapping_field"] else ""
             )
             if field
             in dataset_field_df[dataset_field_df["dataset"] == row["dataset"]][
@@ -150,7 +150,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         lambda row: [
             field
             for field in (
-                row["non_mapping_field"].split(",") if row["non_mapping_field"] else ""
+                row["non_mapping_field"].split(";") if row["non_mapping_field"] else ""
             )
             if field
             in dataset_field_df[dataset_field_df["dataset"] == row["dataset"]][
