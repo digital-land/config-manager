@@ -49,7 +49,7 @@ COHORTS = [
 
 def get_column_field_summary(dataset_clause, offset):
     sql = f"""
-    select * from column_field_summary
+    select * from endpoint_dataset_resource_summary
     where resource != ''
     and ({dataset_clause})
     limit 1000 offset {offset}
@@ -61,12 +61,11 @@ def get_column_field_summary(dataset_clause, offset):
 
 def get_issue_summary(dataset_clause, offset):
     sql = f"""
-    select  * from issue_summary
+    select  * from endpoint_dataset_issue_type_summary
     where ({dataset_clause})
     limit 1000 offset {offset}
     """
     issue_summary_df = get_datasette_query("performance", sql)
-
     return issue_summary_df
 
 
@@ -134,11 +133,11 @@ def get_odp_conformance_summary(dataset_types, cohorts):
     ]
 
     # Filter out fields not in spec
-    column_field_df["matching_field"] = column_field_df.replace({'"', ""}).apply(
+    column_field_df["mapping_field"] = column_field_df.replace({'"', ""}).apply(
         lambda row: [
             field
             for field in (
-                row["matching_field"].split(",") if row["matching_field"] else ""
+                row["mapping_field"].split(";") if row["mapping_field"] else ""
             )
             if field
             in dataset_field_df[dataset_field_df["dataset"] == row["dataset"]][
@@ -147,13 +146,11 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         ],
         axis=1,
     )
-    column_field_df["non_matching_field"] = column_field_df.replace({'"', ""}).apply(
+    column_field_df["non_mapping_field"] = column_field_df.replace({'"', ""}).apply(
         lambda row: [
             field
             for field in (
-                row["non_matching_field"].split(",")
-                if row["non_matching_field"]
-                else ""
+                row["non_mapping_field"].split(";") if row["non_mapping_field"] else ""
             )
             if field
             in dataset_field_df[dataset_field_df["dataset"] == row["dataset"]][
@@ -180,11 +177,11 @@ def get_odp_conformance_summary(dataset_types, cohorts):
 
     # Create field matched and field supplied scores
     column_field_df["field_matched"] = column_field_df.apply(
-        lambda row: len(row["matching_field"]) if row["matching_field"] else 0, axis=1
+        lambda row: len(row["mapping_field"]) if row["mapping_field"] else 0, axis=1
     )
     column_field_df["field_supplied"] = column_field_df.apply(
         lambda row: row["field_matched"]
-        + (len(row["non_matching_field"]) if row["non_matching_field"] else 0),
+        + (len(row["non_mapping_field"]) if row["non_mapping_field"] else 0),
         axis=1,
     )
     column_field_df["field"] = column_field_df.apply(
@@ -222,7 +219,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         column_field_df.groupby(
             [
                 "organisation",
-                "name",
+                "organisation_name",
                 "cohort",
                 "dataset",
                 "endpoint",
@@ -280,12 +277,12 @@ def get_odp_conformance_summary(dataset_types, cohorts):
 
     final_count.reset_index(drop=True, inplace=True)
     final_count.sort_values(
-        ["cohort_start_date", "cohort", "name", "dataset"], inplace=True
+        ["cohort_start_date", "cohort", "organisation_name", "dataset"], inplace=True
     )
 
     out_cols = [
         "cohort",
-        "name",
+        "organisation_name",
         "organisation",
         "dataset",
         "endpoint_no.",
@@ -297,7 +294,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
 
     csv_out_cols = [
         "organisation",
-        "name",
+        "organisation_name",
         "cohort",
         "dataset",
         "endpoint",
