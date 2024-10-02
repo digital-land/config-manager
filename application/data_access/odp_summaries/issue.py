@@ -329,8 +329,12 @@ def get_odp_issues_by_issue_type(dataset_types, cohorts):
             "collection",
             "endpoint",
             "endpoint_url",
+            "status",
+            "exception",
             "resource",
             "latest_log_entry_date",
+            "endpoint_entry_date",
+            "endpoint_end_date",
             "resource_start_date",
             "resource_end_date",
         ]

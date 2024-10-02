@@ -57,7 +57,7 @@ def get_odp_status_summary(dataset_types, cohorts):
             rle.pipeline,
             rle.endpoint,
             rle.endpoint_url,
-            rle.latest_status,
+            rle.status,
             rle.days_since_200,
             rle.exception,
             rle.resource,

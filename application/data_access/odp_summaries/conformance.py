@@ -225,7 +225,9 @@ def get_odp_conformance_summary(dataset_types, cohorts):
                 "endpoint",
                 "endpoint_no.",
                 "resource",
+                "status",
                 "latest_log_entry_date",
+                "endpoint_entry_date",
                 "cohort_start_date",
             ]
         )
@@ -298,7 +300,9 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "endpoint",
         "endpoint_no.",
         "resource",
+        "status",
         "latest_log_entry_date",
+        "endpoint_entry_date",
         "field",
         "field_supplied",
         "field_matched",
