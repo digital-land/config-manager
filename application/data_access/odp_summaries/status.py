@@ -171,7 +171,7 @@ def create_status_row(organisation, cohort, name, status_df, datasets):
         endpoint_hash = df_row["endpoint"]
         if len(endpoint_hash) > 0:
             html = (
-                f'<a classes = "govuk-link--no-visited-state" href="../endpoint/{endpoint_hash.values[0]} ">'
+                f'<a classes = "govuk-link--no-visited-state" href="../endpoint/{endpoint_hash.values[0]}/{dataset}">'
                 + text
                 + "</a>"
             )
