@@ -1,4 +1,4 @@
-import ast
+import json
 
 import numpy as np
 import pandas as pd
@@ -429,7 +429,7 @@ def get_dataset_field():
     )
     rows = []
     for index, row in specification_df.iterrows():
-        specification_dicts = ast.literal_eval(row["json"])
+        specification_dicts = json.loads(row["json"])
         for dict in specification_dicts:
             dataset = dict["dataset"]
             fields = [field["field"] for field in dict["fields"]]
