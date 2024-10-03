@@ -51,6 +51,7 @@ def get_column_field_summary(dataset_clause, offset):
     sql = f"""
     select * from endpoint_dataset_resource_summary
     where resource != ''
+    and endpoint_end_date=''
     and ({dataset_clause})
     limit 1000 offset {offset}
     """
@@ -63,6 +64,7 @@ def get_issue_summary(dataset_clause, offset):
     sql = f"""
     select  * from endpoint_dataset_issue_type_summary
     where ({dataset_clause})
+    and endpoint_end_date = ''
     limit 1000 offset {offset}
     """
     issue_summary_df = get_datasette_query("performance", sql)
