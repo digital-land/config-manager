@@ -69,10 +69,10 @@
   <canvas id="endpoint_error_graph"></canvas>
 </div>
 
-<!-- <h2>Interal errors per day:</h2>
+<h2>Interal errors per day:</h2>
 <div>
   <canvas id="internal_error_graph"></canvas>
-</div> -->
+</div>
 
 <script type="module" {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
   import TimeseriesChart from "{{ assetPath | default('/assets') }}/javascripts/utilities/timeseries-chart.js"
@@ -135,21 +135,21 @@
   ).init()
 
 
-  // const interal_error_timeseries = new TimeseriesChart(
-  //   {
-  //     ...baseOptions,
-  //     xAxisTitle: "Day",
-  //     yAxisTitle: "Internal errors",
-  //     datasets: [{
-  //               label: "# of internal errors per day",
-  //               data: {{graphs.internal_errors_timeseries | safe}},
-  //               borderWidth: 1,
-  //               pointRadius: 0
-  //           }],
-  //     htmlId: "internal_error_graph",
-  //     type: "line",
-  //   }
-  // ).init()
+  const interal_error_timeseries = new TimeseriesChart(
+    {
+      ...baseOptions,
+      xAxisTitle: "Day",
+      yAxisTitle: "Internal errors",
+      datasets: [{
+                label: "# of internal errors per day",
+                data: {{graphs.internal_errors_timeseries | safe}},
+                borderWidth: 1,
+                pointRadius: 0
+            }],
+      htmlId: "internal_error_graph",
+      type: "line",
+    }
+  ).init()
 </script>
 
 
