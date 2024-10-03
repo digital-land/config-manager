@@ -284,7 +284,6 @@ def get_issue_summary_by_issue_type(dataset_clause, offset):
     {dataset_clause}
     limit 1000 offset {offset}
     """
-    print(sql)
     return get_datasette_query("performance", sql)
 
 

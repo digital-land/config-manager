@@ -45,12 +45,11 @@ from application.data_access.overview.source_and_resource_queries import (
     get_new_resources,
 )
 from application.data_access.overview.utils import generate_overview_issue_summary_csv
-from application.data_access.summary_queries import (
+from application.data_access.summary_queries import (  # get_internal_issues_by_day,
     get_contributions_and_erroring_endpoints,
     get_contributions_and_errors_by_day,
     get_endpoint_errors_and_successes_by_week,
     get_endpoints_added_by_week,
-    get_internal_issues_by_day,
     get_issue_counts,
 )
 from application.utils import (
@@ -80,7 +79,7 @@ def overview():
         endpoint_errors_percentages_timeseries,
     ) = get_endpoint_errors_and_successes_by_week(contributions_and_errors_by_day_df)
 
-    internal_errors_timeseries = get_internal_issues_by_day()
+    # internal_errors_timeseries = get_internal_issues_by_day()
 
     summary_metrics = {
         "contributions": summary_contributions,
@@ -93,7 +92,7 @@ def overview():
         "endpoint_successes_timeseries": endpoint_successes_timeseries,
         "endpoint_successes_percentages_timeseries": endpoint_successes_percentages_timeseries,
         "endpoint_errors_percentages_timeseries": endpoint_errors_percentages_timeseries,
-        "internal_errors_timeseries": internal_errors_timeseries,
+        # "internal_errors_timeseries": internal_errors_timeseries,
     }
 
     issue_summary = get_issue_summary()
