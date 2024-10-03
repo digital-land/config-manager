@@ -282,9 +282,9 @@ def get_issue_summary_by_issue_type(dataset_clause, offset):
     FROM
         endpoint_dataset_issue_type_summary
     {dataset_clause}
+    and endpoint_end_date = ''
     limit 1000 offset {offset}
     """
-    print(sql)
     return get_datasette_query("performance", sql)
 
 
