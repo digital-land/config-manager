@@ -56,59 +56,34 @@ def get_issue_counts():
 
 
 def get_internal_issues_by_day():
-    # gets all data until no pagination left
-    pagination_incomplete = True
-    offset = 0
-    internal_issues_df_list = []
-    while pagination_incomplete:
-        internal_issues_df = get_internal_issues(offset)
-        internal_issues_df_list.append(internal_issues_df)
-        pagination_incomplete = len(internal_issues_df) == 1000
-        offset += 1000
-        issues_df = pd.concat(internal_issues_df_list, ignore_index=True)
+    sql = """SELECT COUNT(*) as count, [entry-date] as date
+             FROM operational_issue
+             GROUP BY [entry-date]
+             ORDER BY date ASC"""
 
-    if issues_df.empty:
+    internal_issues_df = get_datasette_query("digital-land", sql)
+
+    if internal_issues_df.empty:
         print("No data returned.")
         return None
 
-    issues_df["entry-date"] = pd.to_datetime(issues_df["entry-date"], format="%Y-%m-%d")
-
-    daily_issues = (
-        issues_df.groupby("entry-date").size().reset_index(name="issue_count")
-    )
-
-    start_date = datetime(2024, 9, 24)
+    start_date = datetime(2024, 9, 27).date()
     end_date = datetime.now(timezone.utc).date()
 
-    # Dataframe from start date till today
     all_days = pd.DataFrame({"date": pd.date_range(start=start_date, end=end_date)})
 
-    # Merge with the daily_issues to ensure every day is present
-    all_days_issues = pd.merge(
-        all_days, daily_issues, left_on="date", right_on="entry-date", how="left"
-    )
+    # Ensure datetime for the 'date' column for merge
+    all_days["date"] = pd.to_datetime(all_days["date"])
+    internal_issues_df["date"] = pd.to_datetime(internal_issues_df["date"])
 
-    all_days_issues["issue_count"].fillna(0, inplace=True)
+    all_days_issues = pd.merge(all_days, internal_issues_df, on="date", how="left")
 
-    result = all_days_issues[["date", "issue_count"]].rename(
-        columns={"issue_count": "count"}
-    )
+    all_days_issues["count"].fillna(0, inplace=True)
 
-    result["date"] = result["date"].dt.strftime("%Y-%m-%d")
+    all_days_issues["date"] = all_days_issues["date"].dt.strftime("%Y-%m-%d")
 
-    # Convert the result to a dictionary
-    result = result.to_dict(orient="records")
-
-    return result
-
-
-def get_internal_issues(offset):
-    sql = f"""SELECT
-    [entry-date]  FROM operational_issue
-    limit 1000 offset {offset}
-
-  """
-    return get_datasette_query("digital-land", sql)
+    internal_issues = all_days_issues.to_dict(orient="records")
+    return internal_issues
 
 
 def get_contributions_and_erroring_endpoints(contributions_and_errors_df):
