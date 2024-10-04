@@ -23,55 +23,55 @@ def get_full_issue_summary():
             "display_severity": "No issues",
             "severity": "",
             "total_count": 0,
-            "total_count_percentage": 0,
+            "total_count_percentage": 0.00,
             "internal_count": 0,
-            "internal_count_percentage": 0,
+            "internal_count_percentage": 0.00,
             "external_count": 0,
-            "external_count_percentage": 0,
+            "external_count_percentage": 0.00,
             "classes": "reporting-good-background",
         },
         {
             "display_severity": "Info",
             "severity": "info",
             "total_count": 0,
-            "total_count_percentage": 0,
+            "total_count_percentage": 0.00,
             "internal_count": 0,
-            "internal_count_percentage": 0,
+            "internal_count_percentage": 0.00,
             "external_count": 0,
-            "external_count_percentage": 0,
+            "external_count_percentage": 0.00,
             "classes": "reporting-good-background",
         },
         {
             "display_severity": "Warning",
             "severity": "warning",
             "total_count": 0,
-            "total_count_percentage": 0,
+            "total_count_percentage": 0.00,
             "internal_count": 0,
-            "internal_count_percentage": 0,
+            "internal_count_percentage": 0.00,
             "external_count": 0,
-            "external_count_percentage": 0,
+            "external_count_percentage": 0.00,
             "classes": "reporting-medium-background",
         },
         {
             "display_severity": "Error",
             "severity": "error",
             "total_count": 0,
-            "total_count_percentage": 0,
+            "total_count_percentage": 0.00,
             "internal_count": 0,
-            "internal_count_percentage": 0,
+            "internal_count_percentage": 0.00,
             "external_count": 0,
-            "external_count_percentage": 0,
+            "external_count_percentage": 0.00,
             "classes": "reporting-bad-background",
         },
         {
             "display_severity": "Notice",
             "severity": "notice",
             "total_count": 0,
-            "total_count_percentage": 0,
+            "total_count_percentage": 0.00,
             "internal_count": 0,
-            "internal_count_percentage": 0,
+            "internal_count_percentage": 0.00,
             "external_count": 0,
-            "external_count_percentage": 0,
+            "external_count_percentage": 0.00,
             "classes": "reporting-bad-background",
         },
     ]
@@ -112,18 +112,18 @@ def get_full_issue_summary():
     stats_rows = []
     for issue_severity in issue_severity_counts:
         if issue_severity["internal_count"] > 0:
-            issue_severity["internal_count_percentage"] = int(
-                round((issue_severity["internal_count"] / total_issues) * 100, 0)
+            issue_severity["internal_count_percentage"] = round(
+                (issue_severity["internal_count"] / total_issues) * 100, 2
             )
 
         if issue_severity["external_count"] > 0:
-            issue_severity["external_count_percentage"] = int(
-                round((issue_severity["external_count"] / total_issues) * 100, 0)
+            issue_severity["external_count_percentage"] = round(
+                (issue_severity["external_count"] / total_issues) * 100, 2
             )
 
         if issue_severity["total_count"] > 0:
-            issue_severity["total_count_percentage"] = int(
-                round((issue_severity["total_count"] / total_issues) * 100, 0)
+            issue_severity["total_count_percentage"] = round(
+                (issue_severity["total_count"] / total_issues) * 100, 2
             )
 
             stats_rows.append(
@@ -152,11 +152,11 @@ def get_full_issue_summary():
         [
             {"text": "Total", "classes": "reporting-table-cell"},
             {
-                "text": f"{total_internal} ({int(round((total_internal/total_issues)*100, 0))}%)",
+                "text": f"{total_internal} ({round((total_internal/total_issues)*100, 2)}%)",
                 "classes": "reporting-table-cell",
             },
             {
-                "text": f"{total_external} ({int(round((total_external/total_issues)*100, 0))}%)",
+                "text": f"{total_external} ({round((total_external/total_issues)*100, 2)}%)",
                 "classes": "reporting-table-cell",
             },
             {"text": total_issues, "classes": "reporting-table-cell"},
