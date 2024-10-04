@@ -111,41 +111,20 @@ def get_full_issue_summary():
     # Add issue_severity row
     stats_rows = []
     for issue_severity in issue_severity_counts:
-        print(
-            f"Severity: {issue_severity['display_severity']}, Total Count: {issue_severity['total_count']}"
-        )
-
         if issue_severity["internal_count"] > 0:
             issue_severity["internal_count_percentage"] = int(
                 round((issue_severity["internal_count"] / total_issues) * 100, 0)
             )
-            print(
-                "SEVERITY: ",
-                issue_severity["display_severity"],
-                "INERTANL PERCENTAGE: ",
-                issue_severity["internal_count_percentage"],
-                "TOTAL: ",
-                total_internal,
-            )
+
         if issue_severity["external_count"] > 0:
             issue_severity["external_count_percentage"] = int(
                 round((issue_severity["external_count"] / total_issues) * 100, 0)
             )
-            print(
-                "SEVERITY: ",
-                issue_severity["display_severity"],
-                "EXTERNAL PERCENTAGE: ",
-                issue_severity["external_count_percentage"],
-                "TOTAL: ",
-                total_external,
-            )
+
         if issue_severity["total_count"] > 0:
             issue_severity["total_count_percentage"] = int(
                 round((issue_severity["total_count"] / total_issues) * 100, 0)
             )
-            print(issue_severity["total_count"])
-            print(total_issues)
-            print(int(round((issue_severity["total_count"] / total_issues) * 100, 0)))
 
             stats_rows.append(
                 [
@@ -215,32 +194,6 @@ def get_full_issue_summary_for_csv():
     issue_summary_df = pd.concat(issue_summary_df_list)
 
     issue_summary_df = issue_summary_df[issue_summary_df["count_issues"].notna()]
-    print("ISSUE SUMAMRY DF")
-    print(issue_summary_df)
-
-    missing_columns = [
-        col
-        for col in [
-            "organisation",
-            "organisation_name",
-            "pipeline",
-            "issue_type",
-            "collection",
-            "endpoint",
-            "endpoint_url",
-            "status",
-            "exception",
-            "resource",
-            "latest_log_entry_date",
-            "endpoint_entry_date",
-            "endpoint_end_date",
-            "resource_start_date",
-            "resource_end_date",
-        ]
-        if col not in issue_summary_df.columns
-    ]
-
-    print("Missing columns:", missing_columns)
 
     return issue_summary_df[
         [
