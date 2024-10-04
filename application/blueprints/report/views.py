@@ -168,9 +168,9 @@ def download_csv():
         return send_file(file_path, download_name="overview_issue_summary.csv")
 
 
-@report_bp.get("endpoint/<endpoint_hash>")
-def endpoint_details(endpoint_hash):
-    endpoint_details = get_endpoint_details(endpoint_hash)
+@report_bp.get("endpoint/<endpoint_hash>/<pipeline>")
+def endpoint_details(endpoint_hash, pipeline):
+    endpoint_details = get_endpoint_details(endpoint_hash, pipeline)
     return render_template(
         "reporting/endpoint_details.html", endpoint_details=endpoint_details
     )

@@ -1,4 +1,4 @@
-import ast
+import json
 
 import numpy as np
 import pandas as pd
@@ -67,9 +67,11 @@ def get_issue_summary(dataset_clause, offset):
     sql = f"""
     select  * from endpoint_dataset_issue_type_summary
     where ({dataset_clause})
+    and endpoint_end_date = ''
     limit 1000 offset {offset}
     """
     issue_summary_df = get_datasette_query("performance", sql)
+    print("issue:", issue_summary_df)
     return issue_summary_df
 
 
@@ -226,11 +228,12 @@ def get_odp_conformance_summary(dataset_types, cohorts):
                 "organisation_name",
                 "cohort",
                 "dataset",
-                "licence",
                 "endpoint",
                 "endpoint_no.",
                 "resource",
+                "status",
                 "latest_log_entry_date",
+                "endpoint_entry_date",
                 "cohort_start_date",
             ]
         )
@@ -288,7 +291,6 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "organisation_name",
         "organisation",
         "dataset",
-        "licence",
         "endpoint_no.",
         "field_supplied_count",
         "field_supplied_pct",
@@ -301,11 +303,12 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "organisation_name",
         "cohort",
         "dataset",
-        "licence",
         "endpoint",
         "endpoint_no.",
         "resource",
+        "status",
         "latest_log_entry_date",
+        "endpoint_entry_date",
         "field",
         "field_supplied",
         "field_matched",
@@ -432,7 +435,7 @@ def get_dataset_field():
     )
     rows = []
     for index, row in specification_df.iterrows():
-        specification_dicts = ast.literal_eval(row["json"])
+        specification_dicts = json.loads(row["json"])
         for dict in specification_dicts:
             dataset = dict["dataset"]
             fields = [field["field"] for field in dict["fields"]]

@@ -1,7 +1,7 @@
 from application.data_access.datasette_utils import get_datasette_query
 
 
-def get_endpoint_details(endpoint_hash):
+def get_endpoint_details(endpoint_hash, pipeline):
     logs_df = get_logs(endpoint_hash)
     logs_headers = list(
         map(
@@ -28,7 +28,7 @@ def get_endpoint_details(endpoint_hash):
             list(map(lambda x: {"text": x, "classes": "reporting-table-cell"}, row))
         )
 
-    endpoint_info_df = get_endpoint_info(endpoint_hash)
+    endpoint_info_df = get_endpoint_info(endpoint_hash, pipeline)
     endpoint_info = endpoint_info_df.to_dict(orient="records")
     return {
         "logs_headers": logs_headers,
@@ -75,7 +75,7 @@ def get_resources(endpoint_hash):
     return get_datasette_query("digital-land", sql)
 
 
-def get_endpoint_info(endpoint_hash):
+def get_endpoint_info(endpoint_hash, dataset):
     sql = f"""
     select
         sp.pipeline,
@@ -92,5 +92,6 @@ def get_endpoint_info(endpoint_hash):
         inner join organisation o on o.organisation = replace(s.organisation, '-eng', '')
     where
         s.endpoint = '{endpoint_hash}'
+        AND sp.pipeline = '{dataset}'
     """
     return get_datasette_query("digital-land", sql)

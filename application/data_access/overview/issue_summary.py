@@ -2,7 +2,9 @@ from application.data_access.datasette_utils import get_datasette_query_issue_su
 
 
 def get_issue_summary():
-    issues_df = get_datasette_query_issue_summary("performance")
+    issues_df = get_datasette_query_issue_summary(
+        "performance/endpoint_dataset_issue_type_summary"
+    )
 
     # Convert DataFrame to a list of dictionaries (rows)
     rows = issues_df.to_dict(orient="records")
@@ -152,7 +154,9 @@ def get_issue_summary():
 
 
 def get_issue_summary_for_csv():
-    issue_summary_df = get_datasette_query_issue_summary("performance")
+    issue_summary_df = get_datasette_query_issue_summary(
+        "performance/endpoint_dataset_issue_type_summary"
+    )
     issue_summary_df = issue_summary_df[issue_summary_df["count_issues"].notna()]
 
     return issue_summary_df[
