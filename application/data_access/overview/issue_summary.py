@@ -187,9 +187,9 @@ def get_full_issue_summary():
     # Define headers
     stats_headers = [
         {"text": "Severity"},
-        {"text": "Internal"},
-        {"text": "External"},
-        {"text": "Total"},
+        {"text": "Internal (%)"},
+        {"text": "External (%)"},
+        {"text": "Total (%)"},
     ]
 
     return {
