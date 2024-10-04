@@ -105,3 +105,15 @@
 .app-main-wrapper {
   @include moj-width-container;
 }
+
+.app-table-issue-summary .govuk-table__header {
+  padding-top: 0;
+}
+
+.app-table-issue-summary .govuk-table__body {
+  white-space: normal;
+
+  @media (min-width: 71.0625em) {
+    white-space: nowrap;
+  }
+}
