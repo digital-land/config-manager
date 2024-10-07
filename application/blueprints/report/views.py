@@ -36,8 +36,8 @@ from application.data_access.overview.entity_queries import (
     get_grouped_entity_count,
 )
 from application.data_access.overview.issue_summary import (
-    get_issue_summary,
-    get_issue_summary_for_csv,
+    get_full_issue_summary,
+    get_full_issue_summary_for_csv,
 )
 from application.data_access.overview.source_and_resource_queries import (
     get_datasets_summary,
@@ -96,7 +96,7 @@ def overview():
         "internal_errors_timeseries": internal_errors_timeseries,
     }
 
-    issue_summary = get_issue_summary()
+    issue_summary = get_full_issue_summary()
 
     return render_template(
         "reporting/overview.html",
@@ -162,8 +162,8 @@ def download_csv():
         )
         file_path = generate_odp_summary_csv(conformance_df)
         return send_file(file_path, download_name="odp-conformance.csv")
-    if type == "issue-summary":
-        overview_issue_summary = get_issue_summary_for_csv()
+    if type == "endpoint_dataset_issue_type_summary":
+        overview_issue_summary = get_full_issue_summary_for_csv()
         file_path = generate_overview_issue_summary_csv(overview_issue_summary)
         return send_file(file_path, download_name="overview_issue_summary.csv")
 
