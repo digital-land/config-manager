@@ -36,18 +36,18 @@
       <p id="errors" class="reporting-clear-boths govuk-body">Endpoint errors: </p>
     </div>
     <div class="govuk-!-margin-top-6 govuk-!-width-full govuk-!-text-align-centre">
-      <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=issue-summary" id="download-button">
+      <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=endpoint_dataset_issue_type_summary" id="download-button">
       Download Issues Summary Table
       </a>
     </div>
 
   </div>
   <div class="govuk-grid-column-one-half govuk-!-padding-left-9">
-    <h1 class="govuk-heading-xl">Issues summary:</h1>
+    <h1 class="govuk-heading-xl">Issues:</h1>
       {{ govukTable({
         "head": issue_summary.stats_headers,
         "rows": issue_summary.stats_rows,
-        "classes": "reporting-table"
+        "classes": "reporting-table app-table-issue-summary"
       }) }}
       <p class="govuk-!-text-align-centre govuk-body govuk-!-width-full"><strong class="govuk-!-font-size-36">{{issue_summary.endpoints_no_issues.count}}</strong> / {{issue_summary.endpoints_no_issues.total_endpoints}} endpoints with no issues</p>
   </div>

@@ -44,7 +44,7 @@
 .app-summary-list__value--warning {
   padding-left: 10px;
   background: govuk-tint(govuk-colour("yellow"), 75);
-  border-left: 4px solid govuk-colour('yellow');
+  border-left: 4px solid govuk-colour("yellow");
 
   .app-summary-list__value__annotation {
     color: govuk-shade(govuk-colour("yellow"), 65);
@@ -64,7 +64,7 @@
 .app-summary-list__value--error {
   padding-left: 10px;
   background: govuk-tint(govuk-colour("red"), 80);
-  border-left: 4px solid govuk-colour('red');
+  border-left: 4px solid govuk-colour("red");
 
   .app-summary-list__value__annotation {
     color: govuk-shade(govuk-colour("red"), 30);
@@ -80,7 +80,7 @@
   padding: 10px;
   color: govuk-shade(govuk-colour("red"), 30);
   background: govuk-tint(govuk-colour("red"), 80);
-  border-left: 4px solid govuk-colour('red');
+  border-left: 4px solid govuk-colour("red");
 }
 
 .js-hidden {
@@ -104,4 +104,22 @@
 
 .app-main-wrapper {
   @include moj-width-container;
+}
+
+.app-table-issue-summary .govuk-table__header {
+  padding-top: 0;
+}
+
+.app-table-issue-summary .govuk-table__body {
+  white-space: normal;
+
+  @media (min-width: 71.0625em) {
+    white-space: nowrap;
+  }
+
+  .govuk-table__row:last-child {
+    .govuk-table__cell.reporting-table-cell {
+      font-weight: 700;
+    }
+  }
 }
