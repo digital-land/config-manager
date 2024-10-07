@@ -49,9 +49,14 @@ COHORTS = [
 
 def get_column_field_summary(dataset_clause, offset):
     sql = f"""
-    select * from endpoint_dataset_resource_summary
-    where resource != ''
-    and endpoint_end_date=''
+    SELECT edrs.*, rle.licence
+    FROM endpoint_dataset_resource_summary AS edrs
+    LEFT JOIN (
+        SELECT endpoint, licence
+        FROM reporting_latest_endpoints
+    ) AS rle ON edrs.endpoint = rle.endpoint
+    WHERE edrs.resource != ''
+    and edrs.endpoint_end_date=''
     and ({dataset_clause})
     limit 1000 offset {offset}
     """
@@ -64,7 +69,6 @@ def get_issue_summary(dataset_clause, offset):
     sql = f"""
     select  * from endpoint_dataset_issue_type_summary
     where ({dataset_clause})
-    and endpoint_end_date = ''
     limit 1000 offset {offset}
     """
     issue_summary_df = get_datasette_query("performance", sql)
@@ -224,12 +228,11 @@ def get_odp_conformance_summary(dataset_types, cohorts):
                 "organisation_name",
                 "cohort",
                 "dataset",
+                "licence",
                 "endpoint",
                 "endpoint_no.",
                 "resource",
-                "status",
                 "latest_log_entry_date",
-                "endpoint_entry_date",
                 "cohort_start_date",
             ]
         )
@@ -287,6 +290,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "organisation_name",
         "organisation",
         "dataset",
+        "licence",
         "endpoint_no.",
         "field_supplied_count",
         "field_supplied_pct",
@@ -299,12 +303,11 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "organisation_name",
         "cohort",
         "dataset",
+        "licence",
         "endpoint",
         "endpoint_no.",
         "resource",
-        "status",
         "latest_log_entry_date",
-        "endpoint_entry_date",
         "field",
         "field_supplied",
         "field_matched",

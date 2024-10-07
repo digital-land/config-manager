@@ -207,12 +207,8 @@ def get_full_issue_summary_for_csv():
             "collection",
             "endpoint",
             "endpoint_url",
-            "status",
-            "exception",
             "resource",
             "latest_log_entry_date",
-            "endpoint_entry_date",
-            "endpoint_end_date",
             "resource_start_date",
             "resource_end_date",
         ]
