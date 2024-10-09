@@ -280,9 +280,14 @@ def get_issue_summary_by_issue_type(dataset_clause, offset):
     SELECT
         *
     FROM
-        endpoint_dataset_issue_type_summary
+        endpoint_dataset_issue_type_summary edits
+    LEFT JOIN (
+        SELECT endpoint, end_date as endpoint_end_date, latest_status,
+                latest_exception, entry_date as endpoint_entry_date
+        FROM endpoint_dataset_summary
+    ) as eds on edits.endpoint = eds.endpoint
     {dataset_clause}
-    and endpoint_end_date = ''
+    and eds.endpoint_end_date = ''
     limit 1000 offset {offset}
     """
     return get_datasette_query("performance", sql)
@@ -299,7 +304,7 @@ def get_odp_issues_by_issue_type(dataset_types, cohorts):
         datasets = ALL_DATASETS
 
     dataset_clause = "WHERE " + " or ".join(
-        ("dataset = '" + str(dataset) + "'" for dataset in datasets)
+        ("edits.dataset = '" + str(dataset) + "'" for dataset in datasets)
     )
 
     pagination_incomplete = True
@@ -329,8 +334,8 @@ def get_odp_issues_by_issue_type(dataset_types, cohorts):
             "collection",
             "endpoint",
             "endpoint_url",
-            "status",
-            "exception",
+            "latest_status",
+            "latest_exception",
             "resource",
             "latest_log_entry_date",
             "endpoint_entry_date",
