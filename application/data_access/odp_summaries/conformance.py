@@ -55,8 +55,12 @@ def get_column_field_summary(dataset_clause, offset):
         SELECT endpoint, licence
         FROM reporting_latest_endpoints
     ) AS rle ON edrs.endpoint = rle.endpoint
+    LEFT JOIN (
+        SELECT endpoint, end_date as endpoint_end_date
+        FROM endpoint_dataset_summary
+    ) as eds on edrs.endpoint = eds.endpoint
     WHERE edrs.resource != ''
-    and edrs.endpoint_end_date=''
+    and eds.endpoint_end_date=''
     and ({dataset_clause})
     limit 1000 offset {offset}
     """
@@ -67,7 +71,7 @@ def get_column_field_summary(dataset_clause, offset):
 
 def get_issue_summary(dataset_clause, offset):
     sql = f"""
-    select  * from endpoint_dataset_issue_type_summary
+    select  * from endpoint_dataset_issue_type_summary edrs
     where ({dataset_clause})
     limit 1000 offset {offset}
     """
@@ -89,7 +93,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
     else:
         datasets = ALL_DATASETS
     dataset_clause = " or ".join(
-        ("pipeline = '" + str(dataset) + "'" for dataset in datasets)
+        ("edrs.pipeline = '" + str(dataset) + "'" for dataset in datasets)
     )
 
     provision_df = get_provisions(cohorts, COHORTS)
