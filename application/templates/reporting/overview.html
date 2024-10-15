@@ -69,7 +69,7 @@
   <canvas id="endpoint_error_graph"></canvas>
 </div>
 
-<h2>Interal errors per day:</h2>
+<h2>Interal errors per week:</h2>
 <div>
   <canvas id="internal_error_graph"></canvas>
 </div>
@@ -138,10 +138,10 @@
   const interal_error_timeseries = new TimeseriesChart(
     {
       ...baseOptions,
-      xAxisTitle: "Day",
+      xAxisTitle: "Week",
       yAxisTitle: "Internal errors",
       datasets: [{
-                label: "# of internal errors per day",
+                label: "# of internal errors per week",
                 data: {{graphs.internal_errors_timeseries | safe}},
                 borderWidth: 1,
                 pointRadius: 0

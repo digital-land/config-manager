@@ -50,7 +50,7 @@ from application.data_access.summary_queries import (
     get_contributions_and_errors_by_day,
     get_endpoint_errors_and_successes_by_week,
     get_endpoints_added_by_week,
-    get_internal_issues_by_day,
+    get_internal_issues_by_week,
     get_issue_counts,
 )
 from application.utils import (
@@ -80,7 +80,7 @@ def overview():
         endpoint_errors_percentages_timeseries,
     ) = get_endpoint_errors_and_successes_by_week(contributions_and_errors_by_day_df)
 
-    internal_errors_timeseries = get_internal_issues_by_day()
+    internal_errors_timeseries = get_internal_issues_by_week()
 
     summary_metrics = {
         "contributions": summary_contributions,
