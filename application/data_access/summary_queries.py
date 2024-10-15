@@ -55,7 +55,7 @@ def get_issue_counts():
         return None
 
 
-def get_internal_issues_by_day():
+def get_internal_issues_by_week():
     sql = """SELECT COUNT(*) as count, [entry-date] as date
              FROM operational_issue
              GROUP BY [entry-date]
@@ -70,20 +70,36 @@ def get_internal_issues_by_day():
     start_date = datetime(2024, 9, 27).date()
     end_date = datetime.now(timezone.utc).date()
 
-    all_days = pd.DataFrame({"date": pd.date_range(start=start_date, end=end_date)})
-
-    # Ensure datetime for the 'date' column for merge
-    all_days["date"] = pd.to_datetime(all_days["date"])
     internal_issues_df["date"] = pd.to_datetime(internal_issues_df["date"])
+    # set start of the week to Monday
+    internal_issues_df["week_start"] = internal_issues_df["date"] - pd.to_timedelta(
+        internal_issues_df["date"].dt.dayofweek, unit="D"
+    )
 
-    all_days_issues = pd.merge(all_days, internal_issues_df, on="date", how="left")
+    weekly_issues = (
+        internal_issues_df.groupby("week_start")["count"].sum().reset_index()
+    )
 
-    all_days_issues["count"].fillna(0, inplace=True)
+    all_weeks = pd.DataFrame(
+        {
+            "week_start": pd.date_range(
+                start=start_date - pd.Timedelta(days=start_date.weekday()),
+                end=end_date,
+                freq="W-MON",
+            )
+        }
+    )
 
-    all_days_issues["date"] = all_days_issues["date"].dt.strftime("%Y-%m-%d")
+    all_weeks_issues = pd.merge(all_weeks, weekly_issues, on="week_start", how="left")
 
-    internal_issues = all_days_issues.to_dict(orient="records")
-    return internal_issues
+    all_weeks_issues["count"].fillna(0, inplace=True)
+
+    all_weeks_issues.rename(columns={"week_start": "date"}, inplace=True)
+
+    all_weeks_issues["date"] = all_weeks_issues["date"].dt.strftime("%Y-%m-%d")
+
+    weekly_issues_list = all_weeks_issues.to_dict(orient="records")
+    return weekly_issues_list
 
 
 def get_contributions_and_erroring_endpoints(contributions_and_errors_df):
