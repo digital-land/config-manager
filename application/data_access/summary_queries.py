@@ -56,10 +56,15 @@ def get_issue_counts():
 
 
 def get_internal_issues_by_week():
-    sql = """SELECT COUNT(*) as count, [entry-date] as date
-             FROM operational_issue
-             GROUP BY [entry-date]
-             ORDER BY date ASC"""
+    """
+    returns a list of weeks and unknown entity counts,
+    to include "invalid organisation" when integrated into table
+    """
+    sql = """SELECT COUNT(*) as count, [entry-date] as date, "issue-type"
+            FROM operational_issue
+            WHERE "issue-type" = "unknown entity"
+            GROUP BY [entry-date]
+            ORDER BY date ASC"""
 
     internal_issues_df = get_datasette_query("digital-land", sql)
 
