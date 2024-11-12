@@ -48,15 +48,18 @@ def get_provisions(selected_cohorts, all_cohorts):
     SELECT
         p.cohort,
         p.organisation,
-        c.start_date as cohort_start_date
+        c.start_date as cohort_start_date,
+        org.name as name
     FROM
         provision p
     INNER JOIN
         cohort c on c.cohort = p.cohort
+    JOIN organisation org
     WHERE
         p.provision_reason = "expected"
     AND p.project == "open-digital-planning"
     {cohort_clause}
+    AND org.organisation == p.organisation
     GROUP BY
         p.organisation
     ORDER BY
