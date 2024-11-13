@@ -52,7 +52,6 @@ def get_odp_status_summary(dataset_types, cohorts):
     sql = """
         select
             rle.organisation,
-            rle.name,
             rle.collection,
             rle.pipeline,
             rle.endpoint,
@@ -104,7 +103,6 @@ def get_odp_status_summary(dataset_types, cohorts):
                     datasets,
                 )
             )
-
         # Calculate overview stats
         percentages = 0.0
         datasets_added = 0
