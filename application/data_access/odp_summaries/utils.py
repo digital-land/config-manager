@@ -40,7 +40,9 @@ def get_provisions(selected_cohorts, all_cohorts):
         if selected_cohorts[0] in [cohort["id"] for cohort in all_cohorts]
     ]
     cohort_clause = (
-        "AND " + " or ".join(("c.cohort = '" + str(n) + "'" for n in filtered_cohorts))
+        "AND ("
+        + " or ".join("c.cohort = '" + str(n) + "'" for n in filtered_cohorts)
+        + ")"
         if filtered_cohorts
         else ""
     )
