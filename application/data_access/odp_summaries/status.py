@@ -106,8 +106,14 @@ def get_odp_status_summary(dataset_types, cohorts):
         # Calculate overview stats
         percentages = 0.0
         datasets_added = 0
+        lpa_all_data_provided = 0
+        lpa_some_data_provided = 0
         for row in rows:
             percentages += float(row[-1]["text"].strip("%")) / 100
+            if row[-1]["text"] != "0%":
+                lpa_some_data_provided += 1
+                if row[-1]["text"] == "100%":
+                    lpa_all_data_provided += 1
             for cell in row:
                 if cell.get("data", None) and cell["text"] != "No endpoint":
                     datasets_added += 1
@@ -139,6 +145,8 @@ def get_odp_status_summary(dataset_types, cohorts):
             "datasets_added": datasets_added,
             "max_datasets": max_datasets,
             "params": params,
+            "lpa_some_data_provided": lpa_some_data_provided,
+            "lpa_all_data_provided": lpa_all_data_provided,
         }
     else:
         return None
