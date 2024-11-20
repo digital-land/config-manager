@@ -81,6 +81,7 @@ def get_endpoint_info(endpoint_hash, dataset):
         sp.pipeline,
         o.name as organisation_name,
         s.organisation,
+        s.documentation_url,
         e.endpoint,
         e.endpoint_url,
         e.start_date,
