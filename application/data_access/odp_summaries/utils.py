@@ -84,33 +84,6 @@ def generate_odp_summary_csv(odp_summary):
             with tempfile.NamedTemporaryFile(mode="w", delete=False) as csvfile:
                 output_df.to_csv(csvfile, index=False)
                 return csvfile.name
-        else:
-            # empty CSV if no data at all
-            df = pd.DataFrame(
-                columns=[
-                    "organisation",
-                    "cohort",
-                    "name",
-                    "collection",
-                    "pipeline",
-                    "endpoint",
-                    "endpoint_url",
-                    "licence",
-                    "status",
-                    "days_since_200",
-                    "exception",
-                    "resource",
-                    "latest_log_entry_date",
-                    "endpoint_entry_date",
-                    "endpoint_end_date",
-                    "resource_start_date",
-                    "resource_end_date",
-                    "cohort_start_date",
-                ]
-            )
-            with tempfile.NamedTemporaryFile(mode="w", delete=False) as csvfile:
-                df.to_csv(csvfile, index=False)
-                return csvfile.name
 
 
 def get_provisions(selected_cohorts, all_cohorts):
