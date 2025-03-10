@@ -171,17 +171,15 @@ def get_odp_conformance_summary(dataset_types, cohorts):
     )
 
     # Map entity errors to reference field
-    issue_df["fields"] = issue_df["fields"].replace("entity", "reference")
+    issue_df["field"] = issue_df["field"].replace("entity", "reference")
     # Filter out issues for fields not in dataset field (specification)
-    issue_df["fields"] = issue_df.replace({'"', ""}).apply(
-        lambda row: [
-            field
-            for field in (row["fields"].split(",") if row["fields"] else "")
-            if field
-            in dataset_field_df[dataset_field_df["dataset"] == row["dataset"]][
-                "field"
-            ].values
-        ],
+    issue_df["field"] = issue_df.apply(
+        lambda row: row["field"]
+        if row["field"]
+        in dataset_field_df[dataset_field_df["dataset"] == row["dataset"]][
+            "field"
+        ].values
+        else None,
         axis=1,
     )
 
