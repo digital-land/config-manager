@@ -52,13 +52,13 @@ def get_column_field_summary(dataset_clause, offset):
     SELECT edrs.*, rle.licence
     FROM endpoint_dataset_resource_summary AS edrs
     LEFT JOIN (
-        SELECT endpoint, licence
+        SELECT endpoint, licence, dataset
         FROM reporting_latest_endpoints
-    ) AS rle ON edrs.endpoint = rle.endpoint
+    ) AS rle ON edrs.endpoint = rle.endpoint and edrs.dataset = rle.dataset
     LEFT JOIN (
-        SELECT endpoint, end_date as endpoint_end_date
+        SELECT endpoint, end_date as endpoint_end_date, dataset
         FROM endpoint_dataset_summary
-    ) as eds on edrs.endpoint = eds.endpoint
+    ) as eds on edrs.endpoint = eds.endpoint and edrs.dataset = eds.dataset
     WHERE edrs.resource != ''
     and eds.endpoint_end_date=''
     and ({dataset_clause})
