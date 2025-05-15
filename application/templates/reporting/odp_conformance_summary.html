@@ -95,10 +95,14 @@
         <div class="govuk-grid-column-one-half">
             <h1 class="govuk-heading-s govuk-!-text-align-right">No. of LPAs supplying fields as per specification</h1>
             {{ govukTable({
-                "head": odp_conformance_summary.stats_headers,
-                "rows": odp_conformance_summary.stats_rows,
-                "classes": "reporting-table"
-              }) }}
+              "head": odp_conformance_summary.stats_headers,
+              "rows": odp_conformance_summary.stats_rows,
+              "classes": "reporting-table"
+            }) }}
+
+            <p class="govuk-body govuk-!-text-align-right govuk-!-margin-top-2">
+                Conformance to the technical specifications, where all expected fields have been provided, is <strong>{{ odp_conformance_summary.percent_100_field_match }}%</strong>.
+            </p>
         </div>
     </div>
 </div>
