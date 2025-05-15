@@ -1,7 +1,7 @@
 module.exports = {
   scripts: {
-    "copy.javascripts": "rsync -ar src/javascripts/vendor/ application/static/javascripts/vendor",
-    "copy.css": "rsync -ar src/css/vendor/ application/static/stylesheets/vendor",
+    "copy.javascripts": "mkdir -p application/static/javascripts && rsync -ar src/javascripts/vendor/ application/static/javascripts/vendor",
+    "copy.css": "mkdir -p application/static/stylesheets && rsync -ar src/css/vendor/ application/static/stylesheets/vendor",
     copy: "npm-run-all --parallel copy.*",
 
     "build.stylesheets": "sass src/scss:application/static/stylesheets " +
