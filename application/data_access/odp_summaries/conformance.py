@@ -287,6 +287,9 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         ["cohort_start_date", "cohort", "organisation_name", "dataset"], inplace=True
     )
 
+    provisions_with_100_pct_match = final_count[final_count["field_matched_pct"] == 1.0]
+    percent_100_field_match = round(len(provisions_with_100_pct_match) / len(final_count) * 100, 1) if len(final_count) else 0
+    
     out_cols = [
         "cohort",
         "organisation_name",
@@ -407,6 +410,7 @@ def get_odp_conformance_summary(dataset_types, cohorts):
         "stats_headers": stats_headers,
         "stats_rows": stats_rows,
         "params": params,
+        "percent_100_field_match": percent_100_field_match,
     }, final_count[csv_out_cols]
 
 
