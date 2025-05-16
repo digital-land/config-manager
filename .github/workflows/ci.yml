@@ -1,7 +1,10 @@
 name: CI
 on:
   push:
-      branches:
+    branches:
+      - main
+  pull_request:
+    branches:
       - main
   workflow_dispatch:
 
@@ -24,39 +27,39 @@ jobs:
     #       - 5432:5432
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set up python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.9
+      - name: Set up python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
 
-    - name: Install dependencies
-      run: |
-        make init
+      - name: Install dependencies
+        run: |
+          make init
 
-    - name: Lint
-      run: |
-        make lint
+      - name: Lint
+        run: |
+          make lint
 
-    # - name: Setup database
-    #   run: |
-    #     psql -h localhost -c "CREATE DATABASE data_manager WITH TEMPLATE postgres" -U postgres
-    #   env:
-    #     PGPASSWORD: postgres
+      # - name: Setup database
+      #   run: |
+      #     psql -h localhost -c "CREATE DATABASE data_manager WITH TEMPLATE postgres" -U postgres
+      #   env:
+      #     PGPASSWORD: postgres
 
-    # - name: Migrate database
-    #   run: |
-    #     make upgrade-db
-    #   env:
-    #     DATABASE_URL: postgresql://postgres:postgres@localhost/config_manager
+      # - name: Migrate database
+      #   run: |
+      #     make upgrade-db
+      #   env:
+      #     DATABASE_URL: postgresql://postgres:postgres@localhost/config_manager
 
-    # - name: Test
-    #   run: |
-    #     make load-test-data
-    #     make test
-    #     make test-functional
-    #   env:
-    #     DATABASE_URL: postgresql://postgres:postgres@localhost/config_manager
+      # - name: Test
+      #   run: |
+      #     make load-test-data
+      #     make test
+      #     make test-functional
+      #   env:
+      #     DATABASE_URL: postgresql://postgres:postgres@localhost/config_manager
