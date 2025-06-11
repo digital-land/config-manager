@@ -1,6 +1,6 @@
 init::
 	python -m pip install --upgrade pip
-	python -m pip install pip-tools
+	python -m pip install pip-tools git+https://github.com/digital-land/digital-land-frontend.git#egg=digital_land_frontend
 	python -m piptools compile requirements/dev-requirements.in
 	python -m piptools compile requirements/requirements.in
 	python -m piptools sync requirements/dev-requirements.txt requirements/requirements.txt

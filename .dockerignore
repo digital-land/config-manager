@@ -1,4 +1,4 @@
-Makefile
+# Makefile
 .flake8
 .gitignore
 .nvmrc

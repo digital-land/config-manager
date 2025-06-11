@@ -1,0 +1,48 @@
+# version: '3.9'
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    container_name: db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: config_manager
+      POSTGRES_PORT: 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d config_manager"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: app
+    depends_on:
+        db:
+          condition: service_healthy
+    environment:
+        FLASK_DEBUG: True
+        FLASK_CONFIG: config.DevelopmentConfig
+        FLASK_APP: application.wsgi:app
+        SECRET_KEY: replaceinprod
+        DATABASE_URL: postgres://postgres:postgres@db:5432/config_manager
+        POSTGRES_HOST: db
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: config_manager
+        POSTGRES_PORT: 5432
+    ports:
+      - 5000:5000
+      - 3000:3000
+      - 3001:3001
+    command: >
+      sh -c "make upgrade-db && npx concurrently -k 'make run' 'make watch'"
+
+volumes:
+  pgdata:
