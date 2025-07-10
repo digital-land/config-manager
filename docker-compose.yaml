@@ -26,26 +26,27 @@ services:
     depends_on:
         db:
           condition: service_healthy
-    environment:
-        FLASK_DEBUG: True
-        FLASK_CONFIG: config.DevelopmentConfig
-        FLASK_APP: application.wsgi:app
-        SECRET_KEY: replaceinprod
-        DATABASE_URL: postgres://postgres:postgres@db:5432/config_manager
-        POSTGRES_HOST: db
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres
-        POSTGRES_DB: config_manager
-        POSTGRES_PORT: 5432
     ports:
       - 5000:5000
       - 3000:3000
       - 3001:3001
+
     command: >
       sh -c "make upgrade-db && npx concurrently -k 'make run' 'make watch'"
+
+    environment:
+      FLASK_DEBUG: True
+      FLASK_CONFIG: config.DevelopmentConfig
+      FLASK_APP: application.wsgi:app
+      SECRET_KEY: replaceinprod
+      DATABASE_URL: postgres://postgres:postgres@db:5432/config_manager
+      POSTGRES_HOST: db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: config_manager
+      POSTGRES_PORT: 5432
     volumes:
       - .:/app
-
 
 volumes:
   pgdata:
