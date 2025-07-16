@@ -1,0 +1,26 @@
+{% extends 'layouts/base.html' %}
+{% block beforeContent %}
+<div class="govuk-breadcrumbs">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      DataManager
+    </li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+
+{% block content %}
+
+<h1 class="govuk-heading-xl">Data Managers Portal</h1>
+
+<h2 class="govuk-heading-m">Data Management</h2>
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">This portal provides access to tools for managing datasets and their configurations.</p>
+  </div>
+</div>
+
+{% endblock content %}
