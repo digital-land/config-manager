@@ -1,38 +1,37 @@
 FROM python:3.10-slim
 
-# OS packages & Node JS setup # --fix-missing ca-certificates
+# Working dir
+WORKDIR /app
+
+# install system deps
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    postgresql-client rsync \
-    make git curl gnupg build-essential libpq-dev bash graphviz && \
+    postgresql-client \
+    git curl build-essential libpq-dev bash && \
     curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-# Working dir
-WORKDIR /app
+RUN python3 -m venv /venv \
+&& /venv/bin/pip install --upgrade pip setuptools wheel
 
-# Suppress Node warnning/deprecations
-# Todo: TO BE REMOVED LATER
-RUN npm config set update-notifier false && \
-    npm config set strict-ssl false
-
-# Create & activate virtualenv
-RUN python3 -m venv /venv
-
-# Todo: Some might need TO BE REMOVED LATER
 ENV PATH="/venv/bin:$PATH"
-ENV NODE_NO_WARNINGS=1
-ENV NO_UPDATE_NOTIFIER=1
-# Skip verification
-ENV NODE_TLS_REJECT_UNAUTHORIZED=0
-ENV GIT_SSL_NO_VERIFY=1
 
-# Copy code
+# Copy dependency manifests
+COPY requirements/requirements.txt .
+COPY package*.json .
+
+# Install Python deps, build Node assets, then prune devDependencies
+RUN /venv/bin/pip install --no-cache-dir -r requirements.txt && \
+  npm ci && \
+  npm run postinstall && \
+  npm prune
+
+# Copy application source
 COPY . .
-COPY entrypoint.sh /usr/local/bin/
 
-RUN chmod +x /usr/local/bin/entrypoint.sh && \
-    make init
+RUN chmod +x entrypoint.sh
 
-ENTRYPOINT [ "entrypoint.sh" ]
+ENTRYPOINT ["sh", "entrypoint.sh"]
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "application.wsgi:app"]
