@@ -1,6 +1,5 @@
 init:
 	npm install
-	npm install --no-save concurrently
 	python -m pip install --upgrade pip setuptools wheel
 	python -m pip install -r requirements.txt
 
