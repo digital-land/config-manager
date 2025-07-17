@@ -1,43 +1,191 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard - Under Construction</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f8f9fa;
-            text-align: center;
-            padding-top: 100px;
-        }
-        .construction {
-            display: inline-block;
-            padding: 40px 60px;
-            background: #fff3cd;
-            border: 1px solid #ffeeba;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .construction h1 {
-            color: #856404;
-            margin-bottom: 20px;
-        }
-        .construction p {
-            color: #856404;
-            font-size: 1.2em;
-        }
-        .icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-            color: #856404;
-        }
-    </style>
-</head>
-<body>
-    <div class="construction">
-        <div class="icon">&#128679;</div>
-        <h1>Page Under Construction</h1>
-        <p>This dashboard feature is coming soon. Please check back later.</p>
-    </div>
-</body>
-</html>
+{% extends 'layouts/base.html' %} 
+
+{% from "govuk_frontend_jinja/components/breadcrumbs/macro.html" import govukBreadcrumbs %}
+{% from "govuk_frontend_jinja/components/button/macro.html" import govukButton %}
+{% from "govuk_frontend_jinja/components/input/macro.html" import govukInput %}
+{% from "govuk_frontend_jinja/components/select/macro.html" import govukSelect %}
+
+
+{% block beforeContent %}
+<div class="govuk-breadcrumbs">
+  <ol class="govuk-breadcrumbs__list">
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('base.index') }}">Home</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('datamanager.index') }}">DataManager</a>
+    </li>
+        <li class="govuk-breadcrumbs__list-item">
+      <a class="govuk-breadcrumbs__link" href="{{ url_for('datamanager.dashboard_add') }}">CheckData</a>
+    </li>
+    <li class="govuk-breadcrumbs__list-item">
+      Check Planning data
+    </li>
+  </ol>
+</div>
+{% endblock beforeContent %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <h1 class="govuk-heading-xl">Check Planning data</h1>
+  </div>
+</div>
+
+<div class="govuk-grid-row govuk-!-margin-top-6">
+  <div class="govuk-grid-column-one-half">
+    <h1 class="govuk-heading-l">Check planning data</h1>
+
+    <form method="post" action="{{ url_for('datamanager.dashboard_add') }}" novalidate>
+      <input type="hidden" id="mode" name="mode" value="">
+
+      {% set organisation_error = errors.get('organisation') %}
+      {% set documentation_error = errors.get('documentation_url') %}
+      {% set dataset_error = errors.get('dataset') %}
+      {% set environment_error = errors.get('endpoint_url') %}      
+
+      {% if organisation_error or documentation_error or dataset_error or
+      environment_error %}
+      <div class="govuk-error-summary" aria-labelledby="error-summary-title" role="alert" tabindex="-1"
+        data-module="govuk-error-summary">
+        <h2 class="govuk-error-summary__title" id="error-summary-title">
+          There is a problem
+        </h2>
+        <div class="govuk-error-summary__body">
+          <ul class="govuk-list govuk-error-summary__list">
+            {% if organisation_error %}
+            <li><a href="#organisation">Enter your organisation</a></li>
+            {% endif %}
+            {% if documentation_error %}
+
+            <li>
+              <a href="#documentation-url">Enter a valid documentation URL</a>
+            </li>
+            {% endif %}
+            {% if dataset_error %}
+            <li><a href="#dataset">Select a dataset</a></li>
+            {% endif %}
+            {% if environment_error %}
+            <li><a href="#endpoint-url">Enter a valid endpoint URL</a></li>
+            {% endif %}
+          </ul>
+        </div>
+
+      </div>
+
+      {% endif %}
+      <div class="govuk-form-group {% if dataset_error %}govuk-form-group--error{% endif %}">
+        <!-- Dataset input (triggers lookup automatically) -->
+  <div class="govuk-form-group">
+    <label class="govuk-label" for="dataset">Dataset name  <span class="govuk-required">*</span></label>
+    <input
+      class="govuk-input govuk-input--width-30"
+      id="dataset"
+      name="dataset"
+      type="text"
+      value="{{ dataset_input }}"
+      placeholder="Type dataset name..."
+      required
+      onchange="document.getElementById('mode').value='lookup'; this.form.submit();"
+      />
+  </div>
+      </div>
+
+  <!-- Organisation dropdown appears as soon as dataset_input is present -->
+  <div class="govuk-form-group {% if organisation_error %}govuk-form-group--error{% endif %}">
+    <label class="govuk-label" for="organisation">Organisationc <span class="govuk-required">*</span></label>
+    <select id="organisation" name="organisation" class="govuk-select" required>
+      {% if dataset_input %}
+        {% if selected_orgs %}
+          <option value="" disabled selected hidden>Select an organisation</option>
+          {% for org in selected_orgs %}
+            <option value="{{ org }}" {% if form.organisation == org %}selected{% endif %}>{{ org }}</option>
+          {% endfor %}
+        {% else %}
+          <option value="" disabled selected>No organisations found</option>
+        {% endif %}
+      {% else %}
+      <option value="" disabled selected hidden>Select an organisation</option>
+      {% endif %}
+    </select>
+  </div>
+  
+
+
+
+      <div class="govuk-form-group {% if environment_error %}govuk-form-group--error{% endif %}">
+        {{ govukInput({
+        'label': {
+        'html': 'Endpoint URL <span class="govuk-required">*</span>'
+        },
+        'id': 'endpoint-url',
+        'name': 'endpoint_url',
+        'attributes': { 'required': 'required', 'type': 'url' } }) }}
+      </div>
+      <div class="govuk-form-group {% if documentation_error %}govuk-form-group--error{% endif %}">
+        {{ govukInput({
+          'label': { 'text': 'Documentation URL (optional)' },
+          'id': 'documentation-url',
+          'name': 'documentation_url',
+          'value': request.form.get('documentation_url', ''),
+          'attributes': {
+            'pattern': '(^$)|https?://.*\\.(gov\\.uk|org\\.uk)(/.*)?',
+            'title': 'Must be a valid URL ending in .gov.uk or .org.uk if provided'
+          },
+          'errorMessage': { 'text': 'Enter a valid documentation URL ending in .gov.uk or .org.uk' } if documentation_error else None
+        }) }}        
+      </div>
+
+      <fieldset class="govuk-fieldset">
+        <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+          Start date (to default to the date on the day of entry)
+        </legend>
+        {% set today = now.now() %}
+        <div class="govuk-date-input" id="start-date">
+
+          <div class="govuk-date-input__item">
+
+            <div class="govuk-form-group">
+
+              <label class="govuk-label govuk-date-input__label" for="start-day">Day</label>
+              <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="start-day" name="start_day"
+                type="text" inputmode="numeric" value="{{ today.day }}" />
+            </div>
+          </div>
+          <div class="govuk-date-input__item">
+            <div class="govuk-form-group">
+              <label class="govuk-label govuk-date-input__label" for="start-month">Month</label>
+              <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="start-month"
+                name="start_month" type="text" inputmode="numeric" value="{{ today.month }}" />
+            </div>
+          </div>
+          <div class="govuk-date-input__item">
+            <div class="govuk-form-group">
+              <label class="govuk-label govuk-date-input__label" for="start-year">Year</label>
+              <input class="govuk-input govuk-date-input__input govuk-input--width-4" id="start-year" name="start_year"
+                type="text" inputmode="numeric" value="{{ today.year }}" />
+            </div>
+          </div>
+        </div>
+      </fieldset>
+      {{ govukSelect({
+      'id': 'licence',
+      'name': 'licence',
+      'label': { 'text': 'Data is provided under which licence?' },
+      'items': [{ 'value': '', 'text': 'e.g OGL' },
+      { 'value': 'ogl',
+      'text': 'OGL' },{ 'value': 'cc-by', 'text': 'CC-BY' } ] })
+      }}
+      <div style="display: flex; justify-content: flex-end">
+        {{ govukButton({
+          'text':'Check data',
+          'attributes': {
+            'onclick':"document.getElementById('mode').value='final';"
+          }
+        }) }}
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
