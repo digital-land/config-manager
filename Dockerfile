@@ -23,7 +23,7 @@ COPY package*.json .
 
 # Install Python deps, build Node assets, then prune devDependencies
 RUN /venv/bin/pip install --no-cache-dir -r requirements.txt && \
-  npm ci && \
+  npm install && \
   npm run postinstall && \
   npm prune
 
