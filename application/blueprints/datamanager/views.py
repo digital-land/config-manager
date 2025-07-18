@@ -69,6 +69,23 @@ def dashboard_add():
                 if not re.match(r"^https?://.*\.(gov\.uk|org\.uk)(/.*)?$", doc_url):
                     errors['documentation_url'] = True
 
+   
+            day = form.get('start_day', '').strip()
+            month = form.get('start_month', '').strip()
+            year = form.get('start_year', '').strip()
+
+            # Validating the start date
+            if not (day.isdigit() and month.isdigit() and year.isdigit()):
+                errors['start_date'] = True  # 'Date must contain only digits in DD/MM/YYYY format.'
+            try:
+                dd = int(day)
+                mm = int(month)
+                yyyy = int(year)
+            # Try to construct a date
+                date_obj = datetime(yyyy, mm, dd)
+            except ValueError:
+                errors['start_date'] = True  # 'Enter a valid date in DD/MM/YYYY
+
             if not any(errors.values()):
                 return jsonify({
                     'dataset': dataset_input,
