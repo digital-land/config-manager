@@ -23,8 +23,11 @@ def index():
 
 @datamanager_bp.route('/dashboard/add', methods=['GET', 'POST'])
 def dashboard_add():
-    ds_response = requests.get("https://www.planning.data.gov.uk/dataset.json").json()
+    # Fetch dataset list with no row cap
+    ds_response = requests.get("https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max").json()
     datasets = ds_response['datasets']
+
+
     dataset_options = sorted([d['name'] for d in datasets])
     name_to_dataset_id = {d['name']: d['dataset'] for d in datasets}
 
@@ -41,24 +44,22 @@ def dashboard_add():
         if not dataset_id:
             return jsonify([])
 
-        provision_rows = requests.get(
-            "https://datasette.planning.data.gov.uk/digital-land/provision.json?_labels=on"
-        ).json()['rows']
+        # ✅ Use _size=max to avoid row cap
+        provision_url = (
+            f"https://datasette.planning.data.gov.uk/digital-land/provision.json"
+            f"?_labels=on&_size=max&dataset={dataset_id}"
+        )
+        provision_rows = requests.get(provision_url).json().get('rows', [])
 
         selected_orgs = []
         for row in provision_rows:
-            if row['dataset']['value'] == dataset_id:
-                org_label = row['organisation']['label']
-                org_value = row['organisation']['value'].split(':', 1)[1]
-                selected_orgs.append(f"{org_label} ({org_value})")
+            org_label = row['organisation']['label']
+            org_value = row['organisation']['value'].split(':', 1)[1]
+            selected_orgs.append(f"{org_label} ({org_value})")
 
         return jsonify(selected_orgs)
 
     # --- Normal GET/POST form handling ---
-    provision_rows = requests.get(
-        "https://datasette.planning.data.gov.uk/digital-land/provision.json?_labels=on"
-    ).json()['rows']
-
     form = {}
     errors = {}
     selected_orgs = []
@@ -72,15 +73,24 @@ def dashboard_add():
         dataset_input = form.get('dataset', '').strip()
         dataset_id = name_to_dataset_id.get(dataset_input)
 
-        # 🟡 Always fetch orgs if dataset is selected
+        # ✅ Use _size=max in POST as well
         if dataset_id:
-            for row in provision_rows:
-                if row['dataset']['value'] == dataset_id:
-                    org_label = row['organisation']['label']
-                    org_value = row['organisation']['value'].split(':', 1)[1]
-                    selected_orgs.append(f"{org_label} ({org_value})")
+            provision_url = (
+                f"https://datasette.planning.data.gov.uk/digital-land/provision.json"
+                f"?_labels=on&_size=max&dataset={dataset_id}"
+            )
+            provision_rows = requests.get(provision_url).json().get('rows', [])
 
-        # 🔁 Lookup mode: skip validation, just return form with orgs loaded
+            for row in provision_rows:
+                org_label = row['organisation']['label']
+                org_value = row['organisation']['value'].split(':', 1)[1]
+                selected_orgs.append(f"{org_label} ({org_value})")
+
+        # Fallback: assign 'None' if no orgs found and none entered
+        if dataset_id and not selected_orgs and not form.get('organisation'):
+            form['organisation'] = 'None'
+
+        # Handle lookup mode: skip validation
         if mode == 'lookup':
             return render_template(
                 'dashboard_add.html',
@@ -91,49 +101,47 @@ def dashboard_add():
                 dataset_options=dataset_options
             )
 
-        # ✅ Final submission: validate form inputs
+        # Final mode: validate input
         if mode == 'final':
-            errors = {
-                'dataset': not dataset_input,
-                'organisation': not form.get('organisation'),
-                'endpoint_url': not form.get('endpoint_url'),
-            }
-
-            # Endpoint URL check
+            organisation = form.get('organisation', '').strip()
             endpoint_url = form.get('endpoint_url', '').strip()
-            if not re.match(r'https?://[^\s]+', endpoint_url):
-                errors['endpoint_url'] = True
-
-            # Documentation URL check
             doc_url = form.get('documentation_url', '').strip()
-            if doc_url and not re.match(r"^https?://.*\.(gov\.uk|org\.uk)(/.*)?$", doc_url):
-                errors['documentation_url'] = True
-
-            # Start date validation
             day = form.get('start_day', '').strip()
             month = form.get('start_month', '').strip()
             year = form.get('start_year', '').strip()
 
-            if not (day.isdigit() and month.isdigit() and year.isdigit()):
-                errors['start_date'] = True
-            else:
-                try:
-                    datetime(int(year), int(month), int(day))
-                except ValueError:
-                    errors['start_date'] = True
+            # Validate fields
+            errors = {
+                'dataset': not dataset_input,
+                'organisation': (
+                    (selected_orgs and organisation not in selected_orgs) or
+                    (not selected_orgs and organisation != 'None')
+                ),
+                'endpoint_url': not endpoint_url or not re.match(r'https?://[^\s]+', endpoint_url),
+            }
 
-            # ✅ If all OK, return success as JSON
+            # Validate optional documentation URL
+            if doc_url and not re.match(r"^https?://.*\.(gov\.uk|org\.uk)(/.*)?$", doc_url):
+                errors['documentation_url'] = True
+
+            # Validate date fields
+            try:
+                datetime(int(year), int(month), int(day))
+            except (ValueError, TypeError):
+                errors['start_date'] = True
+
+            # ✅ If all inputs pass validation, return JSON
             if not any(errors.values()):
                 return jsonify({
                     'dataset': dataset_input,
-                    'organisation': form['organisation'],
+                    'organisation': organisation,
                     'endpoint_url': endpoint_url,
                     'documentation_url': doc_url,
                     'start_date': f"{year}-{month}-{day}",
                     'licence': form.get('licence')
                 })
 
-    # 🧾 Final fallback: render page (GET, or POST with errors)
+    # Default GET or failed POST
     return render_template(
         'datamanager/dashboard_add.html',
         dataset_input=dataset_input,
@@ -142,6 +150,8 @@ def dashboard_add():
         errors=errors,
         dataset_options=dataset_options
     )
+
+
    
 
 @datamanager_bp.route("/dashboard/config")
