@@ -19,9 +19,9 @@ ENV PATH="/venv/bin:$PATH"
 # Copy application source
 COPY . .
 
-RUN chmod +x entrypoint.sh && \
-    make init
+# Install deps
+RUN npm install && \
+	python -m pip install --upgrade pip setuptools wheel && \
+	python -m pip install -r requirements.txt
 
-ENTRYPOINT ["sh", "entrypoint.sh"]
-
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "application.wsgi:app"]
+ENTRYPOINT ["sh", "-c", "flask db upgrade && exec gunicorn --bind 0.0.0.0:5000 application.wsgi:app"]
