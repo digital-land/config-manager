@@ -3,6 +3,12 @@ FROM python:3.10-slim
 # Working dir
 WORKDIR /app
 
+ENV FLASK_CONFIG=config.DevelopmentConfig
+ENV FLASK_APP=application.wsgi:app
+ENV FLASK_RUN_HOST=0.0.0.0
+ENV FLASK_RUN_PORT=5000
+ENV FLASK_DEBUG=1
+
 # install system deps
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -23,5 +29,7 @@ COPY . .
 RUN npm install && \
 	python -m pip install --upgrade pip setuptools wheel && \
 	python -m pip install -r requirements.txt
+
+  EXPOSE 5000
 
 ENTRYPOINT ["sh", "-c", "flask db upgrade && flask run --debug"]
