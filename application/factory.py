@@ -136,7 +136,7 @@ def register_extensions(app):
         client_kwargs={"scope": "user:email read:org"},
     )
 
-    if app.config["ENV"] == "production":
+    if app.config.get("ENV") == "production":
         # content security policy for talisman
         SELF = "'self'"
         csp = {
