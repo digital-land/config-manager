@@ -2,9 +2,8 @@
 """
 Flask app factory class
 """
-import os.path
-
-import sentry_sdk
+# import os.path
+# import sentry_sdk
 from flask import Flask
 from flask.cli import load_dotenv
 
@@ -165,12 +164,12 @@ def register_extensions(app):
             content_security_policy_nonce_in=["script-src"],
         )
 
-        from sentry_sdk.integrations.flask import FlaskIntegration
+        # from sentry_sdk.integrations.flask import FlaskIntegration
 
-        sentry_sdk.init(
-            dsn=os.environ.get("SENTRY_DSN"),
-            integrations=[FlaskIntegration()],
-        )
+        # sentry_sdk.init(
+        #     dsn=os.environ.get("SENTRY_DSN"),
+        #     integrations=[FlaskIntegration()],
+        # )
 
 
 def register_templates(app):
