@@ -20,7 +20,7 @@ class Config:
     GITHUB_APP_PRIVATE_KEY = base64.b64decode(
         os.getenv("GITHUB_APP_PRIVATE_KEY", "")
     ).decode("utf-8")
-    SAFE_URLS = {"config-manager-prototype.herokuapp.com"}
+    SAFE_URLS = set(os.getenv("SAFE_URLS", "").split(","))
     AUTHENTICATION_ON = True
     S3_BUCKET_URL = (
         "https://digital-land-production-collection-dataset.s3.eu-west-2.amazonaws.com"
