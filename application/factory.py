@@ -117,7 +117,7 @@ def register_extensions(app):
     """
     Import and register flask extensions and initialize with app object
     """
-    from application.extensions import db, migrate, oauth
+    from application.extensions import db, migrate, oauth, talisman
 
     db.init_app(app)
     migrate.init_app(app)
@@ -139,41 +139,34 @@ def register_extensions(app):
         client_kwargs={"scope": "user:email read:org"},
     )
 
-    # if app.config.get("ENV") == "production":
-    # content security policy for talisman
-    # SELF = "'self'"
-    # csp = {
-    #     "font-src": SELF,
-    #     "script-src": [
-    #         SELF,
-    #         "*.google-analytics.com",
-    #         "'sha256-+6WnXIl4mbFTCARd8N3COQmT3bJJmo32N8q8ZSQAIcU='",
-    #         "'sha256-vTIO5fI4O36AP9+OzV3oS3SxijRPilL7mJYDUwnwwqk='",
-    #         "'sha256-icLIt+1VXFav7q50YdfAHSFYWsMvSawaYWwo5ocWp5A='",
-    #         "'sha256-ACotEtBlkqjCUAsddlA/3p2h7Q0iHuDXxk577uNsXwA='",
-    #     ],
-    #     "style-src": [
-    #         SELF,
-    #         "'unsafe-hashes'",
-    #         "'sha256-biLFinpqYMtWHmXfkA1BPeCY0/fNt46SAZ+BBk5YUog='",
-    #     ],
-    #     "default-src": SELF,
-    #     "connect-src": [SELF, "*.google-analytics.com", "*.doubleclick.net"],
-    #     "img-src": [SELF, "*.google.co.uk", "*.google.com"],
-    # }
+    if app.config["ENV"] == "production":
+        # content security policy for talisman
+        SELF = "'self'"
+        csp = {
+            "font-src": SELF,
+            "script-src": [
+                SELF,
+                "*.google-analytics.com",
+                "'sha256-+6WnXIl4mbFTCARd8N3COQmT3bJJmo32N8q8ZSQAIcU='",
+                "'sha256-vTIO5fI4O36AP9+OzV3oS3SxijRPilL7mJYDUwnwwqk='",
+                "'sha256-icLIt+1VXFav7q50YdfAHSFYWsMvSawaYWwo5ocWp5A='",
+                "'sha256-ACotEtBlkqjCUAsddlA/3p2h7Q0iHuDXxk577uNsXwA='",
+            ],
+            "style-src": [
+                SELF,
+                "'unsafe-hashes'",
+                "'sha256-biLFinpqYMtWHmXfkA1BPeCY0/fNt46SAZ+BBk5YUog='",
+            ],
+            "default-src": SELF,
+            "connect-src": [SELF, "*.google-analytics.com", "*.doubleclick.net"],
+            "img-src": [SELF, "*.google.co.uk", "*.google.com"],
+        }
 
-    # talisman.init_app(
-    #     app,
-    #     content_security_policy=csp,
-    #     content_security_policy_nonce_in=["script-src"],
-    # )
-
-    # from sentry_sdk.integrations.flask import FlaskIntegration
-
-    # sentry_sdk.init(
-    #     dsn=os.environ.get("SENTRY_DSN"),
-    #     integrations=[FlaskIntegration()],
-    # )
+        talisman.init_app(
+            app,
+            content_security_policy=csp,
+            content_security_policy_nonce_in=["script-src"],
+        )
 
 
 def register_templates(app):

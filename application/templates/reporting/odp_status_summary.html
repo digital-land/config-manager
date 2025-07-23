@@ -21,150 +21,158 @@
 
 <div class="reporting-overview-container">
 
-    <div class="govuk-grid-row govuk-heading-l">
-        <div class="govuk-grid-column-one-third govuk-!-text-align-centre">
-            <a href="{{ url_for('reporting.odp_status_summary')}}" class="govuk-link govuk-link--no-visited-state">Status</a>
-        </div>
-        <div class="govuk-grid-column-one-third govuk-!-text-align-centre">
-            <a href="{{ url_for('reporting.odp_issue_summary')}}" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Issue</a>
-        </div>
-        <div class="govuk-grid-column-one-third govuk-!-text-align-centre">
-            <a href="{{ url_for('reporting.odp_conformance_summary')}}" class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Conformance</a>
-        </div>
+  <div class="govuk-grid-row govuk-heading-l">
+    <div class="govuk-grid-column-one-third govuk-!-text-align-centre">
+      <a href="{{ url_for('reporting.odp_status_summary')}}" class="govuk-link govuk-link--no-visited-state">Status</a>
     </div>
+    <div class="govuk-grid-column-one-third govuk-!-text-align-centre">
+      <a href="{{ url_for('reporting.odp_issue_summary')}}"
+        class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Issue</a>
+    </div>
+    <div class="govuk-grid-column-one-third govuk-!-text-align-centre">
+      <a href="{{ url_for('reporting.odp_conformance_summary')}}"
+        class="govuk-link govuk-link--no-visited-state govuk-link--no-underline">Conformance</a>
+    </div>
+  </div>
 
-    <hr class="govuk-section-break--visible govuk-section-break--l" />
+  <hr class="govuk-section-break--visible govuk-section-break--l" />
 
-    <div class="govuk-grid-row">
-        <div class="govuk-grid-column-one-half">
-            <form action="?cohort=cohortSelection&dataset_type=" method="GET">
-                <legend class="govuk-fieldset__legend govuk-fieldset__legend--l">
-                    <h1 class="govuk-fieldset__heading">
-                    Filter dataset type and cohort
-                    </h1>
-                </legend>
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-one-half">
+      <form action="?cohort=cohortSelection&dataset_type=" method="GET">
+        <legend class="govuk-fieldset__legend govuk-fieldset__legend--l">
+          <h1 class="govuk-fieldset__heading">
+            Filter dataset type and cohort
+          </h1>
+        </legend>
 
-                <div class="govuk-grid-row govuk-!-padding-bottom-2">
-                    <div class="govuk-grid-column-one-half">
-                        {% call dlFilterGroup({
-                            "title": "Dataset type:",
-                            "is_open": True,
-                            "selected": odp_statuses_summary.params.selected_dataset_types|length
-                        }) %}
-                        <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                            {% for dataset_type in odp_statuses_summary.params.dataset_types %}
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="{{dataset_type.id}}Dataset" name="dataset_type" type="checkbox" value="{{dataset_type.id}}">
-                                    <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
-                                        {{dataset_type.name}}
-                                    </label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endcall %}
-                    </div>
-                    <div class="govuk-grid-column-one-half">
-                        {% call dlFilterGroup({
-                            "title": "Cohort:",
-                            "is_open": True,
-                            "selected": odp_statuses_summary.params.selected_cohorts|length
-                        }) %}
-                        <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                            {% for cohort in odp_statuses_summary.params.cohorts %}
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="{{cohort.id}}" name="cohort" type="checkbox" value="{{cohort.id}}">
-                                    <label class="govuk-label govuk-checkboxes__label" for="cohort">
-                                        {{cohort.name}}
-                                    </label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endcall %}
-                    </div>
-                </div>
-
-                <div class="govuk-button-group">
-                    <button type="submit" class="govuk-button" data-module="govuk-button">
-                        Apply Filter
-                    </button>
-                    <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=odp-status" id="download-button">
-                        Download Current Table
-                    </a>
-                </div>
-            </form>
-        </div>
-        <div class="govuk-grid-column-one-half">
-            <h1 class="govuk-heading-l">Overview stats:</h1>
-            <div class="govuk-grid-row">
-                <p class="govuk-body govuk-grid-column-two-thirds">No. of LPAs:
-                <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.number_of_lpas}}</p>
+        <div class="govuk-grid-row govuk-!-padding-bottom-2">
+          <div class="govuk-grid-column-one-half">
+            {% call dlFilterGroup({
+            "title": "Dataset type:",
+            "is_open": True,
+            "selected": odp_statuses_summary.params.selected_dataset_types|length
+            }) %}
+            <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+              {% for dataset_type in odp_statuses_summary.params.dataset_types %}
+              <div class="govuk-checkboxes__item">
+                <input class="govuk-checkboxes__input" id="{{dataset_type.id}}Dataset" name="dataset_type"
+                  type="checkbox" value="{{dataset_type.id}}">
+                <label class="govuk-label govuk-checkboxes__label" for="dataset_type">
+                  {{dataset_type.name}}
+                </label>
+              </div>
+              {% endfor %}
             </div>
-            <div class="govuk-grid-row">
-              <p class="govuk-body govuk-grid-column-two-thirds">No. of LPAs with some <data value=""></data>:
-              <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.lpa_some_data_provided}}</p>
+            {% endcall %}
           </div>
-          <div class="govuk-grid-row">
-            <p class="govuk-body govuk-grid-column-two-thirds">No. of LPAs with 100% data:
-            <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.lpa_all_data_provided}}</p>
-        </div>
-            <div class="govuk-grid-row">
-                <p class="govuk-body govuk-grid-column-two-thirds">No. of datasets added:
-                <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.datasets_added}}/{{odp_statuses_summary.max_datasets}}</p>
+          <div class="govuk-grid-column-one-half">
+            {% call dlFilterGroup({
+            "title": "Cohort:",
+            "is_open": True,
+            "selected": odp_statuses_summary.params.selected_cohorts|length
+            }) %}
+            <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+              {% for cohort in odp_statuses_summary.params.cohorts %}
+              <div class="govuk-checkboxes__item">
+                <input class="govuk-checkboxes__input" id="{{cohort.id}}" name="cohort" type="checkbox"
+                  value="{{cohort.id}}">
+                <label class="govuk-label govuk-checkboxes__label" for="cohort">
+                  {{cohort.name}}
+                </label>
+              </div>
+              {% endfor %}
             </div>
-            <div class="govuk-grid-row">
-                <p class="govuk-body govuk-grid-column-two-thirds">% of datasets added:</p>
-                <p class="govuk-body govuk-grid-column-one-third">{{ odp_statuses_summary.percentage_datasets_added }}</p>
-            </div>
+            {% endcall %}
+          </div>
         </div>
+
+        <div class="govuk-button-group">
+          <button type="submit" class="govuk-button" data-module="govuk-button">
+            Apply Filter
+          </button>
+          <a class="govuk-link" href="{{ url_for('reporting.download_csv')}}?type=odp-status" id="download-button">
+            Download Current Table
+          </a>
+        </div>
+      </form>
     </div>
+    <div class="govuk-grid-column-one-half">
+      <h1 class="govuk-heading-l">Overview stats:</h1>
+      <div class="govuk-grid-row">
+        <p class="govuk-body govuk-grid-column-two-thirds">No. of LPAs:
+        <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">{{odp_statuses_summary.number_of_lpas}}
+        </p>
+      </div>
+      <div class="govuk-grid-row">
+        <p class="govuk-body govuk-grid-column-two-thirds">No. of LPAs with some <data value=""></data>:
+        <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">
+          {{odp_statuses_summary.lpa_some_data_provided}}</p>
+      </div>
+      <div class="govuk-grid-row">
+        <p class="govuk-body govuk-grid-column-two-thirds">No. of LPAs with 100% data:
+        <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">
+          {{odp_statuses_summary.lpa_all_data_provided}}</p>
+      </div>
+      <div class="govuk-grid-row">
+        <p class="govuk-body govuk-grid-column-two-thirds">No. of datasets added:
+        <p class="govuk-body govuk-grid-column-one-third govuk-!-font-size-19">
+          {{odp_statuses_summary.datasets_added}}/{{odp_statuses_summary.max_datasets}}</p>
+      </div>
+      <div class="govuk-grid-row">
+        <p class="govuk-body govuk-grid-column-two-thirds">% of datasets added:</p>
+        <p class="govuk-body govuk-grid-column-one-third">{{ odp_statuses_summary.percentage_datasets_added }}</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="reporting-table-container">
-    {{ govukTable({
-        "head": odp_statuses_summary.headers,
-        "rows": odp_statuses_summary.rows,
-        "classes": "reporting-table"
-      }) }}
+  {{ govukTable({
+  "head": odp_statuses_summary.headers,
+  "rows": odp_statuses_summary.rows,
+  "classes": "reporting-table"
+  }) }}
 </div>
 
-<script {% if config["ENV"] == "production" %}nonce="{{ csp_nonce() }}"{% endif %}>
-    // autofill form with current filters based on query parameters and generate download link
-    const url = new URL(window.location.href)
-    const dataset_type_params = url.searchParams.getAll("dataset_type")
-    const cohort_params = url.searchParams.getAll("cohort")
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
+  // autofill form with current filters based on query parameters and generate download link
+  const url = new URL(window.location.href)
+  const dataset_type_params = url.searchParams.getAll("dataset_type")
+  const cohort_params = url.searchParams.getAll("cohort")
 
-    let dataset_type_string = ""
-    dataset_type_params.forEach((dataset_type) => {
-        document.getElementById(dataset_type.concat("Dataset")).checked="checked"
-        if (dataset_type_string == "") {
-            dataset_type_string = "dataset_type=".concat(dataset_type)
-        } else {
-            dataset_type_string += "&dataset_type=".concat(dataset_type)
-        }
-    })
-
-    let cohort_string = ""
-    cohort_params.forEach((cohort) => {
-        document.getElementById(cohort).checked="checked"
-        if (cohort_string == "") {
-            cohort_string = "cohort=".concat(cohort)
-        } else {
-            cohort_string += "&cohort=".concat(cohort)
-        }
-    })
-    // set download link href
-    let search_params= ""
-    if (dataset_type_string && cohort_string) {
-        search_params = "&".concat(dataset_type_string).concat("&").concat(cohort_string)
-    } else if (dataset_type_string) {
-        search_params = "&".concat(dataset_type_string)
-    } else if (cohort_string) {
-        search_params = "&".concat(cohort_string)
+  let dataset_type_string = ""
+  dataset_type_params.forEach((dataset_type) => {
+    document.getElementById(dataset_type.concat("Dataset")).checked = "checked"
+    if (dataset_type_string == "") {
+      dataset_type_string = "dataset_type=".concat(dataset_type)
     } else {
-        search_params = ""
+      dataset_type_string += "&dataset_type=".concat(dataset_type)
     }
-    const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-status").concat(search_params)
-    document.getElementById("download-button").setAttribute("href", link)
+  })
+
+  let cohort_string = ""
+  cohort_params.forEach((cohort) => {
+    document.getElementById(cohort).checked = "checked"
+    if (cohort_string == "") {
+      cohort_string = "cohort=".concat(cohort)
+    } else {
+      cohort_string += "&cohort=".concat(cohort)
+    }
+  })
+  // set download link href
+  let search_params = ""
+  if (dataset_type_string && cohort_string) {
+    search_params = "&".concat(dataset_type_string).concat("&").concat(cohort_string)
+  } else if (dataset_type_string) {
+    search_params = "&".concat(dataset_type_string)
+  } else if (cohort_string) {
+    search_params = "&".concat(cohort_string)
+  } else {
+    search_params = ""
+  }
+  const link = "{{ url_for('reporting.download_csv') | safe}}".concat("?type=odp-status").concat(search_params)
+  document.getElementById("download-button").setAttribute("href", link)
 </script>
 
 {% endblock content %}
