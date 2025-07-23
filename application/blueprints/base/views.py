@@ -9,6 +9,6 @@ def index():
     return render_template("index.html")
 
 
-@base.route("/healthz", strict_slashes=False)
+@base.route("/health", strict_slashes=False)
 def healthz():
     return "OK", 200
