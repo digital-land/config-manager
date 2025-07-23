@@ -22,6 +22,16 @@ RUN python3 -m venv /venv
 
 ENV PATH="/venv/bin:$PATH"
 
+##### Todo: For development only
+ENV NODE_NO_WARNINGS=1
+ENV NO_UPDATE_NOTIFIER=1
+# Skip verification
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
+ENV GIT_SSL_NO_VERIFY=1
+RUN npm config set update-notifier false && \
+    npm config set strict-ssl false
+##### Todo: For development only
+
 # Copy application source
 COPY . .
 
