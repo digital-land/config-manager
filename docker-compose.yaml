@@ -42,7 +42,7 @@ services:
       - 3000:3000
       - 3001:3001
     command: >
-      sh -c "make upgrade-db && npx concurrently -k 'make run' 'make watch'"
+      sh -c "npm install && make upgrade-db && npx concurrently -k 'make run' 'make watch'"
     volumes:
       - .:/app
 
