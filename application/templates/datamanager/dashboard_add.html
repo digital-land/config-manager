@@ -5,8 +5,7 @@
 {% from "govuk_frontend_jinja/components/select/macro.html" import govukSelect %}
 
 {% block pageStylesheets %}
-<link rel="stylesheet" href="https://unpkg.com/accessible-autocomplete@2.0.4/dist/accessible-autocomplete.min.css">
-{% endblock %}
+<link rel="stylesheet" href="{{ url_for('static', filename='stylesheets/accessible-autocomplete.min.css') }}">{% endblock %}
 
 {% block content %}
 <div class="govuk-grid-row">
@@ -143,7 +142,7 @@
 {% endblock %}
 
 {% block pageScripts %}
-<script src="https://unpkg.com/accessible-autocomplete@2.0.4/dist/accessible-autocomplete.min.js"></script>
+<script src="{{ url_for('static', filename='javascripts/accessible-autocomplete.min.js') }}"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     const datasetHidden = document.getElementById("dataset");
