@@ -5,7 +5,8 @@
 {% from "govuk_frontend_jinja/components/select/macro.html" import govukSelect %}
 
 {% block pageStylesheets %}
-<link rel="stylesheet" href="{{ url_for('static', filename='stylesheets/accessible-autocomplete.min.css') }}">{% endblock %}
+<link rel="stylesheet" href="{{ url_for('static', filename='stylesheets/accessible-autocomplete.min.css') }}">{%
+endblock %}
 
 {% block content %}
 <div class="govuk-grid-row">
@@ -32,7 +33,8 @@
             {% if dataset_error %}<li><a href="#dataset-autocomplete">Select a dataset</a></li>{% endif %}
             {% if organisation_error %}<li><a href="#organisation">Enter your organisation</a></li>{% endif %}
             {% if environment_error %}<li><a href="#endpoint-url">Enter a valid endpoint URL</a></li>{% endif %}
-            {% if documentation_error %}<li><a href="#documentation-url">Enter a valid documentation URL</a></li>{% endif %}
+            {% if documentation_error %}<li><a href="#documentation-url">Enter a valid documentation URL</a></li>{%
+            endif %}
             {% if errors.start_date %}<li><a href="#start-day">Enter a valid start date</a></li>{% endif %}
           </ul>
         </div>
@@ -69,82 +71,89 @@
       <!-- Endpoint URL -->
       <div class="govuk-form-group {% if environment_error %}govuk-form-group--error{% endif %}">
         {{ govukInput({
-          'label': { 'html': 'Endpoint URL <span class="govuk-required">*</span>' },
-          'id': 'endpoint-url',
-          'name': 'endpoint_url',
-          'value': form.get('endpoint_url', ''),
-          'attributes': { 'required': 'required', 'type': 'url' }
+        'label': { 'html': 'Endpoint URL <span class="govuk-required">*</span>' },
+        'id': 'endpoint-url',
+        'name': 'endpoint_url',
+        'value': form.get('endpoint_url', ''),
+        'attributes': { 'required': 'required', 'type': 'url' }
         }) }}
       </div>
 
       <!-- Documentation URL -->
       <div class="govuk-form-group {% if documentation_error %}govuk-form-group--error{% endif %}">
         {{ govukInput({
-          'label': { 'text': 'Documentation URL (optional)' },
-          'id': 'documentation-url',
-          'name': 'documentation_url',
-          'value': form.get('documentation_url', ''),
-          'attributes': {
-            'pattern': '(^$)|https?://.*\\.(gov\\.uk|org\\.uk)(/.*)?',
-            'title': 'Must be a valid URL ending in .gov.uk or .org.uk if provided'
-          },
-          'errorMessage': ( { 'text': 'Enter a valid documentation URL ending in .gov.uk or .org.uk' } if documentation_error else None )
+        'label': { 'text': 'Documentation URL (optional)' },
+        'id': 'documentation-url',
+        'name': 'documentation_url',
+        'value': form.get('documentation_url', ''),
+        'attributes': {
+        'pattern': '(^$)|https?://.*\\.(gov\\.uk|org\\.uk)(/.*)?',
+        'title': 'Must be a valid URL ending in .gov.uk or .org.uk if provided'
+        },
+        'errorMessage': ( { 'text': 'Enter a valid documentation URL ending in .gov.uk or .org.uk' } if
+        documentation_error else None )
         }) }}
       </div>
 
-      <!-- Start date -->
-      <fieldset class="govuk-fieldset" role="group" aria-describedby="start-date-error">
-        <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">Start date (defaults to today)</legend>
-        {% if errors.start_date %}
-        <p id="start-date-error" class="govuk-error-message">
-          <span class="govuk-visually-hidden">Error:</span> Enter a valid date
-        </p>
-        {% endif %}
-        {% set today = now.now() %}
-        <div class="govuk-date-input" id="start-date">
-          <div class="govuk-date-input__item">
-            <label class="govuk-label govuk-date-input__label" for="start-day">Day</label>
-            <input class="govuk-input govuk-input--width-2" id="start-day" name="start_day" type="text" inputmode="numeric" value="{{ form.start_day or today.day }}">
+      <div class="govuk-form-group govuk-!-margin-top-6">
+        <!-- Start date -->
+        <fieldset class="govuk-fieldset" role="group" aria-describedby="start-date-error">
+          <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">Start date (defaults to today)</legend>
+          {% if errors.start_date %}
+          <p id="start-date-error" class="govuk-error-message">
+            <span class="govuk-visually-hidden">Error:</span> Enter a valid date
+          </p>
+          {% endif %}
+          {% set today = now.now() %}
+          <div class="govuk-date-input" id="start-date">
+            <div class="govuk-date-input__item">
+              <label class="govuk-label govuk-date-input__label" for="start-day">Day</label>
+              <input class="govuk-input govuk-input--width-2" id="start-day" name="start_day" type="text"
+                inputmode="numeric" value="{{ form.start_day or today.day }}">
+            </div>
+            <div class="govuk-date-input__item">
+              <label class="govuk-label govuk-date-input__label" for="start-month">Month</label>
+              <input class="govuk-input govuk-input--width-2" id="start-month" name="start_month" type="text"
+                inputmode="numeric" value="{{ form.start_month or today.month }}">
+            </div>
+            <div class="govuk-date-input__item">
+              <label class="govuk-label govuk-date-input__label" for="start-year">Year</label>
+              <input class="govuk-input govuk-input--width-4" id="start-year" name="start_year" type="text"
+                inputmode="numeric" value="{{ form.start_year or today.year }}">
+            </div>
           </div>
-          <div class="govuk-date-input__item">
-            <label class="govuk-label govuk-date-input__label" for="start-month">Month</label>
-            <input class="govuk-input govuk-input--width-2" id="start-month" name="start_month" type="text" inputmode="numeric" value="{{ form.start_month or today.month }}">
-          </div>
-          <div class="govuk-date-input__item">
-            <label class="govuk-label govuk-date-input__label" for="start-year">Year</label>
-            <input class="govuk-input govuk-input--width-4" id="start-year" name="start_year" type="text" inputmode="numeric" value="{{ form.start_year or today.year }}">
-          </div>
-        </div>
-      </fieldset>
+        </fieldset>
+      </div>
 
       <!-- Licence -->
       {{ govukSelect({
-        'id': 'licence',
-        'name': 'licence',
-        'label': { 'text': 'Data is provided under which licence?' },
-        'items': [
-          { 'value': '', 'text': 'e.g OGL' },
-          { 'value': 'ogl', 'text': 'OGL' },
-          { 'value': 'cc-by', 'text': 'CC-BY' }
-        ],
-        'value': form.get('licence', '')
+      'id': 'licence',
+      'name': 'licence',
+      'label': { 'text': 'Data is provided under which licence?' },
+      'items': [
+      { 'value': '', 'text': 'e.g OGL' },
+      { 'value': 'ogl', 'text': 'OGL' },
+      { 'value': 'cc-by', 'text': 'CC-BY' }
+      ],
+      'value': form.get('licence', '')
       }) }}
 
-      <div class="govuk-!-margin-top-4" style="display: flex; justify-content: flex-end;">
+      <div class="govuk-form-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
         {{ govukButton({
-          'text': 'Check data',
-          'attributes': { 'onclick': "document.getElementById('mode').value='final';" }
+        'text': 'Check data',
+        'attributes': { 'onclick': "document.getElementById('mode').value='final';" }
         }) }}
       </div>
     </form>
   </div>
 </div>
 {% endblock %}
-
+<!-- {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %} -->
 {% block pageScripts %}
-<script src="{{ url_for('static', filename='javascripts/accessible-autocomplete.min.js') }}"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}
+  src="{{ url_for('static', filename='javascripts/accessible-autocomplete.min.js') }}"></script>
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
+  document.addEventListener("DOMContentLoaded", function () {
     const datasetHidden = document.getElementById("dataset");
     const datasetContainer = document.getElementById("autocomplete-container");
     const orgWrapper = document.getElementById("org-autocomplete-wrapper");
@@ -159,7 +168,7 @@
       orgWrapper.replaceChildren(newWrapper);
       if (!orgs.length && datasetHidden.value) {
         newWrapper.innerHTML = `
-         
+
          <div class="govuk-warning-text govuk-!-margin-bottom-2">
             <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
             <strong class="govuk-warning-text__text">
@@ -184,7 +193,7 @@
         placeholder: placeholderText || "Type organisation name...",
         confirmOnBlur: false,
         autoselect: true,
-        onConfirm: function(val) {
+        onConfirm: function (val) {
           hiddenOrgInput.value = val;
         }
       });
@@ -200,12 +209,12 @@
       autoselect: true,
       displayMenu: "overlay",
       placeholder: "Type dataset name…",
-      source: function(query, populateResults) {
+      source: function (query, populateResults) {
         fetch(`{{ url_for('datamanager.dashboard_add') }}?autocomplete=${encodeURIComponent(query)}`)
           .then((response) => response.json())
           .then((data) => populateResults(data));
       },
-      onConfirm: function(val) {
+      onConfirm: function (val) {
         datasetHidden.value = val;
         hiddenOrgInput.value = "";
         fetch(`{{ url_for('datamanager.dashboard_add') }}?get_orgs_for=${encodeURIComponent(val)}`)
