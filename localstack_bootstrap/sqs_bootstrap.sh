@@ -15,5 +15,6 @@ create_queue() {
     awslocal --endpoint-url=http://${LOCALSTACK_HOST}:4566 sqs create-queue --queue-name ${QUEUE_NAME_TO_CREATE} --region ${AWS_REGION} --attributes VisibilityTimeout=30
 }
 
-create_queue "request-queue"
+create_queue "celery"
 create_queue "request-dlq"
+create_queue "request-queue"
