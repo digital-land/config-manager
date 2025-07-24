@@ -165,7 +165,7 @@ def register_extensions(app):
         talisman.init_app(
             app,
             content_security_policy=None,
-            content_security_policy_nonce_in=["script-src", "style-src"],
+            # content_security_policy_nonce_in=["script-src", "style-src"],
         )
 
 
