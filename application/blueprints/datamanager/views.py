@@ -23,10 +23,10 @@ def index():
 
 @datamanager_bp.route('/dashboard/add', methods=['GET', 'POST'])
 def dashboard_add():
+    # Fetch dataset list
     # Fetch dataset list with no row cap
     ds_response = requests.get("https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max").json()
-    datasets = ds_response['datasets']
-
+    datasets = [d for d in ds_response['datasets'] if 'collection' in d]
 
     dataset_options = sorted([d['name'] for d in datasets])
     name_to_dataset_id = {d['name']: d['dataset'] for d in datasets}
@@ -110,10 +110,13 @@ def dashboard_add():
             month = form.get('start_month', '').strip()
             year = form.get('start_year', '').strip()
 
+            org_warning = form.get('org_warning', 'false') == 'true'
+
             # Validate fields
             errors = {
                 'dataset': not dataset_input,
                 'organisation': (
+                    org_warning or
                     (selected_orgs and organisation not in selected_orgs) or
                     (not selected_orgs and organisation != 'None')
                 ),
@@ -143,17 +146,14 @@ def dashboard_add():
 
     # Default GET or failed POST
     return render_template(
-        'datamanager/dashboard_add.html',
+       'datamanager/dashboard_add.html',
         dataset_input=dataset_input,
         selected_orgs=selected_orgs,
         form=form,
         errors=errors,
         dataset_options=dataset_options
     )
-
-
    
-
 @datamanager_bp.route("/dashboard/config")
 def dashboard_config():
     """
