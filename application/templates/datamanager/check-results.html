@@ -1,0 +1,137 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <h1 class="govuk-heading-l">
+      {{ result.params.dataset | title }}
+      {% if result.params.organisation %}
+      — {{ result.params.organisation | title }}
+      {% endif %}
+    </h1>
+    <p class="govuk-body-l">Your data has been checked</p>
+
+    <!-- Tabs -->
+    <div class="govuk-tabs" data-module="govuk-tabs">
+      <h2 class="govuk-tabs__title">Contents</h2>
+      <ul class="govuk-tabs__list">
+        <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
+          <a class="govuk-tabs__tab" href="#map">Map</a>
+        </li>
+        <li class="govuk-tabs__list-item">
+          <a class="govuk-tabs__tab" href="#dataset-table">Dataset table</a>
+        </li>
+      </ul>
+
+      <!-- Map panel -->
+      <div class="govuk-tabs__panel" id="map">
+        <div style="height: 400px; border: 1px solid #ccc;">
+          <p class="govuk-body">[Map preview placeholder]</p>
+        </div>
+      </div>
+
+      <!-- Dataset table panel -->
+      <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="dataset-table">
+        {% if detailed_data and detailed_data[0]['converted_row'] %}
+        <table class="govuk-table">
+          <thead class="govuk-table__head">
+            <tr class="govuk-table__row">
+              {% for col in detailed_data[0]['converted_row'].keys() %}
+              <th scope="col" class="govuk-table__header">{{ col | replace("_", " ") | title }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody class="govuk-table__body">
+            {% for row in detailed_data %}
+            {% if row['converted_row'] %}
+            <tr class="govuk-table__row">
+              {% for val in row['converted_row'].values() %}
+              <td class="govuk-table__cell">
+                {% if val and val|string and val.startswith("http") %}
+                <a href="{{ val }}" target="_blank" class="govuk-link">{{ val }}</a>
+                {% else %}
+                {{ val or "-" }}
+                {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="govuk-body">No dataset details available.</p>
+
+        <!-- 👇 Optional debug info -->
+        <details class="govuk-details govuk-!-margin-top-3">
+          <summary class="govuk-details__summary">Show debug info</summary>
+          <div class="govuk-details__text">
+            <pre>{{ detailed_data | tojson(indent=2) }}</pre>
+          </div>
+        </details>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="govuk-grid-row">
+      <!-- RIGHT COLUMN -->
+      <div class="govuk-grid-column-one-third">
+        <h3 class="govuk-heading-s">Dataset actions</h3>
+        <p><a class="govuk-link" href="#">Share these results</a></p>
+      </div>
+
+      <!-- LEFT COLUMN -->
+      <div class="govuk-grid-column-two-thirds">
+        <dl class="govuk-summary-list">
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Endpoint</dt>
+            <dd class="govuk-summary-list__value">
+              <a href="{{ result.params.url }}" target="_blank">{{ result.params.url }}</a>
+            </dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Date checked</dt>
+            <dd class="govuk-summary-list__value">
+              {{ result.modified or result.created }}
+            </dd>
+          </div>
+        </dl>
+
+        {% if result.status == "COMPLETE" and result.response and result.response.data %}
+        {% set summaries = result.response.data.get("error-summary", []) %}
+
+        <h2 class="govuk-heading-m">Issues found during checks</h2>
+        {% for msg in summaries %}
+        <div class="govuk-!-margin-bottom-2" style="display:flex; justify-content:space-between;">
+          <span>{{ msg }}</span>
+          <strong class="govuk-tag govuk-tag--red">Issue</strong>
+        </div>
+        {% endfor %}
+
+        <h2 class="govuk-heading-m govuk-!-margin-top-6">Column check log</h2>
+        <ul class="govuk-list govuk-list--bullet">
+          {% for entry in result.response.data.get("column-field-log", []) %}
+          <li>{{ entry.field }} - {% if entry.missing %}❌ Missing{% else %}✅ Present{% endif %}</li>
+          {% endfor %}
+        </ul>
+        {% elif result.status in ["NEW", "PROCESSING"] %}
+        <p class="govuk-body">Your file is still being processed. Please refresh this page shortly.</p>
+        {% elif result.status == "FAILED" %}
+        <div class="govuk-error-summary" role="alert">
+          <h2 class="govuk-error-summary__title">There was a problem processing your data</h2>
+          <div class="govuk-error-summary__body">
+            <p>{{ result.response.error.message if result.response and result.response.error else "Unknown error" }}</p>
+          </div>
+        </div>
+        {% else %}
+        <p class="govuk-body">No results available.</p>
+        {% endif %}
+
+        <a href="{{ url_for('datamanager.dashboard_add') }}" class="govuk-button govuk-!-margin-top-6">
+          Upload a new version
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
