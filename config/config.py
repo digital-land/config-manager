@@ -29,6 +29,7 @@ class Config:
     # Config repo branch to commit to. If/when this application is used
     # to edit config then change to push to main branch - until then default to update-test
     CONFIG_REPO_BRANCH = os.getenv("CONFIG_REPO_BRANCH", "config-manager-update")
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "local").lower()
 
 
 class DevelopmentConfig(Config):

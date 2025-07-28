@@ -140,7 +140,7 @@ def dashboard_add():
 
                 # ✅ Send to backend
                 try:
-                    async_api = get_request_api_endpoint()
+                    async_api = f"{get_request_api_endpoint()}/requests"
                     # ✅ Log the payload right before sending it
                     print("🚀 Sending payload to backend:")
                     print(json.dumps(payload, indent=2))
@@ -249,11 +249,8 @@ def check_results(request_id):
             try:
                 print(details_response.text)
                 details_json = details_response.json()
-                print(details_json)
-                detailed_data = details_json.get("data", details_json)
-                print(
-                    "✅ detailed_data loaded:", json.dumps(detailed_data[:1], indent=2)
-                )
+
+                print("✅ details_json loaded:", json.dumps(details_json[:1], indent=2))
             except Exception as e:
                 print("❌ JSON decode error:", e)
                 detailed_data = []
@@ -262,7 +259,7 @@ def check_results(request_id):
             detailed_data = []
 
         return render_template(
-            "datamanager/check-results.html", result=result, detailed_data=detailed_data
+            "datamanager/check-results.html", result=result, detailed_data=details_json
         )
 
     except Exception as e:
