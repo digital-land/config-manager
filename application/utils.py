@@ -2,6 +2,7 @@ import csv
 import datetime
 import hashlib
 import io
+import os
 from functools import wraps
 
 import requests
@@ -129,3 +130,21 @@ def index_with_list(key_field, dict_list):
 def split_organisation_id(organisation):
     parts = organisation.split(":")
     return parts[0], parts[1]
+
+
+def get_request_api_endpoint():
+    """
+    Returns the async request backend API endpoint based on the ENVIRONMENT variable.
+    ENVIRONMENT: local | development | staging | production
+    Default environment is local
+    """
+    env = os.getenv("ENVIRONMENT", "local").lower()
+
+    mapping = {
+        "local": "http://localhost:8000",
+        "development": "http://development-pub-async-api-lb-69142969.eu-west-2.elb.amazonaws.com",
+        "staging": "http://staging-pub-async-api-lb-12493311.eu-west-2.elb.amazonaws.com",
+        "production": "http://production-pub-async-api-lb-636110663.eu-west-2.elb.amazonaws.com",
+    }
+
+    return mapping.get(env, mapping["local"])
