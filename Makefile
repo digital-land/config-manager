@@ -50,12 +50,16 @@ drop-data:
 
 test-unit:
 	@echo "Running Unit test...."
+	@echo "Not yet implemented"
 
 test-integration:
 	@echo "Running Integration test...."
+	@echo "Not yet implemented"
 
 test-acceptance:
 	@echo "Running Acceptance test...."
+	@echo "Not yet implemented"
 
 test-accessibility:
 	@echo "Running Accessibility test...."
+	@echo "Not yet implemented"

@@ -58,25 +58,25 @@ jobs:
         run: |
           make test-unit
           echo "## Unit Tests" >> $GITHUB_STEP_SUMMARY
-          cat unit-tests.md >> $GITHUB_STEP_SUMMARY
+          # cat unit-tests.md >> $GITHUB_STEP_SUMMARY
 
       - name: Integration Tests
         run: |
           make test-integration
           echo "## Integration Tests" >> $GITHUB_STEP_SUMMARY
-          cat integration-tests.md >> $GITHUB_STEP_SUMMARY
+          # cat integration-tests.md >> $GITHUB_STEP_SUMMARY
 
       - name: Acceptance Tests
         run: |
           make test-acceptance
           echo "## Acceptance Tests" >> $GITHUB_STEP_SUMMARY
-          cat acceptance-tests.md >> $GITHUB_STEP_SUMMARY
+          # cat acceptance-tests.md >> $GITHUB_STEP_SUMMARY
 
       - name: Accessibility Tests
         run: |
           make test-accessibility
           echo "## Accessibility Tests" >> $GITHUB_STEP_SUMMARY
-          cat accessibility-tests.md >> $GITHUB_STEP_SUMMARY
+          # cat accessibility-tests.md >> $GITHUB_STEP_SUMMARY
 
       - uses: actions/upload-artifact@v4
         if: always()
