@@ -41,4 +41,5 @@ jobs:
             });
 
             // Otherwise fetch all defined GitHub Environments
+            console.log("Environment: ", environments.map(e => e.name).filter(name => allowed.includes(name)))
             return environments.map(e => e.name).filter(name => allowed.includes(name));
