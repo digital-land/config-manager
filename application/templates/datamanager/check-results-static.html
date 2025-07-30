@@ -4,7 +4,7 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
 
-    <!-- Blocking errors -->
+    <!-- Error Summary if blocking issues -->
     {% if show_error %}
     <div class="govuk-error-summary govuk-!-margin-bottom-6" role="alert">
       <h2 class="govuk-error-summary__title">Data can not be added</h2>
@@ -16,7 +16,7 @@
 
     <!-- Headings -->
     <span class="govuk-caption-xl">{{ result.params.organisation }}</span>
-    <h1 class="govuk-heading-xl">{{ result.params.dataset | title }}</h1>
+    <h1 class="govuk-heading-xl">Article 4 direction</h1>
     <h2 class="govuk-heading-m govuk-!-margin-top-3">Your data has been checked</h2>
 
     <!-- Tabs -->
@@ -30,45 +30,16 @@
         </li>
       </ul>
 
-      <!-- Map Tab -->
       <div class="govuk-tabs__panel" id="map">
         <div id="map-container" style="height: 450px; border: 1px solid #ccc;"></div>
       </div>
 
-      <!-- Dataset Table Tab
-      <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="dataset-table" >
-        {% if detailed_data and detailed_data|length > 0 %}
-        <table class="govuk-table">
-          <thead class="govuk-table__head">
-            <tr class="govuk-table__row">
-              {% for col in detailed_data[0]['converted_row'].keys() %}
-              <th scope="col" class="govuk-table__header">{{ col }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody class="govuk-table__body">
-            {% for row in detailed_data %}
-            <tr class="govuk-table__row">
-              {% for val in row['converted_row'].values() %}
-              <td class="govuk-table__cell">
-                {% if val and val|string and val.startswith("http") %}
-                <a href="{{ val }}" target="_blank" class="govuk-link">{{ val }}</a>
-                {% else %}
-                {{ val or '-' }}
-                {% endif %}
-              </td>
-              {% endfor %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <p class="govuk-body">No dataset details available</p>
-        {% endif %}
-      </div> -->
+      <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="dataset-table">
+        <p class="govuk-body">[Dataset table placeholder]</p>
+      </div>
     </div>
 
-    <!-- Metadata & Results -->
+    <!-- Metadata and results -->
     <div class="govuk-grid-row govuk-!-margin-top-6">
       <div class="govuk-grid-column-one-third">
         <h3 class="govuk-heading-s">Dataset actions</h3>
@@ -79,34 +50,37 @@
         <dl class="govuk-summary-list">
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">File name</dt>
-            <dd class="govuk-summary-list__value">{{ result.params.url.split('/')[-1] }}</dd>
+            <dd class="govuk-summary-list__value">{{ result.params.dataset }}.csv</dd>
           </div>
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">Date checked</dt>
-            <dd class="govuk-summary-list__value">{{ result.modified or result.created }}</dd>
+            <dd class="govuk-summary-list__value">{{ result.created }}</dd>
           </div>
         </dl>
 
-        <!-- Passed Checks -->
         <h2 class="govuk-heading-m govuk-!-margin-top-6">Data that passed the checks</h2>
         <div class="govuk-!-margin-bottom-4">
-          {% for col in result.response.data["column-field-log"] %}
-          {% if not col.missing %}
-          <div class="govuk-!-margin-bottom-2" style="display:flex; justify-content:space-between;">
-            <span>All rows have {{ col.field }} present</span>
+          <div class="govuk-!-margin-bottom-2" style="display: flex; justify-content: space-between;">
+            <span>Found 50 rows</span>
             <strong class="govuk-tag govuk-tag--green">Passed</strong>
           </div>
-          {% endif %}
-          {% endfor %}
+          <div class="govuk-!-margin-bottom-2" style="display: flex; justify-content: space-between;">
+            <span>All rows have unique references</span>
+            <strong class="govuk-tag govuk-tag--green">Passed</strong>
+          </div>
+          <div class="govuk-!-margin-bottom-2" style="display: flex; justify-content: space-between;">
+            <span>All rows have valid geometry</span>
+            <strong class="govuk-tag govuk-tag--green">Passed</strong>
+          </div>
         </div>
 
-        <!-- Must fix (blocking issues) -->
+        <!-- Must fix errors -->
         {% if must_fix %}
         <h2 class="govuk-heading-m govuk-!-margin-top-4">Issues you must fix before submitting</h2>
         <div class="govuk-!-margin-bottom-4 govuk-body">
           {% for issue in must_fix %}
-          <div style="display:flex; justify-content:space-between; border-top:1px solid #b1b4b6; padding:10px 0;">
-            <span><a class="govuk-link" href="#">{{ issue }}</a></span>
+          <div style="display: flex; justify-content: space-between; border-top: 1px solid #b1b4b6; padding: 10px 0;">
+            <span><a class="govuk-link" href="#">{{ issue | safe }}</a></span>
             <strong class="govuk-tag govuk-tag--red">Must fix</strong>
           </div>
           {% endfor %}
@@ -117,20 +91,20 @@
         {% if fixable %}
         <h2 class="govuk-heading-m">Issues you can fix after submitting</h2>
         <p class="govuk-body">
-          You can submit your data with these issues but should fix them over time.
+          You can submit your data with these issues but should fix them over time to improve the quality and usability of the data.
         </p>
         <div class="govuk-!-margin-bottom-4 govuk-body">
           {% for issue in fixable %}
-          <div style="display:flex; justify-content:space-between; border-top:1px solid #b1b4b6; padding:10px 0;">
-            <span><a class="govuk-link" href="#">{{ issue }}</a></span>
+          <div style="display: flex; justify-content: space-between; border-top: 1px solid #b1b4b6; padding: 10px 0;">
+            <span><a class="govuk-link" href="#">{{ issue | safe }}</a></span>
             <strong class="govuk-tag govuk-tag--yellow">Needs fixing</strong>
           </div>
           {% endfor %}
         </div>
         {% endif %}
 
-        <!-- Buttons -->
-        <div class="govuk-button-group govuk-!-margin-top-6" style="display:flex; justify-content:flex-end;">
+        <!-- Action Buttons -->
+        <div class="govuk-button-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
           {% if allow_add_data %}
           <a href="#" class="govuk-button">Add data</a>
           {% else %}
@@ -151,17 +125,36 @@
 
 <script>
   window.GOVUKFrontend.initAll();
-  // document.addEventListener("DOMContentLoaded", function () {
-  //   const map = L.map('map-container').setView([50.3755, -4.1427], 12);
-  //   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  //     attribution: '&copy; OpenStreetMap contributors'
-  //   }).addTo(map);
-  //   // You can pass geometries dynamically from backend
-  //   {% if geometries %}
-  //   L.geoJSON({{ geometries | tojson | safe }}, {
-  //     style: { color: 'red', weight: 2, fillOpacity: 0.4 }
-  //   }).addTo(map);
-  //   {% endif %}
-  // });
+  document.addEventListener("DOMContentLoaded", function() {
+    const map = L.map('map-container').setView([50.3755, -4.1427], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    const polygon = {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-4.2, 50.4],
+            [-4.1, 50.4],
+            [-4.1, 50.3],
+            [-4.2, 50.3],
+            [-4.2, 50.4]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Sample Area"
+      }
+    };
+    L.geoJSON(polygon, {
+      style: {
+        color: 'red',
+        weight: 2,
+        fillOpacity: 0.4
+      }
+    }).addTo(map);
+  });
 </script>
 {% endblock %}
