@@ -1,0 +1,44 @@
+name: Detect Environment to Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "The environment to deploy(Optional)"
+        required: false
+        type: string
+    outputs:
+      environments:
+        description: "List of environment names"
+        value: ${{ jobs.run.outputs.environments }}
+
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    outputs:
+      environments: ${{ steps.environments.outputs.result }}
+
+    steps:
+      - uses: actions/github-script@v6
+        id: environments
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: json
+          script: |
+            const allowed = ['development', 'staging', 'production'];
+            // If triggered manually with an environment in the allowed array, return it
+            if (context.payload?.inputs?.environment) {
+              const env = context.payload.inputs.environment
+              return allowed.includes(env) ? [env] : [];
+            }
+
+            // fetch all repo environments
+            const { data: { environments } } = await github.rest.repos.getAllEnvironments({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            // Otherwise fetch all defined GitHub Environments
+            return environments.map(e => e.name).filter(name => allowed.includes(name));
