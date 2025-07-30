@@ -13,7 +13,7 @@ on:
 
 jobs:
   detect-environments:
-    uses: ./github/workflows/detect-environments.yml
+    uses: ./.github/workflows/detect-environments.yml
     with:
       environment: ${{ github.event.inputs.environment }}
 
