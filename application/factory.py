@@ -22,6 +22,7 @@ def create_app(config_filename):
     app = Flask(__name__)
     app.config.from_object(config_filename)
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 10
+    app.config["DEBUG"] = True
 
     register_blueprints(app)
     register_context_processors(app)

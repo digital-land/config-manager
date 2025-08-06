@@ -143,6 +143,9 @@ endblock %}
         'text': 'Check data',
         'attributes': { 'onclick': "document.getElementById('mode').value='final';" }
         }) }}
+        <button class="govuk-button govuk-button--secondary" type="submit" formaction="{{ url_for('datamanager.debug_payload') }}">
+          Preview JSON
+        </button>
       </div>
     </form>
   </div>
@@ -162,6 +165,13 @@ endblock %}
     const datasetValue = datasetHidden.value || "";
     const orgValue = hiddenOrgInput.value && hiddenOrgInput.value !== "undefined" ? hiddenOrgInput.value : "";
     const orgList = JSON.parse(`{{ selected_orgs | default([]) | tojson | safe }}`);
+    document.querySelector("form").addEventListener("submit", function () {
+      console.log("📤 Submitting form with:");
+      console.log("Dataset:", document.getElementById("dataset").value);
+      console.log("Organisation:", document.getElementById("organisation").value);
+      console.log("Endpoint URL:", document.getElementById("endpoint-url").value);
+      console.log("Mode:", document.getElementById("mode").value);
+    });
 
     function updateOrgAutocomplete(orgs, defaultValue, placeholderText) {
       const newWrapper = document.createElement("div");

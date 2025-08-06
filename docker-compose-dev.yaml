@@ -2,7 +2,7 @@ name: config-manager-dev
 
 services:
   db:
-    image: postgres:16.2-alpine
+    image: postgres:15-alpine
     restart: always
     container_name: db
     environment:
@@ -122,7 +122,7 @@ services:
 
   request-db:
     container_name: request-db
-    image: postgres:16.2-alpine
+    image: postgres:15-alpine
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d request_database"]
       interval: 10s
