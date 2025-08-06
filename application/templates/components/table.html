@@ -1,0 +1,40 @@
+{% macro table(params) %}
+<div class="app-scrollable-container dl-scrollable">
+  <table class="govuk-table dl-table">
+    <colgroup>
+      {% for field in params.fields %}
+      <col />
+      {% endfor %}
+    </colgroup>
+    <thead class="govuk-table__head dl-table__head">
+      <tr class="govuk-table__row">
+        {% for column in params.columns %}
+        <th scope="col" class="govuk-table__header dl-table__header">{{ column }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for row in params.rows %}
+      <tr class="govuk-table__row">
+        {% for field in params.fields %}
+        <td class="govuk-table__cell app-wrap">
+          {% if row.columns[field].html %}
+          <div class="dl-ellipsis govuk-link-wrapper">
+            {{ row.columns[field].html | safe }}
+          </div>
+          {% elif row.columns[field].value is string and row.columns[field].value.startswith('http') %}
+          <a href="{{ row.columns[field].value }}" class="govuk-link" target="_blank" rel="noopener noreferrer">
+            {{ row.columns[field].value }}
+          </a>
+          {% else %}
+          {{ row.columns[field].value }}
+          {% endif %}
+        </td>
+
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
