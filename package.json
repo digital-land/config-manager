@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "A tool to help manage the data in the digital land platform",
   "scripts": {
-    "copy:css": "rsync -ar src/css/ application/static/stylesheets/",
+    "copy:css": "rsync -ar src/css/application.css application/static/stylesheets/application.css && rsync -ar src/css/vendor/ application/static/stylesheets/vendor",
     "copy:js": "rsync -ar src/javascripts/vendor/ application/static/javascripts/vendor",
     "copy": "npm-run-all --parallel copy:*",
     "flask": "flask run",
