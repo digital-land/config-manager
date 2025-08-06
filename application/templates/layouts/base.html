@@ -24,7 +24,8 @@
   <div class="govuk-header__container govuk-width-container app-govuk-header__container">
     <div class="app-header__content">
       <span class="app-header__team-name">
-        <a href="https://digital-land.info" class="govuk-header__link govuk-header__link--homepage app-govuk-header__link--homepage app-govuk-header__link--homepage--bold">
+        <a href="https://digital-land.info"
+          class="govuk-header__link govuk-header__link--homepage app-govuk-header__link--homepage app-govuk-header__link--homepage--bold">
           <span class="govuk-header__logotype-text">
             Digital Land
           </span>
@@ -46,7 +47,7 @@
 {% block beforeContent %}
 <script>
   // Ensure the body class is added before GOV.UK Frontend initialises
-  (function() {
+  (function () {
     if (document.body && !document.body.classList.contains('govuk-frontend-supported')) {
       document.body.classList.add('govuk-frontend-supported');
     }
@@ -73,7 +74,7 @@
 
 <script>
   // Initialise GOV.UK Frontend components globally
-  document.addEventListener("DOMContentLoaded", function() {
+  document.addEventListener("DOMContentLoaded", function () {
     if (window.GOVUKFrontend) {
       window.GOVUKFrontend.initAll();
     }

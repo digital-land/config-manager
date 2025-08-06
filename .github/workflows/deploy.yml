@@ -12,7 +12,10 @@ on:
 
 jobs:
   test:
+    # Run only on manual deployment
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/test.yml
+
   detect-environments:
     uses: ./.github/workflows/detect-environments.yml
     with:
@@ -21,6 +24,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: [detect-environments]
+    if: always()
     strategy:
       matrix:
         environment: ${{ fromJSON(needs.detect-environments.outputs.environments) }}
