@@ -9,7 +9,7 @@
 {% block head %}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {% block stylesheets %}
-<link rel="stylesheet" href="/static/stylesheets/vendor/application.css">
+<link rel="stylesheet" href="/static/stylesheets/application.css">
 <!-- <link rel="stylesheet" href="{{ url_for('static', filename='src/css/application.css') }}"> -->
 <style {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
   .govuk-required {
