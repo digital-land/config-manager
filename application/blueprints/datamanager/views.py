@@ -51,10 +51,8 @@ def dashboard_add():
         dataset_id = name_to_dataset_id.get(dataset_name)
         if not dataset_id:
             return jsonify([])
-        provision_url = (
-            f"https://datasette.planning.data.gov.uk/digital-land/provision.json"
-            f"?_labels=on&_size=max&dataset={dataset_id}"
-        )
+
+        provision_url = f"https://datasette.planning.data.gov.uk/digital-land/provision.json?_labels=on&_size=max&dataset={dataset_id}"
 
         try:
             provision_rows = (
@@ -96,10 +94,7 @@ def dashboard_add():
             column_mapping = {}
 
         if dataset_id:
-            provision_url = (
-                f"https://datasette.planning.data.gov.uk/digital-land/provision.json"
-                f"?_labels=on&_size=max&dataset={dataset_id}"
-            )
+            provision_url = f"https://datasette.planning.data.gov.uk/digital-land/provision.json?_labels=on&_size=max&dataset={dataset_id}"
 
             try:
                 provision_rows = (
