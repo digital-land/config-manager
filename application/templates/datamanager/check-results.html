@@ -1,6 +1,8 @@
 {% extends 'layouts/base.html' %}
 {% from "components/table.html" import table %}
 
+
+
 {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
@@ -16,7 +18,7 @@
     {% endif %}
 
     <!-- Headings -->
-    <span class="govuk-caption-xl">{{ result.params.organisation }}</span>
+    class="govuk-caption-xl">{{ result.params.organisation }}</span>
     <h1 class="govuk-heading-xl">{{ result.params.dataset | title }}</h1>
     <h2 class="govuk-heading-m govuk-!-margin-top-3">Data has been checked</h2>
 
@@ -33,7 +35,8 @@
 
       <!-- Map Tab -->
       <div class="govuk-tabs__panel" id="map">
-        <div id="map-container" style="height: 450px; border: 1px solid #ccc;" data-geometries='{{ geometries | tojson | safe }}'>
+        <div id="map-container" style="height: 450px; border: 1px solid #ccc;"
+          data-geometries='{{ geometries | tojson | safe }}'>
         </div>
       </div>
 
@@ -51,9 +54,9 @@
           {% if page > 1 %}
           <a class="govuk-link" href="?page={{ page-1 }}">Previous</a>
           {% endif %}
-          {% if showing_end < total_rows %}
-          <a class="govuk-link govuk-!-margin-left-4" href="?page={{ page+1 }}">Next</a>
-          {% endif %}
+          {% if showing_end < total_rows %} <a class="govuk-link govuk-!-margin-left-4" href="?page={{ page+1 }}">
+            Next</a>
+            {% endif %}
         </div>
         {% else %}
         <p class="govuk-body">No rows to display</p>
@@ -122,14 +125,24 @@
           {% endif %}
 
           <!-- Buttons -->
-          <div class="govuk-button-group govuk-!-margin-top-6" style="display:flex; justify-content:flex-end;">
-            {% if allow_add_data %}
-            <a href="#" class="govuk-button">Configure data</a>
-            <a href="#" class="govuk-button">Add data</a>
+          <div class="govuk-button-group govuk-!-margin-top-6" style="display:flex; justify-content:flex-end; gap: 10px;">
+            {% if not allow_add_data %}
+                {# Must fix issues present: Add data grey, Configure active #}
+                <a class="govuk-button govuk-button--secondary govuk-button--disabled" aria-disabled="true">Add data</a>
+                <a href="{{ url_for('datamanager.index') }}" class="govuk-button">
+                    Configure data
+                </a>
             {% else %}
-            <a href="#" class="govuk-button">Upload new version</a>
+                {# No must fix: Add data green, Configure secondary #}
+                <a href="{{ url_for('datamanager.add_data', request_id=result.id) }}" class="govuk-button">
+                    Add data
+                </a>
+                <a href="{{ url_for('datamanager.index') }}" class="govuk-button govuk-button--secondary">
+                    Configure data
+                </a>
             {% endif %}
-          </div>
+        </div>
+        
         </div>
       </div>
     </div>
@@ -142,33 +155,30 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function () {
       // Initialise GOV.UK Frontend after DOM is fully ready
       window.GOVUKFrontend.initAll();
+
       // Leaflet map setup
       const mapContainer = document.getElementById('map-container');
       if (mapContainer) {
         const map = L.map(mapContainer).setView([54.0, -2.0], 6);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
+
         const geometries = JSON.parse(mapContainer.dataset.geometries || "[]");
         if (geometries.length > 0) {
-          const geoLayer = L.geoJSON({
-            type: "FeatureCollection",
-            features: geometries
-          }, {
-            style: {
-              color: "red",
-              weight: 2,
-              fillOpacity: 0.35
-            },
+          const geoLayer = L.geoJSON({ type: "FeatureCollection", features: geometries }, {
+            style: { color: "red", weight: 2, fillOpacity: 0.35 },
             onEachFeature: (feature, layer) => {
               if (feature.properties?.reference) {
                 layer.bindPopup("Reference: " + feature.properties.reference);
               }
             }
           }).addTo(map);
+
           map.fitBounds(geoLayer.getBounds());
         }
       }

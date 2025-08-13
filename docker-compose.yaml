@@ -28,6 +28,7 @@ services:
           condition: service_healthy
     environment:
         FLASK_DEBUG: True
+        REQUEST_API_BASE_URL: http://localhost:8000
         FLASK_CONFIG: config.DevelopmentConfig
         FLASK_APP: application.wsgi:app
         SECRET_KEY: replaceinprod
