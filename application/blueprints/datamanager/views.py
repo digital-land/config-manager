@@ -319,11 +319,10 @@ def check_results(request_id):
         traceback.print_exc()
         abort(500, f"Error fetching results from backend: {e}")
  
-@datamanager_bp.route("/check-results/optional-submit", methods=["POST"])
+@datamanager_bp.route("/check-results/optional-submit", methods=["GET","POST"])
 def optional_fields_submit():
     form = request.form.to_dict()
     request_id = form.get("request_id")
- 
     documentation_url = form.get("documentation_url", "").strip()
     licence = form.get("licence", "").strip()
     start_day = form.get("start_day", "").strip()
@@ -338,41 +337,95 @@ def optional_fields_submit():
     async_api = get_request_api_endpoint()
     payload = {
         "params": {
+            "type": "check_url",
             "documentation_url": documentation_url or None,
             "licence": licence or None,
             "start_date": start_date
         }
     }
+    print("\n 📦 Submitting optional fields to request API: \n")
     try:
         requests.patch(
             f"{async_api}/requests/{request_id}",
             json=payload,
             timeout=REQUESTS_TIMEOUT
         )
+        print(f"✅ Successfully updated request {request_id} in request-api")
+        print(json.dumps(payload, indent=2))  
     except Exception as e:
         print(f"❌ Failed to update request {request_id} in request-api: {e}")
+
+    return redirect(url_for( "datamanager.add_data",request_id=request_id))
  
-    return redirect(url_for("datamanager.check_results", request_id=request_id))
- 
- 
-@datamanager_bp.route("/check-results/<request_id>/add-data", methods=["GET"])
+@datamanager_bp.route("/check-results/<request_id>/add-data", methods=["GET", "POST"])
 def add_data(request_id):
     async_api = get_request_api_endpoint()
     response = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
     result = response.json()
-    params = result.get("params", {})
- 
-    doc_url = params.get("documentation_url") or session.get("optional_fields", {}).get("documentation_url")
-    licence = params.get("licence") or session.get("optional_fields", {}).get("licence")
-    start_date = params.get("start_date") or session.get("optional_fields", {}).get("start_date")
- 
-    if doc_url and licence and start_date:
-        session.pop("optional_fields", None)
-        return redirect(url_for("datamanager.check_results", request_id=request_id))
- 
-    return render_template("datamanager/add-data.html", request_id=request_id)
- 
- 
+    params = result.get("params", {}) or {}
+    seed = session.get("optional_fields", {})
+
+    if request.method == "POST":
+        form = request.form.to_dict()
+
+        # Collect optional fields
+        documentation_url = form.get("documentation_url") or seed.get("documentation_url", "")
+        licence = form.get("licence") or seed.get("licence", "")
+        start_day = form.get("start_day") or ""
+        start_month = form.get("start_month") or ""
+        start_year = form.get("start_year") or ""
+        start_date = (
+            f"{start_year}-{start_month.zfill(2)}-{start_day.zfill(2)}"
+            if all([start_day, start_month, start_year])
+            else seed.get("start_date")
+        )
+
+        # Construct new payload
+        payload = {
+            "params": {
+                "type": "add-data",
+                "collection": params.get("collection"),
+                "dataset": params.get("dataset"),
+                "url": params.get("url"),
+                "documentation_url": documentation_url or None,
+                "licence": licence or None,
+                "start_date": start_date,
+                "column_mapping": params.get("column_mapping"),
+                "geom_type": params.get("geom_type"),
+            }
+        }
+
+        # 🔍 DEBUG print
+        print(" Submitting add_data payload to backend:")
+        print(json.dumps(payload, indent=2))
+
+        try:
+            new_response = requests.post(
+                f"{async_api}/requests", json=payload, timeout=REQUESTS_TIMEOUT
+            )
+            if new_response.status_code == 202:
+                new_request_id = new_response.json()["id"]
+                return redirect(url_for("datamanager.check_results", request_id=new_request_id))
+            else:
+                return render_template("error.html", message="Failed to submit add_data request.")
+        except Exception as e:
+            traceback.print_exc()
+            return render_template("error.html", message=f"Backend error: {e}")
+
+    # GET fallback to show optional form
+    form = {
+        "documentation_url": params.get("documentation_url") or seed.get("documentation_url", ""),
+        "licence": params.get("licence") or seed.get("licence", "")
+    }
+
+    iso = params.get("start_date") or seed.get("start_date")
+    if iso:
+        parts = iso.split("-")
+        if len(parts) == 3:
+            form.update({"start_year": parts[0], "start_month": parts[1], "start_day": parts[2]})
+
+    return render_template("datamanager/add-data.html", request_id=request_id, form=form, errors={})
+
 @datamanager_bp.route("/dashboard/debug-payload", methods=["POST"])
 def debug_payload():
     form = request.form.to_dict()
@@ -416,5 +469,7 @@ def debug_payload():
         payload["params"]["geom_type"] = geom_type
  
     return render_template("datamanager/debug_payload.html", payload=payload)
- 
- 
+
+
+
+
