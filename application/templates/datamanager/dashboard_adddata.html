@@ -1,0 +1,127 @@
+{% extends 'layouts/base.html' %}
+
+{% from "govuk_frontend_jinja/components/button/macro.html" import govukButton %}
+{% from "govuk_frontend_jinja/components/input/macro.html" import govukInput %}
+{% from "govuk_frontend_jinja/components/select/macro.html" import govukSelect %}
+
+{% block pageStylesheets %}
+<link rel="stylesheet" href="{{ url_for('static', filename='stylesheets/accessible-autocomplete.min.css') }}">{%
+endblock %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <h1 class="govuk-heading-xl">More Infromation Required</h1>
+  </div>
+</div>
+
+<div class="govuk-grid-row govuk-!-margin-top-6">
+  <div class="govuk-grid-column-one-half">
+    <form method="POST" action="#" novalidate>
+      <input type="hidden" id="mode" name="mode" value="">
+      
+      {% set documentation_error = errors.get('documentation_url') %}
+
+      {% if documentation_error or errors.start_date %}
+      <div class="govuk-error-summary" role="alert" data-module="govuk-error-summary">
+        <h2 class="govuk-error-summary__title">There is a problem</h2>
+        <div class="govuk-error-summary__body">
+          <ul class="govuk-list govuk-error-summary__list">
+            {% if documentation_error %}<li><a href="#documentation-url">Enter a valid documentation URL</a></li>{%
+            endif %}
+            {% if errors.start_date %}<li><a href="#start-day">Enter a valid start date</a></li>{% endif %}
+          </ul>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Documentation URL -->
+      <div class="govuk-form-group {% if documentation_error %}govuk-form-group--error{% endif %}">
+        {{ govukInput({
+            
+        'label': { 'html': 'Documentation URL <span class="govuk-required">*</span>' },
+        'id': 'documentation-url',
+        'name': 'documentation_url',
+        'value': form.get('documentation_url', ''),
+        'attributes': {
+        'pattern': '(^$)|https?://.*\\.(gov\\.uk|org\\.uk)(/.*)?',
+        'title': 'Must be a valid URL ending in .gov.uk or .org.uk if provided'
+        },
+        'errorMessage': ( { 'text': 'Enter a valid documentation URL ending in .gov.uk or .org.uk' } if
+        documentation_error else None )
+        }) }}
+      </div>
+
+      <div class="govuk-form-group govuk-!-margin-top-6">
+        <!-- Start date -->
+        <fieldset class="govuk-fieldset" role="group" aria-describedby="start-date-error">
+        <label class="govuk-label" for="start-day">Start date (defaults to today) <span class="govuk-required">*</span></label>
+          {% if errors.start_date %}
+          <p id="start-date-error" class="govuk-error-message">
+            <span class="govuk-visually-hidden">Error:</span> Enter a valid date
+          </p>
+          {% endif %}
+          {% set today = now.now() %}
+          <div class="govuk-date-input" id="start-date">
+            <div class="govuk-date-input__item">
+              <label class="govuk-label govuk-date-input__label" for="start-day">Day</label>
+              <input class="govuk-input govuk-input--width-2" id="start-day" name="start_day" type="text"
+                inputmode="numeric" value="{{ form.start_day or today.day }}">
+            </div>
+            <div class="govuk-date-input__item">
+              <label class="govuk-label govuk-date-input__label" for="start-month">Month</label>
+              <input class="govuk-input govuk-input--width-2" id="start-month" name="start_month" type="text"
+                inputmode="numeric" value="{{ form.start_month or today.month }}">
+            </div>
+            <div class="govuk-date-input__item">
+              <label class="govuk-label govuk-date-input__label" for="start-year">Year</label>
+              <input class="govuk-input govuk-input--width-4" id="start-year" name="start_year" type="text"
+                inputmode="numeric" value="{{ form.start_year or today.year }}">
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <!-- Licence -->
+      {{ govukSelect({
+      'id': 'licence',
+      'name': 'licence',
+      'label': { 'html': 'Data is provided under which licence?<span class="govuk-required">*</span>' },
+      'errorMessage': ( { 'text': 'Select a licence' } if errors.get('licence') else None ),
+      'attributes': { 'required': 'required' },
+      'items': [
+      { 'value': '', 'text': 'Select a licence', 'disabled': True, 'hidden': True },
+      { 'value': 'ogl', 'text': 'OGL' },
+      { 'value': 'cc-by', 'text': 'CC-BY' }
+      ],
+      'value': form.get('licence', '')
+      }) }}
+
+      
+      <div class="govuk-form-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
+        {{ govukButton({
+        'text': 'Continue',
+        'attributes': { 'onclick': "document.getElementById('mode').value='final'; storedata()" }
+        }) }}
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  function storedata() {
+    // Store form data in localStorage
+    const formData = {
+      documentation_url: document.getElementById('documentation-url').value,
+      start_day: document.getElementById('start-day').value,
+      start_month: document.getElementById('start-month').value,
+      start_year: document.getElementById('start-year').value,
+      licence: document.getElementById('licence').value
+    };
+    localStorage.setItem('formData', JSON.stringify(formData));
+    // Redirect to under construction page with data
+    window.location.href = "{{ url_for('datamanager.under_construction') }}?data=" + encodeURIComponent(JSON.stringify(formData));
+  } 
+  console.log()
+</script>
+{% endblock %}
+<!-- {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %} -->
