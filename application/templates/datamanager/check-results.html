@@ -18,7 +18,7 @@
     {% endif %}
 
     <!-- Headings -->
-    class="govuk-caption-xl">{{ result.params.organisation }}</span>
+    <span class="govuk-caption-xl">{{ result.params.organisation }}</span>
     <h1 class="govuk-heading-xl">{{ result.params.dataset | title }}</h1>
     <h2 class="govuk-heading-m govuk-!-margin-top-3">Data has been checked</h2>
 
@@ -125,24 +125,19 @@
           {% endif %}
 
           <!-- Buttons -->
-          <div class="govuk-button-group govuk-!-margin-top-6" style="display:flex; justify-content:flex-end; gap: 10px;">
-            {% if not allow_add_data %}
-                {# Must fix issues present: Add data grey, Configure active #}
-                <a class="govuk-button govuk-button--secondary govuk-button--disabled" aria-disabled="true">Add data</a>
-                <a href="{{ url_for('datamanager.index') }}" class="govuk-button">
-                    Configure data
-                </a>
+          <div class="govuk-button-group govuk-!-margin-top-6"
+            style="display:flex; justify-content:flex-end; gap: 10px;">
+            {% if allow_add_data %}
+            <form method="post" action="{{ url_for('datamanager.add_data', request_id=result.id) }}">
+              <button type="submit" class="govuk-button">Add data</button>
+            </form>
+            <a href="{{ url_for('datamanager.index') }}" class="govuk-button govuk-button--secondary">Configure data</a>
             {% else %}
-                {# No must fix: Add data green, Configure secondary #}
-                <a href="{{ url_for('datamanager.add_data', request_id=result.id) }}" class="govuk-button">
-                    Add data
-                </a>
-                <a href="{{ url_for('datamanager.index') }}" class="govuk-button govuk-button--secondary">
-                    Configure data
-                </a>
+            <button class="govuk-button govuk-button--secondary" disabled aria-disabled="true">Add data</button>
+            <a href="{{ url_for('datamanager.index') }}" class="govuk-button">Configure data</a>
             {% endif %}
-        </div>
-        
+          </div>
+
         </div>
       </div>
     </div>

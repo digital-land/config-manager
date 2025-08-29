@@ -1,7 +1,7 @@
 {% extends "layouts/base.html" %}
 
 {% from "govuk_frontend_jinja/components/button/macro.html" import govukButton %}
-{% from "govuk_frontend_jinja/components/input/macro.html"  import govukInput  %}
+{% from "govuk_frontend_jinja/components/input/macro.html" import govukInput %}
 {% from "govuk_frontend_jinja/components/select/macro.html" import govukSelect %}
 
 {# convenient flags for errors #}
@@ -12,24 +12,25 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <form class="govuk-form" method="post" action="{{ url_for('datamanager.optional_fields_submit') }}" novalidate>
-      <input type="hidden" name="request_id" value="{{ request_id }}">
+    <form class="govuk-form" method="post" action="{{ url_for('datamanager.add_data', request_id=request_id) }}"
+      novalidate>
+      novalidate> <input type="hidden" name="request_id" value="{{ request_id }}">
 
       {# Error summary #}
       {% if documentation_error or startdate_error %}
-        <div class="govuk-error-summary" role="alert" data-module="govuk-error-summary">
-          <h2 class="govuk-error-summary__title">There is a problem</h2>
-          <div class="govuk-error-summary__body">
-            <ul class="govuk-list govuk-error-summary__list">
-              {% if documentation_error %}
-                <li><a href="#documentation-url">Enter a valid documentation URL ending in .gov.uk or .org.uk</a></li>
-              {% endif %}
-              {% if startdate_error %}
-                <li><a href="#start-day">Enter a valid start date (day, month and year)</a></li>
-              {% endif %}
-            </ul>
-          </div>
+      <div class="govuk-error-summary" role="alert" data-module="govuk-error-summary">
+        <h2 class="govuk-error-summary__title">There is a problem</h2>
+        <div class="govuk-error-summary__body">
+          <ul class="govuk-list govuk-error-summary__list">
+            {% if documentation_error %}
+            <li><a href="#documentation-url">Enter a valid documentation URL ending in .gov.uk or .org.uk</a></li>
+            {% endif %}
+            {% if startdate_error %}
+            <li><a href="#start-day">Enter a valid start date (day, month and year)</a></li>
+            {% endif %}
+          </ul>
         </div>
+      </div>
       {% endif %}
 
       <h1 class="govuk-heading-xl govuk-!-margin-bottom-4">More information required</h1>
@@ -44,18 +45,19 @@
       {# Documentation URL (optional, .gov.uk/.org.uk if present) #}
       <div class="govuk-form-group {% if documentation_error %}govuk-form-group--error{% endif %}">
         {{ govukInput({
-          'label': { 'text': 'Documentation URL', 'classes': 'govuk-label--m' },
-          'id': 'documentation-url',
-          'name': 'documentation_url',
-          'value': (form.documentation_url if form else ''),
-          'attributes': {
-            'type': 'url',
-            'spellcheck': 'false',
-            'autocomplete': 'url',
-            'pattern': '(^$)|https?://.*\\.(gov\\.uk|org\\.uk)(/.*)?',
-            'title': 'Must be a valid URL ending in .gov.uk or .org.uk if provided'
-          },
-          'errorMessage': ( {'text': 'Enter a valid documentation URL ending in .gov.uk or .org.uk'} if documentation_error else None )
+        'label': { 'text': 'Documentation URL', 'classes': 'govuk-label--m' },
+        'id': 'documentation-url',
+        'name': 'documentation_url',
+        'value': (form.documentation_url if form else ''),
+        'attributes': {
+        'type': 'url',
+        'spellcheck': 'false',
+        'autocomplete': 'url',
+        'pattern': '(^$)|https?://.*\\.(gov\\.uk|org\\.uk)(/.*)?',
+        'title': 'Must be a valid URL ending in .gov.uk or .org.uk if provided'
+        },
+        'errorMessage': ( {'text': 'Enter a valid documentation URL ending in .gov.uk or .org.uk'} if
+        documentation_error else None )
         }) }}
       </div>
 
@@ -66,31 +68,28 @@
             Start date (to default to the date on the day of entry)
           </legend>
           {% if startdate_error %}
-            <p class="govuk-error-message">class="govuk-visually-hidden">Error:</span> Enter a valid date</p>
-          {% endif %}
+          <p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> Enter a valid date</p> {%
+          endif %}
           <div class="govuk-date-input" id="start-date">
             <div class="govuk-date-input__item">
               <div class="govuk-form-group">
                 <label class="govuk-label govuk-date-input__label" for="start-day">Day</label>
-                <input class="govuk-input govuk-date-input__input govuk-input--width-2"
-                       id="start-day" name="start_day" type="text" inputmode="numeric"
-                       value="{{ form.start_day if form else '' }}">
+                <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="start-day" name="start_day"
+                  type="text" inputmode="numeric" value="{{ form.start_day if form else '' }}">
               </div>
             </div>
             <div class="govuk-date-input__item">
               <div class="govuk-form-group">
                 <label class="govuk-label govuk-date-input__label" for="start-month">Month</label>
-                <input class="govuk-input govuk-date-input__input govuk-input--width-2"
-                       id="start-month" name="start_month" type="text" inputmode="numeric"
-                       value="{{ form.start_month if form else '' }}">
+                <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="start-month"
+                  name="start_month" type="text" inputmode="numeric" value="{{ form.start_month if form else '' }}">
               </div>
             </div>
             <div class="govuk-date-input__item">
               <div class="govuk-form-group">
                 <label class="govuk-label govuk-date-input__label" for="start-year">Year</label>
-                <input class="govuk-input govuk-date-input__input govuk-input--width-4"
-                       id="start-year" name="start_year" type="text" inputmode="numeric"
-                       value="{{ form.start_year if form else '' }}">
+                <input class="govuk-input govuk-date-input__input govuk-input--width-4" id="start-year"
+                  name="start_year" type="text" inputmode="numeric" value="{{ form.start_year if form else '' }}">
               </div>
             </div>
           </div>
@@ -100,15 +99,15 @@
       {# Licence select #}
       <div class="govuk-form-group">
         {{ govukSelect({
-          'id': 'licence',
-          'name': 'licence',
-          'label': { 'text': 'Data is provided under which licence?', 'classes': 'govuk-label--m' },
-          'items': [
-            { 'value': '', 'text': 'e.g OGL' },
-            { 'value': 'ogl', 'text': 'OGL' },
-            { 'value': 'cc-by', 'text': 'CC-BY' }
-          ],
-          'value': (form.licence if form else '')
+        'id': 'licence',
+        'name': 'licence',
+        'label': { 'text': 'Data is provided under which licence?', 'classes': 'govuk-label--m' },
+        'items': [
+        { 'value': '', 'text': 'e.g OGL' },
+        { 'value': 'ogl', 'text': 'OGL' },
+        { 'value': 'cc-by', 'text': 'CC-BY' }
+        ],
+        'value': (form.licence if form else '')
         }) }}
       </div>
 
@@ -120,4 +119,3 @@
   </div>
 </div>
 {% endblock %}
- 
