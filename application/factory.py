@@ -2,9 +2,8 @@
 """
 Flask app factory class
 """
-import os.path
-
-import sentry_sdk
+# import os.path
+# import sentry_sdk
 from flask import Flask
 from flask.cli import load_dotenv
 
@@ -23,6 +22,7 @@ def create_app(config_filename):
     app = Flask(__name__)
     app.config.from_object(config_filename)
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 10
+    app.config["DEBUG"] = True
 
     register_blueprints(app)
     register_context_processors(app)
@@ -60,6 +60,10 @@ def register_blueprints(app):
     from application.blueprints.dataset.views import dataset_bp
 
     app.register_blueprint(dataset_bp)
+
+    from application.blueprints.datamanager.views import datamanager_bp
+
+    app.register_blueprint(datamanager_bp)
 
     from application.blueprints.schema.views import schema_bp
 
@@ -138,38 +142,31 @@ def register_extensions(app):
 
     if app.config["ENV"] == "production":
         # content security policy for talisman
-        SELF = "'self'"
-        csp = {
-            "font-src": SELF,
-            "script-src": [
-                SELF,
-                "*.google-analytics.com",
-                "'sha256-+6WnXIl4mbFTCARd8N3COQmT3bJJmo32N8q8ZSQAIcU='",
-                "'sha256-vTIO5fI4O36AP9+OzV3oS3SxijRPilL7mJYDUwnwwqk='",
-                "'sha256-icLIt+1VXFav7q50YdfAHSFYWsMvSawaYWwo5ocWp5A='",
-                "'sha256-ACotEtBlkqjCUAsddlA/3p2h7Q0iHuDXxk577uNsXwA='",
-            ],
-            "style-src": [
-                SELF,
-                "'unsafe-hashes'",
-                "'sha256-biLFinpqYMtWHmXfkA1BPeCY0/fNt46SAZ+BBk5YUog='",
-            ],
-            "default-src": SELF,
-            "connect-src": [SELF, "*.google-analytics.com", "*.doubleclick.net"],
-            "img-src": [SELF, "*.google.co.uk", "*.google.com"],
-        }
+        # SELF = "'self'"
+        # csp = {
+        #     "font-src": SELF,
+        #     "script-src": [
+        #         SELF,
+        #         "*.google-analytics.com",
+        #         "'sha256-+6WnXIl4mbFTCARd8N3COQmT3bJJmo32N8q8ZSQAIcU='",
+        #         "'sha256-vTIO5fI4O36AP9+OzV3oS3SxijRPilL7mJYDUwnwwqk='",
+        #         "'sha256-icLIt+1VXFav7q50YdfAHSFYWsMvSawaYWwo5ocWp5A='",
+        #         "'sha256-ACotEtBlkqjCUAsddlA/3p2h7Q0iHuDXxk577uNsXwA='",
+        #     ],
+        #     "style-src": [
+        #         SELF,
+        #         "'unsafe-hashes'",
+        #         "'sha256-biLFinpqYMtWHmXfkA1BPeCY0/fNt46SAZ+BBk5YUog='",
+        #     ],
+        #     "default-src": SELF,
+        #     "connect-src": [SELF, "*.google-analytics.com", "*.doubleclick.net"],
+        #     "img-src": [SELF, "*.google.co.uk", "*.google.com"],
+        # }
 
         talisman.init_app(
             app,
-            content_security_policy=csp,
-            content_security_policy_nonce_in=["script-src"],
-        )
-
-        from sentry_sdk.integrations.flask import FlaskIntegration
-
-        sentry_sdk.init(
-            dsn=os.environ.get("SENTRY_DSN"),
-            integrations=[FlaskIntegration()],
+            content_security_policy=None,
+            # content_security_policy_nonce_in=["script-src", "style-src"],
         )
 
 

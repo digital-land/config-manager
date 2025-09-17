@@ -1,0 +1,27 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <a href="{{ url_for('datamanager.dashboard_add') }}" class="govuk-back-link">Back</a>
+
+    <h1 class="govuk-heading-xl">
+      {{ (result.params.organisation or 'Your organisation') }} — {{ result.params.dataset | title }}
+    </h1>
+    <h2 class="govuk-heading-l">Checking data</h2>
+    <p class="govuk-body">Do not close this page</p>
+
+    <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="text-align:center;">
+      <div class="dl-spinner" aria-label="Loading"></div>
+    </div>
+
+    <div class="govuk-inset-text govuk-!-margin-top-3">
+      <strong class="govuk-tag govuk-tag--blue">BETA</strong>
+      &nbsp;This is a new service – your <a href="#" class="govuk-link">feedback</a> will help us to improve it.
+    </div>
+  </div>
+</div>
+
+<!-- Auto-refresh every 5s while processing -->
+<meta http-equiv="refresh" content="5">
+{% endblock %}

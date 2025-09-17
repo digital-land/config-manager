@@ -174,12 +174,14 @@ def get_odp_conformance_summary(dataset_types, cohorts):
     issue_df["field"] = issue_df["field"].replace("entity", "reference")
     # Filter out issues for fields not in dataset field (specification)
     issue_df["field"] = issue_df.apply(
-        lambda row: row["field"]
-        if row["field"]
-        in dataset_field_df[dataset_field_df["dataset"] == row["dataset"]][
-            "field"
-        ].values
-        else None,
+        lambda row: (
+            row["field"]
+            if row["field"]
+            in dataset_field_df[dataset_field_df["dataset"] == row["dataset"]][
+                "field"
+            ].values
+            else None
+        ),
         axis=1,
     )
 
@@ -288,8 +290,12 @@ def get_odp_conformance_summary(dataset_types, cohorts):
     )
 
     provisions_with_100_pct_match = final_count[final_count["field_matched_pct"] == 1.0]
-    percent_100_field_match = round(len(provisions_with_100_pct_match) / len(final_count) * 100, 1) if len(final_count) else 0
-    
+    percent_100_field_match = (
+        round(len(provisions_with_100_pct_match) / len(final_count) * 100, 1)
+        if len(final_count)
+        else 0
+    )
+
     out_cols = [
         "cohort",
         "organisation_name",

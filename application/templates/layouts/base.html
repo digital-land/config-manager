@@ -6,46 +6,79 @@
 {% block cookieBanner %}
 <!-- Dummy cookie banner block, remove this when we need cookies -->
 {% endblock cookieBanner %}
-
+{% block head %}
+<meta name="viewport" content="width=device-width, initial-scale=1">
 {% block stylesheets %}
-  <link rel="stylesheet" href="/static/stylesheets/application.css">
-  {% block pageStylesheets %}{% endblock pageStylesheets %}
+<link rel="stylesheet" href="/static/stylesheets/application.css">
+<!-- <link rel="stylesheet" href="{{ url_for('static', filename='src/css/application.css') }}"> -->
+<style {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
+  .govuk-required {
+    color: #d4351c;
+  }
+</style>
+{% block pageStylesheets %}{% endblock pageStylesheets %}
+{% endblock %}
 {% endblock %}
 
 {% block mastHead %}
 <header class="govuk-header {{ app_header_classes }}" role="banner" data-module="govuk-header">
   <div class="govuk-header__container govuk-width-container app-govuk-header__container">
     <div class="app-header__content">
-        <span class="app-header__team-name">
-          <a href="https://digital-land.info" class="govuk-header__link govuk-header__link--homepage app-govuk-header__link--homepage app-govuk-header__link--homepage--bold">
-            <span class="govuk-header__logotype-text">
+      <span class="app-header__team-name">
+        <a href="https://digital-land.info"
+          class="govuk-header__link govuk-header__link--homepage app-govuk-header__link--homepage app-govuk-header__link--homepage--bold">
+          <span class="govuk-header__logotype-text">
             Digital Land
-            </span>
-          </a>
-        </span>
-        <a href="/" class="govuk-header__link govuk-header__link--homepage">
-          <span class="govuk-header__product-name">
-            Config manager
           </span>
         </a>
-        <strong class="govuk-tag govuk-phase-banner__content__tag app-header__tag">
-          prototype
-        </strong>
+      </span>
+      <a href="/" class="govuk-header__link govuk-header__link--homepage">
+        <span class="govuk-header__product-name">
+          Config manager
+        </span>
       </a>
+      <strong class="govuk-tag govuk-phase-banner__content__tag app-header__tag">
+        prototype
+      </strong>
     </div>
   </div>
 </header>
 {% endblock mastHead %}
 
 {% block beforeContent %}
+<script>
+  // Ensure the body class is added before GOV.UK Frontend initialises
+  (function () {
+    if (document.body && !document.body.classList.contains('govuk-frontend-supported')) {
+      document.body.classList.add('govuk-frontend-supported');
+    }
+  })();
+</script>
 {% if session['user'] %}
-  {% from 'components/user-bar.html' import appUserBar %}
-  {{ appUserBar({
-    "user": session['user']
-  }) }}
+{% from 'components/user-bar.html' import appUserBar %}
+{{ appUserBar({
+"user": session['user']
+}) }}
 {% endif %}
 {% endblock beforeContent %}
 
 {% block content %}
 <h1 class="govuk-heading-xl">{{ title|default('Index') }}</h1>
 {% endblock content %}
+
+{% block pageScripts %}
+<!-- GOV.UK Frontend CSS -->
+<link rel="stylesheet" href="https://unpkg.com/govuk-frontend/dist/govuk/all.min.css" />
+
+<!-- GOV.UK Frontend JS -->
+<script src="https://unpkg.com/govuk-frontend/dist/govuk/all.min.js"></script>
+
+<script>
+  // Initialise GOV.UK Frontend components globally
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.GOVUKFrontend) {
+      window.GOVUKFrontend.initAll();
+    }
+  });
+</script>
+{% endblock pageScripts %}

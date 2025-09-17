@@ -66,6 +66,7 @@ watch: ## Run app with auto-reload on code changes
 
 .PHONY: upgrade-db
 upgrade-db: ## Upgrade the database to the latest migration
+	@echo "Now running 'upgrade-db'....."
 	flask db upgrade
 
 .PHONY: downgrade-db
@@ -79,3 +80,18 @@ load-data: ## Load sample data into the database
 .PHONY: drop-data
 drop-data: ## Drop all data from the database
 	flask data drop
+
+.PHONY: test-unit
+test-unit: ## Run unit tests
+	@echo "Running Unit test...."
+	@echo "Not yet implemented"
+
+.PHONY: test-integration
+test-integration: ## Run integration tests
+	@echo "Running Integration test...."
+	@echo "Not yet implemented"
+
+.PHONY: test-acceptance
+test-acceptance: ## Run acceptance testsß
+	@echo "Running Acceptance test...."
+	@echo "Not yet implemented"

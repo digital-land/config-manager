@@ -6,6 +6,7 @@ python-dotenv
 Flask-SQLAlchemy
 Flask-Migrate
 psycopg2
+# psycopg2-binary
 requests
 Authlib
 is-safe-url

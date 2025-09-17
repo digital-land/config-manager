@@ -27,25 +27,28 @@
 <p class="govuk-body">Configuration for {{ datasets|length }} datasets</p>
 
 <ul class="govuk-list govuk-list--bullet">
-{% for dataset in datasets %}
-  <li><a class="govuk-link" href="{{url_for('dataset.dataset', dataset_id=dataset.dataset)}}">{{ dataset.name }}</a></li>
-{% endfor %}
+  {% for dataset in datasets %}
+  <li><a class="govuk-link" href="{{url_for('dataset.dataset', dataset_id=dataset.dataset)}}">{{ dataset.name }}</a>
+  </li>
+  {% endfor %}
 </ul>
 
 <h2 class="govuk-heading-m">Category type datasets</h2>
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <p class="govuk-body">These datasets are category data managed by DLUHC. Category data is maintained in registers and should not need to be transformed by a pipeline.</p>
+    <p class="govuk-body">These datasets are category data managed by DLUHC. Category data is maintained in registers
+      and should not need to be transformed by a pipeline.</p>
   </div>
 </div>
 
 <p class="govuk-body">Configuration for {{ category_datasets|length }} datasets.</p>
 
 <ul class="govuk-list govuk-list--bullet">
-{% for dataset in category_datasets %}
-<li><a class="govuk-link" href="{{url_for('dataset.dataset', dataset_id=dataset.dataset)}}">{{ dataset.name }}</a></li>
-{% endfor %}
+  {% for dataset in category_datasets %}
+  <li><a class="govuk-link" href="{{url_for('dataset.dataset', dataset_id=dataset.dataset)}}">{{ dataset.name }}</a>
+  </li>
+  {% endfor %}
 </ul>
 
 {% endblock content %}

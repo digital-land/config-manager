@@ -1,0 +1,244 @@
+{% extends 'layouts/base.html' %}
+
+{% from "govuk_frontend_jinja/components/button/macro.html" import govukButton %}
+{% from "govuk_frontend_jinja/components/input/macro.html" import govukInput %}
+{% from "govuk_frontend_jinja/components/select/macro.html" import govukSelect %}
+
+{% block pageStylesheets %}
+<link rel="stylesheet" href="{{ url_for('static', filename='stylesheets/accessible-autocomplete.min.css') }}">{%
+endblock %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <h1 class="govuk-heading-xl">Check Planning data</h1>
+  </div>
+</div>
+
+<div class="govuk-grid-row govuk-!-margin-top-6">
+  <div class="govuk-grid-column-one-half">
+    <form method="post" action="{{ url_for('datamanager.dashboard_add') }}" novalidate>
+      <input type="hidden" id="mode" name="mode" value="">
+
+      {% set organisation_error = errors.get('organisation') %}
+      {% set documentation_error = errors.get('documentation_url') %}
+      {% set dataset_error = errors.get('dataset') %}
+      {% set environment_error = errors.get('endpoint_url') %}
+
+      {% if organisation_error or documentation_error or dataset_error or environment_error or errors.start_date %}
+      <div class="govuk-error-summary" role="alert" data-module="govuk-error-summary">
+        <h2 class="govuk-error-summary__title">There is a problem</h2>
+        <div class="govuk-error-summary__body">
+          <ul class="govuk-list govuk-error-summary__list">
+            {% if dataset_error %}<li><a href="#dataset-autocomplete">Select a dataset</a></li>{% endif %}
+            {% if organisation_error %}<li><a href="#organisation">Enter your organisation</a></li>{% endif %}
+            {% if environment_error %}<li><a href="#endpoint-url">Enter a valid endpoint URL</a></li>{% endif %}
+            {% if documentation_error %}<li><a href="#documentation-url">Enter a valid documentation URL</a></li>{%
+            endif %}
+            {% if errors.start_date %}<li><a href="#start-day">Enter a valid start date</a></li>{% endif %}
+          </ul>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Dataset autocomplete -->
+      <div class="govuk-form-group {% if dataset_error %}govuk-form-group--error{% endif %}">
+        <label class="govuk-label" for="dataset-autocomplete">Dataset name <span class="govuk-required">*</span></label>
+        {% if dataset_error %}
+        <p class="govuk-error-message">
+          <span class="govuk-visually-hidden">Error:</span> Select a dataset
+        </p>
+        {% endif %}
+        <div id="autocomplete-container"></div>
+        <input type="hidden" name="dataset" id="dataset" value="{{ form.dataset or dataset_input }}">
+      </div>
+
+      <!-- Organisation autocomplete -->
+      <div class="govuk-form-group {% if organisation_error %}govuk-form-group--error{% endif %}">
+        <label class="govuk-label" for="organisation">Organisation <span class="govuk-required">*</span></label>
+        {% if organisation_error %}
+        <p class="govuk-error-message">
+          <span class="govuk-visually-hidden">Error:</span> Enter a valid organisation
+        </p>
+        {% endif %}
+        <div id="org-autocomplete-container">
+          <div id="org-autocomplete-wrapper"></div>
+        </div>
+        <input type="hidden" name="organisation" id="organisation" value="{{ form.organisation or '' }}">
+        <input type="hidden" name="org_warning" id="org-warning" value="false">
+      </div>
+
+      <!-- Endpoint URL -->
+      <div class="govuk-form-group {% if environment_error %}govuk-form-group--error{% endif %}">
+        {{ govukInput({
+        'label': { 'html': 'Endpoint URL <span class="govuk-required">*</span>' },
+        'id': 'endpoint-url',
+        'name': 'endpoint_url',
+        'value': form.get('endpoint_url', ''),
+        'attributes': { 'required': 'required', 'type': 'url' }
+        }) }}
+      </div>
+
+      <!-- Documentation URL -->
+      <div class="govuk-form-group {% if documentation_error %}govuk-form-group--error{% endif %}">
+        {{ govukInput({
+        'label': { 'text': 'Documentation URL (optional)' },
+        'id': 'documentation-url',
+        'name': 'documentation_url',
+        'value': form.get('documentation_url', ''),
+        'attributes': {
+        'pattern': '(^$)|https?://.*\\.(gov\\.uk|org\\.uk)(/.*)?',
+        'title': 'Must be a valid URL ending in .gov.uk or .org.uk if provided'
+        },
+        'errorMessage': ( { 'text': 'Enter a valid documentation URL ending in .gov.uk or .org.uk' } if
+        documentation_error else None )
+        }) }}
+      </div>
+
+      <div class="govuk-form-group govuk-!-margin-top-6">
+        <!-- Start date -->
+        <fieldset class="govuk-fieldset" role="group" aria-describedby="start-date-error">
+          <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">Start date (defaults to today)</legend>
+          {% if errors.start_date %}
+          <p id="start-date-error" class="govuk-error-message">
+            <span class="govuk-visually-hidden">Error:</span> Enter a valid date
+          </p>
+          {% endif %}
+          {% set today = now.now() %}
+          <div class="govuk-date-input" id="start-date">
+            <div class="govuk-date-input__item">
+              <label class="govuk-label govuk-date-input__label" for="start-day">Day</label>
+              <input class="govuk-input govuk-input--width-2" id="start-day" name="start_day" type="text"
+                inputmode="numeric" value="{{ form.start_day or today.day }}">
+            </div>
+            <div class="govuk-date-input__item">
+              <label class="govuk-label govuk-date-input__label" for="start-month">Month</label>
+              <input class="govuk-input govuk-input--width-2" id="start-month" name="start_month" type="text"
+                inputmode="numeric" value="{{ form.start_month or today.month }}">
+            </div>
+            <div class="govuk-date-input__item">
+              <label class="govuk-label govuk-date-input__label" for="start-year">Year</label>
+              <input class="govuk-input govuk-input--width-4" id="start-year" name="start_year" type="text"
+                inputmode="numeric" value="{{ form.start_year or today.year }}">
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <!-- Licence -->
+      {{ govukSelect({
+      'id': 'licence',
+      'name': 'licence',
+      'label': { 'text': 'Data is provided under which licence?' },
+      'items': [
+      { 'value': '', 'text': 'e.g OGL' },
+      { 'value': 'ogl', 'text': 'OGL' },
+      { 'value': 'cc-by', 'text': 'CC-BY' }
+      ],
+      'value': form.get('licence', '')
+      }) }}
+
+      <div class="govuk-form-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
+        {{ govukButton({
+        'text': 'Check data',
+        'attributes': { 'onclick': "document.getElementById('mode').value='final';" }
+        }) }}
+        <button class="govuk-button govuk-button--secondary" type="submit" formaction="{{ url_for('datamanager.debug_payload') }}">
+          Preview JSON
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+<!-- {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %} -->
+{% block pageScripts %}
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}
+  src="{{ url_for('static', filename='javascripts/accessible-autocomplete.min.js') }}"></script>
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
+  document.addEventListener("DOMContentLoaded", function () {
+    const datasetHidden = document.getElementById("dataset");
+    const datasetContainer = document.getElementById("autocomplete-container");
+    const orgWrapper = document.getElementById("org-autocomplete-wrapper");
+    const hiddenOrgInput = document.getElementById("organisation");
+    const orgWarningInput = document.getElementById("org-warning");
+    const datasetValue = datasetHidden.value || "";
+    const orgValue = hiddenOrgInput.value && hiddenOrgInput.value !== "undefined" ? hiddenOrgInput.value : "";
+    const orgList = JSON.parse(`{{ selected_orgs | default([]) | tojson | safe }}`);
+    document.querySelector("form").addEventListener("submit", function () {
+      console.log("📤 Submitting form with:");
+      console.log("Dataset:", document.getElementById("dataset").value);
+      console.log("Organisation:", document.getElementById("organisation").value);
+      console.log("Endpoint URL:", document.getElementById("endpoint-url").value);
+      console.log("Mode:", document.getElementById("mode").value);
+    });
+
+    function updateOrgAutocomplete(orgs, defaultValue, placeholderText) {
+      const newWrapper = document.createElement("div");
+      orgWrapper.replaceChildren(newWrapper);
+      if (!orgs.length && datasetHidden.value) {
+        newWrapper.innerHTML = `
+
+         <div class="govuk-warning-text govuk-!-margin-bottom-2">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-warning-text__assistive">Warning</span>
+              No organisations found for this dataset.
+              To continue, your organisation must have a provision record in the
+            <a class="govuk-link" href="https://datasette.planning.data.gov.uk/digital-land/provision">provision table</a>.
+            </strong>
+          </div>`;
+        hiddenOrgInput.value = "";
+        orgWarningInput.value = "true";
+        return;
+      }
+      orgWarningInput.value = "false";
+      accessibleAutocomplete({
+        element: newWrapper,
+        id: "org-autocomplete",
+        name: "org-autocomplete-visible",
+        source: orgs,
+        displayMenu: "overlay",
+        defaultValue: defaultValue,
+        placeholder: placeholderText || "Type organisation name...",
+        confirmOnBlur: false,
+        autoselect: true,
+        onConfirm: function (val) {
+          hiddenOrgInput.value = val;
+        }
+      });
+    }
+    // Dataset autocomplete
+    accessibleAutocomplete({
+      element: datasetContainer,
+      id: "dataset-autocomplete",
+      name: "dataset-autocomplete-visible",
+      defaultValue: datasetValue,
+      minLength: 2,
+      confirmOnBlur: false,
+      autoselect: true,
+      displayMenu: "overlay",
+      placeholder: "Type dataset name…",
+      source: function (query, populateResults) {
+        fetch(`{{ url_for('datamanager.dashboard_add') }}?autocomplete=${encodeURIComponent(query)}`)
+          .then((response) => response.json())
+          .then((data) => populateResults(data));
+      },
+      onConfirm: function (val) {
+        datasetHidden.value = val;
+        hiddenOrgInput.value = "";
+        fetch(`{{ url_for('datamanager.dashboard_add') }}?get_orgs_for=${encodeURIComponent(val)}`)
+          .then(res => res.json())
+          .then(orgs => {
+            updateOrgAutocomplete(orgs, "", "Type organisation name...");
+          });
+      }
+    });
+    if (datasetValue && orgList.length > 0) {
+      updateOrgAutocomplete(orgList, orgValue, "Type organisation name...");
+    } else {
+      updateOrgAutocomplete([], "", "Select a dataset first...");
+    }
+  });
+</script>
+{% endblock %}
