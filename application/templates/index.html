@@ -1,13 +1,19 @@
 {% extends 'layouts/base.html' %}
 
+
 {% set app_header_classes = "app-header--flush" %}
 
 {% block main %}
-
 <main id="content" role="main">
 
   <section class="app-hero{{ ' app-hero--flush' if session['user'] }}" id="intro">
     <div class="app-hero__content govuk-width-container">
+
+      {{ govukPhaseBanner({
+        "tag": { "text": "BETA" },
+        "html": 'This is a new service – your <a class="govuk-link govuk-link--inverse" href="/feedback">feedback</a> will help us to improve it.',
+        "classes": "app-masthead__phase-banner app-masthead__phase-banner--inverse"
+      }) }}
       <div class="govuk-grid-row">
         <div class="govuk-grid-column-two-thirds">
           <h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Config manager</h1>
@@ -21,27 +27,23 @@
   <section class="govuk-width-container app-tools-list">
 
     {% if session['user'] %}
-    {% from 'components/user-bar.html' import appUserBar %}
-    {{ appUserBar({
-      "user": session['user'],
-      "classes": "govuk-!-margin-bottom-9"
-    }) }}
+      {% from 'components/user-bar.html' import appUserBar %}
+      {{ appUserBar({
+        "user": session['user'],
+        "classes": "govuk-!-margin-bottom-9"
+      }) }}
     {% endif %}
 
+    {# Flash messages: keep using Notification banner inside page content #}
     {%- from "govuk_frontend_jinja/components/notification-banner/macro.html" import govukNotificationBanner %}
-
     {%- with messages = get_flashed_messages() %}
       {%- if messages %}
         {%- set flashMessageHtml %}
-        {% for message in messages %}
-        <p class="govuk-notification-banner__heading">
-          {{message}}.
-        </p>
-        {% endfor %}
+          {% for message in messages %}
+            <p class="govuk-notification-banner__heading">{{ message }}.</p>
+          {% endfor %}
         {% endset -%}
-        {{ govukNotificationBanner({
-          "html": flashMessageHtml
-        }) }}
+        {{ govukNotificationBanner({ "html": flashMessageHtml }) }}
       {%- endif %}
     {%- endwith %}
 
@@ -54,15 +56,15 @@
           <p class="govuk-body">Configure the processing of source data into digital land datasets</p>
         </a>
       </div>
-          <div class="govuk-grid-column-one-third">
+
+      <div class="govuk-grid-column-one-third">
         <a class="app-tools-list__item" href="{{ url_for('datamanager.index')}}">
           <h3 class="govuk-heading-s app-tools-list__item__heading">Data Managers Portal</h3>
           <p class="govuk-body">Access tools for managing datasets and their configurations.</p>
         </a>
       </div>
-    
-     </div><!-- /.govuk-grid-row -->
-    
+    </div><!-- /.govuk-grid-row -->
+
     <h2 class="govuk-heading-m govuk-!-margin-top-9">Reporting (under construction)</h2>
 
     <div class="govuk-grid-row">
@@ -85,9 +87,6 @@
         </a>
       </div>
     </div><!-- /.govuk-grid-row -->
-
-
-
 
     <h2 class="govuk-heading-m govuk-!-margin-top-9">Sources and endpoints</h2>
 
@@ -125,5 +124,6 @@
       </div>
     </div><!-- /.govuk-grid-row -->
   </section>
+
 </main>
 {% endblock main %}
