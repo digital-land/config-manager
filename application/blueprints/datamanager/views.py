@@ -66,7 +66,11 @@ def dashboard_add():
             f"?_labels=on&_size=max&dataset={dataset_id}"
         )
         try:
-            provision_rows = requests.get(provision_url, timeout=REQUESTS_TIMEOUT).json().get("rows", [])
+            provision_rows = (
+                requests.get(provision_url, timeout=REQUESTS_TIMEOUT)
+                .json()
+                .get("rows", [])
+            )
         except Exception:
             provision_rows = []
         selected_orgs = [
@@ -96,7 +100,9 @@ def dashboard_add():
         column_mapping_str = form.get("column_mapping", "{}").strip()
         geom_type = form.get("geom_type", "").strip()
         try:
-            column_mapping = json.loads(column_mapping_str) if column_mapping_str else {}
+            column_mapping = (
+                json.loads(column_mapping_str) if column_mapping_str else {}
+            )
         except json.JSONDecodeError:
             errors["column_mapping"] = True
             column_mapping = {}
@@ -108,7 +114,11 @@ def dashboard_add():
                 f"?_labels=on&_size=max&dataset={dataset_id}"
             )
             try:
-                provision_rows = requests.get(provision_url, timeout=REQUESTS_TIMEOUT).json().get("rows", [])
+                provision_rows = (
+                    requests.get(provision_url, timeout=REQUESTS_TIMEOUT)
+                    .json()
+                    .get("rows", [])
+                )
             except Exception:
                 provision_rows = []
             selected_orgs = [
@@ -136,7 +146,9 @@ def dashboard_add():
             if day or month or year:
                 if day and month and year:
                     try:
-                        start_date_str = datetime(int(year), int(month), int(day)).date().isoformat()
+                        start_date_str = (
+                            datetime(int(year), int(month), int(day)).date().isoformat()
+                        )
                     except Exception:
                         errors["start_date"] = True
                 else:
@@ -149,13 +161,22 @@ def dashboard_add():
             errors.update(
                 {
                     "dataset": not dataset_input,
-                    "organisation": (org_warning or (selected_orgs and organisation not in selected_orgs)),
-                    "endpoint_url": (not endpoint_url or not re.match(r"https?://[^\s]+", endpoint_url)),
+                    "organisation": (
+                        org_warning
+                        or (selected_orgs and organisation not in selected_orgs)
+                    ),
+                    "endpoint_url": (
+                        not endpoint_url
+                        or not re.match(r"https?://[^\s]+", endpoint_url)
+                    ),
                 }
             )
 
             # Optional: documentation URL must be gov.uk/org.uk if provided
-            if doc_url and not re.match(r"^https?://.*\.(gov\.uk|org\.uk)(/.*)?$", doc_url):
+            if doc_url and not re.match(
+                r"^https?://.*\.(gov\.uk|org\.uk)(/.*)?$",
+                doc_url,
+            ):
                 errors["documentation_url"] = True
 
             # --- Submit if valid ---
@@ -165,11 +186,11 @@ def dashboard_add():
                 payload = {
                     "params": {
                         "type": "check_url",
-                        "collection": collection_id,   # correct collection id
-                        "dataset": dataset_id,         # dataset id
+                        "collection": collection_id,  # correct collection id
+                        "dataset": dataset_id,  # dataset id
                         "url": endpoint_url,
                         "documentation_url": doc_url or None,
-                        "licence": licence,            # defaults to 'ogl' if empty
+                        "licence": licence,  # defaults to 'ogl' if empty
                         "start_date": start_date_str,  # defaults to today if empty
                         "organisation": organisation,  # NOTE: pass entity id if backend requires it
                     }
@@ -178,20 +199,40 @@ def dashboard_add():
                     payload["params"]["column_mapping"] = column_mapping
                 if geom_type:
                     payload["params"]["geom_type"] = geom_type
-                    
-                print("Sending payload to API:")
-                print(json.dumps(payload,indent=2))    
+
+                print("\n➡️  POST", f"{get_request_api_endpoint()}/requests")
+                print("📦 Payload being sent to request-api:")
+                print(json.dumps(payload, indent=2))
 
                 try:
                     async_api = f"{get_request_api_endpoint()}/requests"
-                    response = requests.post(async_api, json=payload, timeout=REQUESTS_TIMEOUT)
+                    response = requests.post(
+                        async_api,
+                        json=payload,
+                        timeout=REQUESTS_TIMEOUT,
+                    )
+
+                    print(f"⬅️  request-api responded with {response.status_code}")
+                    try:
+                        print(json.dumps(response.json(), indent=2))
+                    except Exception:
+                        txt = (response.text or "")[:2000]
+                        print(txt)
+
                     if response.status_code == 202:
                         request_id = response.json()["id"]
                         return redirect(
-                            url_for("datamanager.check_results", request_id=request_id, organisation=organisation)
+                            url_for(
+                                "datamanager.check_results",
+                                request_id=request_id,
+                                organisation=organisation,
+                            )
                         )
                     else:
-                        abort(500, f"Check tool submission failed with status {response.status_code}")
+                        abort(
+                            500,
+                            f"Check tool submission failed with status {response.status_code}",
+                        )
                 except Exception as e:
                     traceback.print_exc()
                     abort(500, f"Backend error: {e}")
@@ -214,7 +255,11 @@ def fetch_all_details(async_api: str, request_id: str, page_size: int = 50):
     while True:
         url = f"{async_api}/requests/{request_id}/response-details"
         try:
-            resp = requests.get(url, params={"offset": offset, "limit": page_size}, timeout=REQUESTS_TIMEOUT)
+            resp = requests.get(
+                url,
+                params={"offset": offset, "limit": page_size},
+                timeout=REQUESTS_TIMEOUT,
+            )
         except Exception as e:
             print(f"❌ Error fetching details (offset {offset}): {e}")
             break
@@ -252,16 +297,28 @@ def check_results(request_id):
         offset = (page - 1) * page_size
 
         # 1) Fetch summary
-        response = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
+        response = requests.get(
+            f"{async_api}/requests/{request_id}",
+            timeout=REQUESTS_TIMEOUT,
+        )
         if response.status_code != 200:
-            return render_template("error.html", message="Check failed or not found"), 404
+            return (
+                render_template("error.html", message="Check failed or not found"),
+                404,
+            )
 
         result = response.json()
         result.setdefault("params", {}).setdefault("organisation", organisation)
 
         # Still processing / no response yet
-        if result.get("status") in ["PENDING", "PROCESSING", "QUEUED"] or result.get("response") is None:
-            return render_template("datamanager/check-results-loading.html", result=result)
+        if (
+            result.get("status") in ["PENDING", "PROCESSING", "QUEUED"]
+            or result.get("response") is None
+        ):
+            return render_template(
+                "datamanager/check-results-loading.html",
+                result=result,
+            )
 
         # 2) Fetch page of row-level details
         resp_details = requests.get(
@@ -282,7 +339,12 @@ def check_results(request_id):
             for row in resp_details:
                 converted = row.get("converted_row", {}) or {}
                 formatted_rows.append(
-                    {"columns": {col: {"value": converted.get(col, "")} for col in table_headers}}
+                    {
+                        "columns": {
+                            col: {"value": converted.get(col, "")}
+                            for col in table_headers
+                        }
+                    }
                 )
 
         table_params = {
@@ -314,7 +376,10 @@ def check_results(request_id):
                         "type": "Feature",
                         "geometry": geom,
                         "properties": {
-                            "reference": (row.get("converted_row") or {}).get("Reference") or f"Entry {row.get('entry_number')}"
+                            "reference": (row.get("converted_row") or {}).get(
+                                "Reference"
+                            )
+                            or f"Entry {row.get('entry_number')}",
                         },
                     }
                 )
@@ -362,7 +427,12 @@ def debug_payload():
     endpoint = form.get("endpoint_url", "").strip()
 
     payload = {
-        "params": {"type": "check_url", "collection": dataset, "dataset": dataset, "url": endpoint}
+        "params": {
+            "type": "check_url",
+            "collection": dataset,
+            "dataset": dataset,
+            "url": endpoint,
+        }
     }
 
     column_mapping_str = form.get("column_mapping", "").strip()
