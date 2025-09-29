@@ -135,7 +135,7 @@ endblock %}
       { 'value': 'ogl', 'text': 'OGL' },
       { 'value': 'cc-by', 'text': 'CC-BY' }
       ],
-      'value': form.get('licence', '')
+      'value': form.get('licence', 'ogl')
       }) }}
 
       <div class="govuk-form-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
@@ -143,9 +143,6 @@ endblock %}
         'text': 'Check data',
         'attributes': { 'onclick': "document.getElementById('mode').value='final';" }
         }) }}
-        <button class="govuk-button govuk-button--secondary" type="submit" formaction="{{ url_for('datamanager.debug_payload') }}">
-          Preview JSON
-        </button>
       </div>
     </form>
   </div>
