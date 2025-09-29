@@ -1,0 +1,117 @@
+{% extends 'layouts/base.html' %}
+{% from "components/table.html" import table %}
+{% from "govuk_frontend_jinja/components/select/macro.html" import govukSelect %}
+{% from "govuk_frontend_jinja/components/button/macro.html" import govukButton %}
+
+{% block content %}
+<div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+        <span class="govuk-caption-xl">{{ organisation }}</span>
+        <h1 class="govuk-heading-xl">Configure data</h1>
+
+        <!-- Raw data preview -->
+        <h2 class="govuk-heading-l">Raw data</h2>
+        {% if raw_table_params.rows %}
+        <div class="dl-table-scrollable-container">
+            {{ table(raw_table_params) }}
+        </div>
+        <p class="govuk-body">Showing up to {{ raw_table_params.rows|length }} rows from the source CSV.</p>
+        {% else %}
+        <p class="govuk-body">No raw rows available.</p>
+        {% endif %}
+
+        <!-- Transformed preview -->
+        <h2 class="govuk-heading-l">Transformed data (preview)</h2>
+        {% if transformed_table_params.rows %}
+        <div class="dl-table-scrollable-container">
+            {{ table(transformed_table_params) }}
+        </div>
+        <p class="govuk-body">Showing up to {{ transformed_table_params.rows|length }} transformed rows.</p>
+        {% else %}
+        <p class="govuk-body">No transformed rows yet. Apply a mapping to re-check and populate this preview.</p>
+        {% endif %}
+
+        <hr class="govuk-section-break govuk-section-break--xl govuk-section-break--visible">
+
+        <!-- Mapping section -->
+        <h2 class="govuk-heading-l">Column mapping</h2>
+        {% if must_fix_specs %}
+        <div class="govuk-inset-text">
+            <strong>Fields you must map to proceed:</strong>
+            <ul class="govuk-list govuk-list--bullet govuk-!-margin-top-1">
+                {% for f in must_fix_specs %}<li>{{ f }}</li>{% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+            <div class="govuk-grid-row govuk-!-margin-bottom-2">
+                <div class="govuk-grid-column-one-half">
+                    <strong class="govuk-hint">Fields from your CSV</strong>
+                </div>
+                <div class="govuk-grid-column-one-half">
+                    <strong class="govuk-hint">Select a specification field</strong>
+                </div>
+            </div>
+
+            {% for row in rows %}
+            <div class="govuk-grid-row govuk-!-margin-bottom-3">
+                <div class="govuk-grid-column-one-half">
+                    <label class="govuk-label" for="row-{{ loop.index }}">{{ row.label }}</label>
+                </div>
+
+                <div class="govuk-grid-column-one-half">
+                    {% if row.kind == 'raw' %}
+                    <!-- CSV row: choose a SPEC field -->
+                    <select class="govuk-select" id="row-{{ loop.index }}" name="map_raw[{{ row.label }}]">
+                        <option value="__NOT_MAPPED__">— Not mapped —</option>
+                        {% for f in spec_options %}
+                        <option value="{{ f }}" {{ 'selected' if row.preselect==f else '' }}>{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <!-- MUST-FIX row: choose a SPEC **source** (full list), and POST it -->
+                    <select class="govuk-select" id="row-{{ loop.index }}" name="map_spec_to_spec[{{ row.label }}]">
+                        <option value="__NOT_MAPPED__">— Not mapped —</option>
+                        {% for f in spec_options %}
+                        <option value="{{ f }}">{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+
+            <div class="govuk-form-group govuk-!-margin-top-4">
+                {{ govukSelect({
+                'id': 'geom_type',
+                'name': 'geom_type',
+                'label': { 'text': 'Geometry type (optional)' },
+                'items': [
+                { 'value': '', 'text': 'Auto / not set' },
+                { 'value': 'Point', 'text': 'Point' },
+                { 'value': 'LineString', 'text': 'LineString' },
+                { 'value': 'Polygon', 'text': 'Polygon' }
+                ],
+                'value': existing_geom_type
+                }) }}
+            </div>
+
+            <div class="govuk-button-group" style="display:flex; justify-content:flex-end;">
+                {{ govukButton({ 'text': 'Apply & re-check' }) }}
+                <a class="govuk-button govuk-button--secondary"
+                    href="{{ url_for('datamanager.check_results', request_id=request_id) }}">Back to results</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block pageStylesheets %}
+<style>
+    .dl-table-scrollable-container {
+        overflow: auto;
+    }
+</style>
+{% endblock %}

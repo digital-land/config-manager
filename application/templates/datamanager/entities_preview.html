@@ -1,0 +1,46 @@
+{% extends 'layouts/base.html' %}
+{% from "components/table.html" import table %}
+ 
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+ 
+    <p class="govuk-body"><a class="govuk-link" href="{{ back_url }}">&larr; Back to results</a></p>
+    <h1 class="govuk-heading-l">New entities</h1>
+ 
+    <div class="govuk-summary-list govuk-!-margin-bottom-6">
+      <!-- <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Existing entities in resource</dt>
+        <dd class="govuk-summary-list__value">{{ existing_count }}</dd>
+      </div> -->
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">New entities in resource</dt>
+        <dd class="govuk-summary-list__value"><strong>{{ new_count }}</strong></dd>
+      </div>
+    </div>
+ 
+    {% if breakdown and breakdown|length > 0 %}
+      <!-- <ul class="govuk-list govuk-list--bullet govuk-!-margin-bottom-6">
+        {% for b in breakdown %}
+          <li>
+            {{ b.reference }}
+            {% if b["line-number"] %}(line {{ b["line-number"] }}){% endif %}
+          </li>
+        {% endfor %}
+      </ul> -->
+    {% endif %}
+ 
+    <h2 class="govuk-heading-m">Rows that will create new entities</h2>
+    {% if table_params.rows %}
+      <div class="dl-table-scrollable-container">
+        {{ table(table_params) }}
+      </div>
+    {% else %}
+      <p class="govuk-body">No new entities detected.</p>
+    {% endif %}
+ 
+  </div>
+</div>
+{% endblock %}
+ 
+ 

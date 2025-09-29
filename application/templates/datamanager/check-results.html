@@ -1,12 +1,10 @@
 {% extends 'layouts/base.html' %}
 {% from "components/table.html" import table %}
-
-
-
+ 
 {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
-
+ 
     <!-- Blocking errors -->
     {% if show_error %}
     <div class="govuk-error-summary govuk-!-margin-bottom-6" role="alert">
@@ -16,12 +14,23 @@
       </div>
     </div>
     {% endif %}
-
+ 
     <!-- Headings -->
     <span class="govuk-caption-xl">{{ result.params.organisation }}</span>
     <h1 class="govuk-heading-xl">{{ result.params.dataset | title }}</h1>
     <h2 class="govuk-heading-m govuk-!-margin-top-3">Data has been checked</h2>
-
+ 
+    <!-- New entity summary -->
+    {% if new_entity_count and new_entity_count > 0 %}
+    <div class="govuk-inset-text">
+      <strong>{{ new_entity_count }} new {{ new_entity_count == 1 and 'entity' or 'entities' }}</strong> detected in
+      this source.
+      <div class="govuk-!-margin-top-2">
+        <a class="govuk-button" href="{{ entities_preview_url }}">View new entities</a>
+      </div>
+    </div>
+    {% endif %}
+ 
     <!-- Tabs -->
     <div class="govuk-tabs" data-module="govuk-tabs">
       <ul class="govuk-tabs__list">
@@ -32,24 +41,25 @@
           <a class="govuk-tabs__tab" href="#dataset-table">Dataset table</a>
         </li>
       </ul>
-
+ 
       <!-- Map Tab -->
       <div class="govuk-tabs__panel" id="map">
         <div id="map-container" style="height: 450px; border: 1px solid #ccc;"
           data-geometries='{{ geometries | tojson | safe }}'>
         </div>
       </div>
-
+ 
+      <!-- Dataset table -->
       <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="dataset-table">
         {% if table_params.rows %}
         <div class="dl-table-scrollable-container">
           {{ table(table_params) }}
         </div>
-
+ 
         <p class="govuk-body govuk-!-margin-top-4">
           Showing rows {{ showing_start }} to {{ showing_end }} of {{ total_rows }}
         </p>
-
+ 
         <div class="govuk-pagination">
           {% if page > 1 %}
           <a class="govuk-link" href="?page={{ page-1 }}">Previous</a>
@@ -62,14 +72,14 @@
         <p class="govuk-body">No rows to display</p>
         {% endif %}
       </div>
-
+ 
       <!-- Metadata & Results -->
       <div class="govuk-grid-row govuk-!-margin-top-6">
         <div class="govuk-grid-column-one-third">
           <h3 class="govuk-heading-s">Dataset actions</h3>
           <p><a class="govuk-link" href="#">Share these results</a></p>
         </div>
-
+ 
         <div class="govuk-grid-column-two-thirds">
           <dl class="govuk-summary-list">
             <div class="govuk-summary-list__row">
@@ -81,7 +91,7 @@
               <dd class="govuk-summary-list__value">{{ result.modified or result.created }}</dd>
             </div>
           </dl>
-
+ 
           <!-- Passed Checks -->
           {% if passed_checks %}
           <h2 class="govuk-heading-m govuk-!-margin-top-6">Data that passed the checks</h2>
@@ -94,7 +104,16 @@
             {% endfor %}
           </div>
           {% endif %}
-
+          {% if new_entity_count == 0 %}
+          <div class="govuk-inset-text">
+            {{ new_entities_message }}
+          </div>
+          {% else %}
+          <div class="govuk-inset-text">
+            {{ new_entities_message }}
+          </div>
+          {% endif %}
+ 
           <!-- Must fix (blocking issues) -->
           {% if must_fix %}
           <h2 class="govuk-heading-m govuk-!-margin-top-4">Issues that must be fixed before adding data</h2>
@@ -107,7 +126,7 @@
             {% endfor %}
           </div>
           {% endif %}
-
+ 
           <!-- Fixable issues -->
           {% if fixable %}
           <h2 class="govuk-heading-m">Issues that can be fixed after adding data</h2>
@@ -123,7 +142,7 @@
             {% endfor %}
           </div>
           {% endif %}
-
+ 
           <!-- Buttons -->
           <div class="govuk-button-group govuk-!-margin-top-6"
             style="display:flex; justify-content:flex-end; gap: 10px;">
@@ -137,32 +156,29 @@
             <a href="{{ url_for('datamanager.index') }}" class="govuk-button">Configure data</a>
             {% endif %}
           </div>
-
+ 
         </div>
       </div>
     </div>
   </div>
   {% endblock %}
-
+ 
   {% block pageScripts %}
-  <!-- Corrected CSS path (prevents font 404s) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
+ 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      // Initialise GOV.UK Frontend after DOM is fully ready
       window.GOVUKFrontend.initAll();
-
-      // Leaflet map setup
+ 
       const mapContainer = document.getElementById('map-container');
       if (mapContainer) {
         const map = L.map(mapContainer).setView([54.0, -2.0], 6);
-
+ 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
-
+ 
         const geometries = JSON.parse(mapContainer.dataset.geometries || "[]");
         if (geometries.length > 0) {
           const geoLayer = L.geoJSON({ type: "FeatureCollection", features: geometries }, {
@@ -173,10 +189,11 @@
               }
             }
           }).addTo(map);
-
+ 
           map.fitBounds(geoLayer.getBounds());
         }
       }
     });
   </script>
   {% endblock %}
+ 

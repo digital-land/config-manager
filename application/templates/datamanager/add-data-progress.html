@@ -1,0 +1,27 @@
+{% extends "layouts/base.html" %}
+ 
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+ 
+    <div class="govuk-notification-banner" role="region" aria-labelledby="banner-title">
+      <div class="govuk-notification-banner__header">
+        <h2 class="govuk-notification-banner__title" id="banner-title">Processing</h2>
+      </div>
+      <div class="govuk-notification-banner__content">
+        <p class="govuk-notification-banner__heading">{{ message }}</p>
+        <p class="govuk-body">We’re assigning entities to your data. You can continue and view progress.</p>
+      </div>
+    </div>
+ 
+    <h1 class="govuk-heading-l">Add data</h1>
+    <p class="govuk-body">Job ID: <code>{{ request_id }}</code></p>
+ 
+    <a class="govuk-button" href="{{ url_for('datamanager.check_results', request_id=request_id) }}">
+      View Entities
+    </a>
+  </div>
+</div>
+{% endblock %}
+ 
+ 
