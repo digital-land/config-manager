@@ -144,7 +144,10 @@ def dashboard_add():
         dataset_id = name_to_dataset_id.get(dataset_name)
         if not dataset_id:
             return jsonify([])
-        provision_url = f"https://datasette.planning.data.gov.uk/digital-land/provision.json?_labels=on&_size=max&dataset={dataset_id}"
+        provision_url = (
+            "https://datasette.planning.data.gov.uk/digital-land/provision.json"
+            f"?_labels=on&_size=max&dataset={dataset_id}"
+        )
         try:
             provision_rows = (
                 requests.get(provision_url, timeout=REQUESTS_TIMEOUT)
@@ -189,7 +192,10 @@ def dashboard_add():
         # Preload org list + build a reverse map we'll use on submit
         org_label_to_value = {}
         if dataset_id:
-            provision_url = f"https://datasette.planning.data.gov.uk/digital-land/provision.json?_labels=on&_size=max&dataset={dataset_id}"
+            provision_url = (
+                "https://datasette.planning.data.gov.uk/digital-land/provision.json"
+                f"?_labels=on&_size=max&dataset={dataset_id}"
+            )
             try:
                 provision_rows = (
                     requests.get(provision_url, timeout=REQUESTS_TIMEOUT)
