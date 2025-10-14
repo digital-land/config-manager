@@ -20,6 +20,16 @@
     <h1 class="govuk-heading-xl">{{ result.params.dataset | title }}</h1>
     <h2 class="govuk-heading-m govuk-!-margin-top-3">Data has been checked</h2>
 
+    <!-- Entity summary (uses server-built message + flag) -->
+    <!--<div class="govuk-inset-text">
+      {{ new_entities_message }}
+      {% if show_entities_link %}
+      <div class="govuk-!-margin-top-2">
+        <a class="govuk-button" href="{{ entities_preview_url }}">View new entities</a>
+      </div>
+      {% endif %}
+    </div> -->
+
     <!-- Tabs -->
     <div class="govuk-tabs" data-module="govuk-tabs">
       <ul class="govuk-tabs__list">
@@ -37,6 +47,7 @@
         </div>
       </div>
 
+      <!-- Dataset table -->
       <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="dataset-table">
         {% if table_params.rows %}
         <div class="dl-table-scrollable-container">
@@ -51,8 +62,8 @@
           {% if page > 1 %}
           <a class="govuk-link" href="?page={{ page-1 }}">Previous</a>
           {% endif %}
-          {% if showing_end < total_rows %}
-          <a class="govuk-link govuk-!-margin-left-4" href="?page={{ page+1 }}">Next</a>
+          {% if showing_end < total_rows %} <a class="govuk-link govuk-!-margin-left-4" href="?page={{ page+1 }}">
+            Next</a>
           {% endif %}
         </div>
         {% else %}
@@ -122,56 +133,58 @@
           {% endif %}
 
           <!-- Buttons -->
-          <div class="govuk-button-group govuk-!-margin-top-6" style="display:flex; justify-content:flex-end;">
+          <div class="govuk-button-group govuk-!-margin-top-6" style="display:flex; justify-content:flex-end; gap: 10px;">
             {% if allow_add_data %}
-            <a href="#" class="govuk-button">Configure data</a>
-            <a href="#" class="govuk-button">Add data</a>
+            <form method="get" action="{{ url_for('datamanager.add_data', request_id=result.id) }}">
+              <button type="submit" class="govuk-button">Add data</button>
+            </form>
+            <a href="{{ url_for('datamanager.index') }}" class="govuk-button govuk-button--secondary">Configure data</a>
             {% else %}
-            <a href="#" class="govuk-button">Upload new version</a>
+            <button class="govuk-button govuk-button--secondary" disabled aria-disabled="true">Add data</button>
+            <a href="{{ url_for('datamanager.index') }}" class="govuk-button">Configure data</a>
             {% endif %}
           </div>
+
         </div>
       </div>
     </div>
   </div>
-  {% endblock %}
+</div>
+{% endblock %}
 
-  {% block pageScripts %}
-  <!-- Corrected CSS path (prevents font 404s) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+{% block pageScripts %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      // Initialise GOV.UK Frontend after DOM is fully ready
-      window.GOVUKFrontend.initAll();
-      // Leaflet map setup
-      const mapContainer = document.getElementById('map-container');
-      if (mapContainer) {
-        const map = L.map(mapContainer).setView([54.0, -2.0], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-        const geometries = JSON.parse(mapContainer.dataset.geometries || "[]");
-        if (geometries.length > 0) {
-          const geoLayer = L.geoJSON({
-            type: "FeatureCollection",
-            features: geometries
-          }, {
-            style: {
-              color: "red",
-              weight: 2,
-              fillOpacity: 0.35
-            },
-            onEachFeature: (feature, layer) => {
-              if (feature.properties?.reference) {
-                layer.bindPopup("Reference: " + feature.properties.reference);
-              }
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    window.GOVUKFrontend.initAll();
+    const mapContainer = document.getElementById('map-container');
+    if (mapContainer) {
+      const map = L.map(mapContainer).setView([54.0, -2.0], 6);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+      const geometries = JSON.parse(mapContainer.dataset.geometries || "[]");
+      if (geometries.length > 0) {
+        const geoLayer = L.geoJSON({
+          type: "FeatureCollection",
+          features: geometries
+        }, {
+          style: {
+            color: "red",
+            weight: 2,
+            fillOpacity: 0.35
+          },
+          onEachFeature: (feature, layer) => {
+            if (feature.properties?.reference) {
+              layer.bindPopup("Reference: " + feature.properties.reference);
             }
-          }).addTo(map);
-          map.fitBounds(geoLayer.getBounds());
-        }
+          }
+        }).addTo(map);
+        map.fitBounds(geoLayer.getBounds());
       }
-    });
-  </script>
-  {% endblock %}
+    }
+  });
+</script>
+{% endblock %}

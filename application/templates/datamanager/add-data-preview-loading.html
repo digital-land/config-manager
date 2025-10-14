@@ -1,0 +1,22 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h1 class="govuk-heading-l">Preparing entities preview…</h1>
+    <p class="govuk-body">We’re generating a preview for your <code>add_data</code> request. This should only take a moment.</p>
+
+    <div class="govuk-inset-text">
+      Request ID: <strong>{{ request_id }}</strong>
+    </div>
+
+    <p class="govuk-body">This page will refresh automatically.</p>
+    <p class="govuk-body">
+      If nothing happens, you can <a class="govuk-link" href="{{ url_for('datamanager.entities_preview', request_id=request_id) }}">refresh manually</a>.
+    </p>
+  </div>
+</div>
+
+<!-- Auto-refresh every 2 seconds -->
+<meta http-equiv="refresh" content="2">
+{% endblock %}
