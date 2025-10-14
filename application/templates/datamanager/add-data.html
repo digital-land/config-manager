@@ -7,6 +7,7 @@
 {# convenient flags for errors #}
 {% set documentation_error = errors.get('documentation_url') if errors else None %}
 {% set startdate_error = errors.get('start_date') if errors else None %}
+{% set today = now.now() %}
 
 {% block content %}
 <div class="govuk-grid-row">
@@ -48,7 +49,7 @@
         'label': { 'text': 'Documentation URL', 'classes': 'govuk-label--m' },
         'id': 'documentation-url',
         'name': 'documentation_url',
-        'value': (form.documentation_url if form else ''),
+        'value': form.get('documentation_url', ''),
         'attributes': {
         'type': 'url',
         'spellcheck': 'false',
@@ -75,21 +76,21 @@
               <div class="govuk-form-group">
                 <label class="govuk-label govuk-date-input__label" for="start-day">Day</label>
                 <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="start-day" name="start_day"
-                  type="text" inputmode="numeric" value="{{ form.start_day if form else '' }}">
+                  type="text" inputmode="numeric" value="{{ form.get('start_day') or today.day }}">
               </div>
             </div>
             <div class="govuk-date-input__item">
               <div class="govuk-form-group">
                 <label class="govuk-label govuk-date-input__label" for="start-month">Month</label>
                 <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="start-month"
-                  name="start_month" type="text" inputmode="numeric" value="{{ form.start_month if form else '' }}">
+                  name="start_month" type="text" inputmode="numeric" value="{{ form.get('start_month') or today.month }}">
               </div>
             </div>
             <div class="govuk-date-input__item">
               <div class="govuk-form-group">
                 <label class="govuk-label govuk-date-input__label" for="start-year">Year</label>
                 <input class="govuk-input govuk-date-input__input govuk-input--width-4" id="start-year"
-                  name="start_year" type="text" inputmode="numeric" value="{{ form.start_year if form else '' }}">
+                  name="start_year" type="text" inputmode="numeric" value="{{ form.get('start_year') or today.year }}">
               </div>
             </div>
           </div>
@@ -107,7 +108,7 @@
         { 'value': 'ogl', 'text': 'OGL' },
         { 'value': 'cc-by', 'text': 'CC-BY' }
         ],
-        'value': (form.licence if form else '')
+        'value': form.get('licence', '')
         }) }}
       </div>
 

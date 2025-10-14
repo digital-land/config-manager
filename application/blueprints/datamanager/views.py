@@ -17,17 +17,6 @@ headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
 REQUESTS_TIMEOUT = 20  # seconds
 
-def normalize_org_curie(org: str, dataset_id: str | None = None) -> str:
-    """
-    Convert 'local-authority:CODE' -> 'local-authority-eng:CODE'.
-    Leaves anything else unchanged. Safe to call multiple times.
-    """
-    if not org:
-        return org
-    org = org.strip()
-    if org.startswith("local-authority:"):
-        return org.replace("local-authority:", "local-authority-eng:", 1)
-    return org
 
 # put this near the top, replacing your current get_spec_fields_from_datasette
 def get_spec_fields_union(dataset_id: str | None) -> list[str]:
@@ -72,25 +61,25 @@ def read_raw_csv_preview(source_url: str, max_rows: int = 50):
     """
     Fetch the CSV at source_url and return (headers, first N rows).
     """
-    headers, rows = [], []
+    headers_, rows = [], []
     if not source_url:
-        return headers, rows
+        return headers_, rows
     try:
         resp = requests.get(source_url, timeout=REQUESTS_TIMEOUT)
         text = resp.content.decode("utf-8", errors="ignore")
         reader = csv.reader(StringIO(text))
         first = next(reader, None)
         if first is None:
-            return headers, rows
-        headers = [h.strip().lstrip("\ufeff") for h in first if h is not None]
+            return headers_, rows
+        headers_ = [h.strip().lstrip("\ufeff") for h in first if h is not None]
         for i, r in enumerate(reader):
             if i >= max_rows:
                 break
-            vals = (r + [""] * len(headers))[: len(headers)]
+            vals = (r + [""] * len(headers_))[: len(headers_)]
             rows.append(vals)
     except Exception as e:
         print(f"⚠️ Could not fetch/parse CSV preview: {e}")
-    return headers, rows
+    return headers_, rows
 
 
 @datamanager_bp.context_processor
@@ -184,8 +173,9 @@ def dashboard_add():
             ]
             # 🔑 map "Label (CODE)" -> "prefix:CODE"
             org_label_to_value = {
-                f"{row['organisation']['label']} ({row['organisation']['value'].split(':', 1)[1]})":
-                row['organisation']['value']
+                f"{row['organisation']['label']} ({row['organisation']['value'].split(':', 1)[1]})": row[
+                    "organisation"
+                ]["value"]
                 for row in provision_rows
                 if row.get("organisation", {}).get("value")
             }
@@ -195,10 +185,26 @@ def dashboard_add():
             org_input = (form.get("organisation") or "").strip()
             endpoint_url = form.get("endpoint_url", "").strip()
             doc_url = form.get("documentation_url", "").strip()
-            licence = form.get("licence", "").strip()
-            day = form.get("start_day", "").strip()
-            month = form.get("start_month", "").strip()
-            year = form.get("start_year", "").strip()
+
+            # ✅ licence defaults to 'ogl' if blank
+            licence = (form.get("licence") or "ogl").strip().lower()
+
+            # ✅ start_date defaults to today if user leaves all blank; partial dates still error
+            day = (form.get("start_day") or "").strip()
+            month = (form.get("start_month") or "").strip()
+            year = (form.get("start_year") or "").strip()
+            start_date_str = None
+            if any([day, month, year]):
+                if day and month and year:
+                    try:
+                        start_date_str = datetime(int(year), int(month), int(day)).date().isoformat()
+                    except Exception:
+                        errors["start_date"] = True
+                else:
+                    errors["start_date"] = True
+            else:
+                start_date_str = datetime.utcnow().date().isoformat()
+
             org_warning = form.get("org_warning", "false") == "true"
 
             # resolve to real entity ref (prefix:CODE) using our map
@@ -216,27 +222,18 @@ def dashboard_add():
                         org_value = f"government-organisation:{code}"
                     # add extra dataset rules here if needed
 
-            # ✅ Ensure canonical CURIE even if user typed local-authority:CODE
-            org_value = normalize_org_curie(org_value or org_input, dataset_id)
-
             # Core required fields
-            errors.update({
-                "dataset": not dataset_input,
-                "organisation": (org_warning or (selected_orgs and org_input not in selected_orgs) or not org_value),
-                "endpoint_url": (not endpoint_url or not re.match(r"https?://[^\s]+", endpoint_url)),
-            })
+            errors.update(
+                {
+                    "dataset": not dataset_input,
+                    "organisation": (org_warning or (selected_orgs and org_input not in selected_orgs) or not org_value),
+                    "endpoint_url": (not endpoint_url or not re.match(r"https?://[^\s]+", endpoint_url)),
+                }
+            )
 
             # Optional fields validation (doc_url only if present)
-            if doc_url and not re.match(r"^https?://.*\.(gov\.uk|org\.uk)(/.*)?$", doc_url):
+            if doc_url and not re.match(r"^https?://[^\s/]+\.(gov\.uk|org\.uk)(/.*)?$", doc_url):
                 errors["documentation_url"] = True
-
-            try:
-                if day and month and year:
-                    datetime(int(year), int(month), int(day))
-                elif any([day, month, year]):
-                    errors["start_date"] = True
-            except Exception:
-                errors["start_date"] = True
 
             if not any(errors.values()):
                 payload = {
@@ -246,10 +243,10 @@ def dashboard_add():
                         "collection": collection_id,
                         "dataset": dataset_id,
                         "url": endpoint_url,
-                        # optional extras, null if empty
+                        # optional extras, but we now always send defaults
                         "documentation_url": doc_url or None,
-                        "licence": licence or None,
-                        "start_date": f"{year}-{month.zfill(2)}-{day.zfill(2)}" if day and month and year else None,
+                        "licence": licence,  # ✅ defaulted above
+                        "start_date": start_date_str,  # ✅ defaulted above
                         # ✅ send the REAL entity reference (prefix:CODE)
                         "organisation": org_value,
                     }
@@ -257,7 +254,7 @@ def dashboard_add():
                 session["optional_fields"] = {
                     "documentation_url": doc_url,
                     "licence": licence,
-                    "start_date": f"{year}-{month.zfill(2)}-{day.zfill(2)}" if day and month and year else None
+                    "start_date": start_date_str,
                 }
 
                 if column_mapping:
@@ -272,13 +269,19 @@ def dashboard_add():
                     async_api = f"{get_request_api_endpoint()}/requests"
                     response = requests.post(async_api, json=payload, timeout=REQUESTS_TIMEOUT)
 
+                    print(f"⬅️ request-api responded with {response.status_code}")
+                    try:
+                        print(json.dumps(response.json(), indent=2))
+                    except Exception:
+                        print((response.text or "")[:2000])
+
                     if response.status_code == 202:
                         request_id = response.json()["id"]
                         return redirect(
                             url_for(
                                 "datamanager.check_results",
                                 request_id=request_id,
-                                organisation=org_value  # pass value along
+                                organisation=org_value,  # pass value along
                             )
                         )
                     else:
@@ -299,6 +302,7 @@ def dashboard_add():
         errors=errors,
         dataset_options=dataset_options,
     )
+
 
 @datamanager_bp.route("/check-results/<request_id>")
 def check_results(request_id):
@@ -321,16 +325,38 @@ def check_results(request_id):
         if result.get("status") in ["PENDING", "PROCESSING", "QUEUED"] or result.get("response") is None:
             return render_template("datamanager/check-results-loading.html", result=result)
 
-        # Row details (paged, includes per-row issue logs)
-        resp_details = requests.get(
+        # Row details (paged)
+        details_response = requests.get(
             f"{async_api}/requests/{request_id}/response-details",
             params={"offset": offset, "limit": page_size},
-            timeout=REQUESTS_TIMEOUT
-        ).json() or []
+            timeout=REQUESTS_TIMEOUT,
+        )
+        details_response.raise_for_status()
+        resp_details = details_response.json() or []
 
-        total_rows = result.get("response", {}).get("data", {}).get("row-count", len(resp_details))
+        total_rows = (result.get("response") or {}).get("data", {}).get("row-count", len(resp_details))
 
-        # Geometry mapping
+        # --- TRUST BACKEND ONLY ---
+        data = (result.get("response") or {}).get("data") or {}
+        entity_summary = data.get("entity-summary") or {}
+        new_entities = data.get("new-entities") or []
+
+        # exact lists as provided by BE
+        existing_entities_list = data.get("existing-entities") or []
+
+        # exact counts as provided by BE (fallback to 0 if missing)
+        existing_count = int(entity_summary.get("existing-in-resource") or 0)
+        new_count = int(entity_summary.get("new-in-resource") or 0)
+
+        print("🔎 BE data keys:", list(data.keys()))
+        print("🔎 entity-summary:", entity_summary)
+        print("🔎 existing-entities len:", len(existing_entities_list))
+
+        # minimal message that only reflects BE numbers
+        new_entities_message = f"{existing_count} existing; {new_count} new (from backend)."
+        show_entities_link = new_count > 0
+
+        # Geometry mapping (unchanged)
         geometries = []
         for row in resp_details:
             geom = row.get("geometry")
@@ -343,125 +369,75 @@ def check_results(request_id):
                     except Exception:
                         geom = None
             if geom:
-                geometries.append({
-                    "type": "Feature",
-                    "geometry": geom,
-                    "properties": {
-                        "reference": (row.get("converted_row") or {}).get("Reference") or f"Entry {row.get('entry_number')}"
+                geometries.append(
+                    {
+                        "type": "Feature",
+                        "geometry": geom,
+                        "properties": {
+                            "reference": (row.get("converted_row") or {}).get("Reference")
+                            or f"Entry {row.get('entry_number')}",
+                        },
                     }
-                })
+                )
 
-        # Error parsing
-        data = (result.get("response") or {}).get("data") or {}
-        error_summary = data.get("error-summary", [])
-        column_field_log = data.get("column-field-log", [])
+        # Error parsing (unchanged)
+        error_summary = data.get("error-summary", []) or []
+        column_field_log = data.get("column-field-log", []) or []
 
-        # --- NEW ENTITY PREVIEW ---
-        # 1) Prefer backend-provided preview
-        new_entities = data.get("new-entities", [])  # list[dict]
-        new_entity_count = len(new_entities)
-
-        new_entities_message = (
-            "No new entities detected for this source."
-            if new_entity_count == 0
-            else f"{new_entity_count} new entities proposed. These will be created when you add data."
-        )
-
-        # 2) If not provided, infer from per-row issue_logs
-        if not new_entities:
-            inferred = []
-            for d in resp_details:
-                issue_logs = (d.get("issue_logs") or d.get("detail", {}).get("issue_logs") or [])
-                converted = (d.get("converted_row") or {})
-                for iss in issue_logs:
-                    t = (iss.get("issue-type") or iss.get("type") or "").lower()
-                    if "unknown entity" in t:
-                        ref_val = (converted.get("Reference")
-                                   or converted.get("reference")
-                                   or iss.get("reference")
-                                   or "")
-                        if ref_val:
-                            inferred.append({
-                                "reference": str(ref_val).strip(),
-                                "prefix": iss.get("prefix") or "",
-                                "organisation": iss.get("organisation") or ""
-                            })
-                            break
-            new_entities = inferred
-
-        # Build fast lookup set of references
-        new_entity_refs = {
-            str((e or {}).get("reference", "")).strip()
-            for e in (new_entities or [])
-            if (e or {}).get("reference")
-        }
-        new_entity_count = len(new_entity_refs)
-
-        # Build table (with extra "New entity?" column)
+        # ---- Table build (no FE-added 'Entity status') ----
         table_headers, formatted_rows = [], []
         if resp_details:
             first_row = (resp_details[0] or {}).get("converted_row", {}) or {}
             table_headers = list(first_row.keys())
 
-            # Decide the reference column to read for marking
-            ref_col = None
-            if table_headers:
-                for cand in table_headers:
-                    if cand.lower() == "reference":
-                        ref_col = cand
-                        break
-                if not ref_col:
-                    for cand in table_headers:
-                        if "ref" in cand.lower():
-                            ref_col = cand
-                            break
-
-            # Add the extra column once
-            extra_col = "New entity?"
-            if extra_col not in table_headers:
-                table_headers.append(extra_col)
-
             for row in resp_details:
                 converted = (row.get("converted_row") or {})
-                row_cols = {col: {"value": converted.get(col, "")} for col in table_headers if col != extra_col}
-
-                ref_val = (converted.get(ref_col) if ref_col else "")
-                is_new = "Yes" if (str(ref_val).strip() in new_entity_refs) else ""
-                row_cols[extra_col] = {"value": is_new}
-
-                formatted_rows.append({"columns": row_cols})
+                formatted_rows.append(
+                    {"columns": {col: {"value": converted.get(col, "")} for col in table_headers}}
+                )
 
         table_params = {
             "columns": table_headers,
             "fields": table_headers,
             "rows": formatted_rows,
-            "columnNameProcessing": "none"
+            "columnNameProcessing": "none",
         }
 
         showing_start = offset + 1 if total_rows > 0 else 0
         showing_end = min(offset + page_size, total_rows)
 
+        # checks
         must_fix, fixable, passed_checks = [], [], []
         for err in error_summary:
             fixable.append(err)
-
         for col in column_field_log:
             if not col.get("missing"):
                 passed_checks.append(f"All rows have {col.get('field')} present")
             else:
                 must_fix.append(f"Missing required field: {col.get('field')}")
-
         allow_add_data = len(must_fix) == 0
 
         params = result.get("params", {}) or {}
         optional_missing = not (
-            params.get("documentation_url") and
-            params.get("licence") and
-            params.get("start_date")
+            params.get("documentation_url")
+            and params.get("licence")
+            and params.get("start_date")
         )
         show_error = not allow_add_data
 
         entities_preview_url = url_for("datamanager.entities_preview", request_id=request_id)
+
+        # compact preview (first 5) – exactly what BE sent for "new-entities"
+        entity_preview_rows = []
+        for e in (new_entities or [])[:5]:
+            entity_preview_rows.append(
+                {
+                    "reference": str(e.get("reference", "")).strip(),
+                    "prefix": e.get("prefix") or "",
+                    "organisation": e.get("organisation") or "",
+                    "entity": str(e.get("entity", "")).strip(),
+                }
+            )
 
         return render_template(
             "datamanager/check-results.html",
@@ -479,9 +455,14 @@ def check_results(request_id):
             page_size=page_size,
             showing_start=showing_start,
             showing_end=showing_end,
-            new_entity_count=new_entity_count,
+            # entity summary bits (BE only):
             new_entities_message=new_entities_message,
+            new_entity_count=new_count,
+            existing_entity_count=existing_count,
+            existing_entities_list=existing_entities_list,
+            show_entities_link=show_entities_link,
             entities_preview_url=entities_preview_url,
+            entity_preview_rows=entity_preview_rows,
         )
 
     except Exception as e:
@@ -489,7 +470,7 @@ def check_results(request_id):
         abort(500, f"Error fetching results from backend: {e}")
 
 
-@datamanager_bp.route("/check-results/optional-submit", methods=["GET","POST"])
+@datamanager_bp.route("/check-results/optional-submit", methods=["GET", "POST"])
 def optional_fields_submit():
     form = request.form.to_dict()
     request_id = form.get("request_id")
@@ -510,24 +491,18 @@ def optional_fields_submit():
             "type": "check_url",
             "documentation_url": documentation_url or None,
             "licence": licence or None,
-            "start_date": start_date
+            "start_date": start_date,
         }
     }
     print("\n 📦 Submitting optional fields to request API: \n")
     try:
-        requests.patch(
-            f"{async_api}/requests/{request_id}",
-            json=payload,
-            timeout=REQUESTS_TIMEOUT
-        )
+        requests.patch(f"{async_api}/requests/{request_id}", json=payload, timeout=REQUESTS_TIMEOUT)
         print(f"✅ Successfully updated request {request_id} in request-api")
         print(json.dumps(payload, indent=2))
     except Exception as e:
         print(f"❌ Failed to update request {request_id} in request-api: {e}")
 
-    return redirect(url_for( "datamanager.add_data",request_id=request_id))
-
-    return redirect(url_for("datamanager.check_results", request_id=request_id))
+    return redirect(url_for("datamanager.add_data", request_id=request_id))
 
 
 @datamanager_bp.route("/dashboard/debug-payload", methods=["POST"])
@@ -557,7 +532,7 @@ def debug_payload():
             "url": endpoint,
             "documentation_url": documentation_url or None,
             "licence": licence or None,
-            "start_date": start_date
+            "start_date": start_date,
         }
     }
 
@@ -578,104 +553,101 @@ def debug_payload():
 def add_data(request_id):
     async_api = get_request_api_endpoint()
 
-    # Load original request (for dataset/collection/url/column_mapping/geom_type/etc.)
-    try:
-        resp = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
-        resp.raise_for_status()
-    except Exception as e:
-        abort(500, f"Failed to load original request {request_id}: {e}")
+    # Load the original CHECK request (we reuse its params and artefacts via source_request_id)
+    resp = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
+    if resp.status_code != 200:
+        return render_template("error.html", message="Original request not found"), 404
+    original = resp.json() or {}
+    base = (original.get("params") or {}).copy()
 
-    result = resp.json() or {}
-    params = (result.get("params") or {}).copy()
+    # Anything we already know (from BE or session)
+    existing_doc   = base.get("documentation_url") or session.get("optional_fields", {}).get("documentation_url")
+    existing_lic   = base.get("licence")           or session.get("optional_fields", {}).get("licence")
+    existing_start = base.get("start_date")        or session.get("optional_fields", {}).get("start_date")
 
-    # Existing optional values (backend/session)
-    existing_doc = params.get("documentation_url") or session.get("optional_fields", {}).get("documentation_url")
-    existing_lic = params.get("licence") or session.get("optional_fields", {}).get("licence")
-    existing_start = params.get("start_date") or session.get("optional_fields", {}).get("start_date")
+    def _submit_preview(doc_url: str, licence: str, start_date: str):
+        params = base.copy()
+        params.update({
+            "type": "add_data",
+            "preview": True,                 # ← PREVIEW mode
+            "source_request_id": request_id, # ← reuse check_url artefacts in BE
+            "documentation_url": doc_url,
+            "licence": licence,
+            "start_date": start_date,
+        })
+        try:
+            print("\n 📦 add_data Preview -outgoing payload: \n")
+            print(json.dumps(params, indent=2))
+        except Exception:
+            pass    
+        r = requests.post(f"{async_api}/requests", json={"params": params}, timeout=REQUESTS_TIMEOUT)
+        
+        try:
+            print(f"add_data preview -request-api responded {r.status_code}")
+        except Exception:
+            pass
+           
+        if r.status_code == 202:
+            preview_id = (r.json() or {}).get("id")
+            return redirect(url_for("datamanager.entities_preview", request_id=preview_id))
+        detail = r.json() if "application/json" in (r.headers.get("content-type") or "") else r.text
+        abort(500, f"Preview submission failed ({r.status_code}): {detail}")
 
     if request.method == "GET":
-        if not (existing_doc and existing_lic and existing_start):
-            # Show optional fields screen
-            return render_template("datamanager/add-data.html", request_id=request_id)
-        # Everything present already — you could auto-submit, but better to let user confirm
-        return render_template("datamanager/add-data.html", request_id=request_id)
+        if existing_doc and existing_lic and existing_start:
+            # Optional fields are present → use EXISTING payload to preview
+            return _submit_preview(existing_doc, existing_lic, existing_start)
+        
+        # Pre-populate form with any existing data for the initial GET request
+        form_data = {
+            "documentation_url": existing_doc,
+            "licence": existing_lic,
+        }
+        return render_template("datamanager/add-data.html", request_id=request_id, form=form_data)
 
-    # POST (from add-data.html "Continue" OR the Add data button if you post directly)
+    # POST – user submitted optional fields
     form = request.form.to_dict()
-
-    # Prefer submitted values; fall back to existing ones
     doc_url = (form.get("documentation_url") or existing_doc or "").strip()
     licence = (form.get("licence") or existing_lic or "").strip()
 
-    day = (form.get("start_day") or "").strip()
-    month = (form.get("start_month") or "").strip()
-    year = (form.get("start_year") or "").strip()
-    if day and month and year:
-        start_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-    else:
-        start_date = (existing_start or "").strip()
+    d = (form.get("start_day") or "").strip()
+    m = (form.get("start_month") or "").strip()
+    y = (form.get("start_year") or "").strip()
+    start_date = f"{y}-{m.zfill(2)}-{d.zfill(2)}" if (d and m and y) else (existing_start or "").strip()
 
-    # Minimal validation — ensure we have all three before submitting add_data
     if not (doc_url and licence and start_date):
-        # Re-render optional screen (could pass errors/form back if you like)
-        return render_template("datamanager/add-data.html", request_id=request_id)
+        # Still missing something – re-show optional screen
+        return render_template("datamanager/add-data.html", request_id=request_id, form=form)
 
-    # Best-effort: persist optional fields on the original request
-    try:
-        requests.patch(
-            f"{async_api}/requests/{request_id}",
-            json={"params": {"documentation_url": doc_url, "licence": licence, "start_date": start_date}},
-            timeout=REQUESTS_TIMEOUT,
-        )
-    except Exception as e:
-        print(f"❌ Failed to update request {request_id} in request-api: {e}")
+    # Remember locally (optional)
+    session["optional_fields"] = {"documentation_url": doc_url, "licence": licence, "start_date": start_date}
 
-    # Build and submit add_data job
-    submit_params = params.copy()
-    submit_params["type"] = "add_data"
-    submit_params["documentation_url"] = doc_url
-    submit_params["licence"] = licence
-    submit_params["source_request_id"] = request_id
-    submit_params["start_date"] = start_date
-    # Optional provenance
-    # submit_params["source_request_id"] = request_id
+    # Now preview with the UPDATED payload
+    return _submit_preview(doc_url, licence, start_date)
 
-    payload = {"params": submit_params}
-    try:
-        print("📦 Submitting add_data payload:")
-        print(json.dumps(payload, indent=2))
-    except Exception:
-        pass
+@datamanager_bp.route("/check-results/<request_id>/add-data/confirm", methods=["POST"])
+def add_data_confirm(request_id):
+    async_api = get_request_api_endpoint()
 
-    try:
-        submit = requests.post(f"{async_api}/requests", json=payload, timeout=REQUESTS_TIMEOUT)
-    except Exception as e:
-        traceback.print_exc()
-        abort(500, f"Backend error submitting add_data: {e}")
+    # request_id is the PREVIEW add_data id
+    pr = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
+    if pr.status_code != 200:
+        return render_template("error.html", message="Preview not found"), 404
+    preview_req = pr.json() or {}
+    params = (preview_req.get("params") or {}).copy()
+    params["type"] = "add_data"
+    params["preview"] = False  # commit!
 
+    submit = requests.post(f"{async_api}/requests", json={"params": params}, timeout=REQUESTS_TIMEOUT)
     if submit.status_code == 202:
-        body = {}
-        try:
-            body = submit.json() or {}
-        except Exception:
-            pass
-
-        new_request_id = body.get("id")
+        body = submit.json() or {}
+        new_id = body.get("id")
         msg = body.get("message") or "Entity assignment is in progress"
-
         session.pop("optional_fields", None)
-        return redirect(url_for(
-            "datamanager.add_data_progress",
-            request_id=new_request_id,
-            msg=msg
-        ))
+        return redirect(url_for("datamanager.add_data_progress", request_id=new_id, msg=msg))
 
-    else:
-        try:
-            detail = submit.json()
-        except Exception:
-            detail = submit.text
-        abort(500, f"Add data submission failed ({submit.status_code}): {detail}")
+    detail = submit.json() if "application/json" in (submit.headers.get("content-type") or "") else submit.text
+    abort(500, f"Add data submission failed ({submit.status_code}): {detail}")
 
 # --- Configure screen: CSV + MUST-FIX on left, smart dropdowns on right ---
 @datamanager_bp.route("/configure/<request_id>", methods=["GET", "POST"])
@@ -700,11 +672,7 @@ def configure(request_id):
         or params.get("column_mapping")
         or {}
     )
-    # case-insensitive view of mapping (raw -> spec)
-    existing_raw_to_spec_ci = {
-        (k or "").strip().lower(): (v or "").strip()
-        for k, v in existing_raw_to_spec.items()
-    }
+    existing_raw_to_spec_ci = {(k or "").strip().lower(): (v or "").strip() for k, v in existing_raw_to_spec.items()}
 
     # Build reverse map SPEC -> RAW from existing mapping
     spec_to_raw = {}
@@ -727,6 +695,7 @@ def configure(request_id):
     # 6) Helper to normalise names for auto-match
     def _norm(s: str) -> str:
         return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
+
     spec_by_norm = {_norm(f): f for f in spec_fields}
 
     # 7) POST: collect mappings
@@ -747,27 +716,16 @@ def configure(request_id):
         for raw, spec in chosen_spec_by_raw.items():
             spec_to_raw_from_form.setdefault(spec, raw)
 
-        # B) MUST-FIX rows: user picks a SPEC "source" to feed each must-fix SPEC
-        # name="map_spec_to_spec[<mustfix_spec>]" in the template
+        # B) MUST-FIX rows
         for mustfix_spec in must_fix_specs:
             chosen_source_spec = (form.get(f"map_spec_to_spec[{mustfix_spec}]") or "").strip()
             if not chosen_source_spec or chosen_source_spec == "__NOT_MAPPED__":
                 continue
-
-            # Prefer RAW resolved from this form submission; fall back to previous mapping
-            source_raw = (
-                spec_to_raw_from_form.get(chosen_source_spec)
-                or spec_to_raw.get(chosen_source_spec)
-            )
-
+            source_raw = spec_to_raw_from_form.get(chosen_source_spec) or spec_to_raw.get(chosen_source_spec)
             if source_raw:
-                # This RAW should now fulfil the must-fix spec
                 new_mapping[source_raw] = mustfix_spec
 
         geom_type = (form.get("geom_type") or "").strip()
-
-        # ✅ Ensure organisation CURIE is canonical before sending
-        organisation = normalize_org_curie(organisation, dataset_id)
 
         payload = {
             "params": {
@@ -792,13 +750,11 @@ def configure(request_id):
                 return redirect(url_for("datamanager.configure", request_id=new_id))
             else:
                 detail = (
-                    new_req.json() if "application/json" in (new_req.headers.get("content-type") or "")
+                    new_req.json()
+                    if "application/json" in (new_req.headers.get("content-type") or "")
                     else new_req.text
                 )
-                return render_template(
-                    "error.html",
-                    message=f"Re-check submission failed ({new_req.status_code}): {detail}"
-                )
+                return render_template("error.html", message=f"Re-check submission failed ({new_req.status_code}): {detail}")
         except Exception as e:
             traceback.print_exc()
             return render_template("error.html", message=f"Backend error: {e}")
@@ -821,7 +777,7 @@ def configure(request_id):
             details = requests.get(
                 f"{async_api}/requests/{request_id}/response-details",
                 params={"offset": 0, "limit": 50},
-                timeout=REQUESTS_TIMEOUT
+                timeout=REQUESTS_TIMEOUT,
             ).json() or []
             if details:
                 first = (details[0] or {}).get("converted_row", {}) or {}
@@ -874,125 +830,133 @@ def configure(request_id):
         existing_geom_type=existing_geom_type,
     )
 
+
 @datamanager_bp.route("/add-data/progress/<request_id>")
 def add_data_progress(request_id):
     # fallback message in case BE didn’t return one
     message = request.args.get("msg", "Entity assignment is in progress")
-    return render_template(
-        "datamanager/add-data-progress.html",
-        request_id=request_id,
-        message=message,
-    )
+    return render_template("datamanager/add-data-progress.html", request_id=request_id, message=message)
+
 
 @datamanager_bp.route("/check-results/<request_id>/entities")
 def entities_preview(request_id):
     async_api = get_request_api_endpoint()
 
-    # ---- load the summary (top-level response) ----
     r = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
     if r.status_code != 200:
-        return render_template("error.html", message="Request not found"), 404
+        return render_template("error.html", message="Preview not found"), 404
     req = r.json() or {}
+
+    # Loading state
+    if req.get("status") in {"PENDING", "PROCESSING", "QUEUED"} or req.get("response") is None:
+        return render_template("datamanager/add-data-preview-loading.html", request_id=request_id)
+
     data = (req.get("response") or {}).get("data") or {}
+    entity_summary   = data.get("entity-summary") or {}
+    new_entities     = data.get("new-entities") or []
+    endpoint_summary = data.get("endpoint_url_validation") or {}
 
-    proposed = data.get("new-entities") or []          # [{reference,prefix,organisation}]
-    entity_summary = data.get("entity-summary") or {}  # {new-in-resource, existing-in-resource, new-entity-breakdown}
+    # Existing entities preference
+    existing_entities_list = (
+        entity_summary.get("existing-entity-breakdown")
+        or data.get("existing-entities")
+        or []
+    )
 
-    # ---- load response-details (can be dict->rows, list of dicts, or list of JSON strings) ----
-    raw = requests.get(
-        f"{async_api}/requests/{request_id}/response-details",
-        params={"offset": 0, "limit": 1000},
-        timeout=REQUESTS_TIMEOUT
-    ).json() | []
-    if isinstance(raw, dict):
-        details_raw = raw.get("rows") or raw.get("data") or []
-    else:
-        details_raw = raw
+    # New entities table
+    cols = ["reference", "prefix", "organisation", "entity"]
+    rows = [{"columns": {c: {"value": (e.get(c) or "")} for c in cols}} for e in new_entities]
+    table_params = {"columns": cols, "fields": cols, "rows": rows, "columnNameProcessing": "none"}
 
-    def _coerce_detail(item):
-        # Accept plain dict with converted_row, dict with "detail", or JSON string
-        if isinstance(item, dict):
-            if "detail" in item:
-                det = item["detail"]
-                if isinstance(det, str):
-                    try:
-                        return json.loads(det) or {}
-                    except Exception:
-                        return {}
-                return det or {}
-            return item
-        if isinstance(item, str):
-            try:
-                return json.loads(item) or {}
-            except Exception:
-                return {}
-        return {}
+    # Existing entities table
+    ex_cols = ["reference", "entity"]
+    ex_rows = [{"columns": {c: {"value": (e.get(c) or "")} for c in ex_cols}} for e in existing_entities_list]
+    existing_table_params = {"columns": ex_cols, "fields": ex_cols, "rows": ex_rows, "columnNameProcessing": "none"}
 
-    details = [_coerce_detail(d) for d in details_raw]
+    # ---------- endpoint.csv preview ----------
+    endpoint_csv_table_params = None
+    endpoint_csv_text = ""
+    endpoint_csv_body = ""
 
-    # ---- build ref -> line-number map from details ----
-    def _ref_from_conv(conv: dict) -> str:
-        for key in ("Reference", "reference", "ListEntry", "Entity reference", "entity_reference", "entity-reference", "ref"):
-            v = conv.get(key)
-            if v not in (None, ""):
-                return str(v).strip()
-        for k, v in conv.items():
-            if "ref" in (k or "").lower() and v not in (None, ""):
-                return str(v).strip()
-        return ""
+    ep_cols = ["endpoint", "endpoint-url", "parameters", "plugin", "entry-date", "start-date", "end-date"]
+    if endpoint_summary.get("columns"):
+        ep_cols = endpoint_summary["columns"]
 
-    ref_to_line = {}
-    for d in details:
-        conv = (d.get("converted_row") or {})
-        entry_no = d.get("entry_number") or d.get("line-number")
-        if not isinstance(conv, dict):
-            conv = {}
-        ref = _ref_from_conv(conv)
-        if ref and entry_no is not None and str(ref) not in ref_to_line:
-            ref_to_line[str(ref)] = entry_no
+    ep_source = None
+    if endpoint_summary.get("found_in_endpoint_csv") and endpoint_summary.get("existing_row"):
+        ep_source = endpoint_summary["existing_row"]
+    elif endpoint_summary.get("new_endpoint_entry"):
+        ep_source = endpoint_summary["new_endpoint_entry"]
 
-    # ---- table rows ----
-    rows = []
-    line_num = 1
-    for e in (proposed or []):
-        if not isinstance(e, dict):
-            continue
-        ref = str(e.get("reference", "")).strip()
-        line_num += 1
-        rows.append({
-            "line-number": ref_to_line.get(ref) or line_num,
-            "reference": ref,
-            "prefix": e.get("prefix") or "",
-            "organisation": e.get("organisation") or "",
-        })
+    if ep_source:
+        ep_row = [str(ep_source.get(col, "") or "") for col in ep_cols]
+        endpoint_csv_table_params = {
+            "columns": ep_cols,
+            "fields": ep_cols,
+            "rows": [{"columns": {c: {"value": v} for c, v in zip(ep_cols, ep_row)}}],
+            "columnNameProcessing": "none",
+        }
+        endpoint_csv_text = ",".join(ep_cols) + "\n" + ",".join(ep_row)
+        endpoint_csv_body = ",".join(ep_row)
 
-    def _ln(v):
-        try:
-            return int(v.get("line-number") or 0)
-        except Exception:
-            return 0
+    # ---------- source.csv preview + summary ----------
+    source_csv_table_params = None
+    source_csv_text = ""
+    source_csv_body = ""
+    source_summary = None  # <<— new
 
-    rows.sort(key=lambda r: (_ln(r), r.get("reference", "")))
+    src_cols = [
+        "source","attribution","collection","documentation-url","endpoint",
+        "licence","organisation","pipelines","entry-date","start-date","end-date"
+    ]
+    src_source = endpoint_summary.get("new_source_entry") or None
+    if src_source:
+        src_row = [str(src_source.get(col, "") or "") for col in src_cols]
+        source_csv_table_params = {
+            "columns": src_cols,
+            "fields": src_cols,
+            "rows": [{"columns": {c: {"value": v} for c, v in zip(src_cols, src_row)}}],
+            "columnNameProcessing": "none",
+        }
+        source_csv_text = ",".join(src_cols) + "\n" + ",".join(src_row)
+        source_csv_body = ",".join(src_row)
 
-    columns = ["line-number", "reference", "prefix", "organisation"]
-    table_params = {
-        "columns": columns,
-        "fields": columns,
-        "rows": [{"columns": {c: {"value": r.get(c, "")} for c in columns}} for r in rows],
-        "columnNameProcessing": "none",
-    }
-
-    new_count = entity_summary.get("new-in-resource")
-    if new_count in (None, "", 0):
-        new_count = len(proposed or [])
-    existing_count = entity_summary.get("existing-in-resource") or 0
+        # Build summary panel model (like Endpoint Summary)
+        source_summary = {
+            "will_create": True,
+            "source": src_source.get("source", ""),
+            "collection": src_source.get("collection", ""),
+            "organisation": src_source.get("organisation", ""),
+            "endpoint": src_source.get("endpoint", ""),
+            "licence": src_source.get("licence", ""),
+            "pipelines": src_source.get("pipelines", ""),
+            "entry_date": src_source.get("entry-date", ""),
+            "start_date": src_source.get("start-date", ""),
+            "end_date": src_source.get("end-date", ""),
+            "documentation_url": src_source.get("documentation-url", ""),
+            "attribution": src_source.get("attribution", ""),
+        }
 
     return render_template(
         "datamanager/entities_preview.html",
         request_id=request_id,
-        new_count=int(new_count or 0),
-        existing_count=int(existing_count or 0),
-        breakdown=entity_summary.get("new-entity-breakdown") or [],
+        new_count=int(entity_summary.get("new-in-resource") or 0),
+        existing_count=int(entity_summary.get("existing-in-resource") or 0),
+        breakdown=data.get("new-entity-breakdown") or [],
+        endpoint_summary=endpoint_summary,
         table_params=table_params,
-        back_url=url_for("datamanager.check_results", request_id=request_id),
+        existing_table_params=existing_table_params,
+        # CSV previews
+        endpoint_csv_table_params=endpoint_csv_table_params,
+        endpoint_csv_text=endpoint_csv_text,
+        endpoint_csv_body=endpoint_csv_body,
+        source_csv_table_params=source_csv_table_params,
+        source_csv_text=source_csv_text,
+        source_csv_body=source_csv_body,
+        # NEW: summary for source.csv
+        source_summary=source_summary,
+        back_url=url_for(
+            "datamanager.add_data",
+            request_id=(req.get("params") or {}).get("source_request_id") or request_id,
+        ),
     )

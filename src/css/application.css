@@ -4602,7 +4602,6 @@ font-size: 14px;
   margin-top: 20px;
   margin-bottom: 20px;
   clear: both;
-  border-left: 10px solid #b1b4b6;
 }
 @media print {
   .govuk-inset-text {
