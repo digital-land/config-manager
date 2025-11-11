@@ -301,6 +301,12 @@ def dashboard_add():
                         "organisation": org_value,
                     }
                 }
+                session["required_fields"] = {
+                    "collection": collection_id,
+                    "dataset": dataset_id,
+                    "url": endpoint_url,
+                    "organisation": org_value,
+                }
                 session["optional_fields"] = {
                     "documentation_url": doc_url,
                     "licence": licence,
@@ -587,35 +593,29 @@ def optional_fields_submit():
     return redirect(url_for("datamanager.add_data", request_id=request_id))
 
 
-@datamanager_bp.route("/check-results/<request_id>/add-data", methods=["GET", "POST"])
-def add_data(request_id):
+@datamanager_bp.route("/check-results/add-data", methods=["GET", "POST"])
+def add_data():
     async_api = get_request_api_endpoint()
 
-    # Load the original CHECK request (we reuse its params and artefacts via source_request_id)
-    resp = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
-    if resp.status_code != 200:
-        return render_template("error.html", message="Original request not found"), 404
-    original = resp.json() or {}
-    base = (original.get("params") or {}).copy()
-
-    # Anything we already know (from BE or session)
-    existing_doc = base.get("documentation_url") or session.get(
+    # all optional fields from session (if any)
+    existing_doc = session.get(
         "optional_fields", {}
     ).get("documentation_url")
-    existing_lic = base.get("licence") or session.get("optional_fields", {}).get(
+    existing_lic =  session.get("optional_fields", {}).get(
         "licence"
     )
-    existing_start = base.get("start_date") or session.get("optional_fields", {}).get(
+    existing_start = session.get("optional_fields", {}).get(
         "start_date"
     )
 
     def _submit_preview(doc_url: str, licence: str, start_date: str):
-        params = base.copy()
+        # all required fields from session
+        params = session.get("required_fields", {}).copy()
+        print(" 🔹 Using required fields from session:", params)
         params.update(
             {
                 "type": "add_data",
                 "preview": True,  # ← PREVIEW mode
-                "source_request_id": request_id,  # ← reuse check_url artefacts in BE
                 "documentation_url": doc_url,
                 "licence": licence,
                 "start_date": start_date,
@@ -658,7 +658,7 @@ def add_data(request_id):
             "licence": existing_lic,
         }
         return render_template(
-            "datamanager/add-data.html", request_id=request_id, form=form_data
+            "datamanager/add-data.html", form=form_data
         )
 
     # POST – user submitted optional fields
@@ -678,7 +678,7 @@ def add_data(request_id):
     if not (doc_url and licence and start_date):
         # Still missing something – re-show optional screen
         return render_template(
-            "datamanager/add-data.html", request_id=request_id, form=form
+            "datamanager/add-data.html", form=form
         )
 
     # Remember locally (optional)
