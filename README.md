@@ -68,5 +68,3 @@ Note that the first line of that file is:
 Then to install all the packages run:
 
     python -m piptools sync requirements/requirements.txt requirements/dev-requirements.txt
-
-Testing ssh config
