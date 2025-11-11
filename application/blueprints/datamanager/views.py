@@ -598,15 +598,9 @@ def add_data():
     async_api = get_request_api_endpoint()
 
     # all optional fields from session (if any)
-    existing_doc = session.get(
-        "optional_fields", {}
-    ).get("documentation_url")
-    existing_lic =  session.get("optional_fields", {}).get(
-        "licence"
-    )
-    existing_start = session.get("optional_fields", {}).get(
-        "start_date"
-    )
+    existing_doc = session.get("optional_fields", {}).get("documentation_url")
+    existing_lic = session.get("optional_fields", {}).get("licence")
+    existing_start = session.get("optional_fields", {}).get("start_date")
 
     def _submit_preview(doc_url: str, licence: str, start_date: str):
         # all required fields from session
@@ -657,9 +651,7 @@ def add_data():
             "documentation_url": existing_doc,
             "licence": existing_lic,
         }
-        return render_template(
-            "datamanager/add-data.html", form=form_data
-        )
+        return render_template("datamanager/add-data.html", form=form_data)
 
     # POST – user submitted optional fields
     form = request.form.to_dict()
@@ -677,9 +669,7 @@ def add_data():
 
     if not (doc_url and licence and start_date):
         # Still missing something – re-show optional screen
-        return render_template(
-            "datamanager/add-data.html", form=form
-        )
+        return render_template("datamanager/add-data.html", form=form)
 
     # Remember locally (optional)
     session["optional_fields"] = {
