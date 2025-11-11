@@ -1,6 +1,4 @@
-import json
 from unittest.mock import patch, MagicMock
-import pytest
 from application.blueprints.datamanager.views import (
     get_spec_fields_union,
     read_raw_csv_preview,
