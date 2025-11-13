@@ -49,17 +49,21 @@ drop-data:
 	flask data drop
 
 test-unit:
-	@echo "Running Unit test...."
-	@echo "Not yet implemented"
+	@echo "Running Unit tests...."
+	python -m pytest tests/unit/ -v
 
 test-integration:
-	@echo "Running Integration test...."
-	@echo "Not yet implemented"
+	@echo "Running Integration tests...."
+	python -m pytest tests/integration/ -v
 
 test-acceptance:
-	@echo "Running Acceptance test...."
-	@echo "Not yet implemented"
+	@echo "Running Acceptance tests...."
+	python -m pytest tests/acceptance/ -v
 
 test-accessibility:
-	@echo "Running Accessibility test...."
+	@echo "Running Accessibility tests...."
 	@echo "Not yet implemented"
+
+test:
+	@echo "Running all tests...."
+	python -m pytest tests/ -v

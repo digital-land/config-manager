@@ -4,6 +4,7 @@ Flask app factory class
 """
 # import os.path
 # import sentry_sdk
+import logging
 from flask import Flask
 from flask.cli import load_dotenv
 
@@ -15,6 +16,38 @@ load_dotenv()
 DIGITAL_LAND_GITHUB_URL = "https://raw.githubusercontent.com/digital-land"
 
 
+def configure_logging(app):
+    """
+    Configure logging for the application
+    """
+    # Set up logging format
+    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    formatter = logging.Formatter(log_format)
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+
+    # Set log level based on environment
+    if app.config.get("TESTING"):
+        log_level = logging.DEBUG
+    elif app.config.get("DEBUG"):
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+
+    root_logger.setLevel(log_level)
+
+    # Console handler
+    if not root_logger.handlers:
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(log_level)
+        console_handler.setFormatter(formatter)
+        root_logger.addHandler(console_handler)
+
+    # Configure application logger
+    app.logger.setLevel(log_level)
+
+
 def create_app(config_filename):
     """
     App factory function
@@ -23,6 +56,8 @@ def create_app(config_filename):
     app.config.from_object(config_filename)
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 10
     app.config["DEBUG"] = True
+
+    configure_logging(app)
 
     register_blueprints(app)
     register_context_processors(app)
