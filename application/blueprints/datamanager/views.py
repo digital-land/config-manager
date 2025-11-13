@@ -20,6 +20,17 @@ from shapely import wkt
 from shapely.geometry import mapping
 import csv
 from io import StringIO
+import logging
+
+# Configure the logger
+logging.basicConfig(
+    level=logging.INFO,  # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',  # Log format
+)
+
+# Create a logger instance
+logger = logging.getLogger(__name__)
+
 
 datamanager_bp = Blueprint("datamanager", __name__, url_prefix="/datamanager")
 headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -605,7 +616,7 @@ def add_data():
     def _submit_preview(doc_url: str, licence: str, start_date: str):
         # all required fields from session
         params = session.get("required_fields", {}).copy()
-        print(" 🔹 Using required fields from session:", params)
+        logger.info(" 🔹 Using required fields from session: %s ", json.dumps(params))
         params.update(
             {
                 "type": "add_data",
