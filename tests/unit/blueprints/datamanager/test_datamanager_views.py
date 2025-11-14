@@ -39,25 +39,29 @@ class TestDatamanagerViews:
     ):
         """Test successful form submission stores data in session"""
         mock_get.side_effect = [
-            MagicMock(json=lambda: {
-                "datasets": [
-                    {
-                        "name": "test-dataset",
-                        "dataset": "test-id",
-                        "collection": "test-collection",
-                    }
-                ]
-            }),
-            MagicMock(json=lambda: {
-                "rows": [
-                    {
-                        "organisation": {
-                            "label": "Test Org",
-                            "value": "local-authority:TEST",
+            MagicMock(
+                json=lambda: {
+                    "datasets": [
+                        {
+                            "name": "test-dataset",
+                            "dataset": "test-id",
+                            "collection": "test-collection",
                         }
-                    }
-                ]
-            })
+                    ]
+                }
+            ),
+            MagicMock(
+                json=lambda: {
+                    "rows": [
+                        {
+                            "organisation": {
+                                "label": "Test Org",
+                                "value": "local-authority:TEST",
+                            }
+                        }
+                    ]
+                }
+            ),
         ]
         mock_post.return_value.status_code = 202
         mock_post.return_value.json.return_value = {"id": "test-request-id"}
