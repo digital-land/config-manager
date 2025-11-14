@@ -69,9 +69,7 @@ def log_checker():
             """Get all captured log records, optionally filtered by level"""
             self.handler.flush()
             if level:
-                return [
-                    r for r in self.handler.buffer if r.levelname == level.upper()
-                ]
+                return [r for r in self.handler.buffer if r.levelname == level.upper()]
             return list(self.handler.buffer)
 
         def clear(self):

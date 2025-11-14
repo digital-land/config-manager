@@ -38,16 +38,27 @@ class TestDatamanagerViews:
         self, mock_get, mock_post, client
     ):
         """Test successful form submission stores data in session"""
-        mock_get.return_value.json.return_value = {
-            "datasets": [
-                {
-                    "name": "test-dataset",
-                    "dataset": "test-id",
-                    "collection": "test-collection",
-                }
-            ],
-            "rows": [],
-        }
+        mock_get.side_effect = [
+            MagicMock(json=lambda: {
+                "datasets": [
+                    {
+                        "name": "test-dataset",
+                        "dataset": "test-id",
+                        "collection": "test-collection",
+                    }
+                ]
+            }),
+            MagicMock(json=lambda: {
+                "rows": [
+                    {
+                        "organisation": {
+                            "label": "Test Org",
+                            "value": "local-authority:TEST",
+                        }
+                    }
+                ]
+            })
+        ]
         mock_post.return_value.status_code = 202
         mock_post.return_value.json.return_value = {"id": "test-request-id"}
 
@@ -63,7 +74,7 @@ class TestDatamanagerViews:
 
         assert response.status_code == 302
         with client.session_transaction() as sess:
-            assert "form_data" in sess
+            assert "required_fields" in sess
 
     @patch("requests.get")
     def test_check_results_loading_state(self, mock_get, client):
@@ -83,7 +94,7 @@ class TestDatamanagerViews:
         with client.session_transaction() as sess:
             sess["form_data"] = {"documentation_url": "https://test.gov.uk"}
 
-        response = client.get("/datamanager/check-results/test-id/add-data")
+        response = client.get("/datamanager/check-results/add-data")
         assert response.status_code == 200
 
     @patch("requests.post")
@@ -96,7 +107,7 @@ class TestDatamanagerViews:
         mock_post.return_value.json.return_value = {"id": "preview-id"}
 
         response = client.post(
-            "/datamanager/check-results/test-id/add-data",
+            "/datamanager/check-results/add-data",
             data={
                 "documentation_url": "https://new.gov.uk",
                 "licence": "ogl",
@@ -145,31 +156,37 @@ class TestDatamanagerViews:
         response = client.post("/datamanager/check-results/test-id/add-data/confirm")
         assert response.status_code == 302
 
+    @patch("application.blueprints.datamanager.views.render_template")
     @patch("requests.get")
-    def test_configure_get(self, mock_get, client):
+    def test_configure_get(self, mock_get, mock_render, client):
         """Test configure page GET"""
         mock_get.return_value.status_code = 200
         mock_get.return_value.json.return_value = {
             "params": {"dataset": "test", "url": "https://test.com"},
             "response": {"data": {}},
         }
+        mock_render.return_value = "mocked template"
 
         response = client.get("/datamanager/configure/test-id")
         assert response.status_code == 200
 
-    def test_add_data_progress(self, client):
+    @patch("application.blueprints.datamanager.views.render_template")
+    def test_add_data_progress(self, mock_render, client):
         """Test add data progress page"""
+        mock_render.return_value = "mocked template"
         response = client.get("/datamanager/add-data/progress/test-id")
         assert response.status_code == 200
 
+    @patch("application.blueprints.datamanager.views.render_template")
     @patch("requests.get")
-    def test_add_data_result(self, mock_get, client):
+    def test_add_data_result(self, mock_get, mock_render, client):
         """Test add data result page"""
         mock_get.return_value.status_code = 200
         mock_get.return_value.json.return_value = {
             "status": "COMPLETED",
             "response": {"data": {"new-entities": []}},
         }
+        mock_render.return_value = "mocked template"
 
         response = client.get("/datamanager/add-data/result/test-id")
         assert response.status_code == 200
