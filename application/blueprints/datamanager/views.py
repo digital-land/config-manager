@@ -21,6 +21,17 @@ from shapely import wkt
 from shapely.geometry import mapping
 import csv
 from io import StringIO
+import logging
+
+# Configure the logger
+logging.basicConfig(
+    level=logging.INFO,  # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # Log format
+)
+
+# Create a logger instance
+logger = logging.getLogger(__name__)
+
 
 datamanager_bp = Blueprint("datamanager", __name__, url_prefix="/datamanager")
 logger = logging.getLogger(__name__)
