@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import traceback
 from datetime import datetime
@@ -20,19 +21,10 @@ from shapely import wkt
 from shapely.geometry import mapping
 import csv
 from io import StringIO
-import logging
-
-# Configure the logger
-logging.basicConfig(
-    level=logging.INFO,  # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # Log format
-)
-
-# Create a logger instance
-logger = logging.getLogger(__name__)
 
 
 datamanager_bp = Blueprint("datamanager", __name__, url_prefix="/datamanager")
+logger = logging.getLogger(__name__)
 headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
 REQUESTS_TIMEOUT = 20  # seconds
@@ -58,7 +50,7 @@ def get_spec_fields_union(dataset_id: str | None) -> list[str]:
                 (row.get("field") or "").strip() for row in rows if row.get("field")
             ]
         except Exception as e:
-            print(f"⚠️ dataset_field fetch failed: {e} for {url}")
+            logger.warning(f"dataset_field fetch failed: {e} for {url}")
             return []
 
     # global list (all datasets)
@@ -102,7 +94,7 @@ def read_raw_csv_preview(source_url: str, max_rows: int = 50):
             vals = (r + [""] * len(headers_))[: len(headers_)]
             rows.append(vals)
     except Exception as e:
-        print(f"⚠️ Could not fetch/parse CSV preview: {e}")
+        logger.warning(f"Could not fetch/parse CSV preview: {e}")
     return headers_, rows
 
 
@@ -132,7 +124,7 @@ def dashboard_add():
             timeout=REQUESTS_TIMEOUT,
         ).json()
     except Exception as e:
-        print("Error fetching datasets:", e)
+        logger.error(f"Error fetching datasets: {e}")
         abort(500, "Failed to fetch dataset list")
 
     # only datasets that have a collection
@@ -182,8 +174,8 @@ def dashboard_add():
 
     if request.method == "POST":
         form = request.form.to_dict()
-        print("🔍 Received form POST data:")
-        print(json.dumps(form, indent=2))
+        logger.debug("Received form POST data:")
+        logger.debug(json.dumps(form, indent=2))
 
         mode = form.get("mode", "").strip()
         dataset_input = form.get("dataset", "").strip()
@@ -329,8 +321,8 @@ def dashboard_add():
                 if geom_type:
                     payload["params"]["geom_type"] = geom_type
 
-                print("📦 Sending payload to request API:")
-                print(json.dumps(payload, indent=2))
+                logger.info("Sending payload to request API:")
+                logger.debug(json.dumps(payload, indent=2))
 
                 try:
                     async_api = f"{get_request_api_endpoint()}/requests"
@@ -338,11 +330,11 @@ def dashboard_add():
                         async_api, json=payload, timeout=REQUESTS_TIMEOUT
                     )
 
-                    print(f"⬅️ request-api responded with {response.status_code}")
+                    logger.info(f"request-api responded with {response.status_code}")
                     try:
-                        print(json.dumps(response.json(), indent=2))
+                        logger.debug(json.dumps(response.json(), indent=2))
                     except Exception:
-                        print((response.text or "")[:2000])
+                        logger.debug((response.text or "")[:2000])
 
                     if response.status_code == 202:
                         request_id = response.json()["id"]
@@ -434,9 +426,9 @@ def check_results(request_id):
         existing_count = int(entity_summary.get("existing-in-resource") or 0)
         new_count = int(entity_summary.get("new-in-resource") or 0)
 
-        print("🔎 BE data keys:", list(data.keys()))
-        print("🔎 entity-summary:", entity_summary)
-        print("🔎 existing-entities len:", len(existing_entities_list))
+        logger.debug(f"BE data keys: {list(data.keys())}")
+        logger.debug(f"entity-summary: {entity_summary}")
+        logger.debug(f"existing-entities len: {len(existing_entities_list)}")
 
         # minimal message that only reflects BE numbers
         new_entities_message = (
@@ -591,15 +583,15 @@ def optional_fields_submit():
             "start_date": start_date,
         }
     }
-    print("\n 📦 Submitting optional fields to request API: \n")
+    logger.info("Submitting optional fields to request API")
     try:
         requests.patch(
             f"{async_api}/requests/{request_id}", json=payload, timeout=REQUESTS_TIMEOUT
         )
-        print(f"✅ Successfully updated request {request_id} in request-api")
-        print(json.dumps(payload, indent=2))
+        logger.info(f"Successfully updated request {request_id} in request-api")
+        logger.debug(json.dumps(payload, indent=2))
     except Exception as e:
-        print(f"❌ Failed to update request {request_id} in request-api: {e}")
+        logger.error(f"Failed to update request {request_id} in request-api: {e}")
 
     return redirect(url_for("datamanager.add_data", request_id=request_id))
 
@@ -616,7 +608,7 @@ def add_data():
     def _submit_preview(doc_url: str, licence: str, start_date: str):
         # all required fields from session
         params = session.get("required_fields", {}).copy()
-        logger.info(" 🔹 Using required fields from session: %s ", json.dumps(params))
+        logger.debug(f"Using required fields from session: {params}")
         params.update(
             {
                 "type": "add_data",
@@ -627,8 +619,8 @@ def add_data():
             }
         )
         try:
-            print("\n 📦 add_data Preview -outgoing payload: \n")
-            print(json.dumps(params, indent=2))
+            logger.info("add_data Preview - outgoing payload:")
+            logger.debug(json.dumps(params, indent=2))
         except Exception:
             pass
         r = requests.post(
@@ -636,7 +628,7 @@ def add_data():
         )
 
         try:
-            print(f"add_data preview -request-api responded {r.status_code}")
+            logger.info(f"add_data preview - request-api responded {r.status_code}")
         except Exception:
             pass
 
@@ -829,7 +821,8 @@ def configure(request_id):
                 "organisation": organisation,
             }
         }
-        print("\n📦 Re-check payload (configure):\n", json.dumps(payload, indent=2))
+        logger.info("Re-check payload (configure):")
+        logger.debug(json.dumps(payload, indent=2))
 
         try:
             new_req = requests.post(
