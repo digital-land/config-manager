@@ -1,8 +1,10 @@
 import json
 import logging
+import os
 import re
 import traceback
 from datetime import datetime
+from dotenv import load_dotenv
 
 import requests
 from flask import (
@@ -23,6 +25,9 @@ import csv
 from io import StringIO
 
 
+# Load .env file
+load_dotenv()
+
 datamanager_bp = Blueprint("datamanager", __name__, url_prefix="/datamanager")
 logger = logging.getLogger(__name__)
 headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -38,8 +43,8 @@ def get_spec_fields_union(dataset_id: str | None) -> list[str]:
       - dataset-scoped field list (if dataset_id is provided)
     Keep original casing; de-duplicate exact strings; stable order.
     """
-    base = "https://datasette.planning.data.gov.uk/digital-land/dataset_field.json"
-    headers = {"Accept": "application/json"}
+    base = os.getenv("DATASETTE_URL", "https://datasette.planning.data.gov.uk/digital-land/dataset_field.json")
+    headers = {"Accept": "application/json", "User-Agent": "Planning Data - Manage"}
 
     def _fetch(url: str) -> list[str]:
         try:
@@ -118,13 +123,15 @@ def dashboard_config():
 
 @datamanager_bp.route("/dashboard/add", methods=["GET", "POST"])
 def dashboard_add():
+    planning_url = os.getenv("PLANNING_DATA_URL", "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max")
     try:
         ds_response = requests.get(
-            "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
+            planning_url,
             timeout=REQUESTS_TIMEOUT,
+            headers={ "User-Agent": "Planning Data - Manage"}
         ).json()
     except Exception as e:
-        logger.error(f"Error fetching datasets: {e}")
+        logger.exception(f"Error fetching datasets")
         abort(500, "Failed to fetch dataset list")
 
     # only datasets that have a collection
@@ -141,19 +148,21 @@ def dashboard_add():
         matches = [name for name in dataset_options if query in name.lower()]
         return jsonify(matches[:10])
 
+    base_provision_url = os.getenv(
+        "PROVISION_URL",
+        "https://datasette.planning.data.gov.uk/digital-land/provision.json"
+    )
     # fetch orgs for a dataset name (for UI suggestions)
     if request.args.get("get_orgs_for"):
         dataset_name = request.args["get_orgs_for"]
         dataset_id = name_to_dataset_id.get(dataset_name)
         if not dataset_id:
             return jsonify([])
-        provision_url = (
-            "https://datasette.planning.data.gov.uk/digital-land/provision.json"
-            f"?_labels=on&_size=max&dataset={dataset_id}"
-        )
+
+        provision_url = f"{base_provision_url}?_labels=on&_size=max&dataset={dataset_id}"
         try:
             provision_rows = (
-                requests.get(provision_url, timeout=REQUESTS_TIMEOUT)
+                requests.get(provision_url, timeout=REQUESTS_TIMEOUT,headers = { "User-Agent": "Planning Data - Manage"})
                 .json()
                 .get("rows", [])
             )
@@ -195,13 +204,10 @@ def dashboard_add():
         # Preload org list + build a reverse map we'll use on submit
         org_label_to_value = {}
         if dataset_id:
-            provision_url = (
-                "https://datasette.planning.data.gov.uk/digital-land/provision.json"
-                f"?_labels=on&_size=max&dataset={dataset_id}"
-            )
+            provision_url = f"{base_provision_url}?_labels=on&_size=max&dataset={dataset_id}"
             try:
                 provision_rows = (
-                    requests.get(provision_url, timeout=REQUESTS_TIMEOUT)
+                    requests.get(provision_url, timeout=REQUESTS_TIMEOUT, headers = { "User-Agent": "Planning Data - Manage"})
                     .json()
                     .get("rows", [])
                 )
