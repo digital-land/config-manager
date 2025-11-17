@@ -136,8 +136,8 @@ def dashboard_add():
             timeout=REQUESTS_TIMEOUT,
             headers={"User-Agent": "Planning Data - Manage"},
         ).json()
-    except Exception as e:
-        logger.exception(f"Error fetching datasets")
+    except Exception:
+        logger.exception("Error fetching datasets")
         abort(500, "Failed to fetch dataset list")
 
     # only datasets that have a collection
