@@ -43,7 +43,10 @@ def get_spec_fields_union(dataset_id: str | None) -> list[str]:
       - dataset-scoped field list (if dataset_id is provided)
     Keep original casing; de-duplicate exact strings; stable order.
     """
-    base = os.getenv("DATASETTE_URL", "https://datasette.planning.data.gov.uk/digital-land/dataset_field.json")
+    base = os.getenv(
+        "DATASETTE_URL",
+        "https://datasette.planning.data.gov.uk/digital-land/dataset_field.json",
+    )
     headers = {"Accept": "application/json", "User-Agent": "Planning Data - Manage"}
 
     def _fetch(url: str) -> list[str]:
@@ -123,12 +126,15 @@ def dashboard_config():
 
 @datamanager_bp.route("/dashboard/add", methods=["GET", "POST"])
 def dashboard_add():
-    planning_url = os.getenv("PLANNING_DATA_URL", "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max")
+    planning_url = os.getenv(
+        "PLANNING_DATA_URL",
+        "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
+    )
     try:
         ds_response = requests.get(
             planning_url,
             timeout=REQUESTS_TIMEOUT,
-            headers={ "User-Agent": "Planning Data - Manage"}
+            headers={"User-Agent": "Planning Data - Manage"},
         ).json()
     except Exception as e:
         logger.exception(f"Error fetching datasets")
@@ -150,7 +156,7 @@ def dashboard_add():
 
     base_provision_url = os.getenv(
         "PROVISION_URL",
-        "https://datasette.planning.data.gov.uk/digital-land/provision.json"
+        "https://datasette.planning.data.gov.uk/digital-land/provision.json",
     )
     # fetch orgs for a dataset name (for UI suggestions)
     if request.args.get("get_orgs_for"):
@@ -159,10 +165,16 @@ def dashboard_add():
         if not dataset_id:
             return jsonify([])
 
-        provision_url = f"{base_provision_url}?_labels=on&_size=max&dataset={dataset_id}"
+        provision_url = (
+            f"{base_provision_url}?_labels=on&_size=max&dataset={dataset_id}"
+        )
         try:
             provision_rows = (
-                requests.get(provision_url, timeout=REQUESTS_TIMEOUT,headers = { "User-Agent": "Planning Data - Manage"})
+                requests.get(
+                    provision_url,
+                    timeout=REQUESTS_TIMEOUT,
+                    headers={"User-Agent": "Planning Data - Manage"},
+                )
                 .json()
                 .get("rows", [])
             )
@@ -204,10 +216,16 @@ def dashboard_add():
         # Preload org list + build a reverse map we'll use on submit
         org_label_to_value = {}
         if dataset_id:
-            provision_url = f"{base_provision_url}?_labels=on&_size=max&dataset={dataset_id}"
+            provision_url = (
+                f"{base_provision_url}?_labels=on&_size=max&dataset={dataset_id}"
+            )
             try:
                 provision_rows = (
-                    requests.get(provision_url, timeout=REQUESTS_TIMEOUT, headers = { "User-Agent": "Planning Data - Manage"})
+                    requests.get(
+                        provision_url,
+                        timeout=REQUESTS_TIMEOUT,
+                        headers={"User-Agent": "Planning Data - Manage"},
+                    )
                     .json()
                     .get("rows", [])
                 )
