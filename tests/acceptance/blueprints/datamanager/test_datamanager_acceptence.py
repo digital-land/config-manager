@@ -70,33 +70,6 @@ class TestDatamanagerAcceptance:
             assert response.status_code == 302
             assert "/check-results/test-request-123" in response.location
 
-    # @responses.activate
-    # def test_check_results_workflow(self, client):
-    #     """Test check results viewing workflow"""
-    #     # Mock request API response
-    #     with patch("application.blueprints.datamanager.views.requests.get") as mock_get:
-    #         mock_get.return_value.status_code = 200
-    #         mock_get.return_value.json.return_value = {
-    #             "status": "COMPLETED",
-    #             "params": {"organisation": "Test Council"},
-    #             "response": {
-    #                 "data": {
-    #                     "row-count": 10,
-    #                     "entity-summary": {
-    #                         "existing-in-resource": 5,
-    #                         "new-in-resource": 5,
-    #                     },
-    #                     "new-entities": [{"reference": "REF1", "entity": "123"}],
-    #                     "error-summary": [],
-    #                     "column-field-log": [],
-    #                 }
-    #             },
-    #         }
-
-    #         response = client.get("/datamanager/check-results/test-request-123")
-    #         assert response.status_code == 200
-    #         assert b"5 existing; 5 new" in response.data
-
     def test_entities_preview_workflow(self, client):
         """Test entities preview functionality"""
         with patch("application.blueprints.datamanager.views.requests.get") as mock_get:
@@ -132,35 +105,6 @@ class TestDatamanagerAcceptance:
                 "/datamanager/check-results/test-request-123/entities"
             )
             assert response.status_code == 200
-
-    # @responses.activate
-    # def test_configure_workflow(self, client):
-    #     """Test configuration workflow with column mapping"""
-    #     # Mock CSV data
-    #     responses.add(
-    #         responses.GET,
-    #         "https://example.com/data.csv",
-    #         body="Reference,Name,Status\nREF1,Test Site,Active\nREF2,Another Site,Inactive",
-    #         status=200,
-    #     )
-
-    #     with patch("application.blueprints.datamanager.views.requests.get") as mock_get:
-    #         mock_get.return_value.status_code = 200
-    #         mock_get.return_value.json.return_value = {
-    #             "params": {
-    #                 "dataset": "brownfield-land",
-    #                 "url": "https://example.com/data.csv",
-    #                 "organisation": "local-authority-eng:TEST",
-    #             },
-    #             "response": {
-    #                 "data": {
-    #                     "column-field-log": [{"field": "reference", "missing": True}]
-    #                 }
-    #             },
-    #         }
-
-    #         response = client.get("/datamanager/configure/test-request-123")
-    #         assert response.status_code == 200
 
     def test_add_data_workflow(self, client):
         """Test add data workflow with session management"""
@@ -215,48 +159,6 @@ class TestDatamanagerAcceptance:
             assert response.status_code == 302
             assert "/add-data/progress/final-123" in response.location
 
-    # def test_add_data_result_workflow(self, client):
-    #     """Test add data result viewing"""
-    #     with patch("application.blueprints.datamanager.views.requests.get") as mock_get:
-    #         mock_get.return_value.status_code = 200
-    #         mock_get.return_value.json.return_value = {
-    #             "status": "COMPLETED",
-    #             "response": {
-    #                 "data": {
-    #                     "new-entity-count": 5,
-    #                     "min-entity-after": "100",
-    #                     "max-entity-after": "104",
-    #                     "lookup-path": "/path/to/lookup.csv",
-    #                     "new-entities": [
-    #                         {
-    #                             "reference": "REF1",
-    #                             "prefix": "test",
-    #                             "organisation": "TEST",
-    #                             "entity": "100",
-    #                         }
-    #                     ],
-    #                 }
-    #             },
-    #         }
-
-    #         response = client.get("/datamanager/add-data/result/final-123")
-    #         assert response.status_code == 200
-    #         assert b"5" in response.data
-
-    # @responses.activate
-    # def test_error_handling_workflow(self, client):
-    #     """Test error handling in various scenarios"""
-    #     # Test API failure
-    #     responses.add(
-    #         responses.GET,
-    #         "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
-    #         json={"error": "Service unavailable"},
-    #         status=500,
-    #     )
-
-    #     response = client.get("/datamanager/dashboard/add")
-    #     assert response.status_code == 500
-
     def test_form_validation_workflow(self, client):
         """Test form validation in submission workflow"""
         with responses.RequestsMock() as rsps:
@@ -294,35 +196,3 @@ class TestDatamanagerAcceptance:
             response = client.get("/datamanager/check-results/test-request-123")
             assert response.status_code == 200
             assert b"loading" in response.data.lower()
-
-    # def test_pagination_workflow(self, client):
-    #     """Test pagination in results viewing"""
-    #     with patch("application.blueprints.datamanager.views.requests.get") as mock_get:
-    #         mock_get.side_effect = [
-    #             # First call for summary
-    #             type(
-    #                 "MockResponse",
-    #                 (),
-    #                 {
-    #                     "status_code": 200,
-    #                     "json": lambda: {
-    #                         "status": "COMPLETED",
-    #                         "params": {"organisation": "Test"},
-    #                         "response": {"data": {"row-count": 100}},
-    #                     },
-    #                 },
-    #             )(),
-    #             # Second call for details
-    #             type(
-    #                 "MockResponse",
-    #                 (),
-    #                 {
-    #                     "status_code": 200,
-    #                     "json": lambda: [{"converted_row": {"field1": "value1"}}],
-    #                     "raise_for_status": lambda: None,
-    #                 },
-    #             )(),
-    #         ]
-
-    #         response = client.get("/datamanager/check-results/test-request-123?page=2")
-    #         assert response.status_code == 200
