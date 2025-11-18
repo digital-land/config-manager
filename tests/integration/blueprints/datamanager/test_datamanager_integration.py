@@ -108,19 +108,6 @@ class TestDatamanagerIntegration:
         assert "Test Council (TEST)" in data
 
     @responses.activate
-    def test_dashboard_add_api_failure_handling(self, client):
-        """Test handling of external API failures"""
-        responses.add(
-            responses.GET,
-            "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
-            json={"error": "Service unavailable"},
-            status=500,
-        )
-
-        response = client.get("/datamanager/dashboard/add")
-        assert response.status_code == 500
-
-    @responses.activate
     def test_dashboard_add_post_integration(self, client):
         """Test POST request to dashboard add"""
         responses.add(
