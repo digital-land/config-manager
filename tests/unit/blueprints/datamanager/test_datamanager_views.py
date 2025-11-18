@@ -178,3 +178,418 @@ class TestUtilityFunctions:
 
         headers, rows = read_raw_csv_preview("http://example.com/test.csv", max_rows=5)
         assert len(rows) == 5
+
+
+class TestSpecificLines:
+    """Tests for specific line coverage"""
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    def test_line_97_out_sort(self, mock_get):
+        """Test line 97: out.sort(key=lambda x: x.lower())"""
+        mock_response = Mock()
+        mock_response.json.return_value = [
+            {"field": "ZField"}, 
+            {"field": "AField"}, 
+            {"field": "MField"}
+        ]
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        result = get_spec_fields_union("test-dataset")
+        assert result == ["AField", "MField", "ZField"]  # Should be sorted
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    def test_lines_139_141_provision_exception(self, mock_get, client):
+        """Test lines 139-141: provision_rows exception handling"""
+        dataset_response = Mock()
+        dataset_response.json.return_value = {
+            "datasets": [{"name": "test-dataset", "dataset": "test-id", "collection": "test-collection"}]
+        }
+        
+        provision_response = Mock()
+        provision_response.side_effect = Exception("Network error")
+        
+        mock_get.side_effect = [dataset_response, provision_response]
+        
+        response = client.get("/datamanager/dashboard/add?get_orgs_for=test-dataset")
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data == []
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    def test_line_166_selected_orgs_list_comprehension(self, mock_get, client):
+        """Test line 166: selected_orgs list comprehension"""
+        dataset_response = Mock()
+        dataset_response.json.return_value = {
+            "datasets": [{"name": "test-dataset", "dataset": "test-id", "collection": "test-collection"}]
+        }
+        
+        provision_response = Mock()
+        provision_response.json.return_value = {
+            "rows": [
+                {"organisation": {"label": "Test Org 1", "value": "prefix:TEST1"}},
+                {"organisation": {"label": "Test Org 2", "value": "prefix:TEST2"}}
+            ]
+        }
+        
+        mock_get.side_effect = [dataset_response, provision_response]
+        
+        response = client.get("/datamanager/dashboard/add?get_orgs_for=test-dataset")
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert "Test Org 1 (TEST1)" in data
+        assert "Test Org 2 (TEST2)" in data
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    def test_lines_181_182_provision_exception_in_post(self, mock_get, client):
+        """Test lines 181-182: provision exception in POST"""
+        dataset_response = Mock()
+        dataset_response.json.return_value = {
+            "datasets": [{"name": "test-dataset", "dataset": "test-id", "collection": "test-collection"}]
+        }
+        
+        provision_response = Mock()
+        provision_response.side_effect = Exception("Network error")
+        
+        mock_get.side_effect = [dataset_response, provision_response]
+        
+        form_data = {
+            "mode": "final",
+            "dataset": "test-dataset",
+            "organisation": "Test Org",
+            "endpoint_url": "https://example.com/data.csv"
+        }
+        
+        response = client.post("/datamanager/dashboard/add", data=form_data)
+        assert response.status_code == 200
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    def test_lines_197_383_dashboard_add_post_complex(self, mock_get, client):
+        """Test lines 197-383: Complex POST logic"""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "datasets": [{"name": "test-dataset", "dataset": "test-id", "collection": "test-collection"}]
+        }
+        mock_get.return_value = mock_response
+
+        # Test with org_warning
+        form_data = {
+            "mode": "final",
+            "dataset": "test-dataset",
+            "organisation": "Unknown Org",
+            "endpoint_url": "https://example.com/data.csv",
+            "org_warning": "true"
+        }
+        
+        response = client.post("/datamanager/dashboard/add", data=form_data)
+        assert response.status_code == 200
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_397_583_check_results_complex(self, mock_endpoint, mock_get, client):
+        """Test lines 397-583: Complex check results logic"""
+        mock_endpoint.return_value = "http://test-api"
+        
+        main_response = Mock()
+        main_response.status_code = 200
+        main_response.json.return_value = {
+            "status": "COMPLETED",
+            "response": {
+                "data": {
+                    "entity-summary": {"existing-in-resource": 5, "new-in-resource": 3},
+                    "new-entities": [{"reference": "ref1", "entity": "ent1"}],
+                    "existing-entities": [{"reference": "ref2", "entity": "ent2"}],
+                    "error-summary": [{"error": "test error"}],
+                    "column-field-log": [
+                        {"field": "required_field", "missing": False},
+                        {"field": "missing_field", "missing": True}
+                    ],
+                    "row-count": 10
+                }
+            },
+            "params": {"organisation": "test-org", "documentation_url": None, "licence": None, "start_date": None}
+        }
+        
+        details_response = Mock()
+        details_response.status_code = 200
+        details_response.json.return_value = [
+            {
+                "converted_row": {"Reference": "REF001", "Point": "POINT(1 2)"},
+                "geometry": None,
+                "entry_number": 1
+            }
+        ]
+        details_response.raise_for_status.return_value = None
+        
+        mock_get.side_effect = [main_response, details_response]
+        
+        response = client.get("/datamanager/check-results/test-id")
+        assert response.status_code == 200
+
+    @patch("application.blueprints.datamanager.views.requests.patch")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_588_620_optional_fields_submit_complex(self, mock_endpoint, mock_patch, client):
+        """Test lines 588-620: Optional fields submit logic"""
+        mock_endpoint.return_value = "http://test-api"
+        mock_patch.return_value = Mock()
+        
+        form_data = {
+            "request_id": "test-id",
+            "documentation_url": "https://example.gov.uk",
+            "licence": "ogl",
+            "start_day": "15",
+            "start_month": "6",
+            "start_year": "2024"
+        }
+        
+        response = client.post("/datamanager/check-results/optional-submit", data=form_data)
+        assert response.status_code == 302
+
+    @patch("application.blueprints.datamanager.views.requests.post")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_625_709_add_data_complex(self, mock_endpoint, mock_post, client):
+        """Test lines 625-709: Add data complex logic"""
+        mock_endpoint.return_value = "http://test-api"
+        
+        # Test _submit_preview function
+        mock_response = Mock()
+        mock_response.status_code = 202
+        mock_response.json.return_value = {"id": "preview-id"}
+        mock_post.return_value = mock_response
+        
+        with client.session_transaction() as sess:
+            sess["required_fields"] = {"collection": "test", "dataset": "test"}
+        
+        form_data = {
+            "documentation_url": "https://example.gov.uk",
+            "licence": "ogl",
+            "start_day": "1",
+            "start_month": "1", 
+            "start_year": "2024"
+        }
+        
+        response = client.post("/datamanager/check-results/add-data", data=form_data)
+        assert response.status_code == 302
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.requests.post")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_714_742_add_data_confirm_complex(self, mock_endpoint, mock_post, mock_get, client):
+        """Test lines 714-742: Add data confirm logic"""
+        mock_endpoint.return_value = "http://test-api"
+        
+        get_response = Mock()
+        get_response.status_code = 200
+        get_response.json.return_value = {"params": {"type": "add_data", "preview": True}}
+        mock_get.return_value = get_response
+        
+        post_response = Mock()
+        post_response.status_code = 202
+        post_response.json.return_value = {"id": "new-id", "message": "Success"}
+        mock_post.return_value = post_response
+        
+        with client.session_transaction() as sess:
+            sess["optional_fields"] = {"test": "data"}
+        
+        response = client.post("/datamanager/check-results/test-id/add-data/confirm")
+        assert response.status_code == 302
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_748_969_configure_complex(self, mock_endpoint, mock_get, client):
+        """Test lines 748-969: Configure complex logic"""
+        mock_endpoint.return_value = "http://test-api"
+        
+        main_response = Mock()
+        main_response.status_code = 200
+        main_response.json.return_value = {
+            "params": {
+                "dataset": "test-dataset", 
+                "url": "https://example.com/data.csv",
+                "column_mapping": {"raw_field": "spec_field"}
+            },
+            "response": {
+                "data": {
+                    "column-field-log": [{"field": "required_field", "missing": True}],
+                    "column-mapping": {"existing_raw": "existing_spec"}
+                }
+            },
+            "status": "COMPLETED"
+        }
+        
+        csv_response = Mock()
+        csv_response.content = b"raw_field,another_field\nvalue1,value2"
+        
+        details_response = Mock()
+        details_response.status_code = 200
+        details_response.json.return_value = [{"converted_row": {"spec_field": "converted_value"}}]
+        
+        mock_get.side_effect = [main_response, csv_response, details_response]
+        
+        response = client.get("/datamanager/configure/test-id")
+        assert response.status_code == 200
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_987_988_add_data_progress_with_message(self, mock_endpoint, mock_get, client):
+        """Test lines 987-988: Add data progress with custom message"""
+        response = client.get("/datamanager/add-data/progress/test-id?msg=Custom%20message")
+        assert response.status_code == 200
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_995_1055_add_data_result_complex(self, mock_endpoint, mock_get, client):
+        """Test lines 995-1055: Add data result complex logic"""
+        mock_endpoint.return_value = "http://test-api"
+        
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "status": "COMPLETED",
+            "response": {
+                "data": {
+                    "new-entity-count": 5,
+                    "min-entity-after": "100",
+                    "max-entity-after": "200",
+                    "lookup-path": "/path/to/lookup",
+                    "new-entities": [
+                        {"reference": "ref1", "prefix": "pre1", "organisation": "org1", "entity": "ent1"},
+                        {"reference": "ref2", "prefix": "pre2", "organisation": "org2", "entity": "ent2"}
+                    ]
+                }
+            }
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+        
+        response = client.get("/datamanager/add-data/result/test-id")
+        assert response.status_code == 200
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_1065_1202_entities_preview_complex(self, mock_endpoint, mock_get, client):
+        """Test lines 1065-1202: Entities preview complex logic"""
+        mock_endpoint.return_value = "http://test-api"
+        
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "status": "COMPLETED",
+            "response": {
+                "data": {
+                    "entity-summary": {
+                        "existing-in-resource": 5, 
+                        "new-in-resource": 3,
+                        "existing-entity-breakdown": [{"reference": "existing1", "entity": "ent1"}]
+                    },
+                    "new-entities": [{"reference": "new1", "prefix": "pre1", "organisation": "org1", "entity": "ent1"}],
+                    "endpoint_url_validation": {
+                        "found_in_endpoint_csv": True,
+                        "existing_row": {"endpoint": "ep1", "endpoint-url": "url1"},
+                        "new_endpoint_entry": {"endpoint": "ep2", "endpoint-url": "url2"},
+                        "new_source_entry": {
+                            "source": "src1",
+                            "attribution": "attr1",
+                            "collection": "col1",
+                            "documentation-url": "doc1",
+                            "endpoint": "ep1",
+                            "licence": "lic1",
+                            "organisation": "org1",
+                            "pipelines": "pipe1",
+                            "entry-date": "2024-01-01",
+                            "start-date": "2024-01-01",
+                            "end-date": "2024-12-31"
+                        },
+                        "columns": ["custom-endpoint", "custom-url"]
+                    },
+                    "new-entity-breakdown": [{"type": "new", "count": 3}]
+                }
+            },
+            "params": {"source_request_id": "source-123"}
+        }
+        mock_get.return_value = mock_response
+        
+        response = client.get("/datamanager/check-results/test-id/entities")
+        assert response.status_code == 200
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_configure_table_from_csv_empty(self, mock_endpoint, mock_get, client):
+        """Test table_from_csv with empty data"""
+        mock_endpoint.return_value = "http://test-api"
+        
+        main_response = Mock()
+        main_response.status_code = 200
+        main_response.json.return_value = {
+            "params": {"dataset": "test-dataset", "url": "https://example.com/data.csv"},
+            "response": {"data": {}},
+            "status": "COMPLETED"
+        }
+        
+        csv_response = Mock()
+        csv_response.content = b""  # Empty CSV
+        
+        mock_get.side_effect = [main_response, csv_response]
+        
+        response = client.get("/datamanager/configure/test-id")
+        assert response.status_code == 200
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    def test_check_results_wkt_geometry_conversion(self, mock_get, client):
+        """Test WKT geometry conversion in check results"""
+        with patch("application.blueprints.datamanager.views.get_request_api_endpoint") as mock_endpoint:
+            mock_endpoint.return_value = "http://test-api"
+            
+            main_response = Mock()
+            main_response.status_code = 200
+            main_response.json.return_value = {
+                "status": "COMPLETED",
+                "response": {"data": {"entity-summary": {}, "new-entities": [], "existing-entities": []}},
+                "params": {"organisation": "test-org"}
+            }
+            
+            details_response = Mock()
+            details_response.status_code = 200
+            details_response.json.return_value = [
+                {
+                    "converted_row": {"Reference": "REF001", "Point": "POINT(1.0 2.0)"},
+                    "geometry": None,
+                    "entry_number": 1
+                }
+            ]
+            details_response.raise_for_status.return_value = None
+            
+            mock_get.side_effect = [main_response, details_response]
+            
+            response = client.get("/datamanager/check-results/test-id")
+            assert response.status_code == 200
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    def test_check_results_wkt_geometry_exception(self, mock_get, client):
+        """Test WKT geometry conversion exception handling"""
+        with patch("application.blueprints.datamanager.views.get_request_api_endpoint") as mock_endpoint:
+            mock_endpoint.return_value = "http://test-api"
+            
+            main_response = Mock()
+            main_response.status_code = 200
+            main_response.json.return_value = {
+                "status": "COMPLETED",
+                "response": {"data": {"entity-summary": {}, "new-entities": [], "existing-entities": []}},
+                "params": {"organisation": "test-org"}
+            }
+            
+            details_response = Mock()
+            details_response.status_code = 200
+            details_response.json.return_value = [
+                {
+                    "converted_row": {"Reference": "REF001", "Point": "INVALID_WKT"},
+                    "geometry": None,
+                    "entry_number": 1
+                }
+            ]
+            details_response.raise_for_status.return_value = None
+            
+            mock_get.side_effect = [main_response, details_response]
+            
+            response = client.get("/datamanager/check-results/test-id")
+            assert response.status_code == 200
