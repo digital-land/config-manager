@@ -54,13 +54,13 @@ test-unit:
 
 test-integration:
 	@echo "Running Integration tests...."
-	@echo "Not yet implemented"
-# 	python -m pytest tests/integration/ -v
+# 	@echo "Not yet implemented"
+	python -m pytest tests/integration/ -v
 
 test-acceptance:
 	@echo "Running Acceptance tests...."
-	@echo "Not yet implemented"
-# 	python -m pytest tests/acceptance/ -v
+# 	@echo "Not yet implemented"
+	python -m pytest tests/acceptance/ -v
 
 test-accessibility:
 	@echo "Running Accessibility tests...."
