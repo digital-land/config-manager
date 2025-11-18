@@ -1,4 +1,3 @@
-import pytest
 import responses
 from unittest.mock import patch
 
@@ -27,7 +26,10 @@ class TestDatamanagerAcceptance:
 
         responses.add(
             responses.GET,
-            "https://datasette.planning.data.gov.uk/digital-land/provision.json?_labels=on&_size=max&dataset=brownfield-land",
+            (
+                "https://datasette.planning.data.gov.uk/digital-land/"
+                "provision.json?_labels=on&_size=max&dataset=brownfield-land"
+            ),
             json={
                 "rows": [
                     {

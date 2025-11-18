@@ -1,5 +1,4 @@
 import json
-import pytest
 from unittest.mock import patch, Mock
 
 from application.blueprints.datamanager.views import (
