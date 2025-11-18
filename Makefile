@@ -66,6 +66,15 @@ test-accessibility:
 	@echo "Running Accessibility tests...."
 	@echo "Not yet implemented"
 
-test:
-	@echo "Running all tests...."
-	python -m pytest tests/ -v
+test:: test-coverage
+# 	@echo "Running all tests...."
+# 	python -m pytest tests/ -v
+
+test-coverage:: coverage-unit coverage-integration
+
+coverage-unit:
+	pytest --cov=application/blueprint/datamanager tests/unit/
+
+coverage-integration:
+	pytest --cov=application/blueprint/datamanager --cov-append --cov-fail-under=90 tests/integration/
+
