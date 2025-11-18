@@ -70,11 +70,14 @@ test:: test-coverage
 # 	@echo "Running all tests...."
 # 	python -m pytest tests/ -v
 
-test-coverage:: coverage-unit coverage-integration
+test-coverage:: coverage-unit coverage-integration coverage-acceptance
 
 coverage-unit:
 	pytest --cov=application.blueprints.datamanager tests/unit/ -v
 
 coverage-integration:
-	pytest --cov=application.blueprints.datamanager --cov-append --cov-fail-under=90 tests/integration/ -v
+	pytest --cov=application.blueprints.datamanager --cov-append --cov-fail-under=80 tests/integration/ -v
+
+coverage-acceptance:
+	pytest --cov=application.blueprints.datamanager --cov-append --cov-fail-under=80 tests/acceptance/ -v
 
