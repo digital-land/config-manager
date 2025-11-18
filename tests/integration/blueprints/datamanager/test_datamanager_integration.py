@@ -3,7 +3,6 @@ import pytest
 import responses
 
 
-
 class TestDatamanagerIntegration:
     """Integration tests for datamanager blueprint"""
 
