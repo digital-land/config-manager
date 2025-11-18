@@ -73,8 +73,8 @@ test:: test-coverage
 test-coverage:: coverage-unit coverage-integration
 
 coverage-unit:
-	pytest --cov=src tests/unit/
+	pytest --cov=application/blueprint/datamanager tests/unit/
 
 coverage-integration:
-	pytest --cov=src --cov-append --cov-fail-under=90 tests/integration/
+	pytest --cov=application/blueprint/datamanager --cov-append --cov-fail-under=90 tests/integration/
 
