@@ -1,4 +1,3 @@
-import json
 import pytest
 import responses
 from unittest.mock import patch
@@ -16,21 +15,30 @@ class TestDatamanagerAcceptance:
             "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
             json={
                 "datasets": [
-                    {"name": "brownfield-land", "dataset": "brownfield-land", "collection": "brownfield-land-collection"}
+                    {
+                        "name": "brownfield-land",
+                        "dataset": "brownfield-land",
+                        "collection": "brownfield-land-collection",
+                    }
                 ]
             },
-            status=200
+            status=200,
         )
-        
+
         responses.add(
             responses.GET,
             "https://datasette.planning.data.gov.uk/digital-land/provision.json?_labels=on&_size=max&dataset=brownfield-land",
             json={
                 "rows": [
-                    {"organisation": {"label": "Test Council", "value": "local-authority-eng:TEST"}}
+                    {
+                        "organisation": {
+                            "label": "Test Council",
+                            "value": "local-authority-eng:TEST",
+                        }
+                    }
                 ]
             },
-            status=200
+            status=200,
         )
 
         # Step 1: Access dashboard
@@ -38,10 +46,12 @@ class TestDatamanagerAcceptance:
         assert response.status_code == 200
 
         # Step 2: Submit form data
-        with patch("application.blueprints.datamanager.views.requests.post") as mock_post:
+        with patch(
+            "application.blueprints.datamanager.views.requests.post"
+        ) as mock_post:
             mock_post.return_value.status_code = 202
             mock_post.return_value.json.return_value = {"id": "test-request-123"}
-            
+
             form_data = {
                 "mode": "final",
                 "dataset": "brownfield-land",
@@ -50,10 +60,10 @@ class TestDatamanagerAcceptance:
                 "documentation_url": "https://example.gov.uk/docs",
                 "licence": "ogl",
                 "start_day": "1",
-                "start_month": "1", 
-                "start_year": "2024"
+                "start_month": "1",
+                "start_year": "2024",
             }
-            
+
             response = client.post("/datamanager/dashboard/add", data=form_data)
             assert response.status_code == 302
             assert "/check-results/test-request-123" in response.location
@@ -70,14 +80,17 @@ class TestDatamanagerAcceptance:
                 "response": {
                     "data": {
                         "row-count": 10,
-                        "entity-summary": {"existing-in-resource": 5, "new-in-resource": 5},
+                        "entity-summary": {
+                            "existing-in-resource": 5,
+                            "new-in-resource": 5,
+                        },
                         "new-entities": [{"reference": "REF1", "entity": "123"}],
                         "error-summary": [],
-                        "column-field-log": []
+                        "column-field-log": [],
                     }
-                }
+                },
             }
-            
+
             response = client.get("/datamanager/check-results/test-request-123")
             assert response.status_code == 200
             assert b"5 existing; 5 new" in response.data
@@ -90,17 +103,32 @@ class TestDatamanagerAcceptance:
                 "status": "COMPLETED",
                 "response": {
                     "data": {
-                        "entity-summary": {"existing-in-resource": 3, "new-in-resource": 2},
+                        "entity-summary": {
+                            "existing-in-resource": 3,
+                            "new-in-resource": 2,
+                        },
                         "new-entities": [
-                            {"reference": "REF1", "prefix": "test", "organisation": "TEST", "entity": "123"},
-                            {"reference": "REF2", "prefix": "test", "organisation": "TEST", "entity": "124"}
+                            {
+                                "reference": "REF1",
+                                "prefix": "test",
+                                "organisation": "TEST",
+                                "entity": "123",
+                            },
+                            {
+                                "reference": "REF2",
+                                "prefix": "test",
+                                "organisation": "TEST",
+                                "entity": "124",
+                            },
                         ],
-                        "endpoint_url_validation": {"found_in_endpoint_csv": True}
+                        "endpoint_url_validation": {"found_in_endpoint_csv": True},
                     }
-                }
+                },
             }
-            
-            response = client.get("/datamanager/check-results/test-request-123/entities")
+
+            response = client.get(
+                "/datamanager/check-results/test-request-123/entities"
+            )
             assert response.status_code == 200
 
     @responses.activate
@@ -111,26 +139,24 @@ class TestDatamanagerAcceptance:
             responses.GET,
             "https://example.com/data.csv",
             body="Reference,Name,Status\nREF1,Test Site,Active\nREF2,Another Site,Inactive",
-            status=200
+            status=200,
         )
-        
+
         with patch("application.blueprints.datamanager.views.requests.get") as mock_get:
             mock_get.return_value.status_code = 200
             mock_get.return_value.json.return_value = {
                 "params": {
                     "dataset": "brownfield-land",
                     "url": "https://example.com/data.csv",
-                    "organisation": "local-authority-eng:TEST"
+                    "organisation": "local-authority-eng:TEST",
                 },
                 "response": {
                     "data": {
-                        "column-field-log": [
-                            {"field": "reference", "missing": True}
-                        ]
+                        "column-field-log": [{"field": "reference", "missing": True}]
                     }
-                }
+                },
             }
-            
+
             response = client.get("/datamanager/configure/test-request-123")
             assert response.status_code == 200
 
@@ -139,44 +165,51 @@ class TestDatamanagerAcceptance:
         with client.session_transaction() as sess:
             sess["required_fields"] = {
                 "collection": "test-collection",
-                "dataset": "test-dataset", 
+                "dataset": "test-dataset",
                 "url": "https://example.com/data.csv",
-                "organisation": "local-authority-eng:TEST"
+                "organisation": "local-authority-eng:TEST",
             }
             sess["optional_fields"] = {
                 "documentation_url": "https://example.gov.uk/docs",
                 "licence": "ogl",
-                "start_date": "2024-01-01"
+                "start_date": "2024-01-01",
             }
-        
-        with patch("application.blueprints.datamanager.views.requests.post") as mock_post:
+
+        with patch(
+            "application.blueprints.datamanager.views.requests.post"
+        ) as mock_post:
             mock_post.return_value.status_code = 202
             mock_post.return_value.json.return_value = {"id": "preview-123"}
-            
+
             response = client.get("/datamanager/check-results/add-data")
             assert response.status_code == 302
 
     def test_add_data_confirm_workflow(self, client):
         """Test add data confirmation workflow"""
-        with patch("application.blueprints.datamanager.views.requests.get") as mock_get, \
-             patch("application.blueprints.datamanager.views.requests.post") as mock_post:
-            
+        with patch(
+            "application.blueprints.datamanager.views.requests.get"
+        ) as mock_get, patch(
+            "application.blueprints.datamanager.views.requests.post"
+        ) as mock_post:
+
             mock_get.return_value.status_code = 200
             mock_get.return_value.json.return_value = {
                 "params": {
                     "type": "add_data",
                     "collection": "test-collection",
-                    "dataset": "test-dataset"
+                    "dataset": "test-dataset",
                 }
             }
-            
+
             mock_post.return_value.status_code = 202
             mock_post.return_value.json.return_value = {
                 "id": "final-123",
-                "message": "Processing started"
+                "message": "Processing started",
             }
-            
-            response = client.post("/datamanager/check-results/preview-123/add-data/confirm")
+
+            response = client.post(
+                "/datamanager/check-results/preview-123/add-data/confirm"
+            )
             assert response.status_code == 302
             assert "/add-data/progress/final-123" in response.location
 
@@ -193,12 +226,17 @@ class TestDatamanagerAcceptance:
                         "max-entity-after": "104",
                         "lookup-path": "/path/to/lookup.csv",
                         "new-entities": [
-                            {"reference": "REF1", "prefix": "test", "organisation": "TEST", "entity": "100"}
-                        ]
+                            {
+                                "reference": "REF1",
+                                "prefix": "test",
+                                "organisation": "TEST",
+                                "entity": "100",
+                            }
+                        ],
                     }
-                }
+                },
             }
-            
+
             response = client.get("/datamanager/add-data/result/final-123")
             assert response.status_code == 200
             assert b"5" in response.data
@@ -211,9 +249,9 @@ class TestDatamanagerAcceptance:
             responses.GET,
             "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
             json={"error": "Service unavailable"},
-            status=500
+            status=500,
         )
-        
+
         response = client.get("/datamanager/dashboard/add")
         assert response.status_code == 500
 
@@ -223,17 +261,21 @@ class TestDatamanagerAcceptance:
             rsps.add(
                 responses.GET,
                 "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
-                json={"datasets": [{"name": "test", "dataset": "test", "collection": "test"}]},
-                status=200
+                json={
+                    "datasets": [
+                        {"name": "test", "dataset": "test", "collection": "test"}
+                    ]
+                },
+                status=200,
             )
-            
+
             # Submit invalid form data
             form_data = {
                 "mode": "final",
                 "dataset": "",  # Missing required field
-                "endpoint_url": "invalid-url"  # Invalid URL
+                "endpoint_url": "invalid-url",  # Invalid URL
             }
-            
+
             response = client.post("/datamanager/dashboard/add", data=form_data)
             assert response.status_code == 200  # Returns form with errors
 
@@ -244,9 +286,9 @@ class TestDatamanagerAcceptance:
             mock_get.return_value.status_code = 200
             mock_get.return_value.json.return_value = {
                 "status": "PENDING",
-                "response": None
+                "response": None,
             }
-            
+
             response = client.get("/datamanager/check-results/test-request-123")
             assert response.status_code == 200
             assert b"loading" in response.data.lower()
@@ -256,21 +298,29 @@ class TestDatamanagerAcceptance:
         with patch("application.blueprints.datamanager.views.requests.get") as mock_get:
             mock_get.side_effect = [
                 # First call for summary
-                type('MockResponse', (), {
-                    'status_code': 200,
-                    'json': lambda: {
-                        "status": "COMPLETED",
-                        "params": {"organisation": "Test"},
-                        "response": {"data": {"row-count": 100}}
-                    }
-                })(),
+                type(
+                    "MockResponse",
+                    (),
+                    {
+                        "status_code": 200,
+                        "json": lambda: {
+                            "status": "COMPLETED",
+                            "params": {"organisation": "Test"},
+                            "response": {"data": {"row-count": 100}},
+                        },
+                    },
+                )(),
                 # Second call for details
-                type('MockResponse', (), {
-                    'status_code': 200,
-                    'json': lambda: [{"converted_row": {"field1": "value1"}}],
-                    'raise_for_status': lambda: None
-                })()
+                type(
+                    "MockResponse",
+                    (),
+                    {
+                        "status_code": 200,
+                        "json": lambda: [{"converted_row": {"field1": "value1"}}],
+                        "raise_for_status": lambda: None,
+                    },
+                )(),
             ]
-            
+
             response = client.get("/datamanager/check-results/test-request-123?page=2")
             assert response.status_code == 200

@@ -1,7 +1,6 @@
 import json
 import pytest
 from unittest.mock import patch, Mock
-from io import StringIO
 
 from application.blueprints.datamanager.views import (
     get_spec_fields_union,
@@ -28,7 +27,11 @@ class TestDatamanagerViews:
         mock_response = Mock()
         mock_response.json.return_value = {
             "datasets": [
-                {"name": "test-dataset", "dataset": "test-id", "collection": "test-collection"}
+                {
+                    "name": "test-dataset",
+                    "dataset": "test-id",
+                    "collection": "test-collection",
+                }
             ]
         }
         mock_get.return_value = mock_response
@@ -42,8 +45,16 @@ class TestDatamanagerViews:
         mock_response = Mock()
         mock_response.json.return_value = {
             "datasets": [
-                {"name": "test-dataset", "dataset": "test-id", "collection": "test-collection"},
-                {"name": "another-dataset", "dataset": "another-id", "collection": "another-collection"}
+                {
+                    "name": "test-dataset",
+                    "dataset": "test-id",
+                    "collection": "test-collection",
+                },
+                {
+                    "name": "another-dataset",
+                    "dataset": "another-id",
+                    "collection": "another-collection",
+                },
             ]
         }
         mock_get.return_value = mock_response
@@ -60,23 +71,20 @@ class TestDatamanagerViews:
         dataset_response = Mock()
         dataset_response.json.return_value = {
             "datasets": [
-                {"name": "test-dataset", "dataset": "test-id", "collection": "test-collection"}
-            ]
-        }
-        
-        # Mock provision response
-        provision_response = Mock()
-        provision_response.json.return_value = {
-            "rows": [
                 {
-                    "organisation": {
-                        "label": "Test Org",
-                        "value": "prefix:TEST123"
-                    }
+                    "name": "test-dataset",
+                    "dataset": "test-id",
+                    "collection": "test-collection",
                 }
             ]
         }
-        
+
+        # Mock provision response
+        provision_response = Mock()
+        provision_response.json.return_value = {
+            "rows": [{"organisation": {"label": "Test Org", "value": "prefix:TEST123"}}]
+        }
+
         mock_get.side_effect = [dataset_response, provision_response]
 
         response = client.get("/datamanager/dashboard/add?get_orgs_for=test-dataset")
@@ -92,10 +100,7 @@ class TestUtilityFunctions:
     def test_get_spec_fields_union_success(self, mock_get):
         """Test successful field union retrieval"""
         mock_response = Mock()
-        mock_response.json.return_value = [
-            {"field": "field1"},
-            {"field": "field2"}
-        ]
+        mock_response.json.return_value = [{"field": "field1"}, {"field": "field2"}]
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
@@ -165,7 +170,9 @@ class TestUtilityFunctions:
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_read_raw_csv_preview_max_rows(self, mock_get):
         """Test CSV preview respects max_rows parameter"""
-        csv_content = "header1,header2\n" + "\n".join([f"value{i},value{i+1}" for i in range(100)])
+        csv_content = "header1,header2\n" + "\n".join(
+            [f"value{i},value{i+1}" for i in range(100)]
+        )
         mock_response = Mock()
         mock_response.content = csv_content.encode("utf-8")
         mock_get.return_value = mock_response

@@ -1,7 +1,7 @@
 import json
 import pytest
 import responses
-from unittest.mock import patch
+
 
 
 class TestDatamanagerIntegration:
@@ -30,11 +30,11 @@ class TestDatamanagerIntegration:
                     {
                         "name": "brownfield-land",
                         "dataset": "brownfield-land",
-                        "collection": "brownfield-land-collection"
+                        "collection": "brownfield-land-collection",
                     }
                 ]
             },
-            status=200
+            status=200,
         )
 
         response = client.get("/datamanager/dashboard/add")
@@ -48,11 +48,19 @@ class TestDatamanagerIntegration:
             "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
             json={
                 "datasets": [
-                    {"name": "brownfield-land", "dataset": "brownfield-land", "collection": "test"},
-                    {"name": "conservation-area", "dataset": "conservation-area", "collection": "test"}
+                    {
+                        "name": "brownfield-land",
+                        "dataset": "brownfield-land",
+                        "collection": "test",
+                    },
+                    {
+                        "name": "conservation-area",
+                        "dataset": "conservation-area",
+                        "collection": "test",
+                    },
                 ]
             },
-            status=200
+            status=200,
         )
 
         response = client.get("/datamanager/dashboard/add?autocomplete=brown")
@@ -69,10 +77,14 @@ class TestDatamanagerIntegration:
             "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
             json={
                 "datasets": [
-                    {"name": "test-dataset", "dataset": "test-id", "collection": "test-collection"}
+                    {
+                        "name": "test-dataset",
+                        "dataset": "test-id",
+                        "collection": "test-collection",
+                    }
                 ]
             },
-            status=200
+            status=200,
         )
 
         # Mock provision API
@@ -84,12 +96,12 @@ class TestDatamanagerIntegration:
                     {
                         "organisation": {
                             "label": "Test Council",
-                            "value": "local-authority-eng:TEST"
+                            "value": "local-authority-eng:TEST",
                         }
                     }
                 ]
             },
-            status=200
+            status=200,
         )
 
         response = client.get("/datamanager/dashboard/add?get_orgs_for=test-dataset")
@@ -104,7 +116,7 @@ class TestDatamanagerIntegration:
             responses.GET,
             "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
             json={"error": "Service unavailable"},
-            status=500
+            status=500,
         )
 
         response = client.get("/datamanager/dashboard/add")
@@ -118,16 +130,20 @@ class TestDatamanagerIntegration:
             "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
             json={
                 "datasets": [
-                    {"name": "test-dataset", "dataset": "test-id", "collection": "test-collection"}
+                    {
+                        "name": "test-dataset",
+                        "dataset": "test-id",
+                        "collection": "test-collection",
+                    }
                 ]
             },
-            status=200
+            status=200,
         )
 
         form_data = {
             "mode": "preview",
             "dataset": "test-dataset",
-            "endpoint_url": "http://example.com/data.csv"
+            "endpoint_url": "http://example.com/data.csv",
         }
 
         response = client.post("/datamanager/dashboard/add", data=form_data)
