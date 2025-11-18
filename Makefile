@@ -73,11 +73,11 @@ test:: test-coverage
 test-coverage:: coverage-unit coverage-integration coverage-acceptance
 
 coverage-unit:
-	pytest --cov=application.blueprints.datamanager tests/unit/ -v
+	pytest --cov=application.blueprints.datamanager tests/unit/ -v --cov-report=term-missing
 
 coverage-integration:
-	pytest --cov=application.blueprints.datamanager --cov-append tests/integration/ -v
+	pytest --cov=application.blueprints.datamanager --cov-append tests/integration/ -v	--cov-report=term-missing
 
 coverage-acceptance:
-	pytest --cov=application.blueprints.datamanager --cov-append --cov-fail-under=80 tests/acceptance/ -v
+	pytest --cov=application.blueprints.datamanager --cov-append --cov-fail-under=80 tests/acceptance/ -v --cov-report=term-missing
 
