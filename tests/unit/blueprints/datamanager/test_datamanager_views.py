@@ -92,10 +92,6 @@ class TestDatamanagerViews:
         data = json.loads(response.data)
         assert "Test Org (TEST123)" in data
 
-
-class TestUtilityFunctions:
-    """Unit tests for utility functions"""
-
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_get_spec_fields_union_success(self, mock_get):
         """Test successful field union retrieval"""
@@ -185,7 +181,7 @@ class TestSpecificLines:
     """Tests for specific line coverage"""
 
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_line_97_out_sort(self, mock_get):
+    def test_read_raw_csv_preview_out_sort(self, mock_get):
         """Test line 97: out.sort(key=lambda x: x.lower())"""
         mock_response = Mock()
         mock_response.json.return_value = [
@@ -200,7 +196,7 @@ class TestSpecificLines:
         assert result == ["AField", "MField", "ZField"]  # Should be sorted
 
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_lines_139_141_provision_exception(self, mock_get, client):
+    def test_dashboard_add_provision_exception(self, mock_get, client):
         """Test lines 139-141: provision_rows exception handling"""
         dataset_response = Mock()
         dataset_response.json.return_value = {
@@ -226,7 +222,7 @@ class TestSpecificLines:
         assert data == []
 
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_line_166_selected_orgs_list_comprehension(self, mock_get, client):
+    def test_dashboard_add_selected_orgs_list_comprehension(self, mock_get, client):
         """Test line 166: selected_orgs list comprehension"""
         dataset_response = Mock()
         dataset_response.json.return_value = {
@@ -256,7 +252,7 @@ class TestSpecificLines:
         assert "Test Org 2 (TEST2)" in data
 
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_lines_181_182_provision_exception_in_post(self, mock_get, client):
+    def test_ldashboard_add_provision_exception_in_post(self, mock_get, client):
         """Test lines 181-182: provision exception in POST"""
         dataset_response = Mock()
         dataset_response.json.return_value = {
@@ -287,7 +283,7 @@ class TestSpecificLines:
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_lines_197_383_dashboard_add_post_complex(self, mock_get, client):
+    def test_dashboard_add_dashboard_add_post_complex(self, mock_get, client):
         """Test lines 197-383: Complex POST logic"""
         mock_response = Mock()
         mock_response.json.return_value = {
@@ -315,7 +311,7 @@ class TestSpecificLines:
 
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_397_583_check_results_complex(self, mock_endpoint, mock_get, client):
+    def test_check_results_check_results_complex(self, mock_endpoint, mock_get, client):
         """Test lines 397-583: Complex check results logic"""
         mock_endpoint.return_value = "http://test-api"
 
@@ -367,7 +363,7 @@ class TestSpecificLines:
 
     @patch("application.blueprints.datamanager.views.requests.patch")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_588_620_optional_fields_submit_complex(
+    def test_optional_fields_submit_optional_fields_submit_complex(
         self, mock_endpoint, mock_patch, client
     ):
         """Test lines 588-620: Optional fields submit logic"""
@@ -390,7 +386,7 @@ class TestSpecificLines:
 
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_625_709_add_data_complex(self, mock_endpoint, mock_post, client):
+    def test_lines_add_data_add_data_complex(self, mock_endpoint, mock_post, client):
         """Test lines 625-709: Add data complex logic"""
         mock_endpoint.return_value = "http://test-api"
 
@@ -417,7 +413,7 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_714_742_add_data_confirm_complex(
+    def test_add_data_confirm_add_data_confirm_complex(
         self, mock_endpoint, mock_post, mock_get, client
     ):
         """Test lines 714-742: Add data confirm logic"""
@@ -444,7 +440,7 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.render_template")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_748_969_configure_complex(
+    def test_configure_configure_complex(
         self, mock_endpoint, mock_get, mock_render, client
     ):
         """Test lines 748-969: Configure complex logic"""
@@ -483,7 +479,7 @@ class TestSpecificLines:
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.render_template")
-    def test_lines_987_988_add_data_progress_with_message(self, mock_render, client):
+    def test_add_data_result_add_data_progress_with_message(self, mock_render, client):
         """Test lines 987-988: Add data progress with custom message"""
         mock_render.return_value = "<html>Progress page</html>"
         response = client.get(
@@ -494,7 +490,7 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.render_template")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_995_1055_add_data_result_complex(
+    def test_add_data_result_add_data_result_complex(
         self, mock_endpoint, mock_get, mock_render, client
     ):
         """Test lines 995-1055: Add data result complex logic"""
@@ -536,7 +532,7 @@ class TestSpecificLines:
 
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_1065_1202_entities_preview_complex(
+    def test_entities_preview_entities_preview_complex(
         self, mock_endpoint, mock_get, client
     ):
         """Test lines 1065-1202: Entities preview complex logic"""
@@ -724,7 +720,7 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_316_383_payload_creation_and_api_submission(
+    def test_dashboard_add_payload_creation_and_api_submission(
         self, mock_endpoint, mock_get, mock_post, client
     ):
         """Test lines 316-383: Payload creation, session management, and API submission"""
@@ -821,7 +817,7 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_373_383_api_error_handling(
+    def test_dashboard_add_api_error_handling(
         self, mock_endpoint, mock_get, mock_post, client
     ):
         """Test lines 373-383: API error handling for non-202 responses and exceptions"""
@@ -876,7 +872,7 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_373_383_api_json_decode_error(
+    def test_dashboard_add_api_json_decode_error(
         self, mock_endpoint, mock_get, mock_post, client
     ):
         """Test lines 373-383: API error handling when JSON decode fails"""
@@ -928,7 +924,7 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_373_383_network_exception(
+    def test_dashboard_add_network_exception(
         self, mock_endpoint, mock_get, mock_post, client
     ):
         """Test lines 373-383: Exception handling during API call"""
