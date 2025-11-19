@@ -199,7 +199,6 @@ class TestSpecificLines:
         result = get_spec_fields_union("test-dataset")
         assert result == ["AField", "MField", "ZField"]  # Should be sorted
 
-    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_lines_139_141_provision_exception(self, mock_get, client):
         """Test lines 139-141: provision_rows exception handling"""
@@ -214,10 +213,12 @@ class TestSpecificLines:
             ]
         }
 
-        provision_response = Mock()
-        provision_response.side_effect = Exception("Network error")
+        def side_effect_func(url, *args, **kwargs):
+            if "provision.json" in url:
+                raise Exception("Network error")
+            return dataset_response
 
-        mock_get.side_effect = [dataset_response, provision_response]
+        mock_get.side_effect = side_effect_func
 
         response = client.get("/datamanager/dashboard/add?get_orgs_for=test-dataset")
         assert response.status_code == 200
@@ -254,7 +255,6 @@ class TestSpecificLines:
         assert "Test Org 1 (TEST1)" in data
         assert "Test Org 2 (TEST2)" in data
 
-    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_lines_181_182_provision_exception_in_post(self, mock_get, client):
         """Test lines 181-182: provision exception in POST"""
@@ -269,10 +269,12 @@ class TestSpecificLines:
             ]
         }
 
-        provision_response = Mock()
-        provision_response.side_effect = Exception("Network error")
+        def side_effect_func(url, *args, **kwargs):
+            if "provision.json" in url:
+                raise Exception("Network error")
+            return dataset_response
 
-        mock_get.side_effect = [dataset_response, provision_response]
+        mock_get.side_effect = side_effect_func
 
         form_data = {
             "mode": "final",
