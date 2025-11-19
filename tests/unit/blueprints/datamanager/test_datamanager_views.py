@@ -444,7 +444,9 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.render_template")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_748_969_configure_complex(self, mock_endpoint, mock_get, mock_render, client):
+    def test_lines_748_969_configure_complex(
+        self, mock_endpoint, mock_get, mock_render, client
+    ):
         """Test lines 748-969: Configure complex logic"""
         mock_endpoint.return_value = "http://test-api"
         mock_render.return_value = "<html>Configure page</html>"
@@ -480,26 +482,24 @@ class TestSpecificLines:
         response = client.get("/datamanager/configure/test-id")
         assert response.status_code == 200
 
-    @pytest.mark.skip("Skipping as requested")
-    @patch("application.blueprints.datamanager.views.requests.get")
-    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_987_988_add_data_progress_with_message(
-        self, mock_endpoint, mock_get, client
-    ):
+    @patch("application.blueprints.datamanager.views.render_template")
+    def test_lines_987_988_add_data_progress_with_message(self, mock_render, client):
         """Test lines 987-988: Add data progress with custom message"""
+        mock_render.return_value = "<html>Progress page</html>"
         response = client.get(
             "/datamanager/add-data/progress/test-id?msg=Custom%20message"
         )
         assert response.status_code == 200
 
-    @pytest.mark.skip("Skipping as requested")
+    @patch("application.blueprints.datamanager.views.render_template")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_lines_995_1055_add_data_result_complex(
-        self, mock_endpoint, mock_get, client
+        self, mock_endpoint, mock_get, mock_render, client
     ):
         """Test lines 995-1055: Add data result complex logic"""
         mock_endpoint.return_value = "http://test-api"
+        mock_render.return_value = "<html>Result page</html>"
 
         mock_response = Mock()
         mock_response.status_code = 200
@@ -596,11 +596,15 @@ class TestSpecificLines:
         assert response.status_code == 200
 
     @pytest.mark.skip("Skipping as requested")
+    @patch("application.blueprints.datamanager.views.render_template")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_configure_table_from_csv_empty(self, mock_endpoint, mock_get, client):
+    def test_configure_table_from_csv_empty(
+        self, mock_endpoint, mock_get, mock_render, client
+    ):
         """Test table_from_csv with empty data"""
         mock_endpoint.return_value = "http://test-api"
+        mock_render.return_value = "<html>Configure page</html>"
 
         main_response = Mock()
         main_response.status_code = 200
@@ -640,7 +644,10 @@ class TestSpecificLines:
                     "existing-entities": [],
                 }
             },
-            "params": {"organisation": "test-org", "url": "https://example.com/data.csv"},
+            "params": {
+                "organisation": "test-org",
+                "url": "https://example.com/data.csv",
+            },
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
@@ -685,7 +692,10 @@ class TestSpecificLines:
                     "existing-entities": [],
                 }
             },
-            "params": {"organisation": "test-org", "url": "https://example.com/data.csv"},
+            "params": {
+                "organisation": "test-org",
+                "url": "https://example.com/data.csv",
+            },
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
