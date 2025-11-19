@@ -441,12 +441,13 @@ class TestSpecificLines:
         response = client.post("/datamanager/check-results/test-id/add-data/confirm")
         assert response.status_code == 302
 
-    @pytest.mark.skip("Skipping as requested")
+    @patch("application.blueprints.datamanager.views.render_template")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_lines_748_969_configure_complex(self, mock_endpoint, mock_get, client):
+    def test_lines_748_969_configure_complex(self, mock_endpoint, mock_get, mock_render, client):
         """Test lines 748-969: Configure complex logic"""
         mock_endpoint.return_value = "http://test-api"
+        mock_render.return_value = "<html>Configure page</html>"
 
         main_response = Mock()
         main_response.status_code = 200
