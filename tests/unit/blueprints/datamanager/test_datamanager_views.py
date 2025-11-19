@@ -639,7 +639,7 @@ class TestSpecificLines:
                     "existing-entities": [],
                 }
             },
-            "params": {"organisation": "test-org"},
+            "params": {"organisation": "test-org", "url": "https://example.com/data.csv"},
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
@@ -684,7 +684,7 @@ class TestSpecificLines:
                     "existing-entities": [],
                 }
             },
-            "params": {"organisation": "test-org"},
+            "params": {"organisation": "test-org", "url": "https://example.com/data.csv"},
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
