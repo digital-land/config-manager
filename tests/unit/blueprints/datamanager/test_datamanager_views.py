@@ -817,3 +817,158 @@ class TestSpecificLines:
             )
             assert sess["optional_fields"]["licence"] == "ogl"
             assert sess["optional_fields"]["start_date"] == "2024-01-01"
+
+    @patch("application.blueprints.datamanager.views.requests.post")
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_373_383_api_error_handling(
+        self, mock_endpoint, mock_get, mock_post, client
+    ):
+        """Test lines 373-383: API error handling for non-202 responses and exceptions"""
+        mock_endpoint.return_value = "http://test-api"
+
+        # Mock dataset response
+        dataset_response = Mock()
+        dataset_response.json.return_value = {
+            "datasets": [
+                {
+                    "name": "test-dataset",
+                    "dataset": "test-id",
+                    "collection": "test-collection",
+                }
+            ]
+        }
+
+        # Mock provision response
+        provision_response = Mock()
+        provision_response.json.return_value = {
+            "rows": [
+                {
+                    "organisation": {
+                        "label": "Test Org",
+                        "value": "local-authority-eng:ABC123",
+                    }
+                }
+            ]
+        }
+
+        mock_get.side_effect = [dataset_response, provision_response]
+
+        # Test case 1: API returns 500 error with JSON response
+        api_response = Mock()
+        api_response.status_code = 500
+        api_response.json.return_value = {
+            "error": "Internal server error",
+            "details": "Database connection failed",
+        }
+        mock_post.return_value = api_response
+
+        form_data = {
+            "mode": "final",
+            "dataset": "test-dataset",
+            "organisation": "Test Org (ABC123)",
+            "endpoint_url": "https://example.com/data.csv",
+        }
+
+        response = client.post("/datamanager/dashboard/add", data=form_data)
+        assert response.status_code == 500
+
+    @patch("application.blueprints.datamanager.views.requests.post")
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_373_383_api_json_decode_error(
+        self, mock_endpoint, mock_get, mock_post, client
+    ):
+        """Test lines 373-383: API error handling when JSON decode fails"""
+        mock_endpoint.return_value = "http://test-api"
+
+        # Mock dataset and provision responses
+        dataset_response = Mock()
+        dataset_response.json.return_value = {
+            "datasets": [
+                {
+                    "name": "test-dataset",
+                    "dataset": "test-id",
+                    "collection": "test-collection",
+                }
+            ]
+        }
+
+        provision_response = Mock()
+        provision_response.json.return_value = {
+            "rows": [
+                {
+                    "organisation": {
+                        "label": "Test Org",
+                        "value": "local-authority-eng:ABC123",
+                    }
+                }
+            ]
+        }
+
+        mock_get.side_effect = [dataset_response, provision_response]
+
+        # Test case 2: API returns 400 error with invalid JSON (falls back to text)
+        api_response = Mock()
+        api_response.status_code = 400
+        api_response.json.side_effect = Exception("Invalid JSON")
+        api_response.text = "Bad Request: Invalid parameters"
+        mock_post.return_value = api_response
+
+        form_data = {
+            "mode": "final",
+            "dataset": "test-dataset",
+            "organisation": "Test Org (ABC123)",
+            "endpoint_url": "https://example.com/data.csv",
+        }
+
+        response = client.post("/datamanager/dashboard/add", data=form_data)
+        assert response.status_code == 500
+
+    @patch("application.blueprints.datamanager.views.requests.post")
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_373_383_network_exception(
+        self, mock_endpoint, mock_get, mock_post, client
+    ):
+        """Test lines 373-383: Exception handling during API call"""
+        mock_endpoint.return_value = "http://test-api"
+
+        # Mock dataset and provision responses
+        dataset_response = Mock()
+        dataset_response.json.return_value = {
+            "datasets": [
+                {
+                    "name": "test-dataset",
+                    "dataset": "test-id",
+                    "collection": "test-collection",
+                }
+            ]
+        }
+
+        provision_response = Mock()
+        provision_response.json.return_value = {
+            "rows": [
+                {
+                    "organisation": {
+                        "label": "Test Org",
+                        "value": "local-authority-eng:ABC123",
+                    }
+                }
+            ]
+        }
+
+        mock_get.side_effect = [dataset_response, provision_response]
+
+        # Test case 3: Network exception during API call
+        mock_post.side_effect = Exception("Connection timeout")
+
+        form_data = {
+            "mode": "final",
+            "dataset": "test-dataset",
+            "organisation": "Test Org (ABC123)",
+            "endpoint_url": "https://example.com/data.csv",
+        }
+
+        response = client.post("/datamanager/dashboard/add", data=form_data)
+        assert response.status_code == 500
