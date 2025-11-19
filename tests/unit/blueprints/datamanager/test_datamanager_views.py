@@ -199,7 +199,7 @@ class TestSpecificLines:
         result = get_spec_fields_union("test-dataset")
         assert result == ["AField", "MField", "ZField"]  # Should be sorted
 
-    @pytest.skip("Skipping as requested")
+    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_lines_139_141_provision_exception(self, mock_get, client):
         """Test lines 139-141: provision_rows exception handling"""
@@ -254,7 +254,7 @@ class TestSpecificLines:
         assert "Test Org 1 (TEST1)" in data
         assert "Test Org 2 (TEST2)" in data
 
-    @pytest.skip("Skipping as requested")
+    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_lines_181_182_provision_exception_in_post(self, mock_get, client):
         """Test lines 181-182: provision exception in POST"""
@@ -311,7 +311,7 @@ class TestSpecificLines:
         response = client.post("/datamanager/dashboard/add", data=form_data)
         assert response.status_code == 200
 
-    @pytest.skip("Skipping as requested")
+    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_lines_397_583_check_results_complex(self, mock_endpoint, mock_get, client):
@@ -435,7 +435,7 @@ class TestSpecificLines:
         response = client.post("/datamanager/check-results/test-id/add-data/confirm")
         assert response.status_code == 302
 
-    @pytest.skip("Skipping as requested")
+    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_lines_748_969_configure_complex(self, mock_endpoint, mock_get, client):
@@ -473,7 +473,7 @@ class TestSpecificLines:
         response = client.get("/datamanager/configure/test-id")
         assert response.status_code == 200
 
-    @pytest.skip("Skipping as requested")
+    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_lines_987_988_add_data_progress_with_message(
@@ -485,7 +485,7 @@ class TestSpecificLines:
         )
         assert response.status_code == 200
 
-    @pytest.skip("Skipping as requested")
+    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_lines_995_1055_add_data_result_complex(
@@ -588,7 +588,7 @@ class TestSpecificLines:
         response = client.get("/datamanager/check-results/test-id/entities")
         assert response.status_code == 200
 
-    @pytest.skip("Skipping as requested")
+    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_configure_table_from_csv_empty(self, mock_endpoint, mock_get, client):
@@ -614,7 +614,7 @@ class TestSpecificLines:
         response = client.get("/datamanager/configure/test-id")
         assert response.status_code == 200
 
-    @pytest.skip("Skipping as requested")
+    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_check_results_wkt_geometry_conversion(self, mock_get, client):
         """Test WKT geometry conversion in check results"""
@@ -653,7 +653,7 @@ class TestSpecificLines:
             response = client.get("/datamanager/check-results/test-id")
             assert response.status_code == 200
 
-    @pytest.skip("Skipping as requested")
+    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_check_results_wkt_geometry_exception(self, mock_get, client):
         """Test WKT geometry conversion exception handling"""
