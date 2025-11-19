@@ -5,11 +5,6 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
 
-    <p class="govuk-body">
-      <a class="govuk-link" href="{{ url_for('datamanager.add_data', request_id=request_id) }}">&larr; Back to optional
-        fields</a>
-    </p>
-
     <h1 class="govuk-heading-l">Preview and Confirm</h1>
     <p class="govuk-body">Review the summary of new and existing entities before confirming.</p>
 
@@ -169,9 +164,6 @@
       <form method="post" action="{{ url_for('datamanager.add_data_confirm', request_id=request_id) }}">
         <button type="submit" class="govuk-button">Confirm and add data</button>
       </form>
-      <a class="govuk-button govuk-button--secondary" href="{{ url_for('datamanager.add_data', request_id=request_id) }}">
-        Back to optional fields
-      </a>
     </div>
 
   </div>

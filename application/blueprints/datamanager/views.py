@@ -1068,7 +1068,7 @@ def entities_preview(request_id):
     if r.status_code != 200:
         return render_template("error.html", message="Preview not found"), 404
     req = r.json() or {}
-
+    logger.info(f"response Json is:{json.dumps(req, indent=2)}")
     # Loading state
     if (
         req.get("status") in {"PENDING", "PROCESSING", "QUEUED"}
@@ -1080,15 +1080,11 @@ def entities_preview(request_id):
 
     data = (req.get("response") or {}).get("data") or {}
     entity_summary = data.get("entity-summary") or {}
-    new_entities = data.get("new-entities") or []
+    new_entities = entity_summary.get("new-entities") or []
     endpoint_summary = data.get("endpoint_url_validation") or {}
 
     # Existing entities preference
-    existing_entities_list = (
-        entity_summary.get("existing-entity-breakdown")
-        or data.get("existing-entities")
-        or []
-    )
+    existing_entities_list = entity_summary.get("existing-entities") or []
 
     # New entities table
     cols = ["reference", "prefix", "organisation", "entity"]
