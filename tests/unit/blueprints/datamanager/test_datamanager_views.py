@@ -741,7 +741,19 @@ class TestSpecificLines:
                 }
             ]
         }
-        mock_get.return_value = dataset_response
+        # Mock provision response for organization mapping
+        provision_response = Mock()
+        provision_response.json.return_value = {
+            "rows": [
+                {
+                    "organisation": {
+                        "label": "Test Org",
+                        "value": "local-authority-eng:ABC123",
+                    }
+                }
+            ]
+        }
+        mock_get.side_effect = [dataset_response, provision_response]
 
         # Mock successful API response
         api_response = Mock()
@@ -785,6 +797,7 @@ class TestSpecificLines:
         assert payload["params"]["documentation_url"] == "https://example.gov.uk/docs"
         assert payload["params"]["licence"] == "ogl"
         assert payload["params"]["start_date"] == "2024-01-01"
+        assert payload["params"]["organisation"] == "local-authority-eng:ABC123"
         assert payload["params"]["column_mapping"] == {"raw_field": "spec_field"}
         assert payload["params"]["geom_type"] == "point"
 
@@ -795,6 +808,9 @@ class TestSpecificLines:
             assert sess["required_fields"]["collection"] == "test-collection"
             assert sess["required_fields"]["dataset"] == "test-id"
             assert sess["required_fields"]["url"] == "https://example.com/data.csv"
+            assert (
+                sess["required_fields"]["organisation"] == "local-authority-eng:ABC123"
+            )
             assert (
                 sess["optional_fields"]["documentation_url"]
                 == "https://example.gov.uk/docs"
