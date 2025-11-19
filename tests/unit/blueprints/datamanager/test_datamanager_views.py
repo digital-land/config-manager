@@ -328,7 +328,7 @@ class TestSpecificLines:
                     "entity-summary": {"existing-in-resource": 5, "new-in-resource": 3},
                     "new-entities": [{"reference": "ref1", "entity": "ent1"}],
                     "existing-entities": [{"reference": "ref2", "entity": "ent2"}],
-                    "error-summary": [{"error": "test error"}],
+                    "error-summary": [],
                     "column-field-log": [
                         {"field": "required_field", "missing": False},
                         {"field": "missing_field", "missing": True},
