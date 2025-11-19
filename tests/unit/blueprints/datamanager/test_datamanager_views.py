@@ -313,7 +313,6 @@ class TestSpecificLines:
         response = client.post("/datamanager/dashboard/add", data=form_data)
         assert response.status_code == 200
 
-    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_lines_397_583_check_results_complex(self, mock_endpoint, mock_get, client):
@@ -345,18 +344,22 @@ class TestSpecificLines:
             },
         }
 
-        details_response = Mock()
-        details_response.status_code = 200
-        details_response.json.return_value = [
-            {
-                "converted_row": {"Reference": "REF001", "Point": "POINT(1 2)"},
-                "geometry": None,
-                "entry_number": 1,
-            }
-        ]
-        details_response.raise_for_status.return_value = None
+        def mock_get_side_effect(url, *args, **kwargs):
+            if "response-details" in url:
+                details_response = Mock()
+                details_response.status_code = 200
+                details_response.json.return_value = [
+                    {
+                        "converted_row": {"Reference": "REF001", "Point": "POINT(1 2)"},
+                        "geometry": None,
+                        "entry_number": 1,
+                    }
+                ]
+                details_response.raise_for_status.return_value = None
+                return details_response
+            return main_response
 
-        mock_get.side_effect = [main_response, details_response]
+        mock_get.side_effect = mock_get_side_effect
 
         response = client.get("/datamanager/check-results/test-id")
         assert response.status_code == 200
@@ -616,80 +619,92 @@ class TestSpecificLines:
         response = client.get("/datamanager/configure/test-id")
         assert response.status_code == 200
 
-    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_check_results_wkt_geometry_conversion(self, mock_get, client):
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_check_results_wkt_geometry_conversion(
+        self, mock_endpoint, mock_get, client
+    ):
         """Test WKT geometry conversion in check results"""
-        with patch(
-            "application.blueprints.datamanager.views.get_request_api_endpoint"
-        ) as mock_endpoint:
-            mock_endpoint.return_value = "http://test-api"
+        mock_endpoint.return_value = "http://test-api"
 
-            main_response = Mock()
-            main_response.status_code = 200
-            main_response.json.return_value = {
-                "status": "COMPLETED",
-                "response": {
-                    "data": {
-                        "entity-summary": {},
-                        "new-entities": [],
-                        "existing-entities": [],
-                    }
-                },
-                "params": {"organisation": "test-org"},
-            }
-
-            details_response = Mock()
-            details_response.status_code = 200
-            details_response.json.return_value = [
-                {
-                    "converted_row": {"Reference": "REF001", "Point": "POINT(1.0 2.0)"},
-                    "geometry": None,
-                    "entry_number": 1,
+        main_response = Mock()
+        main_response.status_code = 200
+        main_response.json.return_value = {
+            "status": "COMPLETED",
+            "response": {
+                "data": {
+                    "entity-summary": {},
+                    "new-entities": [],
+                    "existing-entities": [],
                 }
-            ]
-            details_response.raise_for_status.return_value = None
+            },
+            "params": {"organisation": "test-org"},
+        }
 
-            mock_get.side_effect = [main_response, details_response]
+        def mock_get_side_effect(url, *args, **kwargs):
+            if "response-details" in url:
+                details_response = Mock()
+                details_response.status_code = 200
+                details_response.json.return_value = [
+                    {
+                        "converted_row": {
+                            "Reference": "REF001",
+                            "Point": "POINT(1.0 2.0)",
+                        },
+                        "geometry": None,
+                        "entry_number": 1,
+                    }
+                ]
+                details_response.raise_for_status.return_value = None
+                return details_response
+            return main_response
 
-            response = client.get("/datamanager/check-results/test-id")
-            assert response.status_code == 200
+        mock_get.side_effect = mock_get_side_effect
 
-    @pytest.mark.skip("Skipping as requested")
+        response = client.get("/datamanager/check-results/test-id")
+        assert response.status_code == 200
+
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_check_results_wkt_geometry_exception(self, mock_get, client):
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_check_results_wkt_geometry_exception(
+        self, mock_endpoint, mock_get, client
+    ):
         """Test WKT geometry conversion exception handling"""
-        with patch(
-            "application.blueprints.datamanager.views.get_request_api_endpoint"
-        ) as mock_endpoint:
-            mock_endpoint.return_value = "http://test-api"
+        mock_endpoint.return_value = "http://test-api"
 
-            main_response = Mock()
-            main_response.status_code = 200
-            main_response.json.return_value = {
-                "status": "COMPLETED",
-                "response": {
-                    "data": {
-                        "entity-summary": {},
-                        "new-entities": [],
-                        "existing-entities": [],
-                    }
-                },
-                "params": {"organisation": "test-org"},
-            }
-
-            details_response = Mock()
-            details_response.status_code = 200
-            details_response.json.return_value = [
-                {
-                    "converted_row": {"Reference": "REF001", "Point": "INVALID_WKT"},
-                    "geometry": None,
-                    "entry_number": 1,
+        main_response = Mock()
+        main_response.status_code = 200
+        main_response.json.return_value = {
+            "status": "COMPLETED",
+            "response": {
+                "data": {
+                    "entity-summary": {},
+                    "new-entities": [],
+                    "existing-entities": [],
                 }
-            ]
-            details_response.raise_for_status.return_value = None
+            },
+            "params": {"organisation": "test-org"},
+        }
 
-            mock_get.side_effect = [main_response, details_response]
+        def mock_get_side_effect(url, *args, **kwargs):
+            if "response-details" in url:
+                details_response = Mock()
+                details_response.status_code = 200
+                details_response.json.return_value = [
+                    {
+                        "converted_row": {
+                            "Reference": "REF001",
+                            "Point": "INVALID_WKT",
+                        },
+                        "geometry": None,
+                        "entry_number": 1,
+                    }
+                ]
+                details_response.raise_for_status.return_value = None
+                return details_response
+            return main_response
 
-            response = client.get("/datamanager/check-results/test-id")
-            assert response.status_code == 200
+        mock_get.side_effect = mock_get_side_effect
+
+        response = client.get("/datamanager/check-results/test-id")
+        assert response.status_code == 200
