@@ -341,6 +341,7 @@ class TestSpecificLines:
                 "documentation_url": None,
                 "licence": None,
                 "start_date": None,
+                "url": "https://example.com/data.csv",
             },
         }
 
