@@ -720,3 +720,84 @@ class TestSpecificLines:
 
         response = client.get("/datamanager/check-results/test-id")
         assert response.status_code == 200
+
+    @patch("application.blueprints.datamanager.views.requests.post")
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_lines_316_383_payload_creation_and_api_submission(
+        self, mock_endpoint, mock_get, mock_post, client
+    ):
+        """Test lines 316-383: Payload creation, session management, and API submission"""
+        mock_endpoint.return_value = "http://test-api"
+
+        # Mock dataset response
+        dataset_response = Mock()
+        dataset_response.json.return_value = {
+            "datasets": [
+                {
+                    "name": "test-dataset",
+                    "dataset": "test-id",
+                    "collection": "test-collection",
+                }
+            ]
+        }
+        mock_get.return_value = dataset_response
+
+        # Mock successful API response
+        api_response = Mock()
+        api_response.status_code = 202
+        api_response.json.return_value = {"id": "test-request-id"}
+        mock_post.return_value = api_response
+
+        form_data = {
+            "mode": "final",
+            "dataset": "test-dataset",
+            "organisation": "Test Org (ABC123)",
+            "endpoint_url": "https://example.com/data.csv",
+            "documentation_url": "https://example.gov.uk/docs",
+            "licence": "ogl",
+            "start_day": "1",
+            "start_month": "1",
+            "start_year": "2024",
+            "column_mapping": '{"raw_field": "spec_field"}',
+            "geom_type": "point",
+        }
+
+        with client.session_transaction() as sess:
+            # Clear any existing session data
+            sess.clear()
+
+        response = client.post("/datamanager/dashboard/add", data=form_data)
+
+        # Verify redirect response
+        assert response.status_code == 302
+
+        # Verify API was called with correct payload
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+        payload = call_args[1]["json"]
+
+        # Verify payload structure
+        assert payload["params"]["type"] == "check_url"
+        assert payload["params"]["collection"] == "test-collection"
+        assert payload["params"]["dataset"] == "test-id"
+        assert payload["params"]["url"] == "https://example.com/data.csv"
+        assert payload["params"]["documentation_url"] == "https://example.gov.uk/docs"
+        assert payload["params"]["licence"] == "ogl"
+        assert payload["params"]["start_date"] == "2024-01-01"
+        assert payload["params"]["column_mapping"] == {"raw_field": "spec_field"}
+        assert payload["params"]["geom_type"] == "point"
+
+        # Verify session data was set
+        with client.session_transaction() as sess:
+            assert "required_fields" in sess
+            assert "optional_fields" in sess
+            assert sess["required_fields"]["collection"] == "test-collection"
+            assert sess["required_fields"]["dataset"] == "test-id"
+            assert sess["required_fields"]["url"] == "https://example.com/data.csv"
+            assert (
+                sess["optional_fields"]["documentation_url"]
+                == "https://example.gov.uk/docs"
+            )
+            assert sess["optional_fields"]["licence"] == "ogl"
+            assert sess["optional_fields"]["start_date"] == "2024-01-01"
