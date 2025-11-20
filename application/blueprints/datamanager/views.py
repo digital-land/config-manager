@@ -1092,6 +1092,7 @@ def entities_preview(request_id):
         {"columns": {c: {"value": (e.get(c) or "")} for c in cols}}
         for e in new_entities
     ]
+    logger.info(f"New entities rows: {rows}")
     table_params = {
         "columns": cols,
         "fields": cols,
@@ -1099,6 +1100,12 @@ def entities_preview(request_id):
         "columnNameProcessing": "none",
     }
 
+    lookup_csv_text = ""
+
+    lookup_csv_text = "\n".join(
+        ",".join(item.get("columns", {}).get(col, {}).get("value", "") for col in cols)
+        for item in rows
+    )
     # Existing entities table
     ex_cols = ["reference", "entity"]
     ex_rows = [
@@ -1203,6 +1210,7 @@ def entities_preview(request_id):
         breakdown=data.get("new-entity-breakdown") or [],
         endpoint_summary=endpoint_summary,
         table_params=table_params,
+        lookup_csv_text=lookup_csv_text,
         existing_table_params=existing_table_params,
         # CSV previews
         endpoint_csv_table_params=endpoint_csv_table_params,
