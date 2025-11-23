@@ -1062,6 +1062,7 @@ def add_data_result(request_id):
 
 @datamanager_bp.route("/check-results/<request_id>/entities")
 def entities_preview(request_id):
+
     async_api = get_request_api_endpoint()
 
     r = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
@@ -1077,7 +1078,6 @@ def entities_preview(request_id):
         return render_template(
             "datamanager/add-data-preview-loading.html", request_id=request_id
         )
-
     data = (req.get("response") or {}).get("data") or {}
     entity_summary = data.get("entity-summary") or {}
     new_entities = entity_summary.get("new-entities") or []
@@ -1102,10 +1102,23 @@ def entities_preview(request_id):
 
     lookup_csv_text = ""
 
+    fields = [
+        "prefix",
+        "resource",
+        "endpoint",
+        "entry-number",
+        "organisation",
+        "reference",
+        "entity",
+        "entry-date",
+        "start-date",
+        "end-date",
+    ]
+
     lookup_csv_text = "\n".join(
-        ",".join(item.get("columns", {}).get(col, {}).get("value", "") for col in cols)
-        for item in rows
+        ",".join(item.get(field, "") for field in fields) for item in new_entities
     )
+
     # Existing entities table
     ex_cols = ["reference", "entity"]
     ex_rows = [
