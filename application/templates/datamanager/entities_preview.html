@@ -28,6 +28,16 @@
         {{ table(table_params) }}
       </div>
       {% endif %}
+      <details class="govuk-details govuk-!-margin-bottom-4" data-module="govuk-details">
+        <summary class="govuk-details__summary">
+          <span class="govuk-details__summary-text">Copy CSV for <code>lookup.csv</code></span>
+        </summary>
+        <div class="govuk-details__text">
+          {% set _ep_lines = (lookup_csv_text or '').splitlines() %}
+          <textarea class="govuk-textarea" rows="2" readonly>{{ _ep_lines[0:] | join('\n') }}</textarea>
+          <p class="govuk-hint govuk-!-margin-top-2">Copy this line into your local <code>lookup.csv</code>.</p>
+        </div>
+      </details>
     </section>
     {% endif %}
 
@@ -42,24 +52,23 @@
       {% endif %}
     </section>
 
-    {% if endpoint_summary %}
+    
     <section class="govuk-!-margin-bottom-9">
       <h2 class="govuk-heading-m">Endpoint Summary</h2>
       <dl class="govuk-summary-list">
         <div class="govuk-summary-list__row">
           <dt class="govuk-summary-list__key">Endpoint URL</dt>
-          <dd class="govuk-summary-list__value" style="word-break: break-all;">{{ endpoint_summary.url }}</dd>
+          <dd class="govuk-summary-list__value" style="word-break: break-all;">{{ endpoint_url }}</dd>
         </div>
         <div class="govuk-summary-list__row">
           <dt class="govuk-summary-list__key">Endpoint already in system</dt>
           <dd class="govuk-summary-list__value">
-            {% if endpoint_summary.found_in_endpoint_csv %} Yes (since {{ endpoint_summary.entry_date }}) {% else %} No
-            {% endif %}
+            {{ endpoint_already_exists }}
           </dd>
         </div>
       </dl>
     </section>
-    {% endif %}
+
     {% if source_summary %}
     <section class="govuk-!-margin-bottom-9">
       <h2 class="govuk-heading-m">Source Summary</h2>
@@ -126,17 +135,18 @@
       <div class="dl-table-scrollable-container govuk-!-margin-bottom-2">
         {{ table(endpoint_csv_table_params) }}
       </div>
+      {% if endpoint_csv_text != ''  %}
       <details class="govuk-details govuk-!-margin-bottom-4" data-module="govuk-details">
         <summary class="govuk-details__summary">
           <span class="govuk-details__summary-text">Copy CSV for <code>endpoint.csv</code></span>
         </summary>
         <div class="govuk-details__text">
-          {# show CSV body only (drop header) #}
           {% set _ep_lines = (endpoint_csv_text or '').splitlines() %}
-          <textarea class="govuk-textarea" rows="2" readonly>{{ _ep_lines[1:] | join('\n') }}</textarea>
+          <textarea class="govuk-textarea" rows="2" readonly>{{ _ep_lines[0:] | join('\n') }}</textarea>
           <p class="govuk-hint govuk-!-margin-top-2">Copy this line into your local <code>endpoint.csv</code>.</p>
         </div>
       </details>
+      {% endif %}
     </section>
     {% endif %}
 
@@ -146,6 +156,7 @@
       <div class="dl-table-scrollable-container govuk-!-margin-bottom-2">
         {{ table(source_csv_table_params) }}
       </div>
+      {% if source_csv_text != ''  %}
       <details class="govuk-details govuk-!-margin-bottom-4" data-module="govuk-details">
         <summary class="govuk-details__summary">
           <span class="govuk-details__summary-text">Copy CSV for <code>source.csv</code></span>
@@ -157,6 +168,7 @@
           <p class="govuk-hint govuk-!-margin-top-2">Copy this line into your local <code>source.csv</code>.</p>
         </div>
       </details>
+      {% endif %}
     </section>
     {% endif %}
 

@@ -1081,7 +1081,8 @@ def entities_preview(request_id):
     data = (req.get("response") or {}).get("data") or {}
     entity_summary = data.get("entity-summary") or {}
     new_entities = entity_summary.get("new-entities") or []
-    endpoint_summary = data.get("endpoint_url_validation") or {}
+    endpoint_summary = data.get("endpoint-summary") or {}
+    source_summary_data = data.get("source-summary") or {}
 
     # Existing entities preference
     existing_entities_list = entity_summary.get("existing-entities") or []
@@ -1146,27 +1147,24 @@ def entities_preview(request_id):
         "start-date",
         "end-date",
     ]
-    if endpoint_summary.get("columns"):
-        ep_cols = endpoint_summary["columns"]
-
-    ep_source = None
-    if endpoint_summary.get("found_in_endpoint_csv") and endpoint_summary.get(
-        "existing_row"
-    ):
-        ep_source = endpoint_summary["existing_row"]
-    elif endpoint_summary.get("new_endpoint_entry"):
-        ep_source = endpoint_summary["new_endpoint_entry"]
-
-    if ep_source:
-        ep_row = [str(ep_source.get(col, "") or "") for col in ep_cols]
-        endpoint_csv_table_params = {
-            "columns": ep_cols,
-            "fields": ep_cols,
-            "rows": [{"columns": {c: {"value": v} for c, v in zip(ep_cols, ep_row)}}],
-            "columnNameProcessing": "none",
-        }
-        endpoint_csv_text = ",".join(ep_cols) + "\n" + ",".join(ep_row)
-        endpoint_csv_body = ",".join(ep_row)
+    endpoint_already_exists = (
+        "Yes" if endpoint_summary.get("endpoint_url_in_endpoint_csv") is True else "No"
+    )
+    logger.info(f"Endpoint already exists: {endpoint_already_exists}")
+    if endpoint_summary.get("endpoint_url_in_endpoint_csv"):
+        end_point_entry = endpoint_summary.get("existing_endpoint_entry", {})
+        endpoint_url = end_point_entry.get("endpoint-url", "")
+    else:
+        end_point_entry = endpoint_summary.get("new_endpoint_entry", {})
+        endpoint_url = end_point_entry.get("endpoint-url", "")
+        endpoint_csv_text = ",".join([end_point_entry.get(col, "") for col in ep_cols])
+    ep_row = [str(end_point_entry.get(col, "") or "") for col in ep_cols]
+    endpoint_csv_table_params = {
+        "columns": ep_cols,
+        "fields": ep_cols,
+        "rows": [{"columns": {c: {"value": v} for c, v in zip(ep_cols, ep_row)}}],
+        "columnNameProcessing": "none",
+    }
 
     # ---------- source.csv preview + summary ----------
     source_csv_table_params = None
@@ -1187,8 +1185,11 @@ def entities_preview(request_id):
         "start-date",
         "end-date",
     ]
-    src_source = endpoint_summary.get("new_source_entry") or None
-    if src_source:
+    # src_source = endpoint_summary.get("new_source_entry") or None
+    source_present = source_summary_data.get("documentation_url_in_source_csv")
+    will_create_source_text = "No" if source_present else "Yes"
+    if not source_present:
+        src_source = source_summary_data.get("new_source_entry", {})
         src_row = [str(src_source.get(col, "") or "") for col in src_cols]
         source_csv_table_params = {
             "columns": src_cols,
@@ -1197,11 +1198,18 @@ def entities_preview(request_id):
             "columnNameProcessing": "none",
         }
         source_csv_text = ",".join(src_cols) + "\n" + ",".join(src_row)
-        source_csv_body = ",".join(src_row)
-
+    else:
+        src_source = source_summary_data.get("existing_source_entry", {})
+        src_row = [str(src_source.get(col, "") or "") for col in src_cols]
+        source_csv_table_params = {
+            "columns": src_cols,
+            "fields": src_cols,
+            "rows": [{"columns": {c: {"value": v} for c, v in zip(src_cols, src_row)}}],
+            "columnNameProcessing": "none",
+        }
         # Build summary panel model (like Endpoint Summary)
         source_summary = {
-            "will_create": True,
+            "will_create": will_create_source_text,
             "source": src_source.get("source", ""),
             "collection": src_source.get("collection", ""),
             "organisation": src_source.get("organisation", ""),
@@ -1221,7 +1229,9 @@ def entities_preview(request_id):
         new_count=int(entity_summary.get("new-in-resource") or 0),
         existing_count=int(entity_summary.get("existing-in-resource") or 0),
         breakdown=data.get("new-entity-breakdown") or [],
-        endpoint_summary=endpoint_summary,
+        # endpoint_summary=endpoint_summary,
+        endpoint_already_exists=endpoint_already_exists,
+        endpoint_url=endpoint_url,
         table_params=table_params,
         lookup_csv_text=lookup_csv_text,
         existing_table_params=existing_table_params,
