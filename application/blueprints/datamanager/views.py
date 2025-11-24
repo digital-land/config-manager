@@ -1171,6 +1171,7 @@ def entities_preview(request_id):
     source_csv_text = ""
     source_csv_body = ""
     source_summary = None  # <<— new
+    src_source = {}
 
     src_cols = [
         "source",
@@ -1208,20 +1209,20 @@ def entities_preview(request_id):
             "columnNameProcessing": "none",
         }
         # Build summary panel model (like Endpoint Summary)
-        source_summary = {
-            "will_create": will_create_source_text,
-            "source": src_source.get("source", ""),
-            "collection": src_source.get("collection", ""),
-            "organisation": src_source.get("organisation", ""),
-            "endpoint": src_source.get("endpoint", ""),
-            "licence": src_source.get("licence", ""),
-            "pipelines": src_source.get("pipelines", ""),
-            "entry_date": src_source.get("entry-date", ""),
-            "start_date": src_source.get("start-date", ""),
-            "end_date": src_source.get("end-date", ""),
-            "documentation_url": src_source.get("documentation-url", ""),
-            "attribution": src_source.get("attribution", ""),
-        }
+    source_summary = {
+        "will_create": will_create_source_text,
+        "source": src_source.get("source", ""),
+        "collection": src_source.get("collection", ""),
+        "organisation": src_source.get("organisation", ""),
+        "endpoint": src_source.get("endpoint", ""),
+        "licence": src_source.get("licence", ""),
+        "pipelines": src_source.get("pipelines", ""),
+        "entry_date": src_source.get("entry-date", ""),
+        "start_date": src_source.get("start-date", ""),
+        "end_date": src_source.get("end-date", ""),
+        "documentation_url": src_source.get("documentation-url", ""),
+        "attribution": src_source.get("attribution", ""),
+    }
 
     return render_template(
         "datamanager/entities_preview.html",
