@@ -10,8 +10,7 @@
     "watch:assets": "npm run nps watch.assets",
     "watch:pages": "npm run nps watch.pages",
     "watch": "npm-run-all --parallel watch:*",
-    "nps": "nps -c ./node_modules/digital-land-frontend/package-scripts.js",
-    "postinstall": "npm run nps copy.javascripts && npm run nps build.stylesheets && npm run nps build.javascripts && npm run copy"
+    "nps": "nps -c ./node_modules/digital-land-frontend/package-scripts.js"
   },
   "repository": {
     "type": "git",
@@ -24,7 +23,7 @@
   },
   "dependencies": {
     "@planning-data/digital-land-frontend": "^0.5.0",
-    "digital-land-frontend": "https://gitpkg.now.sh/digital-land/digital-land-frontend/package?main",
+    "digital-land-frontend": "github:digital-land/digital-land-frontend#main",
     "govuk-frontend": "^5.9.0"
   },
   "devDependencies": {
