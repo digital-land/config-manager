@@ -405,9 +405,12 @@ def check_results(request_id):
         response = requests.get(
             f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT
         )
-        if response.status_code != 200:
+        response.raise_for_status()
+        if response.status_code != 200 or response.json().get("status") == "FAILED":
             return (
-                render_template("error.html", message="Check failed or not found"),
+                render_template(
+                    "datamanager/error.html", message="Check failed or not found"
+                ),
                 404,
             )
 
@@ -423,160 +426,168 @@ def check_results(request_id):
                 "datamanager/check-results-loading.html", result=result
             )
 
-        # Row details (paged)
-        details_response = requests.get(
-            f"{async_api}/requests/{request_id}/response-details",
-            params={"offset": offset, "limit": page_size},
-            timeout=REQUESTS_TIMEOUT,
-        )
-        details_response.raise_for_status()
-        resp_details = details_response.json() or []
+        if result.get("response").get("data") is None:
+            return render_template(
+                "datamanager/error.html",
+                message=result.get("response")
+                .get("error")
+                .get("errMsg", "No data returned from check"),
+            )
+        else:
+            # Row details (paged)
+            details_response = requests.get(
+                f"{async_api}/requests/{request_id}/response-details",
+                params={"offset": offset, "limit": page_size},
+                timeout=REQUESTS_TIMEOUT,
+            )
+            details_response.raise_for_status()
+            resp_details = details_response.json() or []
 
-        total_rows = (
-            (result.get("response") or {})
-            .get("data", {})
-            .get("row-count", len(resp_details))
-        )
-
-        # --- TRUST BACKEND ONLY ---
-        data = (result.get("response") or {}).get("data") or {}
-        entity_summary = data.get("entity-summary") or {}
-        new_entities = data.get("new-entities") or []
-
-        # exact lists as provided by BE
-        existing_entities_list = data.get("existing-entities") or []
-
-        # exact counts as provided by BE (fallback to 0 if missing)
-        existing_count = int(entity_summary.get("existing-in-resource") or 0)
-        new_count = int(entity_summary.get("new-in-resource") or 0)
-
-        logger.debug(f"BE data keys: {list(data.keys())}")
-        logger.debug(f"entity-summary: {entity_summary}")
-        logger.debug(f"existing-entities len: {len(existing_entities_list)}")
-
-        # minimal message that only reflects BE numbers
-        new_entities_message = (
-            f"{existing_count} existing; {new_count} new (from backend)."
-        )
-        show_entities_link = new_count > 0
-
-        # Geometry mapping (unchanged)
-        geometries = []
-        for row in resp_details:
-            geom = row.get("geometry")
-            if not geom:
-                wkt_str = (row.get("converted_row") or {}).get("Point")
-                if wkt_str:
-                    try:
-                        shapely_geom = wkt.loads(wkt_str)
-                        geom = mapping(shapely_geom)
-                    except Exception:
-                        geom = None
-            if geom:
-                geometries.append(
-                    {
-                        "type": "Feature",
-                        "geometry": geom,
-                        "properties": {
-                            "reference": (row.get("converted_row") or {}).get(
-                                "Reference"
-                            )
-                            or f"Entry {row.get('entry_number')}",
-                        },
-                    }
-                )
-
-        # Error parsing (unchanged)
-        error_summary = data.get("error-summary", []) or []
-        column_field_log = data.get("column-field-log", []) or []
-
-        # ---- Table build (no FE-added 'Entity status') ----
-        table_headers, formatted_rows = [], []
-        if resp_details:
-            first_row = (resp_details[0] or {}).get("converted_row", {}) or {}
-            table_headers = list(first_row.keys())
-
-            for row in resp_details:
-                converted = row.get("converted_row") or {}
-                formatted_rows.append(
-                    {
-                        "columns": {
-                            col: {"value": converted.get(col, "")}
-                            for col in table_headers
-                        }
-                    }
-                )
-
-        table_params = {
-            "columns": table_headers,
-            "fields": table_headers,
-            "rows": formatted_rows,
-            "columnNameProcessing": "none",
-        }
-
-        showing_start = offset + 1 if total_rows > 0 else 0
-        showing_end = min(offset + page_size, total_rows)
-
-        # checks
-        must_fix, fixable, passed_checks = [], [], []
-        for err in error_summary:
-            fixable.append(err)
-        for col in column_field_log:
-            if not col.get("missing"):
-                passed_checks.append(f"All rows have {col.get('field')} present")
-            else:
-                must_fix.append(f"Missing required field: {col.get('field')}")
-        allow_add_data = len(must_fix) == 0
-
-        params = result.get("params", {}) or {}
-        optional_missing = not (
-            params.get("documentation_url")
-            and params.get("licence")
-            and params.get("start_date")
-        )
-        show_error = not allow_add_data
-
-        entities_preview_url = url_for(
-            "datamanager.entities_preview", request_id=request_id
-        )
-
-        # compact preview (first 5) – exactly what BE sent for "new-entities"
-        entity_preview_rows = []
-        for e in (new_entities or [])[:5]:
-            entity_preview_rows.append(
-                {
-                    "reference": str(e.get("reference", "")).strip(),
-                    "prefix": e.get("prefix") or "",
-                    "organisation": e.get("organisation") or "",
-                    "entity": str(e.get("entity", "")).strip(),
-                }
+            total_rows = (
+                (result.get("response") or {})
+                .get("data", {})
+                .get("row-count", len(resp_details))
             )
 
-        return render_template(
-            "datamanager/check-results.html",
-            result=result,
-            geometries=geometries,
-            must_fix=must_fix,
-            fixable=fixable,
-            passed_checks=passed_checks,
-            allow_add_data=allow_add_data,
-            show_error=show_error,
-            optional_missing=optional_missing,
-            table_params=table_params,
-            page=page,
-            total_rows=total_rows,
-            page_size=page_size,
-            showing_start=showing_start,
-            showing_end=showing_end,
-            # entity summary bits (BE only):
-            new_entities_message=new_entities_message,
-            new_entity_count=new_count,
-            existing_entity_count=existing_count,
-            existing_entities_list=existing_entities_list,
-            show_entities_link=show_entities_link,
-            entities_preview_url=entities_preview_url,
-            entity_preview_rows=entity_preview_rows,
-        )
+            # --- TRUST BACKEND ONLY ---
+            data = (result.get("response") or {}).get("data") or {}
+            entity_summary = data.get("entity-summary") or {}
+            new_entities = data.get("new-entities") or []
+
+            # exact lists as provided by BE
+            existing_entities_list = data.get("existing-entities") or []
+
+            # exact counts as provided by BE (fallback to 0 if missing)
+            existing_count = int(entity_summary.get("existing-in-resource") or 0)
+            new_count = int(entity_summary.get("new-in-resource") or 0)
+
+            logger.debug(f"BE data keys: {list(data.keys())}")
+            logger.debug(f"entity-summary: {entity_summary}")
+            logger.debug(f"existing-entities len: {len(existing_entities_list)}")
+
+            # minimal message that only reflects BE numbers
+            new_entities_message = (
+                f"{existing_count} existing; {new_count} new (from backend)."
+            )
+            show_entities_link = new_count > 0
+
+            # Geometry mapping (unchanged)
+            geometries = []
+            for row in resp_details:
+                geom = row.get("geometry")
+                if not geom:
+                    wkt_str = (row.get("converted_row") or {}).get("Point")
+                    if wkt_str:
+                        try:
+                            shapely_geom = wkt.loads(wkt_str)
+                            geom = mapping(shapely_geom)
+                        except Exception:
+                            geom = None
+                if geom:
+                    geometries.append(
+                        {
+                            "type": "Feature",
+                            "geometry": geom,
+                            "properties": {
+                                "reference": (row.get("converted_row") or {}).get(
+                                    "Reference"
+                                )
+                                or f"Entry {row.get('entry_number')}",
+                            },
+                        }
+                    )
+
+            # Error parsing (unchanged)
+            error_summary = data.get("error-summary", []) or []
+            column_field_log = data.get("column-field-log", []) or []
+
+            # ---- Table build (no FE-added 'Entity status') ----
+            table_headers, formatted_rows = [], []
+            if resp_details:
+                first_row = (resp_details[0] or {}).get("converted_row", {}) or {}
+                table_headers = list(first_row.keys())
+
+                for row in resp_details:
+                    converted = row.get("converted_row") or {}
+                    formatted_rows.append(
+                        {
+                            "columns": {
+                                col: {"value": converted.get(col, "")}
+                                for col in table_headers
+                            }
+                        }
+                    )
+
+            table_params = {
+                "columns": table_headers,
+                "fields": table_headers,
+                "rows": formatted_rows,
+                "columnNameProcessing": "none",
+            }
+
+            showing_start = offset + 1 if total_rows > 0 else 0
+            showing_end = min(offset + page_size, total_rows)
+
+            # checks
+            must_fix, fixable, passed_checks = [], [], []
+            for err in error_summary:
+                fixable.append(err)
+            for col in column_field_log:
+                if not col.get("missing"):
+                    passed_checks.append(f"All rows have {col.get('field')} present")
+                else:
+                    must_fix.append(f"Missing required field: {col.get('field')}")
+            allow_add_data = len(must_fix) == 0
+
+            params = result.get("params", {}) or {}
+            optional_missing = not (
+                params.get("documentation_url")
+                and params.get("licence")
+                and params.get("start_date")
+            )
+            show_error = not allow_add_data
+
+            entities_preview_url = url_for(
+                "datamanager.entities_preview", request_id=request_id
+            )
+
+            # compact preview (first 5) – exactly what BE sent for "new-entities"
+            entity_preview_rows = []
+            for e in (new_entities or [])[:5]:
+                entity_preview_rows.append(
+                    {
+                        "reference": str(e.get("reference", "")).strip(),
+                        "prefix": e.get("prefix") or "",
+                        "organisation": e.get("organisation") or "",
+                        "entity": str(e.get("entity", "")).strip(),
+                    }
+                )
+
+            return render_template(
+                "datamanager/check-results.html",
+                result=result,
+                geometries=geometries,
+                must_fix=must_fix,
+                fixable=fixable,
+                passed_checks=passed_checks,
+                allow_add_data=allow_add_data,
+                show_error=show_error,
+                optional_missing=optional_missing,
+                table_params=table_params,
+                page=page,
+                total_rows=total_rows,
+                page_size=page_size,
+                showing_start=showing_start,
+                showing_end=showing_end,
+                # entity summary bits (BE only):
+                new_entities_message=new_entities_message,
+                new_entity_count=new_count,
+                existing_entity_count=existing_count,
+                existing_entities_list=existing_entities_list,
+                show_entities_link=show_entities_link,
+                entities_preview_url=entities_preview_url,
+                entity_preview_rows=entity_preview_rows,
+            )
 
     except Exception as e:
         traceback.print_exc()
@@ -1208,7 +1219,8 @@ def entities_preview(request_id):
             "rows": [{"columns": {c: {"value": v} for c, v in zip(src_cols, src_row)}}],
             "columnNameProcessing": "none",
         }
-        # Build summary panel model (like Endpoint Summary)
+    logger.info(f"Will create source1: {will_create_source_text}")
+    # Build summary panel model (like Endpoint Summary)
     source_summary = {
         "will_create": will_create_source_text,
         "source": src_source.get("source", ""),

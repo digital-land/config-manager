@@ -75,7 +75,7 @@
       <dl class="govuk-summary-list">
         <div class="govuk-summary-list__row">
           <dt class="govuk-summary-list__key">Will create new source row</dt>
-          <dd class="govuk-summary-list__value">Yes</dd>
+          <dd class="govuk-summary-list__value">{{source_summary.will_create}}</dd>
         </div>
         <div class="govuk-summary-list__row">
           <dt class="govuk-summary-list__key">source</dt>
@@ -173,7 +173,7 @@
     {% endif %}
 
     <div class="govuk-button-group">
-      <form method="post" action="{{ url_for('datamanager.add_data_confirm', request_id=request_id) }}">
+      <form method="get" action="{{ url_for('datamanager.index') }}">
         <button type="submit" class="govuk-button">Confirm and add data</button>
       </form>
     </div>
