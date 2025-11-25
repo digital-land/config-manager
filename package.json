@@ -3,15 +3,17 @@
   "version": "0.0.1",
   "description": "A tool to help manage the data in the digital land platform",
   "scripts": {
-    "copy:css": "rsync -ar src/css/application.css application/static/stylesheets/application.css && rsync -ar src/css/vendor/ application/static/stylesheets/vendor",
-    "copy:js": "rsync -ar src/javascripts/vendor/ application/static/javascripts/vendor",
-    "copy": "npm-run-all --parallel copy:*",
     "flask": "flask run",
-    "watch:assets": "npm run nps watch.assets",
-    "watch:pages": "npm run nps watch.pages",
     "watch": "npm-run-all --parallel watch:*",
+    "watch:assets": "npm run nps watch.assets",
+    "watch:images": "npx chokidar './assets/images/**/*.{png,ico,svg,jpg,jpeg,webp}' -c 'npm run copy:images'",
     "nps": "nps -c ./node_modules/digital-land-frontend/package-scripts.js",
-    "postinstall": "npm run nps copy.javascripts && npm run nps build.stylesheets && npm run nps build.javascripts && npm run copy"
+    "copy:images_shared": "npm run nps copy.images",
+    "copy:images_govuk": "npm run nps copy.govukAssets",
+    "copy:images_local": "npx copyfiles src/images/**/*.{png,ico,svg,jpg,jpeg,webp} application/static -u 2",
+    "copy:images": "run-s copy:images_*",
+    "copyjs": "rsync -ar src/javascripts/ application/static/javascripts",
+    "postinstall": "npm run copyjs && npm run nps copy.javascripts && npm run nps build.stylesheets && npm run nps build.javascripts"
   },
   "repository": {
     "type": "git",
