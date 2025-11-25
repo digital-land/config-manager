@@ -25,10 +25,13 @@ ENV PATH="/venv/bin:$PATH"
 # Copy application source
 COPY . .
 
+# Create static directories
+RUN mkdir -p application/static/stylesheets application/static/javascripts
+
 # Install deps
-RUN npm install && \
-    npm run copy:css && \
-    npm run copy:js && \
+RUN npm config set strict-ssl false && \
+    git config --global http.sslVerify false && \
+    npm install && \
     curl -o application/static/javascripts/accessible-autocomplete.min.js https://unpkg.com/accessible-autocomplete@2.0.4/dist/accessible-autocomplete.min.js && \
     curl -o application/static/stylesheets/accessible-autocomplete.min.css https://unpkg.com/accessible-autocomplete@2.0.4/dist/accessible-autocomplete.min.css && \
     python -m pip install --upgrade pip setuptools wheel && \
