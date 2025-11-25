@@ -1,4 +1,4 @@
-# Config manager
+# Config manager  
 
 ## Getting started
 
