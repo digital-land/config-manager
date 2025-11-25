@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 import requests
 from flask import (
     Blueprint,
-    abort,
     jsonify,
     redirect,
     render_template,
@@ -33,6 +32,12 @@ logger = logging.getLogger(__name__)
 headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
 REQUESTS_TIMEOUT = 20  # seconds
+
+
+@datamanager_bp.errorhandler(Exception)
+def handle_error(e):
+    logger.exception(f"Error: {e}")
+    return render_template("datamanager/error.html", message=str(e)), 500
 
 
 # put this near the top, replacing your current get_spec_fields_from_datasette
@@ -136,9 +141,9 @@ def dashboard_add():
             timeout=REQUESTS_TIMEOUT,
             headers={"User-Agent": "Planning Data - Manage"},
         ).json()
-    except Exception:
+    except Exception as e:
         logger.exception("Error fetching datasets")
-        abort(500, "Failed to fetch dataset list")
+        raise Exception("Failed to fetch dataset list") from e
 
     # only datasets that have a collection
     datasets = [d for d in ds_response.get("datasets", []) if "collection" in d]
@@ -374,13 +379,12 @@ def dashboard_add():
                             detail = response.json()
                         except Exception:
                             detail = response.text
-                        abort(
-                            500,
-                            f"Check tool submission failed ({response.status_code}): {detail}",
+                        raise Exception(
+                            f"Check tool submission failed ({response.status_code}): {detail}"
                         )
                 except Exception as e:
                     traceback.print_exc()
-                    abort(500, f"Backend error: {e}")
+                    raise Exception(f"Backend error: {e}")
 
     return render_template(
         "datamanager/dashboard_add.html",
@@ -591,7 +595,7 @@ def check_results(request_id):
 
     except Exception as e:
         traceback.print_exc()
-        abort(500, f"Error fetching results from backend: {e}")
+        raise Exception(f"Error fetching results from backend: {e}")
 
 
 @datamanager_bp.route("/check-results/optional-submit", methods=["GET", "POST"])
@@ -677,7 +681,7 @@ def add_data():
             if "application/json" in (r.headers.get("content-type") or "")
             else r.text
         )
-        abort(500, f"Preview submission failed ({r.status_code}): {detail}")
+        raise Exception(f"Preview submission failed ({r.status_code}): {detail}")
 
     if request.method == "GET":
         if existing_doc and existing_lic and existing_start:
@@ -750,7 +754,7 @@ def add_data_confirm(request_id):
         if "application/json" in (submit.headers.get("content-type") or "")
         else submit.text
     )
-    abort(500, f"Add data submission failed ({submit.status_code}): {detail}")
+    raise Exception(f"Add data submission failed ({submit.status_code}): {detail}")
 
 
 # --- Configure screen: CSV + MUST-FIX on left, smart dropdowns on right ---
