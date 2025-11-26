@@ -1,15 +1,41 @@
 {% extends 'layouts/base.html' %}
-{% block pageTitle %}Configure data | Manage Data{% endblock %}
+
+{% from "govuk_frontend_jinja/components/breadcrumbs/macro.html" import govukBreadcrumbs %}
+{% from "govuk_frontend_jinja/components/panel/macro.html" import govukPanel %}
+{% from "govuk_frontend_jinja/components/button/macro.html" import govukButton %}
+
+{% block pageTitle %}Dashboard Config | Manage Data{% endblock %}
+
+{% block beforeContent %}
+{{ govukBreadcrumbs({
+  "items": [
+    { "text": "Home", "href": url_for('base.index') },
+    { "text": "DataManager", "href": url_for('datamanager.index') },
+    { "text": datamanager.name or "Dashboard" }
+  ]
+}) }}
+{% endblock %}
 
 {% block content %}
-<div class="govuk-width-container">
-  <div class="container govuk-!-margin-top-9 govuk-!-padding-6" style="text-align:center; background:#f3f2f1; border:1px dashed #b1b4b6; border-radius:8px;">
-    <div class="icon" aria-hidden="true" style="font-size:48px; line-height:1;">&#9888;</div>
-    <h1 class="govuk-heading-l govuk-!-margin-top-2">Page Under Construction</h1>
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {{ govukPanel({
+      "titleText": "Page under construction",
+      "html": "<p class='govuk-body'>This dashboard configuration page is currently being built.<br>Please check back later.</p>"
+    }) }}
+
     <p class="govuk-body">
-      This dashboard configuration page is currently being built.<br>
-      Please check back later.
+      When ready, this page will let you configure mappings, lookups, and other dataset settings.
     </p>
+
+    <div class="govuk-button-group">
+      {{ govukButton({
+        "text": "Back to Manage Data",
+        "href": url_for('datamanager.index')
+      }) }}
+    </div>
+
   </div>
 </div>
-{% endblock content %}
+{% endblock %}

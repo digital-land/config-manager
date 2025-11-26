@@ -50,17 +50,35 @@ drop-data:
 	flask data drop
 
 test-unit:
-	@echo "Running Unit test...."
-	@echo "Not yet implemented"
+	@echo "Running Unit tests...."
+	python -m pytest tests/unit/ -v
 
 test-integration:
-	@echo "Running Integration test...."
-	@echo "Not yet implemented"
+	@echo "Running Integration tests...."
+# 	@echo "Not yet implemented"
+	python -m pytest tests/integration/ -v
 
 test-acceptance:
-	@echo "Running Acceptance test...."
-	@echo "Not yet implemented"
+	@echo "Running Acceptance tests...."
+# 	@echo "Not yet implemented"
+	python -m pytest tests/acceptance/ -v
 
 test-accessibility:
-	@echo "Running Accessibility test...."
+	@echo "Running Accessibility tests...."
 	@echo "Not yet implemented"
+
+test:: test-coverage
+# 	@echo "Running all tests...."
+# 	python -m pytest tests/ -v
+
+test-coverage:: coverage-unit coverage-integration coverage-acceptance
+
+coverage-unit:
+	pytest --cov=application.blueprints.datamanager tests/unit/ -v --cov-report=term-missing
+
+coverage-integration:
+	pytest --cov=application.blueprints.datamanager --cov-append tests/integration/ -v	--cov-report=term-missing
+
+coverage-acceptance:
+	pytest --cov=application.blueprints.datamanager --cov-append --cov-fail-under=80 tests/acceptance/ -v --cov-report=term-missing
+

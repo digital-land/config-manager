@@ -108,18 +108,15 @@ endblock %}
           <div class="govuk-date-input" id="start-date">
             <div class="govuk-date-input__item">
               <label class="govuk-label govuk-date-input__label" for="start-day">Day</label>
-              <input class="govuk-input govuk-input--width-2" id="start-day" name="start_day" type="text"
-                inputmode="numeric" value="{{ form.start_day or today.day }}">
+              <input class="govuk-input govuk-input--width-2" id="start-day" name="start_day" type="text" inputmode="numeric" value="{{ form.start_day or today.day }}">
             </div>
             <div class="govuk-date-input__item">
               <label class="govuk-label govuk-date-input__label" for="start-month">Month</label>
-              <input class="govuk-input govuk-input--width-2" id="start-month" name="start_month" type="text"
-                inputmode="numeric" value="{{ form.start_month or today.month }}">
+              <input class="govuk-input govuk-input--width-2" id="start-month" name="start_month" type="text" inputmode="numeric" value="{{ form.start_month or today.month }}">
             </div>
             <div class="govuk-date-input__item">
               <label class="govuk-label govuk-date-input__label" for="start-year">Year</label>
-              <input class="govuk-input govuk-input--width-4" id="start-year" name="start_year" type="text"
-                inputmode="numeric" value="{{ form.start_year or today.year }}">
+              <input class="govuk-input govuk-input--width-4" id="start-year" name="start_year" type="text" inputmode="numeric" value="{{ form.start_year or today.year }}">
             </div>
           </div>
         </fieldset>
@@ -135,7 +132,7 @@ endblock %}
       { 'value': 'ogl', 'text': 'OGL' },
       { 'value': 'cc-by', 'text': 'CC-BY' }
       ],
-      'value': form.get('licence', 'ogl')
+      'value': form.get('licence', '')
       }) }}
 
       <div class="govuk-form-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
@@ -150,10 +147,9 @@ endblock %}
 {% endblock %}
 <!-- {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %} -->
 {% block pageScripts %}
-<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}
-  src="{{ url_for('static', filename='javascripts/accessible-autocomplete.min.js') }}"></script>
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %} src="{{ url_for('static', filename='javascripts/accessible-autocomplete.min.js') }}"></script>
 <script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
-  document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener("DOMContentLoaded", function() {
     const datasetHidden = document.getElementById("dataset");
     const datasetContainer = document.getElementById("autocomplete-container");
     const orgWrapper = document.getElementById("org-autocomplete-wrapper");
@@ -162,7 +158,7 @@ endblock %}
     const datasetValue = datasetHidden.value || "";
     const orgValue = hiddenOrgInput.value && hiddenOrgInput.value !== "undefined" ? hiddenOrgInput.value : "";
     const orgList = JSON.parse(`{{ selected_orgs | default([]) | tojson | safe }}`);
-    document.querySelector("form").addEventListener("submit", function () {
+    document.querySelector("form").addEventListener("submit", function() {
       console.log("📤 Submitting form with:");
       console.log("Dataset:", document.getElementById("dataset").value);
       console.log("Organisation:", document.getElementById("organisation").value);
@@ -200,7 +196,7 @@ endblock %}
         placeholder: placeholderText || "Type organisation name...",
         confirmOnBlur: false,
         autoselect: true,
-        onConfirm: function (val) {
+        onConfirm: function(val) {
           hiddenOrgInput.value = val;
         }
       });
@@ -216,12 +212,12 @@ endblock %}
       autoselect: true,
       displayMenu: "overlay",
       placeholder: "Type dataset name…",
-      source: function (query, populateResults) {
+      source: function(query, populateResults) {
         fetch(`{{ url_for('datamanager.dashboard_add') }}?autocomplete=${encodeURIComponent(query)}`)
           .then((response) => response.json())
           .then((data) => populateResults(data));
       },
-      onConfirm: function (val) {
+      onConfirm: function(val) {
         datasetHidden.value = val;
         hiddenOrgInput.value = "";
         fetch(`{{ url_for('datamanager.dashboard_add') }}?get_orgs_for=${encodeURIComponent(val)}`)
