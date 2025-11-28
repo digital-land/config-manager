@@ -77,124 +77,124 @@
         <p class="govuk-body">No rows to display</p>
         {% endif %}
       </div>
+    </div>
 
-      <!-- Metadata & Results -->
-      <div class="govuk-grid-row govuk-!-margin-top-6">
-        <div class="govuk-grid-column-one-third">
-          <h3 class="govuk-heading-s">Dataset actions</h3>
-          <p><a class="govuk-link" href="#">Share these results</a></p>
-        </div>
+    <!-- Metadata & Results -->
+    <div class="govuk-grid-row govuk-!-margin-top-6">
+      <div class="govuk-grid-column-one-third">
+        <h3 class="govuk-heading-s">Dataset actions</h3>
+        <p><a class="govuk-link" href="#">Share these results</a></p>
+      </div>
 
-        <div class="govuk-grid-column-two-thirds">
-          <dl class="govuk-summary-list">
-            <div class="govuk-summary-list__row">
-              <dt class="govuk-summary-list__key">File name</dt>
-              <dd class="govuk-summary-list__value">{{ result.params.url.split('/')[-1] }}</dd>
-            </div>
-            <div class="govuk-summary-list__row">
-              <dt class="govuk-summary-list__key">Date checked</dt>
-              <dd class="govuk-summary-list__value">
-                {{ result.modified or result.created }}
-              </dd>
-            </div>
-          </dl>
-
-          <!-- Passed Checks -->
-          {% if passed_checks %}
-          <h2 class="govuk-heading-m govuk-!-margin-top-6">
-            Data that passed the checks
-          </h2>
-          <div class="govuk-!-margin-bottom-4">
-            {% for check in passed_checks %}
-            <div
-              class="govuk-!-margin-bottom-2"
-              style="display: flex; justify-content: space-between"
-            >
-              <span>{{ check }}</span>
-              <strong class="govuk-tag govuk-tag--green">Passed</strong>
-            </div>
-            {% endfor %}
+      <div class="govuk-grid-column-two-thirds">
+        <dl class="govuk-summary-list">
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">File name</dt>
+            <dd class="govuk-summary-list__value">{{ result.params.url.split('/')[-1] }}</dd>
           </div>
-          {% endif %}
-
-          <!-- Must fix (blocking issues) -->
-          {% if must_fix %}
-          <h2 class="govuk-heading-m govuk-!-margin-top-4">
-            Issues that must be fixed before adding data
-          </h2>
-          <div class="govuk-!-margin-bottom-4 govuk-body">
-            {% for issue in must_fix %}
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                border-top: 1px solid #b1b4b6;
-                padding: 10px 0;
-              "
-            >
-              <span><a class="govuk-link" href="#">{{ issue }}</a></span>
-              <strong class="govuk-tag govuk-tag--red">Must fix</strong>
-            </div>
-            {% endfor %}
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Date checked</dt>
+            <dd class="govuk-summary-list__value">
+              {{ result.modified or result.created }}
+            </dd>
           </div>
-          {% endif %}
+        </dl>
 
-          <!-- Fixable issues -->
-          {% if fixable %}
-          <h2 class="govuk-heading-m">
-            Issues that can be fixed after adding data
-          </h2>
-          <p class="govuk-body">
-            Data can be added with these issues, but they should be fixed over
-            time.
-          </p>
-          <div class="govuk-!-margin-bottom-4 govuk-body">
-            {% for issue in fixable %}
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                border-top: 1px solid #b1b4b6;
-                padding: 10px 0;
-              "
-            >
-              <span><a class="govuk-link" href="#">{{ issue }}</a></span>
-              <strong class="govuk-tag govuk-tag--yellow">Needs fixing</strong>
-            </div>
-            {% endfor %}
-          </div>
-          {% endif %}
-
-          <!-- Buttons -->
+        <!-- Passed Checks -->
+        {% if passed_checks %}
+        <h2 class="govuk-heading-m govuk-!-margin-top-6">
+          Data that passed the checks
+        </h2>
+        <div class="govuk-!-margin-bottom-4">
+          {% for check in passed_checks %}
           <div
-            class="govuk-button-group govuk-!-margin-top-6"
-            style="display: flex; justify-content: flex-end; gap: 10px"
+            class="govuk-!-margin-bottom-2"
+            style="display: flex; justify-content: space-between"
           >
-            {% if allow_add_data %}
-            <form
-              method="get"
-              action="{{ url_for('datamanager.add_data', request_id=result.id) }}"
-            >
-              <button type="submit" class="govuk-button">Add data</button>
-            </form>
-            <a
-              href="{{ url_for('datamanager.index') }}"
-              class="govuk-button govuk-button--secondary"
-              >Configure data</a
-            >
-            {% else %}
-            <button
-              class="govuk-button govuk-button--secondary"
-              disabled
-              aria-disabled="true"
-            >
-              Add data
-            </button>
-            <a href="{{ url_for('datamanager.index') }}" class="govuk-button"
-              >Configure data</a
-            >
-            {% endif %}
+            <span>{{ check }}</span>
+            <strong class="govuk-tag govuk-tag--green">Passed</strong>
           </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Must fix (blocking issues) -->
+        {% if must_fix %}
+        <h2 class="govuk-heading-m govuk-!-margin-top-4">
+          Issues that must be fixed before adding data
+        </h2>
+        <div class="govuk-!-margin-bottom-4 govuk-body">
+          {% for issue in must_fix %}
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              border-top: 1px solid #b1b4b6;
+              padding: 10px 0;
+            "
+          >
+            <span><a class="govuk-link" href="#">{{ issue }}</a></span>
+            <strong class="govuk-tag govuk-tag--red">Must fix</strong>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Fixable issues -->
+        {% if fixable %}
+        <h2 class="govuk-heading-m">
+          Issues that can be fixed after adding data
+        </h2>
+        <p class="govuk-body">
+          Data can be added with these issues, but they should be fixed over
+          time.
+        </p>
+        <div class="govuk-!-margin-bottom-4 govuk-body">
+          {% for issue in fixable %}
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              border-top: 1px solid #b1b4b6;
+              padding: 10px 0;
+            "
+          >
+            <span><a class="govuk-link" href="#">{{ issue }}</a></span>
+            <strong class="govuk-tag govuk-tag--yellow">Needs fixing</strong>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Buttons -->
+        <div
+          class="govuk-button-group govuk-!-margin-top-6"
+          style="display: flex; justify-content: flex-end; gap: 10px"
+        >
+          {% if allow_add_data %}
+          <form
+            method="get"
+            action="{{ url_for('datamanager.add_data', request_id=result.id) }}"
+          >
+            <button type="submit" class="govuk-button">Add data</button>
+          </form>
+          <a
+            href="{{ url_for('datamanager.index') }}"
+            class="govuk-button govuk-button--secondary"
+            >Configure data</a
+          >
+          {% else %}
+          <button
+            class="govuk-button govuk-button--secondary"
+            disabled
+            aria-disabled="true"
+          >
+            Add data
+          </button>
+          <a href="{{ url_for('datamanager.index') }}" class="govuk-button"
+            >Configure data</a
+          >
+          {% endif %}
         </div>
       </div>
     </div>
