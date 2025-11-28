@@ -483,14 +483,17 @@ def check_results(request_id):
             for row in resp_details:
                 converted_row = row.get("converted_row") or {}
                 transformed_row = row.get("transformed_row") or []
-                logger.debug(f"Row fields: {[item.get('field') for item in transformed_row]}")
+                logger.debug(
+                    f"Row fields: {[item.get('field') for item in transformed_row]}"
+                )
 
                 # Find geometry from transformed_row
                 geometry_entry = next(
                     (
                         item
                         for item in transformed_row
-                        if item.get("field") == "geometry" or item.get("field") == "point"
+                        if item.get("field") == "geometry"
+                        or item.get("field") == "point"
                     ),
                     None,
                 )
@@ -518,15 +521,27 @@ def check_results(request_id):
             logger.debug(f"Found {len(geometries)} geometries")
             # Generate boundary URL dynamically based on dataset and geometries
             boundary_geojson_url = ""
-         
+
             if organisation == "local-authority:GRY":
-                boundary_geojson_url = "https://www.planning.data.gov.uk/entity.geojson?curie=statistical-geography:E07000145"
+                boundary_geojson_url = (
+                    "https://www.planning.data.gov.uk/entity.geojson?"
+                    "curie=statistical-geography:E07000145"
+                )
             elif organisation == "local-authority:CBF":
-                boundary_geojson_url = "https://www.planning.data.gov.uk/entity.geojson?curie=statistical-geography:E06000056"
+                boundary_geojson_url = (
+                    "https://www.planning.data.gov.uk/entity.geojson?"
+                    "curie=statistical-geography:E06000056"
+                )
             elif organisation == "local-authority:ASH":
-                boundary_geojson_url = "https://www.planning.data.gov.uk/entity.geojson?curie=statistical-geography:E07000170"
+                boundary_geojson_url = (
+                    "https://www.planning.data.gov.uk/entity.geojson?"
+                    "curie=statistical-geography:E07000170"
+                )
             else:
-                boundary_geojson_url = "https://www.planning.data.gov.uk/entity.geojson?curie=statistical-geography:E06000056"
+                boundary_geojson_url = (
+                    "https://www.planning.data.gov.uk/entity.geojson?"
+                    "curie=statistical-geography:E06000056"
+                )
             # Error parsing (unchanged)
             error_summary = data.get("error-summary", []) or []
             column_field_log = data.get("column-field-log", []) or []
@@ -617,7 +632,7 @@ def check_results(request_id):
                 show_entities_link=show_entities_link,
                 entities_preview_url=entities_preview_url,
                 entity_preview_rows=entity_preview_rows,
-                boundary_geojson_url=boundary_geojson_url
+                boundary_geojson_url=boundary_geojson_url,
             )
 
     except Exception as e:
@@ -1293,12 +1308,16 @@ def entities_preview(request_id):
             request_id=(req.get("params") or {}).get("source_request_id") or request_id,
         ),
     )
+
+
 @datamanager_bp.route("/map.js")
 def map_js():
-    file_path = os.path.join(current_app.root_path, "templates", "datamanager", "map.js")
+    file_path = os.path.join(
+        current_app.root_path, "templates", "datamanager", "map.js"
+    )
     try:
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             content = f.read()
-        return Response(content, mimetype='application/javascript')
+        return Response(content, mimetype="application/javascript")
     except FileNotFoundError:
         return "console.error('Map script not found');", 404
