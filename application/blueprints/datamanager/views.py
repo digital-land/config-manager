@@ -15,6 +15,8 @@ from flask import (
     request,
     url_for,
     session,
+    Response,
+    current_app,
 )
 
 from application.utils import get_request_api_endpoint
@@ -474,33 +476,57 @@ def check_results(request_id):
                 f"{existing_count} existing; {new_count} new (from backend)."
             )
             show_entities_link = new_count > 0
-
-            # Geometry mapping (unchanged)
+            logger.info(f"resp_details:{resp_details}")
+            # Geometry mapping
             geometries = []
+            logger.debug(f"Processing {len(resp_details)} rows for geometries")
             for row in resp_details:
-                geom = row.get("geometry")
-                if not geom:
-                    wkt_str = (row.get("converted_row") or {}).get("Point")
-                    if wkt_str:
-                        try:
-                            shapely_geom = wkt.loads(wkt_str)
-                            geom = mapping(shapely_geom)
-                        except Exception:
-                            geom = None
-                if geom:
-                    geometries.append(
-                        {
-                            "type": "Feature",
-                            "geometry": geom,
-                            "properties": {
-                                "reference": (row.get("converted_row") or {}).get(
-                                    "Reference"
-                                )
-                                or f"Entry {row.get('entry_number')}",
-                            },
-                        }
-                    )
+                converted_row = row.get("converted_row") or {}
+                transformed_row = row.get("transformed_row") or []
+                logger.debug(f"Row fields: {[item.get('field') for item in transformed_row]}")
 
+                # Find geometry from transformed_row
+                geometry_entry = next(
+                    (
+                        item
+                        for item in transformed_row
+                        if item.get("field") == "geometry" or item.get("field") == "point"
+                    ),
+                    None,
+                )
+                if geometry_entry and geometry_entry.get("value"):
+                    try:
+                        shapely_geom = wkt.loads(geometry_entry["value"])
+                        geom = mapping(shapely_geom)
+                        geometries.append(
+                            {
+                                "type": "Feature",
+                                "geometry": geom,
+                                "properties": {
+                                    "reference": converted_row.get("reference")
+                                    or converted_row.get("Reference")
+                                    or f"Entry {row.get('entry_number')}",
+                                    "name": converted_row.get("name", ""),
+                                },
+                            }
+                        )
+                    except Exception as e:
+                        print(
+                            f"Error parsing geometry for entry {row.get('entry_number')}: {e}"
+                        )
+                        continue
+            logger.debug(f"Found {len(geometries)} geometries")
+            # Generate boundary URL dynamically based on dataset and geometries
+            boundary_geojson_url = ""
+         
+            if organisation == "local-authority:GRY":
+                boundary_geojson_url = "https://www.planning.data.gov.uk/entity.geojson?curie=statistical-geography:E07000145"
+            elif organisation == "local-authority:CBF":
+                boundary_geojson_url = "https://www.planning.data.gov.uk/entity.geojson?curie=statistical-geography:E06000056"
+            elif organisation == "local-authority:ASH":
+                boundary_geojson_url = "https://www.planning.data.gov.uk/entity.geojson?curie=statistical-geography:E07000170"
+            else:
+                boundary_geojson_url = "https://www.planning.data.gov.uk/entity.geojson?curie=statistical-geography:E06000056"
             # Error parsing (unchanged)
             error_summary = data.get("error-summary", []) or []
             column_field_log = data.get("column-field-log", []) or []
@@ -591,6 +617,7 @@ def check_results(request_id):
                 show_entities_link=show_entities_link,
                 entities_preview_url=entities_preview_url,
                 entity_preview_rows=entity_preview_rows,
+                boundary_geojson_url=boundary_geojson_url
             )
 
     except Exception as e:
@@ -1266,3 +1293,12 @@ def entities_preview(request_id):
             request_id=(req.get("params") or {}).get("source_request_id") or request_id,
         ),
     )
+@datamanager_bp.route("/map.js")
+def map_js():
+    file_path = os.path.join(current_app.root_path, "templates", "datamanager", "map.js")
+    try:
+        with open(file_path, 'r') as f:
+            content = f.read()
+        return Response(content, mimetype='application/javascript')
+    except FileNotFoundError:
+        return "console.error('Map script not found');", 404
