@@ -90,7 +90,9 @@
         <dl class="govuk-summary-list">
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">File name</dt>
-            <dd class="govuk-summary-list__value">{{ result.params.url.split('/')[-1] }}</dd>
+            <dd class="govuk-summary-list__value">
+              {{ result.params.url.split('/')[-1] }}
+            </dd>
           </div>
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">Date checked</dt>
@@ -178,11 +180,13 @@
           >
             <button type="submit" class="govuk-button">Add data</button>
           </form>
-          <a
-            href="{{ url_for('datamanager.index') }}"
-            class="govuk-button govuk-button--secondary"
-            >Configure data</a
-          >
+          <form>
+            <a
+              href="{{ url_for('datamanager.index') }}"
+              class="govuk-button govuk-button--secondary"
+              >Configure data</a
+            >
+          </form>
           {% else %}
           <button
             class="govuk-button govuk-button--secondary"
