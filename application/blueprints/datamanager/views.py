@@ -523,8 +523,14 @@ def check_results(request_id):
             boundary_geojson_url = ""
 
             def get_statistical_geography(organisation):
-                logger.info(f"Fetching statistical geography for organisation: {organisation}")
-                url = f"https://datasette.planning.data.gov.uk/digital-land/organisation.json?Organisation={organisation}"
+                logger.info(
+                    f"Fetching statistical geography for organisation: {organisation}"
+                )
+                base = os.getenv(
+                    "ORGANISATION_URL",
+                    "https://datasette.planning.data.gov.uk/digital-land/organisation.json",
+                )
+                url = f"{base}?Organisation={organisation}"
                 resp = requests.get(url)
                 resp.raise_for_status()
                 data = resp.json()
@@ -538,13 +544,15 @@ def check_results(request_id):
                 else:
                     logger.warning("No data found for organisation: %s", organisation)
                 return None
+
             stat_geo = get_statistical_geography(organisation)
 
-            boundary_geojson_url = (
-                f"https://www.planning.data.gov.uk/entity.geojson?curie=statistical-geography:{stat_geo}"
+            boundary_url = os.getenv(
+                "BOUNDARY_DATA_URL", "https://www.planning.data.gov.uk/entity.geojson"
             )
- 
-
+            boundary_geojson_url = (
+                f"{boundary_url}?curie=statistical-geography:{stat_geo}"
+            )
             # Error parsing (unchanged)
             error_summary = data.get("error-summary", []) or []
             column_field_log = data.get("column-field-log", []) or []
