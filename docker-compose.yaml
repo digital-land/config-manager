@@ -40,7 +40,7 @@ services:
         DATASETTE_URL: https://datasette.planning.data.gov.uk/digital-land/dataset_field.json
         PLANNING_DATA_URL: https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max
         PROVISION_URL: https://datasette.planning.data.gov.uk/digital-land/provision.json
-        ORGANISATION_URL : https://datasette.planning.data.gov.uk/digital-land/organisation.json
+        ENTITY_URL : https://www.planning.data.gov.uk/entity.json
         BOUNDARY_DATA_URL: https://www.planning.data.gov.uk/entity.geojson
     ports:
       - 5000:5000
