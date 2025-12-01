@@ -112,7 +112,7 @@ function addBoundaryGeoJsonToMap(map, geoJsonUrl) {
       source: "boundary",
       paint: {
         "line-color": "#ff0000",
-        "line-width": 3,
+        "line-width": 1,
         "line-opacity": 1,
       },
     });

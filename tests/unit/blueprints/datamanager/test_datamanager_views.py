@@ -968,3 +968,108 @@ class TestSpecificLines:
 
         response = client.post("/datamanager/dashboard/add", data=form_data)
         assert response.status_code == 500
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    def test_get_statistical_geography_success(self, mock_get):
+        """Test get_statistical_geography function with successful response (lines 525-547)"""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "columns": ["Organisation", "statistical_geography"],
+            "rows": [["test-org", "E12345678"]]
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        # Test through check_results route which contains the function
+        with patch("application.blueprints.datamanager.views.get_request_api_endpoint") as mock_endpoint:
+            mock_endpoint.return_value = "http://test-api"
+            
+            main_response = Mock()
+            main_response.status_code = 200
+            main_response.json.return_value = {
+                "status": "COMPLETED",
+                "response": {"data": {"entity-summary": {}, "new-entities": [], "existing-entities": []}},
+                "params": {"organisation": "test-org"}
+            }
+            
+            details_response = Mock()
+            details_response.status_code = 200
+            details_response.json.return_value = []
+            details_response.raise_for_status.return_value = None
+            
+            org_response = Mock()
+            org_response.json.return_value = {
+                "columns": ["Organisation", "statistical_geography"],
+                "rows": [["test-org", "E12345678"]]
+            }
+            org_response.raise_for_status.return_value = None
+            
+            mock_get.side_effect = [main_response, details_response, org_response]
+            
+            with patch("application.blueprints.datamanager.views.render_template") as mock_render:
+                mock_render.return_value = "rendered_template"
+                from application.blueprints.datamanager.views import check_results
+                result = check_results("test-id")
+                
+                # Verify organisation API was called with correct URL
+                org_calls = [call for call in mock_get.call_args_list if "organisation.json" in str(call)]
+                assert len(org_calls) > 0
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    def test_get_statistical_geography_no_data(self, mock_get):
+        """Test get_statistical_geography function with no data response (lines 525-547)"""
+        with patch("application.blueprints.datamanager.views.get_request_api_endpoint") as mock_endpoint:
+            mock_endpoint.return_value = "http://test-api"
+            
+            main_response = Mock()
+            main_response.status_code = 200
+            main_response.json.return_value = {
+                "status": "COMPLETED",
+                "response": {"data": {"entity-summary": {}, "new-entities": [], "existing-entities": []}},
+                "params": {"organisation": "test-org"}
+            }
+            
+            details_response = Mock()
+            details_response.status_code = 200
+            details_response.json.return_value = []
+            details_response.raise_for_status.return_value = None
+            
+            org_response = Mock()
+            org_response.json.return_value = None  # No data case
+            org_response.raise_for_status.return_value = None
+            
+            mock_get.side_effect = [main_response, details_response, org_response]
+            
+            with patch("application.blueprints.datamanager.views.render_template") as mock_render:
+                mock_render.return_value = "rendered_template"
+                from application.blueprints.datamanager.views import check_results
+                result = check_results("test-id")
+                assert result is not None
+
+    @patch("application.blueprints.datamanager.views.requests.get")
+    def test_get_statistical_geography_exception(self, mock_get):
+        """Test get_statistical_geography function with exception (lines 525-547)"""
+        with patch("application.blueprints.datamanager.views.get_request_api_endpoint") as mock_endpoint:
+            mock_endpoint.return_value = "http://test-api"
+            
+            main_response = Mock()
+            main_response.status_code = 200
+            main_response.json.return_value = {
+                "status": "COMPLETED",
+                "response": {"data": {"entity-summary": {}, "new-entities": [], "existing-entities": []}},
+                "params": {"organisation": "test-org"}
+            }
+            
+            details_response = Mock()
+            details_response.status_code = 200
+            details_response.json.return_value = []
+            details_response.raise_for_status.return_value = None
+            
+            # Third call (organisation) raises exception
+            mock_get.side_effect = [main_response, details_response, Exception("Network error")]
+            
+            with patch("application.blueprints.datamanager.views.render_template") as mock_render:
+                mock_render.return_value = "rendered_template"
+                from application.blueprints.datamanager.views import check_results
+                result = check_results("test-id")
+                assert result is not None
