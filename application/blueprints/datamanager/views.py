@@ -543,38 +543,43 @@ def check_results(request_id):
             logger.debug(f"Found {len(geometries)} geometries")
             # Generate boundary URL dynamically based on dataset and geometries
             boundary_geojson_url = ""
-
-            dataset_id, lpa_id = organisation.split(":")
-            entity_url = os.getenv(
-                "ENTITY_URL",
-                "https://www.planning.data.gov.uk/entity.json",
-            )
-            url = f"{entity_url}?dataset={dataset_id}&reference={lpa_id}"
-            resp = requests.get(url)
-            resp.raise_for_status()
-            d = resp.json()
-            logger.info(f"Entity data response: {d}")
-            entity = d.get("entities", [])[0] if d and d.get("entities") else None
-            logger.info(f"Entity: {entity}")
-            if not entity:
-                return render_template(
-                    "datamanager/error.html", message="Entity not found"
+            # Get organisation from result params, fallback to request args
+            org_from_params = result.get("params", {}).get("organisation", organisation)
+            if ":" in org_from_params:
+                dataset_id, lpa_id = org_from_params.split(":", 1)
+                entity_url = os.getenv(
+                    "ENTITY_URL",
+                    "https://www.planning.data.gov.uk/entity.json",
                 )
-            reference = (
-                entity.get("local-planning-authority")
-                if entity.get("reference")
-                else ""
-            )
-            if not reference:
-                return render_template(
-                    "datamanager/error.html", message="Reference not found"
+                url = f"{entity_url}?dataset={dataset_id}&reference={lpa_id}"
+                resp = requests.get(url)
+                resp.raise_for_status()
+                d = resp.json()
+                logger.info(f"Entity data response: {d}")
+                entity = d.get("entities", [])[0] if d and d.get("entities") else None
+                logger.info(f"Entity: {entity}")
+                if not entity:
+                    return render_template(
+                        "datamanager/error.html", message="Entity not found"
+                    )
+                reference = (
+                    entity.get("local-planning-authority")
+                    if entity.get("reference")
+                    else ""
                 )
-            boundary_data_url = os.getenv(
-                "BOUNDARY_DATA_URL",
-                "https://www.planning.data.gov.uk/entity.geojson",
-            )
-            boundary_url = f"{boundary_data_url}?reference={reference}"
-            boundary_geojson_url = requests.get(boundary_url).json()
+                if not reference:
+                    return render_template(
+                        "datamanager/error.html", message="Reference not found"
+                    )
+                boundary_data_url = os.getenv(
+                    "BOUNDARY_DATA_URL",
+                    "https://www.planning.data.gov.uk/entity.geojson",
+                )
+                boundary_url = f"{boundary_data_url}?reference={reference}"
+                boundary_geojson_url = requests.get(boundary_url).json()
+            else:
+                # If organisation format is not as expected, set empty boundary
+                boundary_geojson_url = {"type": "FeatureCollection", "features": []}
             # Error parsing (unchanged)
             error_summary = data.get("error-summary", []) or []
             column_field_log = data.get("column-field-log", []) or []

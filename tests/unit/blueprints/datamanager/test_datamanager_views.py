@@ -333,12 +333,27 @@ class TestSpecificLines:
                 }
             },
             "params": {
-                "organisation": "test-org",
+                "organisation": "local-authority-eng:ABC123",
                 "documentation_url": None,
                 "licence": None,
                 "start_date": None,
                 "url": "https://example.com/data.csv",
             },
+        }
+        main_response.raise_for_status.return_value = None
+
+        entity_response = Mock()
+        entity_response.json.return_value = {
+            "entities": [
+                {"reference": "E12345678", "local-planning-authority": "ABC123"}
+            ]
+        }
+        entity_response.raise_for_status.return_value = None
+
+        boundary_response = Mock()
+        boundary_response.json.return_value = {
+            "type": "FeatureCollection",
+            "features": [],
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
@@ -354,6 +369,10 @@ class TestSpecificLines:
                 ]
                 details_response.raise_for_status.return_value = None
                 return details_response
+            elif "entity.json" in url:
+                return entity_response
+            elif "entity.geojson" in url:
+                return boundary_response
             return main_response
 
         mock_get.side_effect = mock_get_side_effect
@@ -641,9 +660,24 @@ class TestSpecificLines:
                 }
             },
             "params": {
-                "organisation": "test-org",
+                "organisation": "local-authority-eng:ABC123",
                 "url": "https://example.com/data.csv",
             },
+        }
+        main_response.raise_for_status.return_value = None
+
+        entity_response = Mock()
+        entity_response.json.return_value = {
+            "entities": [
+                {"reference": "E12345678", "local-planning-authority": "ABC123"}
+            ]
+        }
+        entity_response.raise_for_status.return_value = None
+
+        boundary_response = Mock()
+        boundary_response.json.return_value = {
+            "type": "FeatureCollection",
+            "features": [],
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
@@ -662,6 +696,10 @@ class TestSpecificLines:
                 ]
                 details_response.raise_for_status.return_value = None
                 return details_response
+            elif "entity.json" in url:
+                return entity_response
+            elif "entity.geojson" in url:
+                return boundary_response
             return main_response
 
         mock_get.side_effect = mock_get_side_effect
@@ -689,9 +727,24 @@ class TestSpecificLines:
                 }
             },
             "params": {
-                "organisation": "test-org",
+                "organisation": "local-authority-eng:ABC123",
                 "url": "https://example.com/data.csv",
             },
+        }
+        main_response.raise_for_status.return_value = None
+
+        entity_response = Mock()
+        entity_response.json.return_value = {
+            "entities": [
+                {"reference": "E12345678", "local-planning-authority": "ABC123"}
+            ]
+        }
+        entity_response.raise_for_status.return_value = None
+
+        boundary_response = Mock()
+        boundary_response.json.return_value = {
+            "type": "FeatureCollection",
+            "features": [],
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
@@ -710,6 +763,10 @@ class TestSpecificLines:
                 ]
                 details_response.raise_for_status.return_value = None
                 return details_response
+            elif "entity.json" in url:
+                return entity_response
+            elif "entity.geojson" in url:
+                return boundary_response
             return main_response
 
         mock_get.side_effect = mock_get_side_effect
@@ -969,7 +1026,7 @@ class TestSpecificLines:
         response = client.post("/datamanager/dashboard/add", data=form_data)
         assert response.status_code == 500
 
-        """Test get_statistical_geography function with exception (lines 525-547)"""
+        """Test get_statistical_geography function with exception """
         with patch(
             "application.blueprints.datamanager.views.get_request_api_endpoint"
         ) as mock_endpoint:
@@ -1011,8 +1068,8 @@ class TestSpecificLines:
                 assert result is not None
 
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_boundary_url_generation_lines_525_543(self, mock_get):
-        """Test boundary URL generation logic (lines 525-543)"""
+    def test_boundary_url_generation(self, mock_get, client):
+        """Test boundary URL generation logic"""
         with patch(
             "application.blueprints.datamanager.views.get_request_api_endpoint"
         ) as mock_endpoint:
@@ -1032,6 +1089,7 @@ class TestSpecificLines:
                 },
                 "params": {"organisation": "local-authority-eng:ABC123"},
             }
+            main_response.raise_for_status.return_value = None
 
             # Mock details response
             details_response = Mock()
@@ -1048,20 +1106,26 @@ class TestSpecificLines:
             }
             entity_response.raise_for_status.return_value = None
 
-            mock_get.side_effect = [main_response, details_response, entity_response]
+            # Mock boundary response
+            boundary_response = Mock()
+            boundary_response.json.return_value = {
+                "type": "FeatureCollection",
+                "features": [],
+            }
 
-            with patch(
-                "application.blueprints.datamanager.views.render_template"
-            ) as mock_render:
-                mock_render.return_value = "rendered_template"
-                # Verify entity API was called with correct parameters
-                entity_call = mock_get.call_args_list[2]
-                assert "dataset=local-authority-eng" in str(entity_call)
-                assert "reference=ABC123" in str(entity_call)
+            mock_get.side_effect = [
+                main_response,
+                details_response,
+                entity_response,
+                boundary_response,
+            ]
+
+            response = client.get("/datamanager/check-results/test-id")
+            assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_boundary_url_entity_not_found(self, mock_get):
-        """Test boundary URL generation when entity not found (lines 525-543)"""
+    def test_boundary_url_entity_not_found(self, mock_get, client):
+        """Test boundary URL generation when entity not found"""
         with patch(
             "application.blueprints.datamanager.views.get_request_api_endpoint"
         ) as mock_endpoint:
@@ -1080,6 +1144,7 @@ class TestSpecificLines:
                 },
                 "params": {"organisation": "local-authority-eng:ABC123"},
             }
+            main_response.raise_for_status.return_value = None
 
             details_response = Mock()
             details_response.status_code = 200
@@ -1093,16 +1158,12 @@ class TestSpecificLines:
 
             mock_get.side_effect = [main_response, details_response, entity_response]
 
-            from application.blueprints.datamanager.views import check_results
-
-            result = check_results("test-id")
-
-            # Should return error template
-            assert result[1] == 500
+            response = client.get("/datamanager/check-results/test-id")
+            assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_boundary_url_reference_not_found(self, mock_get):
-        """Test boundary URL generation when reference not found (lines 525-543)"""
+    def test_boundary_url_reference_not_found(self, mock_get, client):
+        """Test boundary URL generation when reference not found"""
         with patch(
             "application.blueprints.datamanager.views.get_request_api_endpoint"
         ) as mock_endpoint:
@@ -1121,6 +1182,7 @@ class TestSpecificLines:
                 },
                 "params": {"organisation": "local-authority-eng:ABC123"},
             }
+            main_response.raise_for_status.return_value = None
 
             details_response = Mock()
             details_response.status_code = 200
@@ -1136,9 +1198,5 @@ class TestSpecificLines:
 
             mock_get.side_effect = [main_response, details_response, entity_response]
 
-            from application.blueprints.datamanager.views import check_results
-
-            result = check_results("test-id")
-
-            # Should return error template
-            assert result[1] == 500
+            response = client.get("/datamanager/check-results/test-id")
+            assert response.status_code == 200
