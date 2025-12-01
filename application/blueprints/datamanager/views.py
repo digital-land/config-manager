@@ -88,6 +88,42 @@ def get_spec_fields_union(dataset_id: str | None) -> list[str]:
     return out
 
 
+def fetch_all_response_details(
+    async_api: str, request_id: str, limit: int = 50
+) -> list:
+    """
+    Fetch all response details with multiple calls using the specified limit.
+    Similar to the pattern used in submit repository.
+    """
+    all_details = []
+    offset = 0
+
+    while True:
+        try:
+            response = requests.get(
+                f"{async_api}/requests/{request_id}/response-details",
+                params={"offset": offset, "limit": limit},
+                timeout=REQUESTS_TIMEOUT,
+            )
+            response.raise_for_status()
+            batch = response.json() or []
+
+            if not batch:
+                break
+
+            all_details.extend(batch)
+
+            if len(batch) < limit:
+                break
+
+            offset += limit
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch batch at offset {offset}: {e}")
+            break
+    return all_details
+
+
 def read_raw_csv_preview(source_url: str, max_rows: int = 50):
     """
     Fetch the CSV at source_url and return (headers, first N rows).
@@ -403,9 +439,6 @@ def check_results(request_id):
     try:
         async_api = get_request_api_endpoint()
         organisation = request.args.get("organisation", "Your organisation")
-        page = int(request.args.get("page", 1))
-        page_size = 50
-        offset = (page - 1) * page_size
 
         # Fetch summary
         response = requests.get(
@@ -440,20 +473,10 @@ def check_results(request_id):
                 .get("errMsg", "No data returned from check"),
             )
         else:
-            # Row details (paged)
-            details_response = requests.get(
-                f"{async_api}/requests/{request_id}/response-details",
-                params={"offset": offset, "limit": page_size},
-                timeout=REQUESTS_TIMEOUT,
-            )
-            details_response.raise_for_status()
-            resp_details = details_response.json() or []
+            # Fetch all response details using multiple calls
+            resp_details = fetch_all_response_details(async_api, request_id)
 
-            total_rows = (
-                (result.get("response") or {})
-                .get("data", {})
-                .get("row-count", len(resp_details))
-            )
+            total_rows = len(resp_details)
 
             # --- TRUST BACKEND ONLY ---
             data = (result.get("response") or {}).get("data") or {}
@@ -477,15 +500,14 @@ def check_results(request_id):
             )
             show_entities_link = new_count > 0
             logger.info(f"resp_details:{resp_details}")
-            # Geometry mapping
+
+            # Geometry mapping - always use all data
             geometries = []
             logger.debug(f"Processing {len(resp_details)} rows for geometries")
+
             for row in resp_details:
                 converted_row = row.get("converted_row") or {}
                 transformed_row = row.get("transformed_row") or []
-                logger.debug(
-                    f"Row fields: {[item.get('field') for item in transformed_row]}"
-                )
 
                 # Find geometry from transformed_row
                 geometry_entry = next(
@@ -522,37 +544,37 @@ def check_results(request_id):
             # Generate boundary URL dynamically based on dataset and geometries
             boundary_geojson_url = ""
 
-            def get_statistical_geography(organisation):
-                logger.info(
-                    f"Fetching statistical geography for organisation: {organisation}"
-                )
-                base = os.getenv(
-                    "ORGANISATION_URL",
-                    "https://datasette.planning.data.gov.uk/digital-land/organisation.json",
-                )
-                url = f"{base}?Organisation={organisation}"
-                resp = requests.get(url)
-                resp.raise_for_status()
-                data = resp.json()
-                logger.info(f"Organisation data: {data}")
-                if data:
-                    column = data.get("columns", [])
-                    index = column.index("statistical_geography")
-                    stat_geo = data.get("rows", [])[0][index]
-                    logger.info(f"statistical-geography: {stat_geo}")
-                    return stat_geo
-                else:
-                    logger.warning("No data found for organisation: %s", organisation)
-                return None
-
-            stat_geo = get_statistical_geography(organisation)
-
-            boundary_url = os.getenv(
-                "BOUNDARY_DATA_URL", "https://www.planning.data.gov.uk/entity.geojson"
+            dataset_id, lpa_id = organisation.split(":")
+            entity_url = os.getenv(
+                "ENTITY_URL",
+                "https://www.planning.data.gov.uk/entity.json",
             )
-            boundary_geojson_url = (
-                f"{boundary_url}?curie=statistical-geography:{stat_geo}"
+            url = f"{entity_url}?dataset={dataset_id}&reference={lpa_id}"
+            resp = requests.get(url)
+            resp.raise_for_status()
+            d = resp.json()
+            logger.info(f"Entity data response: {d}")
+            entity = d.get("entities", [])[0] if d and d.get("entities") else None
+            logger.info(f"Entity: {entity}")
+            if not entity:
+                return render_template(
+                    "datamanager/error.html", message="Entity not found"
+                )
+            reference = (
+                entity.get("local-planning-authority")
+                if entity.get("reference")
+                else ""
             )
+            if not reference:
+                return render_template(
+                    "datamanager/error.html", message="Reference not found"
+                )
+            boundary_data_url = os.getenv(
+                "BOUNDARY_DATA_URL",
+                "https://www.planning.data.gov.uk/entity.geojson",
+            )
+            boundary_url = f"{boundary_data_url}?reference={reference}"
+            boundary_geojson_url = requests.get(boundary_url).json()
             # Error parsing (unchanged)
             error_summary = data.get("error-summary", []) or []
             column_field_log = data.get("column-field-log", []) or []
@@ -580,9 +602,6 @@ def check_results(request_id):
                 "rows": formatted_rows,
                 "columnNameProcessing": "none",
             }
-
-            showing_start = offset + 1 if total_rows > 0 else 0
-            showing_end = min(offset + page_size, total_rows)
 
             # checks
             must_fix, fixable, passed_checks = [], [], []
@@ -630,11 +649,11 @@ def check_results(request_id):
                 show_error=show_error,
                 optional_missing=optional_missing,
                 table_params=table_params,
-                page=page,
                 total_rows=total_rows,
-                page_size=page_size,
-                showing_start=showing_start,
-                showing_end=showing_end,
+                page=1,
+                page_size=total_rows,
+                showing_start=1 if total_rows > 0 else 0,
+                showing_end=total_rows,
                 # entity summary bits (BE only):
                 new_entities_message=new_entities_message,
                 new_entity_count=new_count,
@@ -971,6 +990,7 @@ def configure(request_id):
         if (req.get("status") not in ["PENDING", "PROCESSING", "QUEUED"]) and (
             req.get("response") is not None
         ):
+            # Fetch first 50 rows for preview (not all data)
             details = (
                 requests.get(
                     f"{async_api}/requests/{request_id}/response-details",
@@ -1146,6 +1166,10 @@ def entities_preview(request_id):
         return render_template(
             "datamanager/add-data-preview-loading.html", request_id=request_id
         )
+
+    # Fetch all response details using multiple calls
+    all_details = fetch_all_response_details(async_api, request_id)
+
     data = (req.get("response") or {}).get("data") or {}
     entity_summary = data.get("entity-summary") or {}
     new_entities = entity_summary.get("new-entities") or []
@@ -1314,6 +1338,8 @@ def entities_preview(request_id):
         source_csv_body=source_csv_body,
         # NEW: summary for source.csv
         source_summary=source_summary,
+        all_details=all_details,
+        total_count=len(all_details),
         back_url=url_for(
             "datamanager.add_data",
             request_id=(req.get("params") or {}).get("source_request_id") or request_id,

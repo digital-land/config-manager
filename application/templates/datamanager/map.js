@@ -82,45 +82,24 @@ async function addGeoJsonUrlsToMap(map, geoJsonUrls) {
 function addBoundaryGeoJsonToMap(map, geoJsonUrl) {
   console.log("Adding boundary from:", geoJsonUrl);
 
-  try {
-    const url = new URL(geoJsonUrl);
-    const geometryCurie = url.searchParams.get("geometry_curie");
-    console.log("geometry_curie found:", geometryCurie);
+  map.addSource("boundary", {
+    type: "geojson",
+    data: geoJsonUrl,
+  });
 
-    if (geometryCurie) {
-      // For datasets with geometry_curie, fetch the actual boundary
-      const decodedCurie = decodeURIComponent(geometryCurie);
-      const boundaryUrl = `https://www.planning.data.gov.uk/entity.geojson?curie=${decodedCurie}`;
-      console.log("Fetching boundary from:", boundaryUrl);
+  map.addLayer({
+    id: "boundary-line",
+    type: "line",
+    source: "boundary",
+    layout: {},
+    paint: {
+      "line-color": "#ff0000",
+      "line-width": 2,
+      "line-opacity": 0.8,
+    },
+  });
 
-      map.addSource("boundary", {
-        type: "geojson",
-        data: boundaryUrl,
-      });
-    } else {
-      // For other datasets, use the URL directly
-      console.log("No geometry_curie, using direct URL");
-      map.addSource("boundary", {
-        type: "geojson",
-        data: geoJsonUrl,
-      });
-    }
-
-    map.addLayer({
-      id: "boundary",
-      type: "line",
-      source: "boundary",
-      paint: {
-        "line-color": "#ff0000",
-        "line-width": 1,
-        "line-opacity": 1,
-      },
-    });
-
-    console.log("Boundary layer added successfully");
-  } catch (error) {
-    console.error("Error in addBoundaryGeoJsonToMap:", error);
-  }
+  console.log("Boundary layer added successfully");
 }
 
 function initMap() {
@@ -137,7 +116,11 @@ function initMap() {
     style:
       "https://api.maptiler.com/maps/basic-v2/style.json?key=ncAXR9XEn7JgHBLguAUw",
     zoom: 11,
-    center: [-0.1298779, 51.4959698],
+    center: [-2.5, 54.5],
+    maxBounds: [
+      [-10.5, 49.5],
+      [2.0, 61.0],
+    ],
   });
 
   map.addControl(new maplibregl.ScaleControl(), "bottom-left");
@@ -159,6 +142,7 @@ function initMap() {
       id: "dataset-fill",
       type: "fill",
       source: "dataset",
+      filter: ["==", ["geometry-type"], "Polygon"],
       paint: {
         "fill-color": "#008",
         "fill-opacity": 0.4,
@@ -169,16 +153,32 @@ function initMap() {
       id: "dataset-border",
       type: "line",
       source: "dataset",
+      filter: ["==", ["geometry-type"], "Polygon"],
       paint: {
         "line-color": "#000000",
         "line-width": 1,
       },
     });
 
+    map.addLayer({
+      id: "dataset-points",
+      type: "circle",
+      source: "dataset",
+      filter: ["==", ["geometry-type"], "Point"],
+      paint: {
+        "circle-color": "#008",
+        "circle-radius": 6,
+        "circle-stroke-color": "#000000",
+        "circle-stroke-width": 1,
+      },
+    });
+
     // Simple bounds calculation using MapLibre's built-in method
     const bounds = new maplibregl.LngLatBounds();
     geometries.forEach((feature) => {
-      if (feature.geometry.coordinates) {
+      if (feature.geometry.type === "Point") {
+        bounds.extend(feature.geometry.coordinates);
+      } else if (feature.geometry.coordinates) {
         feature.geometry.coordinates.forEach((polygon) => {
           polygon[0].forEach((coord) => {
             bounds.extend(coord);
@@ -188,11 +188,11 @@ function initMap() {
     });
 
     if (!bounds.isEmpty()) {
-      map.fitBounds(bounds, { padding: 20 });
+      map.fitBounds(bounds, { padding: 20, maxZoom: 9 });
     }
 
-    // Add popup on click
-    map.on("click", "dataset-fill", (e) => {
+    // Add popup on click for both polygons and points
+    const showPopup = (e) => {
       const feature = e.features[0];
       new maplibregl.Popup()
         .setLngLat(e.lngLat)
@@ -202,22 +202,30 @@ function initMap() {
           }`
         )
         .addTo(map);
-    });
+    };
+
+    map.on("click", "dataset-fill", showPopup);
+    map.on("click", "dataset-points", showPopup);
 
     map.on("mouseenter", "dataset-fill", () => {
+      map.getCanvas().style.cursor = "pointer";
+    });
+    map.on("mouseenter", "dataset-points", () => {
       map.getCanvas().style.cursor = "pointer";
     });
 
     map.on("mouseleave", "dataset-fill", () => {
       map.getCanvas().style.cursor = "";
     });
+    map.on("mouseleave", "dataset-points", () => {
+      map.getCanvas().style.cursor = "";
+    });
 
     if (boundaryGeoJsonUrl) {
-      try {
-        addBoundaryGeoJsonToMap(map, boundaryGeoJsonUrl);
-      } catch (error) {
-        console.error("Error adding boundary:", error);
-      }
+      console.log("Boundary URL provided:", boundaryGeoJsonUrl);
+      addBoundaryGeoJsonToMap(map, boundaryGeoJsonUrl);
+    } else {
+      console.log("No boundary URL provided");
     }
   });
 }
