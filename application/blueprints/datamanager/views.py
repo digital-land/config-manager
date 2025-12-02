@@ -97,30 +97,58 @@ def fetch_all_response_details(
     """
     all_details = []
     offset = 0
+    logger.info(
+        f"Fetching response details - API: {async_api}, Request ID: {request_id}"
+    )
 
     while True:
         try:
-            response = requests.get(
-                f"{async_api}/requests/{request_id}/response-details",
-                params={"offset": offset, "limit": limit},
-                timeout=REQUESTS_TIMEOUT,
+            url = f"{async_api}/requests/{request_id}/response-details"
+            params = {"offset": offset, "limit": limit}
+            logger.debug(f"Fetching batch - URL: {url}, Params: {params}")
+
+            response = requests.get(url, params=params, timeout=REQUESTS_TIMEOUT)
+            logger.info(
+                f"Batch response - Status: {response.status_code}, Content-Length: {len(response.content)}"
             )
+
             response.raise_for_status()
             batch = response.json() or []
+            logger.info(f"Batch parsed - Items: {len(batch)}")
 
             if not batch:
+                logger.info("No more batches available")
                 break
+
+            # Log sample of first batch for debugging
+            if offset == 0 and batch:
+                logger.info(
+                    f"First batch sample - Item keys: {list(batch[0].keys()) if batch[0] else 'Empty item'}"
+                )
+                if batch[0] and "converted_row" in batch[0]:
+                    converted_sample = batch[0]["converted_row"]
+                    if converted_sample:
+                        logger.info(
+                            f"First converted_row sample: {dict(list(converted_sample.items())[:3])}"
+                        )
+                    else:
+                        logger.info("Empty converted_row")
 
             all_details.extend(batch)
 
             if len(batch) < limit:
+                logger.info(f"Last batch received - Total items: {len(all_details)}")
                 break
 
             offset += limit
 
         except Exception as e:
-            logger.warning(f"Failed to fetch batch at offset {offset}: {e}")
+            logger.error(f"Failed to fetch batch at offset {offset}: {e}")
+            logger.error(f"Response status: {getattr(response, 'status_code', 'N/A')}")
+            logger.error(f"Response text: {getattr(response, 'text', 'N/A')[:500]}")
             break
+
+    logger.info(f"Total response details fetched: {len(all_details)}")
     return all_details
 
 
@@ -454,7 +482,18 @@ def check_results(request_id):
             )
 
         result = response.json()
+        logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'local')}")
+        logger.info(f"API endpoint: {async_api}")
+        logger.info(f"Result status: {result.get('status')}")
+        logger.info(f"Result keys: {list(result.keys())}")
+        if result.get("response"):
+            logger.info(f"Response keys: {list(result.get('response', {}).keys())}")
+            if result.get("response", {}).get("data"):
+                logger.info(
+                    f"Data keys: {list(result.get('response', {}).get('data', {}).keys())}"
+                )
         result.setdefault("params", {}).setdefault("organisation", organisation)
+        logger.info(f"result: {result}")
 
         # Still processing?
         if (
@@ -475,6 +514,35 @@ def check_results(request_id):
         else:
             # Fetch all response details using multiple calls
             resp_details = fetch_all_response_details(async_api, request_id)
+            logger.info(f"Environment check - async_api: {async_api}")
+            logger.info(f"Environment check - request_id: {request_id}")
+            logger.info(f"Environment check - resp_details type: {type(resp_details)}")
+            logger.info(
+                f"Environment check - resp_details length: {len(resp_details) if resp_details else 'None'}"
+            )
+
+            # Check if response-details endpoint exists and is accessible
+            try:
+                test_response = requests.get(
+                    f"{async_api}/requests/{request_id}/response-details",
+                    params={"offset": 0, "limit": 1},
+                    timeout=REQUESTS_TIMEOUT,
+                )
+                logger.info(
+                    f"Response-details endpoint test - Status: {test_response.status_code}"
+                )
+                logger.info(
+                    f"Response-details endpoint test - Headers: {dict(test_response.headers)}"
+                )
+                if test_response.status_code == 200:
+                    test_data = test_response.json()
+                    logger.info(f"Response-details test data: {test_data}")
+                else:
+                    logger.error(
+                        f"Response-details endpoint failed: {test_response.text}"
+                    )
+            except Exception as e:
+                logger.error(f"Response-details endpoint test failed: {e}")
 
             total_rows = len(resp_details)
 
@@ -499,7 +567,13 @@ def check_results(request_id):
                 f"{existing_count} existing; {new_count} new (from backend)."
             )
             show_entities_link = new_count > 0
-            logger.info(f"resp_details:{resp_details}")
+            logger.info(
+                f"resp_details count: {len(resp_details) if resp_details else 0}"
+            )
+            if resp_details and len(resp_details) > 0:
+                logger.debug(f"First resp_detail: {resp_details[0]}")
+            else:
+                logger.warning("No response details found for table building")
 
             # Geometry mapping - always use all data
             geometries = []
@@ -545,6 +619,7 @@ def check_results(request_id):
             boundary_geojson_url = ""
             # Get organisation from result params, fallback to request args
             org_from_params = result.get("params", {}).get("organisation", organisation)
+            logger.info(f"Organisation from params: {org_from_params}")
             if ":" in org_from_params:
                 dataset_id, lpa_id = org_from_params.split(":", 1)
                 entity_url = os.getenv(
@@ -581,25 +656,52 @@ def check_results(request_id):
                 # If organisation format is not as expected, set empty boundary
                 boundary_geojson_url = {"type": "FeatureCollection", "features": []}
             # Error parsing (unchanged)
+            logger.debug(f"data: {data}")
             error_summary = data.get("error-summary", []) or []
             column_field_log = data.get("column-field-log", []) or []
 
             # ---- Table build (no FE-added 'Entity status') ----
+            logger.info(
+                f"Table build - Starting with {len(resp_details) if resp_details else 0} response details"
+            )
             table_headers, formatted_rows = [], []
-            if resp_details:
+            if resp_details and len(resp_details) > 0:
+                logger.info(
+                    f"Table build - Processing {len(resp_details)} response details"
+                )
                 first_row = (resp_details[0] or {}).get("converted_row", {}) or {}
-                table_headers = list(first_row.keys())
+                logger.info(
+                    f"Table build - First row keys: {list(first_row.keys()) if first_row else 'No keys'}"
+                )
+                logger.info(
+                    f"Table build - First row sample: {dict(list(first_row.items())[:3]) if first_row else 'Empty'}"
+                )
 
-                for row in resp_details:
-                    converted = row.get("converted_row") or {}
-                    formatted_rows.append(
-                        {
-                            "columns": {
-                                col: {"value": converted.get(col, "")}
-                                for col in table_headers
-                            }
-                        }
-                    )
+                if first_row:  # Only proceed if first_row has data
+                    table_headers = list(first_row.keys())
+                    logger.info(f"Table build - Headers set: {table_headers}")
+
+                    for i, row in enumerate(resp_details):
+                        converted = row.get("converted_row") or {}
+                        if converted:  # Only add rows that have data
+                            formatted_rows.append(
+                                {
+                                    "columns": {
+                                        col: {"value": str(converted.get(col, ""))}
+                                        for col in table_headers
+                                    }
+                                }
+                            )
+                        elif i < 3:  # Log first few empty rows for debugging
+                            logger.warning(
+                                f"Table build - Row {i} has no converted_row data: {row}"
+                            )
+                else:
+                    logger.error("Table build - First row is empty, cannot build table")
+            else:
+                logger.error(
+                    f"Table build - No response details available. resp_details: {resp_details}"
+                )
 
             table_params = {
                 "columns": table_headers,
@@ -607,8 +709,14 @@ def check_results(request_id):
                 "rows": formatted_rows,
                 "columnNameProcessing": "none",
             }
+            logger.info(
+                f"Table build - Final table_params: columns={len(table_headers)}, rows={len(formatted_rows)}"
+            )
+            logger.info(
+                f"Table build - Sample table_params:{{'columns': {table_headers[:3]},'row_count': {len(formatted_rows)}"
+            )
 
-            # checks
+            # checksx
             must_fix, fixable, passed_checks = [], [], []
             for err in error_summary:
                 fixable.append(err)
