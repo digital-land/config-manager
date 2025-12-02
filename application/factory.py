@@ -63,17 +63,15 @@ def create_app(config_filename):
     import mimetypes
     mimetypes.add_type("application/javascript", ".js")
     mimetypes.add_type("text/css", ".css")
-    
     # Add explicit static file route with MIME type handling
     from flask import send_from_directory, abort
     import os
-    
+
     @app.route('/static/<path:filename>')
     def static_files(filename):
         try:
             static_dir = os.path.join(app.root_path, 'static')
             response = send_from_directory(static_dir, filename)
-            
             # Set correct MIME type based on file extension
             if filename.endswith('.js'):
                 response.headers['Content-Type'] = 'application/javascript'
@@ -83,7 +81,6 @@ def create_app(config_filename):
                 response.headers['Content-Type'] = 'font/woff2'
             elif filename.endswith('.woff'):
                 response.headers['Content-Type'] = 'font/woff'
-                
             return response
         except FileNotFoundError:
             abort(404)
