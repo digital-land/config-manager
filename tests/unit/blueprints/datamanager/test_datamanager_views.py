@@ -462,7 +462,7 @@ class TestSpecificLines:
     def test_configure_configure_complex(
         self, mock_endpoint, mock_get, mock_render, client
     ):
-        """Test lines 748-969: Configure complex logic"""
+        """Test lines : Configure complex logic"""
         mock_endpoint.return_value = "http://test-api"
         mock_render.return_value = "<html>Configure page</html>"
 
@@ -1066,6 +1066,7 @@ class TestSpecificLines:
 
                 result = check_results("test-id")
                 assert result is not None
+
     @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_boundary_url_generation(self, mock_get, client):
@@ -1200,3 +1201,59 @@ class TestSpecificLines:
 
             response = client.get("/datamanager/check-results/test-id")
             assert response.status_code == 200
+
+    @patch("application.blueprints.datamanager.views.get_spec_fields_union")
+    @patch("application.blueprints.datamanager.views.read_raw_csv_preview")
+    @patch("application.blueprints.datamanager.views.requests.post")
+    @patch("application.blueprints.datamanager.views.requests.get")
+    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
+    def test_configure_post_mapping_logic_lines(
+        self, mock_endpoint, mock_get, mock_post, mock_csv, mock_spec_fields, client
+    ):
+        """Test lines 895-962: Configure POST mapping logic and table building"""
+        mock_endpoint.return_value = "http://test-api"
+        mock_spec_fields.return_value = ["spec_field1", "required_field"]
+        mock_csv.return_value = (["raw_field1", "raw_field2"], [["value1", "value2"]])
+
+        # Mock initial request response
+        req_response = Mock()
+        req_response.status_code = 200
+        req_response.json.return_value = {
+            "params": {
+                "dataset": "test-dataset",
+                "url": "https://example.com/data.csv",
+                "collection": "test-collection",
+                "organisation": "test-org",
+            },
+            "response": {
+                "data": {
+                    "column-field-log": [{"field": "required_field", "missing": True}],
+                    "column-mapping": {"existing_raw": "existing_spec"},
+                }
+            },
+            "status": "COMPLETED",
+        }
+
+        # Mock successful POST response
+        post_response = Mock()
+        post_response.status_code = 202
+        post_response.json.return_value = {"id": "new-request-id"}
+
+        mock_get.return_value = req_response
+        mock_post.return_value = post_response
+
+        form_data = {
+            "map_raw[raw_field1]": "spec_field1",
+            "map_raw[raw_field2]": "__NOT_MAPPED__",
+            "map_spec_to_spec[required_field]": "spec_field1",
+            "geom_type": "point",
+        }
+
+        response = client.post("/datamanager/configure/test-id", data=form_data)
+        assert response.status_code == 302
+
+        # Verify POST was called with correct mapping
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args[1]["json"]
+        assert call_args["params"]["column_mapping"] == {"raw_field1": "required_field"}
+        assert call_args["params"]["geom_type"] == "point"
