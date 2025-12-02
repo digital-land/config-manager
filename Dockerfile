@@ -28,8 +28,7 @@ COPY . .
 # Install deps
 RUN mkdir -p application/static/javascripts application/static/stylesheets && \
     npm install && \
-    npm run copy:css && \
-    npm run copy:js && \
+    npm run postinstall && \
     curl -o application/static/javascripts/accessible-autocomplete.min.js https://unpkg.com/accessible-autocomplete@2.0.4/dist/accessible-autocomplete.min.js && \
     curl -o application/static/stylesheets/accessible-autocomplete.min.css https://unpkg.com/accessible-autocomplete@2.0.4/dist/accessible-autocomplete.min.css && \
     python -m pip install --upgrade pip setuptools wheel && \
