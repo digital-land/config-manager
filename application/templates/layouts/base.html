@@ -68,13 +68,17 @@
 {% endblock content %}
 
 {% block pageScripts %}
-
+<script src="/static/javascripts/govuk/govuk-frontend.js"></script>
+<script src="/static/javascripts/digital-land-frontend.js"></script>
 
 <script>
   // Initialise GOV.UK Frontend components globally
   document.addEventListener("DOMContentLoaded", function () {
-    if (window.GOVUKFrontend) {
-      window.GOVUKFrontend.initAll();
+    if (typeof GOVUKFrontend !== 'undefined' && GOVUKFrontend.initAll) {
+      GOVUKFrontend.initAll();
+    }
+    if (typeof DLFrontend !== 'undefined' && DLFrontend.initAll) {
+      DLFrontend.initAll();
     }
   });
 </script>
