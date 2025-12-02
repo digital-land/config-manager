@@ -198,6 +198,7 @@
   </div>
 </div>
 {% endblock %} {% block pageScripts %}
+{{ super() }}
 <script>
   console.log('Inline script working');
   window.serverContext = {
