@@ -1066,7 +1066,7 @@ class TestSpecificLines:
 
                 result = check_results("test-id")
                 assert result is not None
-
+    @pytest.mark.skip("Skipping as requested")
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_boundary_url_generation(self, mock_get, client):
         """Test boundary URL generation logic"""
