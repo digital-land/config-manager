@@ -43,7 +43,7 @@ def handle_error(e):
 
 
 # put this near the top, replacing your current get_spec_fields_from_datasette
-def get_spec_fields_union(dataset_id: str | None) -> list[str]:
+def get_spec_fields_union(dataset_id):
     """
     Return the union of:
       - global field list (all datasets)
@@ -56,7 +56,7 @@ def get_spec_fields_union(dataset_id: str | None) -> list[str]:
     )
     headers = {"Accept": "application/json", "User-Agent": "Planning Data - Manage"}
 
-    def _fetch(url: str) -> list[str]:
+    def _fetch(url):
         try:
             r = requests.get(url, timeout=REQUESTS_TIMEOUT, headers=headers)
             r.raise_for_status()
