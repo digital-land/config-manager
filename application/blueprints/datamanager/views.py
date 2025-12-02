@@ -108,8 +108,12 @@ def fetch_all_response_details(
             logger.debug(f"Fetching batch - URL: {url}, Params: {params}")
 
             response = requests.get(url, params=params, timeout=REQUESTS_TIMEOUT)
+            content_length = getattr(response, "content", None)
+            content_length = (
+                len(content_length) if content_length is not None else "N/A"
+            )
             logger.info(
-                f"Batch response - Status: {response.status_code}, Content-Length: {len(response.content)}"
+                f"Batch response - Status: {response.status_code}, Content-Length: {content_length}"
             )
 
             response.raise_for_status()
@@ -145,7 +149,11 @@ def fetch_all_response_details(
         except Exception as e:
             logger.error(f"Failed to fetch batch at offset {offset}: {e}")
             logger.error(f"Response status: {getattr(response, 'status_code', 'N/A')}")
-            logger.error(f"Response text: {getattr(response, 'text', 'N/A')[:500]}")
+            response_text = getattr(response, "text", "N/A")
+            if hasattr(response_text, "__getitem__"):
+                logger.error(f"Response text: {response_text[:500]}")
+            else:
+                logger.error(f"Response text: {response_text}")
             break
 
     logger.info(f"Total response details fetched: {len(all_details)}")
@@ -504,12 +512,14 @@ def check_results(request_id):
                 "datamanager/check-results-loading.html", result=result
             )
 
-        if result.get("response").get("data") is None:
+        response_data = result.get("response")
+        if not response_data or response_data.get("data") is None:
+            error_msg = "No data returned from check"
+            if response_data and response_data.get("error"):
+                error_msg = response_data.get("error").get("errMsg", error_msg)
             return render_template(
                 "datamanager/error.html",
-                message=result.get("response")
-                .get("error")
-                .get("errMsg", "No data returned from check"),
+                message=error_msg,
             )
         else:
             # Fetch all response details using multiple calls
@@ -584,15 +594,20 @@ def check_results(request_id):
                 transformed_row = row.get("transformed_row") or []
 
                 # Find geometry from transformed_row
-                geometry_entry = next(
-                    (
-                        item
-                        for item in transformed_row
-                        if item.get("field") == "geometry"
-                        or item.get("field") == "point"
-                    ),
-                    None,
-                )
+                geometry_entry = None
+                if isinstance(transformed_row, list):
+                    geometry_entry = next(
+                        (
+                            item
+                            for item in transformed_row
+                            if isinstance(item, dict)
+                            and (
+                                item.get("field") == "geometry"
+                                or item.get("field") == "point"
+                            )
+                        ),
+                        None,
+                    )
                 if geometry_entry and geometry_entry.get("value"):
                     try:
                         shapely_geom = wkt.loads(geometry_entry["value"])
@@ -610,7 +625,7 @@ def check_results(request_id):
                             }
                         )
                     except Exception as e:
-                        print(
+                        logger.warning(
                             f"Error parsing geometry for entry {row.get('entry_number')}: {e}"
                         )
                         continue
@@ -620,40 +635,50 @@ def check_results(request_id):
             # Get organisation from result params, fallback to request args
             org_from_params = result.get("params", {}).get("organisation", organisation)
             logger.info(f"Organisation from params: {org_from_params}")
-            if ":" in org_from_params:
-                dataset_id, lpa_id = org_from_params.split(":", 1)
-                entity_url = os.getenv(
-                    "ENTITY_URL",
-                    "https://www.planning.data.gov.uk/entity.json",
-                )
-                url = f"{entity_url}?dataset={dataset_id}&reference={lpa_id}"
-                resp = requests.get(url)
-                resp.raise_for_status()
-                d = resp.json()
-                logger.info(f"Entity data response: {d}")
-                entity = d.get("entities", [])[0] if d and d.get("entities") else None
-                logger.info(f"Entity: {entity}")
-                if not entity:
-                    return render_template(
-                        "datamanager/error.html", message="Entity not found"
+            try:
+                if ":" in org_from_params:
+                    dataset_id, lpa_id = org_from_params.split(":", 1)
+                    entity_url = os.getenv(
+                        "ENTITY_URL",
+                        "https://www.planning.data.gov.uk/entity.json",
                     )
-                reference = (
-                    entity.get("local-planning-authority")
-                    if entity.get("reference")
-                    else ""
-                )
-                if not reference:
-                    return render_template(
-                        "datamanager/error.html", message="Reference not found"
+                    url = f"{entity_url}?dataset={dataset_id}&reference={lpa_id}"
+                    resp = requests.get(url)
+                    resp.raise_for_status()
+                    d = resp.json()
+                    logger.info(f"Entity data response: {d}")
+                    entity = (
+                        d.get("entities", [])[0] if d and d.get("entities") else None
                     )
-                boundary_data_url = os.getenv(
-                    "BOUNDARY_DATA_URL",
-                    "https://www.planning.data.gov.uk/entity.geojson",
-                )
-                boundary_url = f"{boundary_data_url}?reference={reference}"
-                boundary_geojson_url = requests.get(boundary_url).json()
-            else:
-                # If organisation format is not as expected, set empty boundary
+                    logger.info(f"Entity: {entity}")
+                    if not entity:
+                        boundary_geojson_url = {
+                            "type": "FeatureCollection",
+                            "features": [],
+                        }
+                    else:
+                        reference = (
+                            entity.get("local-planning-authority")
+                            if entity.get("reference")
+                            else ""
+                        )
+                        if not reference:
+                            boundary_geojson_url = {
+                                "type": "FeatureCollection",
+                                "features": [],
+                            }
+                        else:
+                            boundary_data_url = os.getenv(
+                                "BOUNDARY_DATA_URL",
+                                "https://www.planning.data.gov.uk/entity.geojson",
+                            )
+                            boundary_url = f"{boundary_data_url}?reference={reference}"
+                            boundary_geojson_url = requests.get(boundary_url).json()
+                else:
+                    # If organisation format is not as expected, set empty boundary
+                    boundary_geojson_url = {"type": "FeatureCollection", "features": []}
+            except Exception as e:
+                logger.warning(f"Failed to fetch boundary data: {e}")
                 boundary_geojson_url = {"type": "FeatureCollection", "features": []}
             # Error parsing (unchanged)
             logger.debug(f"data: {data}")
