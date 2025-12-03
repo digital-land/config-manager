@@ -26,17 +26,22 @@ ENV PATH="/venv/bin:$PATH"
 COPY . .
 
 # Install deps
+
 RUN mkdir -p application/static/javascripts/govuk application/static/stylesheets && \
     npm install && \
     npm run copy || true && \
+    cp node_modules/digital-land-frontend/application/static/javascripts/digital-land-cookies.js application/static/javascripts/ || echo 'cookies.js not found' && \
     curl -o application/static/javascripts/accessible-autocomplete.min.js https://unpkg.com/accessible-autocomplete@2.0.4/dist/accessible-autocomplete.min.js && \
     curl -o application/static/stylesheets/accessible-autocomplete.min.css https://unpkg.com/accessible-autocomplete@2.0.4/dist/accessible-autocomplete.min.css && \
     curl -o application/static/javascripts/govuk/govuk-frontend.js https://unpkg.com/govuk-frontend@5.9.0/dist/govuk/govuk-frontend.min.js && \
-    echo "Downloaded : govuk-frontend.js" || \
-    echo "Error : govuk-frontend.js" && \
     curl -o application/static/javascripts/digital-land-frontend.js https://unpkg.com/digital-land-frontend@0.4.1/digital-land-frontend/javascripts/digital-land-frontend.js || echo 'DL Frontend not available' && \
     python -m pip install --upgrade pip setuptools wheel && \
-    python -m pip install -r requirements.txt
+    python -m pip install -r requirements.txt && \
+    echo "=== Listing downloaded files ===" && \
+    ls -lh application/static/javascripts && \
+    ls -lh application/static/javascripts/govuk && \
+    ls -lh application/static/stylesheets
+
 
 EXPOSE 5000
 
