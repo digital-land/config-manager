@@ -706,9 +706,11 @@ def check_results(request_id):
                     table_headers = list(first_row.keys())
                     logger.info(f"Table build - Headers set: {table_headers}")
 
-                    for i, row in enumerate(resp_details):
+                    for row in resp_details:
                         converted = row.get("converted_row") or {}
-                        if converted:  # Only add rows that have data
+                        # if converted:  # Only add rows that have data
+                        if not all(str(value).strip() == '' for value in converted.values()):
+                            logger.info(f"formatted_rows - Processing row: {converted}")
                             formatted_rows.append(
                                 {
                                     "columns": {
@@ -716,10 +718,6 @@ def check_results(request_id):
                                         for col in table_headers
                                     }
                                 }
-                            )
-                        elif i < 3:  # Log first few empty rows for debugging
-                            logger.warning(
-                                f"Table build - Row {i} has no converted_row data: {row}"
                             )
                 else:
                     logger.error("Table build - First row is empty, cannot build table")
@@ -737,11 +735,10 @@ def check_results(request_id):
             logger.info(
                 f"Table build - Final table_params: columns={len(table_headers)}, rows={len(formatted_rows)}"
             )
-            logger.info(
-                f"Table build - Sample table_params:{{'columns': {table_headers[:3]},'row_count': {len(formatted_rows)}"
-            )
+            logger.info(f"Table build - Sample table_params: {json.dumps(table_params, indent=2)}")
+            # ---- END Table build ----
 
-            # checksx
+            # checks
             must_fix, fixable, passed_checks = [], [], []
             for err in error_summary:
                 fixable.append(err)

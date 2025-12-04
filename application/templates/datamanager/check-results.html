@@ -45,23 +45,25 @@
         id="dataset-table"
       >
         {% if table_params.rows %}
-        <div class="dl-table-scrollable-container">
+        <div
+          class="dl-table-scrollable-container"
+          style="border: 1px solid black"
+        >
+          <style>
+            .dl-table-scrollable-container table,
+            .dl-table-scrollable-container table th,
+            .dl-table-scrollable-container table td {
+              border-bottom: 1px solid black !important;
+              border-collapse: collapse !important;
+            }
+            .dl-table-scrollable-container table td {
+              max-width: 500px !important;
+              overflow: hidden !important;
+              text-overflow: ellipsis !important;
+              white-space: nowrap !important;
+            }
+          </style>
           {{ table(table_params) }}
-        </div>
-
-        <p class="govuk-body govuk-!-margin-top-4">
-          Showing rows {{ showing_start }} to {{ showing_end }} of {{
-          total_rows}}
-        </p>
-
-        <div class="govuk-pagination">
-          {% if page > 1 %}
-          <a class="govuk-link" href="?page={{ page-1 }}">Previous</a>
-          {% endif %} {% if showing_end < total_rows %}
-          <a class="govuk-link govuk-!-margin-left-4" href="?page={{ page+1 }}"
-            >Next</a
-          >
-          {% endif %}
         </div>
         {% else %}
         <p class="govuk-body">No rows to display</p>
@@ -197,8 +199,17 @@
     </div>
   </div>
 </div>
-{% endblock %} {% block pageScripts %}
-{{ super() }}
+{% endblock %} {% block pageStyles %}
+<style>
+  .dl-table-scrollable-container table {
+    border: 1px solid black !important;
+  }
+  /* .dl-table-scrollable-container table th,
+.dl-table-scrollable-container table td {
+  border: 1px solid black !important;
+} */
+</style>
+{% endblock %} {% block pageScripts %} {{ super() }}
 <script>
   console.log('Inline script working');
   window.serverContext = {
