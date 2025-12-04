@@ -709,7 +709,9 @@ def check_results(request_id):
                     for row in resp_details:
                         converted = row.get("converted_row") or {}
                         # if converted:  # Only add rows that have data
-                        if not all(str(value).strip() == '' for value in converted.values()):
+                        if not all(
+                            str(value).strip() == "" for value in converted.values()
+                        ):
                             logger.info(f"formatted_rows - Processing row: {converted}")
                             formatted_rows.append(
                                 {
@@ -735,7 +737,9 @@ def check_results(request_id):
             logger.info(
                 f"Table build - Final table_params: columns={len(table_headers)}, rows={len(formatted_rows)}"
             )
-            logger.info(f"Table build - Sample table_params: {json.dumps(table_params, indent=2)}")
+            logger.info(
+                f"Table build - Sample table_params: {json.dumps(table_params, indent=2)}"
+            )
             # ---- END Table build ----
 
             # checks
