@@ -5,6 +5,7 @@ from unittest.mock import patch, Mock
 from application.blueprints.datamanager.views import (
     get_spec_fields_union,
     read_raw_csv_preview,
+    order_table_fields,
 )
 
 
@@ -1257,3 +1258,47 @@ class TestSpecificLines:
         call_args = mock_post.call_args[1]["json"]
         assert call_args["params"]["column_mapping"] == {"raw_field1": "required_field"}
         assert call_args["params"]["geom_type"] == "point"
+
+    def test_field_ordering(self):
+        all_fields = [
+            "name",
+            "reference",
+            "address",
+            "postcode",
+            "created_date",
+            "updated_date",
+        ]
+        expected = [
+            "reference",
+            "name",
+            "address",
+            "postcode",
+            "created_date",
+            "updated_date",
+        ]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_only_reference_field(self):
+        all_fields = ["address", "reference", "postcode"]
+        expected = ["reference", "address", "postcode"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_only_name_field(self):
+        all_fields = ["address", "name", "postcode"]
+        expected = ["name", "address", "postcode"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_no_reference_or_name_fields(self):
+        all_fields = ["address", "postcode", "geometry"]
+        expected = ["address", "postcode", "geometry"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_case_insensitive_matching(self):
+        all_fields = ["Address", "REFERENCE", "Name", "postcode"]
+        expected = ["REFERENCE", "Name", "Address", "postcode"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_multiple_similar_fields(self):
+        all_fields = ["reference", "name", "other_reference", "display_name"]
+        expected = ["reference", "name", "other_reference", "display_name"]
+        assert order_table_fields(all_fields) == expected

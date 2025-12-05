@@ -20,7 +20,9 @@
     <h2 class="govuk-heading-m govuk-!-margin-top-3">Data has been checked</h2>
 
     <!-- Tabs -->
+
     <div class="govuk-tabs" data-module="govuk-tabs">
+      {% if geometries %}
       <ul class="govuk-tabs__list">
         <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
           <a class="govuk-tabs__tab" href="#map">Map</a>
@@ -29,8 +31,16 @@
           <a class="govuk-tabs__tab" href="#dataset-table">Dataset table</a>
         </li>
       </ul>
+      {% else %}
+      <ul class="govuk-tabs__list">
+        <li class="govuk-tabs__list-item">
+          <a class="govuk-tabs__tab" href="#dataset-table">Dataset table</a>
+        </li>
+      </ul>
+      {% endif %}
 
       <!-- Map Tab -->
+      {% if geometries %}
       <div class="govuk-tabs__panel" id="map">
         <div
           id="map-container"
@@ -38,6 +48,7 @@
           data-geometries="{{ geometries | tojson | safe }}"
         ></div>
       </div>
+      {% endif %}
 
       <!-- Dataset table -->
       <div
@@ -209,7 +220,7 @@
   border: 1px solid black !important;
 } */
 </style>
-{% endblock %} {% block pageScripts %} {{ super() }}
+{% endblock %} {% block pageScripts %} {{ super() }} {% if geometries %}
 <script>
   console.log('Inline script working');
   window.serverContext = {
@@ -219,6 +230,7 @@
   };
   console.log('serverContext set:', window.serverContext);
 </script>
+{% endif %}
 <script>
   console.log("About to load external script");
 </script>

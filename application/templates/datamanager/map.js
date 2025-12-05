@@ -106,9 +106,7 @@ function initMap() {
   const { containerId, geometries, boundaryGeoJsonUrl } = window.serverContext;
 
   if (!geometries || geometries.length === 0) {
-    document.getElementById(containerId).innerHTML =
-      '<div style="padding: 20px;">No geometries available</div>';
-    return;
+    return null;
   }
 
   const map = new maplibregl.Map({

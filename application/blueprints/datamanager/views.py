@@ -88,6 +88,27 @@ def get_spec_fields_union(dataset_id):
     return out
 
 
+def order_table_fields(all_fields):
+    leading = []
+    trailing = []
+
+    for field in all_fields:
+        if field.lower() == "reference":
+            # Insert at the beginning (splice(0, 0, field) equivalent)
+            leading.insert(0, field)
+        elif field.lower() == "name":
+            # Append to leading
+            leading.append(field)
+        else:
+            # All other fields go to trailing
+            trailing.append(field)
+
+    # Combine leading and trailing
+    ordered_fields = leading + trailing
+
+    return ordered_fields
+
+
 def fetch_all_response_details(
     async_api: str, request_id: str, limit: int = 50
 ) -> list:
@@ -685,7 +706,7 @@ def check_results(request_id):
             error_summary = data.get("error-summary", []) or []
             column_field_log = data.get("column-field-log", []) or []
 
-            # ---- Table build (no FE-added 'Entity status') ----
+            # ---- Table build with leadingFields and trailingFields support ----
             logger.info(
                 f"Table build - Starting with {len(resp_details) if resp_details else 0} response details"
             )
@@ -703,16 +724,15 @@ def check_results(request_id):
                 )
 
                 if first_row:  # Only proceed if first_row has data
-                    table_headers = list(first_row.keys())
-                    logger.info(f"Table build - Headers set: {table_headers}")
+                    # Order fields using helper function
+                    table_headers = order_table_fields(first_row.keys())
+                    logger.info(f"Table build - Headers ordered: {table_headers}")
 
                     for row in resp_details:
                         converted = row.get("converted_row") or {}
-                        # if converted:  # Only add rows that have data
                         if not all(
                             str(value).strip() == "" for value in converted.values()
                         ):
-                            logger.info(f"formatted_rows - Processing row: {converted}")
                             formatted_rows.append(
                                 {
                                     "columns": {
