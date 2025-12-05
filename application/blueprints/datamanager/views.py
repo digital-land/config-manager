@@ -15,6 +15,8 @@ from flask import (
     request,
     url_for,
     session,
+    Response,
+    current_app,
 )
 
 from application.utils import get_request_api_endpoint
@@ -41,7 +43,7 @@ def handle_error(e):
 
 
 # put this near the top, replacing your current get_spec_fields_from_datasette
-def get_spec_fields_union(dataset_id: str | None) -> list[str]:
+def get_spec_fields_union(dataset_id):
     """
     Return the union of:
       - global field list (all datasets)
@@ -54,7 +56,7 @@ def get_spec_fields_union(dataset_id: str | None) -> list[str]:
     )
     headers = {"Accept": "application/json", "User-Agent": "Planning Data - Manage"}
 
-    def _fetch(url: str) -> list[str]:
+    def _fetch(url):
         try:
             r = requests.get(url, timeout=REQUESTS_TIMEOUT, headers=headers)
             r.raise_for_status()
@@ -84,6 +86,99 @@ def get_spec_fields_union(dataset_id: str | None) -> list[str]:
     # optional: sort by lowercase while preserving casing (comment out if you prefer raw order)
     out.sort(key=lambda x: x.lower())
     return out
+
+
+def order_table_fields(all_fields):
+    leading = []
+    trailing = []
+
+    for field in all_fields:
+        if field.lower() == "reference":
+            # Insert at the beginning (splice(0, 0, field) equivalent)
+            leading.insert(0, field)
+        elif field.lower() == "name":
+            # Append to leading
+            leading.append(field)
+        else:
+            # All other fields go to trailing
+            trailing.append(field)
+
+    # Combine leading and trailing
+    ordered_fields = leading + trailing
+
+    return ordered_fields
+
+
+def fetch_all_response_details(
+    async_api: str, request_id: str, limit: int = 50
+) -> list:
+    """
+    Fetch all response details with multiple calls using the specified limit.
+    Similar to the pattern used in submit repository.
+    """
+    all_details = []
+    offset = 0
+    logger.info(
+        f"Fetching response details - API: {async_api}, Request ID: {request_id}"
+    )
+
+    while True:
+        try:
+            url = f"{async_api}/requests/{request_id}/response-details"
+            params = {"offset": offset, "limit": limit}
+            logger.debug(f"Fetching batch - URL: {url}, Params: {params}")
+
+            response = requests.get(url, params=params, timeout=REQUESTS_TIMEOUT)
+            content_length = getattr(response, "content", None)
+            content_length = (
+                len(content_length) if content_length is not None else "N/A"
+            )
+            logger.info(
+                f"Batch response - Status: {response.status_code}, Content-Length: {content_length}"
+            )
+
+            response.raise_for_status()
+            batch = response.json() or []
+            logger.info(f"Batch parsed - Items: {len(batch)}")
+
+            if not batch:
+                logger.info("No more batches available")
+                break
+
+            # Log sample of first batch for debugging
+            if offset == 0 and batch:
+                logger.info(
+                    f"First batch sample - Item keys: {list(batch[0].keys()) if batch[0] else 'Empty item'}"
+                )
+                if batch[0] and "converted_row" in batch[0]:
+                    converted_sample = batch[0]["converted_row"]
+                    if converted_sample:
+                        logger.info(
+                            f"First converted_row sample: {dict(list(converted_sample.items())[:3])}"
+                        )
+                    else:
+                        logger.info("Empty converted_row")
+
+            all_details.extend(batch)
+
+            if len(batch) < limit:
+                logger.info(f"Last batch received - Total items: {len(all_details)}")
+                break
+
+            offset += limit
+
+        except Exception as e:
+            logger.error(f"Failed to fetch batch at offset {offset}: {e}")
+            logger.error(f"Response status: {getattr(response, 'status_code', 'N/A')}")
+            response_text = getattr(response, "text", "N/A")
+            if hasattr(response_text, "__getitem__"):
+                logger.error(f"Response text: {response_text[:500]}")
+            else:
+                logger.error(f"Response text: {response_text}")
+            break
+
+    logger.info(f"Total response details fetched: {len(all_details)}")
+    return all_details
 
 
 def read_raw_csv_preview(source_url: str, max_rows: int = 50):
@@ -401,9 +496,6 @@ def check_results(request_id):
     try:
         async_api = get_request_api_endpoint()
         organisation = request.args.get("organisation", "Your organisation")
-        page = int(request.args.get("page", 1))
-        page_size = 50
-        offset = (page - 1) * page_size
 
         # Fetch summary
         response = requests.get(
@@ -419,7 +511,18 @@ def check_results(request_id):
             )
 
         result = response.json()
+        logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'local')}")
+        logger.info(f"API endpoint: {async_api}")
+        logger.info(f"Result status: {result.get('status')}")
+        logger.info(f"Result keys: {list(result.keys())}")
+        if result.get("response"):
+            logger.info(f"Response keys: {list(result.get('response', {}).keys())}")
+            if result.get("response", {}).get("data"):
+                logger.info(
+                    f"Data keys: {list(result.get('response', {}).get('data', {}).keys())}"
+                )
         result.setdefault("params", {}).setdefault("organisation", organisation)
+        logger.info(f"result: {result}")
 
         # Still processing?
         if (
@@ -430,28 +533,49 @@ def check_results(request_id):
                 "datamanager/check-results-loading.html", result=result
             )
 
-        if result.get("response").get("data") is None:
+        response_data = result.get("response")
+        if not response_data or response_data.get("data") is None:
+            error_msg = "No data returned from check"
+            if response_data and response_data.get("error"):
+                error_msg = response_data.get("error").get("errMsg", error_msg)
             return render_template(
                 "datamanager/error.html",
-                message=result.get("response")
-                .get("error")
-                .get("errMsg", "No data returned from check"),
+                message=error_msg,
             )
         else:
-            # Row details (paged)
-            details_response = requests.get(
-                f"{async_api}/requests/{request_id}/response-details",
-                params={"offset": offset, "limit": page_size},
-                timeout=REQUESTS_TIMEOUT,
+            # Fetch all response details using multiple calls
+            resp_details = fetch_all_response_details(async_api, request_id)
+            logger.info(f"Environment check - async_api: {async_api}")
+            logger.info(f"Environment check - request_id: {request_id}")
+            logger.info(f"Environment check - resp_details type: {type(resp_details)}")
+            logger.info(
+                f"Environment check - resp_details length: {len(resp_details) if resp_details else 'None'}"
             )
-            details_response.raise_for_status()
-            resp_details = details_response.json() or []
 
-            total_rows = (
-                (result.get("response") or {})
-                .get("data", {})
-                .get("row-count", len(resp_details))
-            )
+            # Check if response-details endpoint exists and is accessible
+            try:
+                test_response = requests.get(
+                    f"{async_api}/requests/{request_id}/response-details",
+                    params={"offset": 0, "limit": 1},
+                    timeout=REQUESTS_TIMEOUT,
+                )
+                logger.info(
+                    f"Response-details endpoint test - Status: {test_response.status_code}"
+                )
+                logger.info(
+                    f"Response-details endpoint test - Headers: {dict(test_response.headers)}"
+                )
+                if test_response.status_code == 200:
+                    test_data = test_response.json()
+                    logger.info(f"Response-details test data: {test_data}")
+                else:
+                    logger.error(
+                        f"Response-details endpoint failed: {test_response.text}"
+                    )
+            except Exception as e:
+                logger.error(f"Response-details endpoint test failed: {e}")
+
+            total_rows = len(resp_details)
 
             # --- TRUST BACKEND ONLY ---
             data = (result.get("response") or {}).get("data") or {}
@@ -474,53 +598,155 @@ def check_results(request_id):
                 f"{existing_count} existing; {new_count} new (from backend)."
             )
             show_entities_link = new_count > 0
+            logger.info(
+                f"resp_details count: {len(resp_details) if resp_details else 0}"
+            )
+            if resp_details and len(resp_details) > 0:
+                logger.debug(f"First resp_detail: {resp_details[0]}")
+            else:
+                logger.warning("No response details found for table building")
 
-            # Geometry mapping (unchanged)
+            # Geometry mapping - always use all data
             geometries = []
-            for row in resp_details:
-                geom = row.get("geometry")
-                if not geom:
-                    wkt_str = (row.get("converted_row") or {}).get("Point")
-                    if wkt_str:
-                        try:
-                            shapely_geom = wkt.loads(wkt_str)
-                            geom = mapping(shapely_geom)
-                        except Exception:
-                            geom = None
-                if geom:
-                    geometries.append(
-                        {
-                            "type": "Feature",
-                            "geometry": geom,
-                            "properties": {
-                                "reference": (row.get("converted_row") or {}).get(
-                                    "Reference"
-                                )
-                                or f"Entry {row.get('entry_number')}",
-                            },
-                        }
-                    )
+            logger.debug(f"Processing {len(resp_details)} rows for geometries")
 
+            for row in resp_details:
+                converted_row = row.get("converted_row") or {}
+                transformed_row = row.get("transformed_row") or []
+
+                # Find geometry from transformed_row
+                geometry_entry = None
+                if isinstance(transformed_row, list):
+                    geometry_entry = next(
+                        (
+                            item
+                            for item in transformed_row
+                            if isinstance(item, dict)
+                            and (
+                                item.get("field") == "geometry"
+                                or item.get("field") == "point"
+                            )
+                        ),
+                        None,
+                    )
+                if geometry_entry and geometry_entry.get("value"):
+                    try:
+                        shapely_geom = wkt.loads(geometry_entry["value"])
+                        geom = mapping(shapely_geom)
+                        geometries.append(
+                            {
+                                "type": "Feature",
+                                "geometry": geom,
+                                "properties": {
+                                    "reference": converted_row.get("reference")
+                                    or converted_row.get("Reference")
+                                    or f"Entry {row.get('entry_number')}",
+                                    "name": converted_row.get("name", ""),
+                                },
+                            }
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            f"Error parsing geometry for entry {row.get('entry_number')}: {e}"
+                        )
+                        continue
+            logger.debug(f"Found {len(geometries)} geometries")
+            # Generate boundary URL dynamically based on dataset and geometries
+            boundary_geojson_url = ""
+            # Get organisation from result params, fallback to request args
+            org_from_params = result.get("params", {}).get("organisation", organisation)
+            logger.info(f"Organisation from params: {org_from_params}")
+            try:
+                if ":" in org_from_params:
+                    dataset_id, lpa_id = org_from_params.split(":", 1)
+                    entity_url = os.getenv(
+                        "ENTITY_URL",
+                        "https://www.planning.data.gov.uk/entity.json",
+                    )
+                    url = f"{entity_url}?dataset={dataset_id}&reference={lpa_id}"
+                    resp = requests.get(url)
+                    resp.raise_for_status()
+                    d = resp.json()
+                    logger.info(f"Entity data response: {d}")
+                    entity = (
+                        d.get("entities", [])[0] if d and d.get("entities") else None
+                    )
+                    logger.info(f"Entity: {entity}")
+                    if not entity:
+                        boundary_geojson_url = {
+                            "type": "FeatureCollection",
+                            "features": [],
+                        }
+                    else:
+                        reference = (
+                            entity.get("local-planning-authority")
+                            if entity.get("reference")
+                            else ""
+                        )
+                        if not reference:
+                            boundary_geojson_url = {
+                                "type": "FeatureCollection",
+                                "features": [],
+                            }
+                        else:
+                            boundary_data_url = os.getenv(
+                                "BOUNDARY_DATA_URL",
+                                "https://www.planning.data.gov.uk/entity.geojson",
+                            )
+                            boundary_url = f"{boundary_data_url}?reference={reference}"
+                            boundary_geojson_url = requests.get(boundary_url).json()
+                else:
+                    # If organisation format is not as expected, set empty boundary
+                    boundary_geojson_url = {"type": "FeatureCollection", "features": []}
+            except Exception as e:
+                logger.warning(f"Failed to fetch boundary data: {e}")
+                boundary_geojson_url = {"type": "FeatureCollection", "features": []}
             # Error parsing (unchanged)
+            logger.debug(f"data: {data}")
             error_summary = data.get("error-summary", []) or []
             column_field_log = data.get("column-field-log", []) or []
 
-            # ---- Table build (no FE-added 'Entity status') ----
+            # ---- Table build with leadingFields and trailingFields support ----
+            logger.info(
+                f"Table build - Starting with {len(resp_details) if resp_details else 0} response details"
+            )
             table_headers, formatted_rows = [], []
-            if resp_details:
+            if resp_details and len(resp_details) > 0:
+                logger.info(
+                    f"Table build - Processing {len(resp_details)} response details"
+                )
                 first_row = (resp_details[0] or {}).get("converted_row", {}) or {}
-                table_headers = list(first_row.keys())
+                logger.info(
+                    f"Table build - First row keys: {list(first_row.keys()) if first_row else 'No keys'}"
+                )
+                logger.info(
+                    f"Table build - First row sample: {dict(list(first_row.items())[:3]) if first_row else 'Empty'}"
+                )
 
-                for row in resp_details:
-                    converted = row.get("converted_row") or {}
-                    formatted_rows.append(
-                        {
-                            "columns": {
-                                col: {"value": converted.get(col, "")}
-                                for col in table_headers
-                            }
-                        }
-                    )
+                if first_row:  # Only proceed if first_row has data
+                    # Order fields using helper function
+                    table_headers = order_table_fields(first_row.keys())
+                    logger.info(f"Table build - Headers ordered: {table_headers}")
+
+                    for row in resp_details:
+                        converted = row.get("converted_row") or {}
+                        if not all(
+                            str(value).strip() == "" for value in converted.values()
+                        ):
+                            formatted_rows.append(
+                                {
+                                    "columns": {
+                                        col: {"value": str(converted.get(col, ""))}
+                                        for col in table_headers
+                                    }
+                                }
+                            )
+                else:
+                    logger.error("Table build - First row is empty, cannot build table")
+            else:
+                logger.error(
+                    f"Table build - No response details available. resp_details: {resp_details}"
+                )
 
             table_params = {
                 "columns": table_headers,
@@ -528,9 +754,13 @@ def check_results(request_id):
                 "rows": formatted_rows,
                 "columnNameProcessing": "none",
             }
-
-            showing_start = offset + 1 if total_rows > 0 else 0
-            showing_end = min(offset + page_size, total_rows)
+            logger.info(
+                f"Table build - Final table_params: columns={len(table_headers)}, rows={len(formatted_rows)}"
+            )
+            logger.info(
+                f"Table build - Sample table_params: {json.dumps(table_params, indent=2)}"
+            )
+            # ---- END Table build ----
 
             # checks
             must_fix, fixable, passed_checks = [], [], []
@@ -578,11 +808,11 @@ def check_results(request_id):
                 show_error=show_error,
                 optional_missing=optional_missing,
                 table_params=table_params,
-                page=page,
                 total_rows=total_rows,
-                page_size=page_size,
-                showing_start=showing_start,
-                showing_end=showing_end,
+                page=1,
+                page_size=total_rows,
+                showing_start=1 if total_rows > 0 else 0,
+                showing_end=total_rows,
                 # entity summary bits (BE only):
                 new_entities_message=new_entities_message,
                 new_entity_count=new_count,
@@ -591,6 +821,7 @@ def check_results(request_id):
                 show_entities_link=show_entities_link,
                 entities_preview_url=entities_preview_url,
                 entity_preview_rows=entity_preview_rows,
+                boundary_geojson_url=boundary_geojson_url,
             )
 
     except Exception as e:
@@ -918,6 +1149,7 @@ def configure(request_id):
         if (req.get("status") not in ["PENDING", "PROCESSING", "QUEUED"]) and (
             req.get("response") is not None
         ):
+            # Fetch first 50 rows for preview (not all data)
             details = (
                 requests.get(
                     f"{async_api}/requests/{request_id}/response-details",
@@ -1093,6 +1325,10 @@ def entities_preview(request_id):
         return render_template(
             "datamanager/add-data-preview-loading.html", request_id=request_id
         )
+
+    # Fetch all response details using multiple calls
+    all_details = fetch_all_response_details(async_api, request_id)
+
     data = (req.get("response") or {}).get("data") or {}
     entity_summary = data.get("entity-summary") or {}
     new_entities = entity_summary.get("new-entities") or []
@@ -1261,8 +1497,23 @@ def entities_preview(request_id):
         source_csv_body=source_csv_body,
         # NEW: summary for source.csv
         source_summary=source_summary,
+        all_details=all_details,
+        total_count=len(all_details),
         back_url=url_for(
             "datamanager.add_data",
             request_id=(req.get("params") or {}).get("source_request_id") or request_id,
         ),
     )
+
+
+@datamanager_bp.route("/map.js")
+def map_js():
+    file_path = os.path.join(
+        current_app.root_path, "templates", "datamanager", "map.js"
+    )
+    try:
+        with open(file_path, "r") as f:
+            content = f.read()
+        return Response(content, mimetype="application/javascript")
+    except FileNotFoundError:
+        return "console.error('Map script not found');", 404
