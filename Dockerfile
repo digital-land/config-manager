@@ -36,11 +36,7 @@ RUN mkdir -p application/static/javascripts/govuk application/static/stylesheets
     curl -o application/static/javascripts/govuk/govuk-frontend.js https://unpkg.com/govuk-frontend@5.9.0/dist/govuk/all.bundle.js && \
     curl -o application/static/javascripts/digital-land-frontend.js https://unpkg.com/digital-land-frontend@0.4.1/digital-land-frontend/javascripts/digital-land-frontend.js || echo 'DL Frontend not available' && \
     python -m pip install --upgrade pip setuptools wheel && \
-    python -m pip install -r requirements.txt && \
-    echo "=== Listing downloaded files ===" && \
-    ls -lh application/static/javascripts && \
-    ls -lh application/static/javascripts/govuk && \
-    ls -lh application/static/stylesheets
+    python -m pip install -r requirements.txt
 
 
 EXPOSE 5000
