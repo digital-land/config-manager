@@ -52,39 +52,12 @@ def create_app(config_filename):
     """
     App factory function
     """
-    app = Flask(__name__, static_folder="static", static_url_path="/static")
+    app = Flask(__name__)
     app.config.from_object(config_filename)
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 10
     app.config["DEBUG"] = True
 
     configure_logging(app)
-
-    # Ensure proper MIME types for static files
-    import mimetypes
-
-    mimetypes.add_type("application/javascript", ".js")
-    mimetypes.add_type("text/css", ".css")
-    # Add explicit static file route with MIME type handling
-    from flask import send_from_directory, abort
-    import os
-
-    @app.route("/static/<path:filename>")
-    def static_files(filename):
-        try:
-            static_dir = os.path.join(app.root_path, "static")
-            response = send_from_directory(static_dir, filename)
-            # Set correct MIME type based on file extension
-            if filename.endswith(".js"):
-                response.headers["Content-Type"] = "application/javascript"
-            elif filename.endswith(".css"):
-                response.headers["Content-Type"] = "text/css"
-            elif filename.endswith(".woff2"):
-                response.headers["Content-Type"] = "font/woff2"
-            elif filename.endswith(".woff"):
-                response.headers["Content-Type"] = "font/woff"
-            return response
-        except FileNotFoundError:
-            abort(404)
 
     register_blueprints(app)
     register_context_processors(app)
