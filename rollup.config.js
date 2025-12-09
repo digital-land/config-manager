@@ -33,5 +33,12 @@ module.exports = [
       file: 'application/static/javascripts/utilities/timeseries-chart.js',
       // format: 'iife'
     }
+  },
+  {
+    input: 'src/javascripts/map.js',
+    output: {
+      file: 'application/static/javascripts/map.js',
+      format: 'iife'
+    }
   }
 ]

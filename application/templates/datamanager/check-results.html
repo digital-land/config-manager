@@ -234,7 +234,7 @@
 <script>
   console.log("About to load external script");
 </script>
-<script src="{{ url_for('datamanager.map_js') }}"></script>
+<script src="{{ url_for('static', filename='javascripts/map.js') }}"></script>
 <script>
   console.log("After external script tag");
 </script>

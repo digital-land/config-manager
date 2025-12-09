@@ -15,8 +15,6 @@ from flask import (
     request,
     url_for,
     session,
-    Response,
-    current_app,
 )
 
 from application.utils import get_request_api_endpoint
@@ -1492,16 +1490,3 @@ def entities_preview(request_id):
             request_id=(req.get("params") or {}).get("source_request_id") or request_id,
         ),
     )
-
-
-@datamanager_bp.route("/map.js")
-def map_js():
-    file_path = os.path.join(
-        current_app.root_path, "templates", "datamanager", "map.js"
-    )
-    try:
-        with open(file_path, "r") as f:
-            content = f.read()
-        return Response(content, mimetype="application/javascript")
-    except FileNotFoundError:
-        return "console.error('Map script not found');", 404
