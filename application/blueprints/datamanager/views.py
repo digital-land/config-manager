@@ -32,6 +32,10 @@ load_dotenv()
 datamanager_bp = Blueprint("datamanager", __name__, url_prefix="/datamanager")
 logger = logging.getLogger(__name__)
 headers = {"Content-Type": "application/json", "Accept": "application/json"}
+planning_base_url = os.getenv("PLANNING_URL", "https://www.planning.data.gov.uk")
+datasette_base_url = os.getenv(
+    "DATASETTE_BASE_URL", "https://datasette.planning.data.gov.uk/digital-land"
+)
 
 REQUESTS_TIMEOUT = 20  # seconds
 
@@ -50,10 +54,7 @@ def get_spec_fields_union(dataset_id):
       - dataset-scoped field list (if dataset_id is provided)
     Keep original casing; de-duplicate exact strings; stable order.
     """
-    base = os.getenv(
-        "DATASETTE_URL",
-        "https://datasette.planning.data.gov.uk/digital-land/dataset_field.json",
-    )
+    base = (f"{datasette_base_url}/dataset_field.json",)
     headers = {"Accept": "application/json", "User-Agent": "Planning Data - Manage"}
 
     def _fetch(url):
@@ -226,10 +227,7 @@ def dashboard_config():
 
 @datamanager_bp.route("/dashboard/add", methods=["GET", "POST"])
 def dashboard_add():
-    planning_url = os.getenv(
-        "PLANNING_DATA_URL",
-        "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
-    )
+    planning_url = f"{planning_base_url}/dataset.json?_labels=on&_size=max"
     try:
         ds_response = requests.get(
             planning_url,
@@ -254,10 +252,7 @@ def dashboard_add():
         matches = [name for name in dataset_options if query in name.lower()]
         return jsonify(matches[:10])
 
-    base_provision_url = os.getenv(
-        "PROVISION_URL",
-        "https://datasette.planning.data.gov.uk/digital-land/provision.json",
-    )
+    base_provision_url = f"{datasette_base_url}/provision.json"
     # fetch orgs for a dataset name (for UI suggestions)
     if request.args.get("get_orgs_for"):
         dataset_name = request.args["get_orgs_for"]
@@ -659,10 +654,7 @@ def check_results(request_id):
             try:
                 if ":" in org_from_params:
                     dataset_id, lpa_id = org_from_params.split(":", 1)
-                    entity_url = os.getenv(
-                        "ENTITY_URL",
-                        "https://www.planning.data.gov.uk/entity.json",
-                    )
+                    entity_url = f"{planning_base_url}/entity.json"
                     url = f"{entity_url}?dataset={dataset_id}&reference={lpa_id}"
                     resp = requests.get(url)
                     resp.raise_for_status()
@@ -689,11 +681,7 @@ def check_results(request_id):
                                 "features": [],
                             }
                         else:
-                            boundary_data_url = os.getenv(
-                                "BOUNDARY_DATA_URL",
-                                "https://www.planning.data.gov.uk/entity.geojson",
-                            )
-                            boundary_url = f"{boundary_data_url}?reference={reference}"
+                            boundary_url = f"{planning_base_url}/entity.geojson?reference={reference}"
                             boundary_geojson_url = requests.get(boundary_url).json()
                 else:
                     # If organisation format is not as expected, set empty boundary
