@@ -30,6 +30,7 @@ COPY . .
 RUN mkdir -p application/static/javascripts/govuk application/static/stylesheets && \
     npm install && \
     npm run copy || true && \
+    cp src/javascripts/map.js application/static/javascripts/ || echo 'Map.js not found' && \
     cp node_modules/digital-land-frontend/application/static/javascripts/digital-land-cookies.js application/static/javascripts/ || echo 'cookies.js not found' && \
     curl -o application/static/javascripts/accessible-autocomplete.min.js https://unpkg.com/accessible-autocomplete@2.0.4/dist/accessible-autocomplete.min.js && \
     curl -o application/static/stylesheets/accessible-autocomplete.min.css https://unpkg.com/accessible-autocomplete@2.0.4/dist/accessible-autocomplete.min.css && \

@@ -34,11 +34,4 @@ module.exports = [
       // format: 'iife'
     },
   },
-  {
-    input: "src/javascripts/map.js",
-    output: {
-      file: "application/static/javascripts/map.js",
-      //format: 'iife'
-    },
-  },
 ];
