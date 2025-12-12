@@ -11694,3 +11694,41 @@ font-size: 14px;
 }
 
 /*# sourceMappingURL=application.css.map */
+.dl-table-scrollable-container{
+  table,
+  .table {
+    border-collapse: collapse !important;
+    border: 1px solid #0c1012 !important;
+  }
+  
+  table th,
+  table td,
+  .table th,
+  .table td {
+    border-bottom: 1px solid #0f1010 !important;
+  }
+
+  table td,
+  .table td {
+    max-width: 500px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
+.app-card-details {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #b1b4b6;
+  padding: 10px 0;
+}
+
+.right-side-buttons{
+  display: flex; 
+  justify-content: flex-end; 
+  gap: 10px
+}
+.map-container{
+height: 450px; 
+border: 1px solid #ccc
+}
