@@ -43,8 +43,8 @@
       {% if geometries %}
       <div class="govuk-tabs__panel" id="map">
         <div
+          class="map-container"
           id="map-container"
-          style="height: 450px; border: 1px solid #ccc"
           data-geometries="{{ geometries | tojson | safe }}"
         ></div>
       </div>
@@ -56,24 +56,7 @@
         id="dataset-table"
       >
         {% if table_params.rows %}
-        <div
-          class="dl-table-scrollable-container"
-          style="border: 1px solid black"
-        >
-          <style>
-            .dl-table-scrollable-container table,
-            .dl-table-scrollable-container table th,
-            .dl-table-scrollable-container table td {
-              border-bottom: 1px solid black !important;
-              border-collapse: collapse !important;
-            }
-            .dl-table-scrollable-container table td {
-              max-width: 500px !important;
-              overflow: hidden !important;
-              text-overflow: ellipsis !important;
-              white-space: nowrap !important;
-            }
-          </style>
+        <div class="dl-table-scrollable-container">
           {{ table(table_params) }}
         </div>
         {% else %}
@@ -133,14 +116,7 @@
         </h2>
         <div class="govuk-!-margin-bottom-4 govuk-body">
           {% for issue in must_fix %}
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              border-top: 1px solid #b1b4b6;
-              padding: 10px 0;
-            "
-          >
+          <div class="app-card-details">
             <span><a class="govuk-link" href="#">{{ issue }}</a></span>
             <strong class="govuk-tag govuk-tag--red">Must fix</strong>
           </div>
@@ -159,14 +135,7 @@
         </p>
         <div class="govuk-!-margin-bottom-4 govuk-body">
           {% for issue in fixable %}
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              border-top: 1px solid #b1b4b6;
-              padding: 10px 0;
-            "
-          >
+          <div class="app-card-details">
             <span><a class="govuk-link" href="#">{{ issue }}</a></span>
             <strong class="govuk-tag govuk-tag--yellow">Needs fixing</strong>
           </div>
@@ -175,10 +144,7 @@
         {% endif %}
 
         <!-- Buttons -->
-        <div
-          class="govuk-button-group govuk-!-margin-top-6"
-          style="display: flex; justify-content: flex-end; gap: 10px"
-        >
+        <div class="govuk-button-group govuk-!-margin-top-6 right-side-buttons">
           {% if allow_add_data %}
           <form
             method="get"
@@ -210,17 +176,8 @@
     </div>
   </div>
 </div>
-{% endblock %} {% block pageStyles %}
-<style>
-  .dl-table-scrollable-container table {
-    border: 1px solid black !important;
-  }
-  /* .dl-table-scrollable-container table th,
-.dl-table-scrollable-container table td {
-  border: 1px solid black !important;
-} */
-</style>
-{% endblock %} {% block pageScripts %} {{ super() }} {% if geometries %}
+{% endblock %} {% block pageStyles %} {% endblock %} {% block pageScripts %} {{
+super() }} {% if geometries %}
 <script>
   console.log('Inline script working');
   window.serverContext = {
