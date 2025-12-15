@@ -1,10 +1,10 @@
-import pytest
 import json
 from unittest.mock import patch, Mock
 
 from application.blueprints.datamanager.views import (
     get_spec_fields_union,
     read_raw_csv_preview,
+    order_table_fields,
 )
 
 
@@ -333,12 +333,27 @@ class TestSpecificLines:
                 }
             },
             "params": {
-                "organisation": "test-org",
+                "organisation": "local-authority-eng:ABC123",
                 "documentation_url": None,
                 "licence": None,
                 "start_date": None,
                 "url": "https://example.com/data.csv",
             },
+        }
+        main_response.raise_for_status.return_value = None
+
+        entity_response = Mock()
+        entity_response.json.return_value = {
+            "entities": [
+                {"reference": "E12345678", "local-planning-authority": "ABC123"}
+            ]
+        }
+        entity_response.raise_for_status.return_value = None
+
+        boundary_response = Mock()
+        boundary_response.json.return_value = {
+            "type": "FeatureCollection",
+            "features": [],
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
@@ -354,6 +369,10 @@ class TestSpecificLines:
                 ]
                 details_response.raise_for_status.return_value = None
                 return details_response
+            elif "entity.json" in url:
+                return entity_response
+            elif "entity.geojson" in url:
+                return boundary_response
             return main_response
 
         mock_get.side_effect = mock_get_side_effect
@@ -443,7 +462,7 @@ class TestSpecificLines:
     def test_configure_configure_complex(
         self, mock_endpoint, mock_get, mock_render, client
     ):
-        """Test lines 748-969: Configure complex logic"""
+        """Test lines : Configure complex logic"""
         mock_endpoint.return_value = "http://test-api"
         mock_render.return_value = "<html>Configure page</html>"
 
@@ -591,36 +610,6 @@ class TestSpecificLines:
         response = client.get("/datamanager/check-results/test-id/entities")
         assert response.status_code == 200
 
-    @pytest.mark.skip("Skipping as requested")
-    @patch("application.blueprints.datamanager.views.render_template")
-    @patch("application.blueprints.datamanager.views.requests.get")
-    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_configure_table_from_csv_empty(
-        self, mock_endpoint, mock_get, mock_render, client
-    ):
-        """Test table_from_csv with empty data"""
-        mock_endpoint.return_value = "http://test-api"
-        mock_render.return_value = "<html>Configure page</html>"
-
-        main_response = Mock()
-        main_response.status_code = 200
-        main_response.json.return_value = {
-            "params": {
-                "dataset": "test-dataset",
-                "url": "https://example.com/data.csv",
-            },
-            "response": {"data": {}},
-            "status": "COMPLETED",
-        }
-
-        csv_response = Mock()
-        csv_response.content = b""  # Empty CSV
-
-        mock_get.side_effect = [main_response, csv_response]
-
-        response = client.get("/datamanager/configure/test-id")
-        assert response.status_code == 200
-
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_check_results_wkt_geometry_conversion(
@@ -641,9 +630,24 @@ class TestSpecificLines:
                 }
             },
             "params": {
-                "organisation": "test-org",
+                "organisation": "local-authority-eng:ABC123",
                 "url": "https://example.com/data.csv",
             },
+        }
+        main_response.raise_for_status.return_value = None
+
+        entity_response = Mock()
+        entity_response.json.return_value = {
+            "entities": [
+                {"reference": "E12345678", "local-planning-authority": "ABC123"}
+            ]
+        }
+        entity_response.raise_for_status.return_value = None
+
+        boundary_response = Mock()
+        boundary_response.json.return_value = {
+            "type": "FeatureCollection",
+            "features": [],
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
@@ -662,6 +666,10 @@ class TestSpecificLines:
                 ]
                 details_response.raise_for_status.return_value = None
                 return details_response
+            elif "entity.json" in url:
+                return entity_response
+            elif "entity.geojson" in url:
+                return boundary_response
             return main_response
 
         mock_get.side_effect = mock_get_side_effect
@@ -689,9 +697,24 @@ class TestSpecificLines:
                 }
             },
             "params": {
-                "organisation": "test-org",
+                "organisation": "local-authority-eng:ABC123",
                 "url": "https://example.com/data.csv",
             },
+        }
+        main_response.raise_for_status.return_value = None
+
+        entity_response = Mock()
+        entity_response.json.return_value = {
+            "entities": [
+                {"reference": "E12345678", "local-planning-authority": "ABC123"}
+            ]
+        }
+        entity_response.raise_for_status.return_value = None
+
+        boundary_response = Mock()
+        boundary_response.json.return_value = {
+            "type": "FeatureCollection",
+            "features": [],
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
@@ -710,6 +733,10 @@ class TestSpecificLines:
                 ]
                 details_response.raise_for_status.return_value = None
                 return details_response
+            elif "entity.json" in url:
+                return entity_response
+            elif "entity.geojson" in url:
+                return boundary_response
             return main_response
 
         mock_get.side_effect = mock_get_side_effect
@@ -968,3 +995,88 @@ class TestSpecificLines:
 
         response = client.post("/datamanager/dashboard/add", data=form_data)
         assert response.status_code == 500
+
+        """Test get_statistical_geography function with exception """
+        with patch(
+            "application.blueprints.datamanager.views.get_request_api_endpoint"
+        ) as mock_endpoint:
+            mock_endpoint.return_value = "http://test-api"
+
+            main_response = Mock()
+            main_response.status_code = 200
+            main_response.json.return_value = {
+                "status": "COMPLETED",
+                "response": {
+                    "data": {
+                        "entity-summary": {},
+                        "new-entities": [],
+                        "existing-entities": [],
+                    }
+                },
+                "params": {"organisation": "test-org"},
+            }
+
+            details_response = Mock()
+            details_response.status_code = 200
+            details_response.json.return_value = []
+            details_response.raise_for_status.return_value = None
+
+            # Third call (organisation) raises exception
+            mock_get.side_effect = [
+                main_response,
+                details_response,
+                Exception("Network error"),
+            ]
+
+            with patch(
+                "application.blueprints.datamanager.views.render_template"
+            ) as mock_render:
+                mock_render.return_value = "rendered_template"
+                from application.blueprints.datamanager.views import check_results
+
+                result = check_results("test-id")
+                assert result is not None
+
+    def test_field_ordering(self):
+        all_fields = [
+            "name",
+            "reference",
+            "address",
+            "postcode",
+            "created_date",
+            "updated_date",
+        ]
+        expected = [
+            "reference",
+            "name",
+            "address",
+            "postcode",
+            "created_date",
+            "updated_date",
+        ]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_only_reference_field(self):
+        all_fields = ["address", "reference", "postcode"]
+        expected = ["reference", "address", "postcode"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_only_name_field(self):
+        all_fields = ["address", "name", "postcode"]
+        expected = ["name", "address", "postcode"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_no_reference_or_name_fields(self):
+        all_fields = ["address", "postcode", "geometry"]
+        expected = ["address", "postcode", "geometry"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_case_insensitive_matching(self):
+        all_fields = ["Address", "REFERENCE", "Name", "postcode"]
+        expected = ["REFERENCE", "Name", "Address", "postcode"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_multiple_similar_fields(self):
+        all_fields = ["reference", "name", "other_reference", "display_name"]
+        expected = ["reference", "name", "other_reference", "display_name"]
+        assert order_table_fields(all_fields) == expected
