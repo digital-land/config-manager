@@ -5,7 +5,7 @@ const dlFrontendScripts = require('@planning-data/digital-land-frontend/package-
 const customScripts = {
   copy: {
     ...dlFrontendScripts.scripts.copy, // Keep the digital-land-frontend copy scripts
-    // Override govukAssets to put files in the correct location for SCSS
+    // Override govukAssets to put files in the correct location for SCSS this is an error with. digital-land-frontend that needs fixing
     // SCSS expects /static/govuk/assets/fonts/, so we use -u 4 to strip node_modules/govuk-frontend/dist/govuk
     govukAssets: 'npx copyfiles -u 4 "node_modules/govuk-frontend/dist/govuk/assets/**" application/static/govuk/',
     vendor: 'mkdir -p application/static/javascripts/vendor application/static/stylesheets/vendor && cp -r src/javascripts/vendor/* application/static/javascripts/vendor/ && cp -r src/css/vendor/* application/static/stylesheets/vendor/',

@@ -68,3 +68,58 @@ Note that the first line of that file is:
 Then to install all the packages run:
 
     python -m piptools sync requirements/requirements.txt requirements/dev-requirements.txt
+
+## Frontend build
+
+This project uses the [@planning-data/digital-land-frontend](https://github.com/digital-land/digital-land-frontend) npm package to manage frontend asset compilation and copying.
+
+### How it works
+
+The build process uses [nps (npm-package-scripts)](https://www.npmjs.com/package/nps) to organize build tasks. The base scripts come from digital-land-frontend, with project-specific overrides in [package-scripts.js](package-scripts.js).
+
+### Build tools
+
+- **SASS**: Compiles SCSS to CSS
+- **Rollup**: Bundles custom JavaScript files
+- **copyfiles**: Copies vendor assets (govuk-frontend, accessible-autocomplete)
+
+### Build commands
+
+Build all assets (runs automatically after `npm install`):
+```bash
+npm run build
+```
+
+Watch for changes during development:
+```bash
+npm run watch
+```
+
+Copy vendor assets:
+```bash
+npm run copy
+```
+
+### Generated files
+
+All static assets are generated during build and output to `application/static/`:
+- `application/static/stylesheets/` - Compiled CSS
+- `application/static/javascripts/` - Bundled JS
+- `application/static/images/` - Image assets
+- `application/static/govuk/` - GOV.UK Frontend assets
+
+These directories are git-ignored and should never be committed.
+
+### Project-specific customizations
+
+The [package-scripts.js](package-scripts.js) file extends digital-land-frontend with:
+- Override for govuk-frontend v5 asset paths (fixes compatibility issue)
+- Custom vendor asset copying (accessible-autocomplete, MOJ components)
+- GOV.UK Frontend JavaScript bundle
+
+See the comments in package-scripts.js for details on why these overrides are necessary.
+
+### Digital Land Frontend Configuration
+
+Frontend build paths are configured in [digital-land-frontend.config.json](digital-land-frontend.config.json).
+
