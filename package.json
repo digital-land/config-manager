@@ -3,16 +3,14 @@
   "version": "0.0.1",
   "description": "A tool to help manage the data in the digital land platform",
   "scripts": {
-    "copy:css": "rsync -ar src/css/application.css application/static/stylesheets/application.css && rsync -ar src/css/vendor/ application/static/stylesheets/vendor",
-    "copy:js": "rsync -ar src/javascripts/vendor/ application/static/javascripts/vendor",
-    "copy:assets": "mkdir -p application/static/govuk/assets/fonts application/static/javascripts/govuk application/static/stylesheets && cp -r node_modules/govuk-frontend/dist/govuk/assets/fonts/* application/static/govuk/assets/fonts/ && cp src/javascripts/map.js application/static/javascripts/ && cp node_modules/digital-land-frontend/digital-land-frontend/javascripts/digital-land-cookies.js application/static/javascripts/  && cp node_modules/accessible-autocomplete/dist/accessible-autocomplete.min.js application/static/javascripts/ && cp node_modules/accessible-autocomplete/dist/accessible-autocomplete.min.css application/static/stylesheets/ && cp node_modules/govuk-frontend/dist/govuk/all.bundle.js application/static/javascripts/govuk/govuk-frontend.js && cp node_modules/digital-land-frontend/digital-land-frontend/javascripts/digital-land-frontend.js application/static/javascripts/",
-    "copy": "npm-run-all --parallel copy:*",
-    "flask": "flask run",
-    "watch:assets": "npm run nps watch.assets",
-    "watch:pages": "npm run nps watch.pages",
+    "nps": "nps",
+    "build": "nps build.stylesheets build.javascripts",
+    "copy": "nps copy.all",
+    "postinstall": "npm run copy && npm run build",
+    "watch:assets": "nps watch.assets",
+    "watch:pages": "nps watch.pages",
     "watch": "npm-run-all --parallel watch:*",
-    "nps": "nps -c ./node_modules/digital-land-frontend/package-scripts.js",
-    "postinstall": "npm run nps copy.javascripts && npm run nps build.stylesheets && npm run nps build.javascripts && npm run copy"
+    "flask": "flask run"
   },
   "repository": {
     "type": "git",
@@ -25,7 +23,6 @@
   },
   "dependencies": {
     "accessible-autocomplete": "^2.0.4",
-    "digital-land-frontend": "^0.4.1",
     "govuk-frontend": "^5.9.0"
   },
   "devDependencies": {
