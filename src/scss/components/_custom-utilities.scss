@@ -1,0 +1,128 @@
+// Custom utility styles that were previously in application.css
+
+/* Spinner */
+.app-spinner {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #0b0c0c;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: app-spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes app-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Scrollable wrapper */
+.app-scrollable-container.app-scrollable {
+  max-height: 500px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: auto;
+
+  scrollbar-width: thin;
+  scrollbar-color: #999 #f1f1f1;
+
+  &::-webkit-scrollbar {
+    height: 2px;
+    width: 2px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #999;
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: #f1f1f1;
+  }
+}
+
+/* Table structure */
+.app-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Header */
+.app-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: #f3f2f1;
+  border-bottom: 2px solid #b1b4b6;
+  border-right: 1px solid #b1b4b6;
+  padding: 10px;
+  font-weight: bold;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.app-table thead th:last-child {
+  border-right: none;
+}
+
+/* Sticky row shadow */
+.app-table__head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* Table body */
+.app-table tbody td {
+  padding: 10px;
+  border: none;
+  white-space: nowrap;
+}
+
+/* Anchor tag styling inside cells */
+.app-table td a,
+.app-table td .govuk-link {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+
+  color: #1d70b8;
+  font-family: "GDS Transport", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-decoration: underline;
+  text-decoration-thickness: max(1px, 0.0625rem);
+  text-underline-offset: 0.1578em;
+}
+
+/* Optional column width */
+.app-table td.site-url-column {
+  max-width: 200px;
+}
+
+/* Error state */
+.app-table__cell--error {
+  border-left: 6px solid #d4351c;
+  background-color: #fff4f4;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-table th,
+  .app-table td {
+    padding: 6px 8px;
+    font-size: 14px;
+  }
+}
+
+/* Phase banner inverse styling */
+.app-masthead__phase-banner--inverse .govuk-phase-banner__content__tag,
+.app-masthead__phase-banner--inverse .govuk-tag {
+  background-color: #fff;   /* white background */
+  color: black;             /* black text */
+}
