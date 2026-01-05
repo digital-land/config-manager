@@ -1,15 +1,15 @@
 {% macro table(params) %}
 <div class="app-scrollable-container dl-scrollable">
-  <table class="govuk-table dl-table">
+  <table class="govuk-table dl-table app-table">
     <colgroup>
       {% for field in params.fields %}
       <col />
       {% endfor %}
     </colgroup>
-    <thead class="govuk-table__head dl-table__head">
+    <thead class="govuk-table__head dl-table__head app-table__head">
       <tr class="govuk-table__row">
         {% for column in params.columns %}
-        <th scope="col" class="govuk-table__header dl-table__header">{{ column }}</th>
+        <th scope="col" class="govuk-table__header dl-table__header app-table__header">{{ column }}</th>
         {% endfor %}
       </tr>
     </thead>
