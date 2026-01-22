@@ -43,7 +43,7 @@
       {% if geometries %}
       <div class="govuk-tabs__panel" id="map">
         <div
-          class="map-container"
+          class="app-map-container"
           id="map-container"
           data-geometries="{{ geometries | tojson | safe }}"
         ></div>
@@ -56,7 +56,7 @@
         id="dataset-table"
       >
         {% if table_params.rows %}
-        <div class="dl-table-scrollable-container">
+        <div class="app-scrollable-container app-scrollable">
           {{ table(table_params) }}
         </div>
         {% else %}

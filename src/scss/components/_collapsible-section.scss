@@ -1,7 +1,7 @@
 .expanding-line-break {
   position: relative;
 
-  .dl-collapsible__btn {
+  .app-collapsible__btn {
     border: 1px solid #bfc1c3;
     position: absolute;
     top: 50%;
@@ -14,13 +14,13 @@
     min-width: 50%;
     text-align: center;
 
-    .dl-collapsible__icon {
+    .app-collapsible__icon {
       padding-right: 10px;
     }
   }
 }
 
-.dl-collapsible {
+.app-collapsible {
   position: relative;
   overflow: hidden;
 
@@ -38,7 +38,7 @@
   }
 }
 
-.dl-collapsible.closing {
+.app-collapsible.closing {
   animation: closing-panel .3s alternate;
   animation-iteration-count: 1;
   overflow: hidden;
