@@ -23,7 +23,6 @@ from shapely.geometry import mapping
 import csv
 from io import StringIO
 
-
 # Load .env file
 load_dotenv()
 
@@ -242,7 +241,7 @@ def dashboard_add_import():
             try:
                 reader = csv.DictReader(StringIO(csv_data))
                 rows = list(reader)
-                
+
                 if not rows:
                     errors["csv_data"] = "No data found in CSV"
                 elif len(rows) > 1:
@@ -251,22 +250,26 @@ def dashboard_add_import():
                     parsed_data = rows[0]
                     # Validate required fields
                     required_fields = ["organisation", "pipelines", "endpoint-url"]
-                    missing = [f for f in required_fields if not parsed_data.get(f, "").strip()]
+                    missing = [
+                        f for f in required_fields if not parsed_data.get(f, "").strip()
+                    ]
                     if missing:
-                        errors["csv_data"] = f"Missing required fields: {', '.join(missing)}"
-                    
+                        errors["csv_data"] = (
+                            f"Missing required fields: {', '.join(missing)}"
+                        )
+
                     if not errors:
                         # Store in session for confirm page
                         session["import_csv_data"] = parsed_data
-                        return redirect(url_for("datamanager.dashboard_add_import_confirm"))
-                        
+                        return redirect(
+                            url_for("datamanager.dashboard_add_import_confirm")
+                        )
+
             except Exception as e:
                 errors["csv_data"] = f"Invalid CSV format: {str(e)}"
 
     return render_template(
-        "datamanager/dashboard_add_import.html",
-        csv_data=csv_data,
-        errors=errors
+        "datamanager/dashboard_add_import.html", csv_data=csv_data, errors=errors
     )
 
 
@@ -282,21 +285,22 @@ def dashboard_add_import_confirm():
 
     if request.method == "POST":
         # Redirect to dashboard_add with query params to pre-fill the form
-        return redirect(url_for(
-            "datamanager.dashboard_add",
-            import_data="true",
-            dataset=parsed_data.get("pipelines", ""),
-            organisation=parsed_data.get("organisation", ""),
-            endpoint_url=parsed_data.get("endpoint-url", ""),
-            documentation_url=parsed_data.get("documentation-url", ""),
-            start_date=parsed_data.get("start-date", ""),
-            plugin=parsed_data.get("plugin", ""),
-            licence=parsed_data.get("licence", "")
-        ))
+        return redirect(
+            url_for(
+                "datamanager.dashboard_add",
+                import_data="true",
+                dataset=parsed_data.get("pipelines", ""),
+                organisation=parsed_data.get("organisation", ""),
+                endpoint_url=parsed_data.get("endpoint-url", ""),
+                documentation_url=parsed_data.get("documentation-url", ""),
+                start_date=parsed_data.get("start-date", ""),
+                plugin=parsed_data.get("plugin", ""),
+                licence=parsed_data.get("licence", ""),
+            )
+        )
 
     return render_template(
-        "datamanager/dashboard_add_import_confirm.html",
-        data=parsed_data
+        "datamanager/dashboard_add_import_confirm.html", data=parsed_data
     )
 
 
@@ -369,12 +373,14 @@ def dashboard_add():
         # CSV contains dataset ID (e.g., "conservation-area-document")
         # but form needs dataset NAME (display name)
         csv_dataset_id = request.args.get("dataset", "")
-        dataset_input = dataset_id_to_name.get(csv_dataset_id, csv_dataset_id)  # convert ID to name
+        dataset_input = dataset_id_to_name.get(
+            csv_dataset_id, csv_dataset_id
+        )  # convert ID to name
         dataset_id = csv_dataset_id
         collection_id = name_to_collection_id.get(dataset_input)
-        
+
         org_value = request.args.get("organisation", "")  # e.g., "local-authority:FOE"
-        
+
         # Fetch org list for this dataset to convert org_value to display format
         org_display = org_value  # fallback
         if dataset_id:
@@ -403,7 +409,7 @@ def dashboard_add():
                         break
             except Exception as e:
                 logger.warning(f"Failed to fetch orgs for dataset {dataset_id}: {e}")
-        
+
         form = {
             "dataset": dataset_input,  # dataset NAME for display
             "organisation": org_display,
@@ -411,7 +417,7 @@ def dashboard_add():
             "documentation_url": request.args.get("documentation_url", ""),
             "licence": request.args.get("licence", ""),
         }
-        
+
         # Parse start_date if provided
         start_date = request.args.get("start_date", "")
         if start_date:
@@ -422,7 +428,7 @@ def dashboard_add():
                 form["start_year"] = str(dt.year)
             except Exception:
                 pass
-        
+
         # Clear import data from session
         session.pop("import_csv_data", None)
 

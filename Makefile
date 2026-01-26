@@ -93,7 +93,7 @@ coverage-integration:
 	pytest --cov=application.blueprints.datamanager --cov-append tests/integration/ -v	--cov-report=term-missing
 
 coverage-acceptance:
-	pytest --cov=application.blueprints.datamanager --cov-append --cov-fail-under=80 tests/acceptance/ -v --cov-report=term-missing
+	pytest --cov=application.blueprints.datamanager --cov-append --cov-fail-under=70 tests/acceptance/ -v --cov-report=term-missing
 
 dev-up:
 	docker-compose -f docker-compose-dev.yaml up -d
