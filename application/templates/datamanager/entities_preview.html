@@ -6,10 +6,10 @@
   <div class="govuk-grid-column-full">
     <h1 class="govuk-heading-l">Preview and Confirm</h1>
     <p class="govuk-body">
-      Review the summary of new and existing entities before confirming.
+      Review the summary of config data to be updated before confirming.
     </p>
 
-    <h2 class="govuk-heading-m">Summary</h2>
+    <h2 class="govuk-heading-m">Entity Summary</h2>
     <dl class="govuk-summary-list govuk-!-margin-bottom-9">
       <div class="govuk-summary-list__row">
         <dt class="govuk-summary-list__key">
@@ -29,22 +29,16 @@
     <section class="govuk-!-margin-bottom-9">
       <h2 class="govuk-heading-m">New entities ({{ new_count }})</h2>
       {% if table_params and table_params.rows %}
-      <div class="dl-table-scrollable-container">{{ table(table_params) }}</div>
+      <div class="app-scrollable-container app-scrollable">{{ table(table_params) }}</div>
       {% endif %}
-      <details
-        class="govuk-details govuk-!-margin-bottom-4"
-        data-module="govuk-details"
-      >
+      <details class="govuk-details govuk-!-margin-bottom-4" data-module="govuk-details">
         <summary class="govuk-details__summary">
-          <span class="govuk-details__summary-text"
-            >Copy CSV for <code>lookup.csv</code></span
-          >
+          <span class="govuk-details__summary-text">Copy CSV for <code>lookup.csv</code></span>
         </summary>
         <div class="govuk-details__text">
           {% set _ep_lines = (lookup_csv_text or '').splitlines() %}
           <textarea class="govuk-textarea" rows="6" readonly>
-{{ _ep_lines[0:] | join('\n') }}</textarea
-          >
+{{ _ep_lines[0:] | join('\n') }}</textarea>
           <p class="govuk-hint govuk-!-margin-top-2">
             Copy this line into your local <code>lookup.csv</code>.
           </p>
@@ -53,10 +47,12 @@
     </section>
     {% endif %}
 
+    {% if existing_count > 0 %}
+
     <section class="govuk-!-margin-bottom-9">
       <h2 class="govuk-heading-m">Existing entities ({{ existing_count }})</h2>
       {% if existing_table_params and existing_table_params.rows %}
-      <div class="dl-table-scrollable-container">
+      <div class="app-scrollable-container app-scrollable">
         {{ table(existing_table_params) }}
       </div>
       {% else %}
@@ -65,6 +61,8 @@
       </p>
       {% endif %}
     </section>
+
+    {% endif %}
 
     <section class="govuk-!-margin-bottom-9">
       <h2 class="govuk-heading-m">Endpoint Summary</h2>
@@ -83,6 +81,30 @@
         </div>
       </dl>
     </section>
+
+    {% if endpoint_csv_table_params %}
+    <section class="govuk-!-margin-bottom-9">
+      <h2 class="govuk-heading-m">endpoint.csv (canonical row)</h2>
+      <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
+        {{ table(endpoint_csv_table_params) }}
+      </div>
+      {% if endpoint_csv_text != '' %}
+      <details class="govuk-details govuk-!-margin-bottom-4" data-module="govuk-details">
+        <summary class="govuk-details__summary">
+          <span class="govuk-details__summary-text">Copy CSV for <code>endpoint.csv</code></span>
+        </summary>
+        <div class="govuk-details__text">
+          {% set _ep_lines = (endpoint_csv_text or '').splitlines() %}
+          <textarea class="govuk-textarea" rows="2" readonly>
+{{ _ep_lines[0:] | join('\n') }}</textarea>
+          <p class="govuk-hint govuk-!-margin-top-2">
+            Copy this line into your local <code>endpoint.csv</code>.
+          </p>
+        </div>
+      </details>
+      {% endif %}
+    </section>
+    {% endif %}
 
     {% if source_summary %}
     <section class="govuk-!-margin-bottom-9">
@@ -166,51 +188,16 @@
     </section>
     {% endif %}
 
-    {% if endpoint_csv_table_params %}
-    <section class="govuk-!-margin-bottom-9">
-      <h2 class="govuk-heading-m">endpoint.csv (canonical row)</h2>
-      <div class="dl-table-scrollable-container govuk-!-margin-bottom-2">
-        {{ table(endpoint_csv_table_params) }}
-      </div>
-      {% if endpoint_csv_text != '' %}
-      <details
-        class="govuk-details govuk-!-margin-bottom-4"
-        data-module="govuk-details"
-      >
-        <summary class="govuk-details__summary">
-          <span class="govuk-details__summary-text"
-            >Copy CSV for <code>endpoint.csv</code></span
-          >
-        </summary>
-        <div class="govuk-details__text">
-          {% set _ep_lines = (endpoint_csv_text or '').splitlines() %}
-          <textarea class="govuk-textarea" rows="2" readonly>
-{{ _ep_lines[0:] | join('\n') }}</textarea
-          >
-          <p class="govuk-hint govuk-!-margin-top-2">
-            Copy this line into your local <code>endpoint.csv</code>.
-          </p>
-        </div>
-      </details>
-      {% endif %}
-    </section>
-    {% endif %}
-
     {% if source_csv_table_params %}
     <section class="govuk-!-margin-bottom-9">
       <h2 class="govuk-heading-m">source.csv (canonical row)</h2>
-      <div class="dl-table-scrollable-container govuk-!-margin-bottom-2">
+      <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
         {{ table(source_csv_table_params) }}
       </div>
       {% if source_csv_text != '' %}
-      <details
-        class="govuk-details govuk-!-margin-bottom-4"
-        data-module="govuk-details"
-      >
+      <details class="govuk-details govuk-!-margin-bottom-4" data-module="govuk-details">
         <summary class="govuk-details__summary">
-          <span class="govuk-details__summary-text"
-            >Copy CSV for <code>source.csv</code></span
-          >
+          <span class="govuk-details__summary-text">Copy CSV for <code>source.csv</code></span>
         </summary>
         <div class="govuk-details__text">
           {# show CSV body only (drop header) #}
@@ -225,22 +212,13 @@
 
     <div class="govuk-button-group">
       <form method="get" action="{{ url_for('datamanager.index') }}">
-        <button
-          type="submit"
-          class="govuk-button"
-          disabled
-          aria-disabled="true"
-        >
-          Confirm and add data
+        <button type="submit" class="govuk-button" disabled aria-disabled="true">
+          Confirm and add data (Trigger GitHub Action)
         </button>
       </form>
 
       <form>
-        <a
-          href="{{ url_for('datamanager.index') }}"
-          class="govuk-button govuk-button--secondary"
-          >Go Back</a
-        >
+        <a href="{{ url_for('datamanager.index') }}" class="govuk-button govuk-button--secondary">Go Back</a>
       </form>
     </div>
   </div>

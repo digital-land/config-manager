@@ -26,7 +26,9 @@
     "govuk-frontend": "^5.9.0"
   },
   "devDependencies": {
+    "@planning-data/digital-land-frontend": "^0.7.0",
     "npm-run-all": "^4.1.5",
+    "nps": "^5.10.0",
     "standardx": "^7.0.0"
   },
   "engines": {

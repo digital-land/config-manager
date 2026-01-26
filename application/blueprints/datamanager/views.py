@@ -223,6 +223,83 @@ def dashboard_config():
     )
 
 
+@datamanager_bp.route("/dashboard/add/import", methods=["GET", "POST"])
+def dashboard_add_import():
+    """
+    Route to import endpoint configuration from CSV.
+    User pastes CSV data, confirms it, then redirects to dashboard_add with pre-filled form.
+    """
+    errors = {}
+    csv_data = ""
+    parsed_data = None
+
+    if request.method == "POST":
+        mode = request.form.get("mode", "").strip()
+        csv_data = request.form.get("csv_data", "").strip()
+
+        if mode == "parse":
+            # Parse the CSV
+            try:
+                reader = csv.DictReader(StringIO(csv_data))
+                rows = list(reader)
+                
+                if not rows:
+                    errors["csv_data"] = "No data found in CSV"
+                elif len(rows) > 1:
+                    errors["csv_data"] = "CSV should contain only one row of data"
+                else:
+                    parsed_data = rows[0]
+                    # Validate required fields
+                    required_fields = ["organisation", "pipelines", "endpoint-url"]
+                    missing = [f for f in required_fields if not parsed_data.get(f, "").strip()]
+                    if missing:
+                        errors["csv_data"] = f"Missing required fields: {', '.join(missing)}"
+                    
+                    if not errors:
+                        # Store in session for confirm page
+                        session["import_csv_data"] = parsed_data
+                        return redirect(url_for("datamanager.dashboard_add_import_confirm"))
+                        
+            except Exception as e:
+                errors["csv_data"] = f"Invalid CSV format: {str(e)}"
+
+    return render_template(
+        "datamanager/dashboard_add_import.html",
+        csv_data=csv_data,
+        errors=errors
+    )
+
+
+@datamanager_bp.route("/dashboard/add/import/confirm", methods=["GET", "POST"])
+def dashboard_add_import_confirm():
+    """
+    Confirmation page for imported CSV data.
+    Shows parsed data and allows user to proceed to dashboard_add.
+    """
+    parsed_data = session.get("import_csv_data")
+    if not parsed_data:
+        return redirect(url_for("datamanager.dashboard_add_import"))
+
+    if request.method == "POST":
+        # Redirect to dashboard_add with query params to pre-fill the form
+        return redirect(url_for(
+            "datamanager.dashboard_add",
+            import_data="true",
+            dataset=parsed_data.get("pipelines", ""),
+            organisation=parsed_data.get("organisation", ""),
+            endpoint_url=parsed_data.get("endpoint-url", ""),
+            documentation_url=parsed_data.get("documentation-url", ""),
+            start_date=parsed_data.get("start-date", ""),
+            plugin=parsed_data.get("plugin", ""),
+            licence=parsed_data.get("licence", "")
+        ))
+
+    return render_template(
+        "datamanager/dashboard_add_import_confirm.html",
+        data=parsed_data
+    )
+
+
 @datamanager_bp.route("/dashboard/add", methods=["GET", "POST"])
 def dashboard_add():
     planning_url = f"{planning_base_url}/dataset.json?_labels=on&_size=max"
@@ -240,9 +317,10 @@ def dashboard_add():
     datasets = [d for d in ds_response.get("datasets", []) if "collection" in d]
     dataset_options = sorted([d["name"] for d in datasets])
 
-    # 🔧 build BOTH maps
+    # 🔧 build BOTH maps (forward and reverse)
     name_to_dataset_id = {d["name"]: d["dataset"] for d in datasets}
     name_to_collection_id = {d["name"]: d["collection"] for d in datasets}
+    dataset_id_to_name = {d["dataset"]: d["name"] for d in datasets}  # reverse lookup
 
     # autocomplete dataset options
     if request.args.get("autocomplete"):
@@ -285,6 +363,68 @@ def dashboard_add():
     dataset_input = ""
     dataset_id = None
     collection_id = None
+
+    # Pre-fill form from imported CSV data if available
+    if request.args.get("import_data") == "true":
+        # CSV contains dataset ID (e.g., "conservation-area-document")
+        # but form needs dataset NAME (display name)
+        csv_dataset_id = request.args.get("dataset", "")
+        dataset_input = dataset_id_to_name.get(csv_dataset_id, csv_dataset_id)  # convert ID to name
+        dataset_id = csv_dataset_id
+        collection_id = name_to_collection_id.get(dataset_input)
+        
+        org_value = request.args.get("organisation", "")  # e.g., "local-authority:FOE"
+        
+        # Fetch org list for this dataset to convert org_value to display format
+        org_display = org_value  # fallback
+        if dataset_id:
+            provision_url = (
+                f"{base_provision_url}?_labels=on&_size=max&dataset={dataset_id}"
+            )
+            try:
+                provision_rows = (
+                    requests.get(
+                        provision_url,
+                        timeout=REQUESTS_TIMEOUT,
+                        headers={"User-Agent": "Planning Data - Manage"},
+                    )
+                    .json()
+                    .get("rows", [])
+                )
+                selected_orgs = [
+                    f"{row['organisation']['label']} ({row['organisation']['value'].split(':', 1)[1]})"
+                    for row in provision_rows
+                ]
+                # Find the matching org display string
+                for row in provision_rows:
+                    if row.get("organisation", {}).get("value") == org_value:
+                        code = row["organisation"]["value"].split(":", 1)[1]
+                        org_display = f"{row['organisation']['label']} ({code})"
+                        break
+            except Exception as e:
+                logger.warning(f"Failed to fetch orgs for dataset {dataset_id}: {e}")
+        
+        form = {
+            "dataset": dataset_input,  # dataset NAME for display
+            "organisation": org_display,
+            "endpoint_url": request.args.get("endpoint_url", ""),
+            "documentation_url": request.args.get("documentation_url", ""),
+            "licence": request.args.get("licence", ""),
+        }
+        
+        # Parse start_date if provided
+        start_date = request.args.get("start_date", "")
+        if start_date:
+            try:
+                dt = datetime.fromisoformat(start_date)
+                form["start_day"] = str(dt.day)
+                form["start_month"] = str(dt.month)
+                form["start_year"] = str(dt.year)
+            except Exception:
+                pass
+        
+        # Clear import data from session
+        session.pop("import_csv_data", None)
 
     if request.method == "POST":
         form = request.form.to_dict()

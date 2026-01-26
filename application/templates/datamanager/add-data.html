@@ -33,13 +33,6 @@
 
       <h1 class="govuk-heading-xl govuk-!-margin-bottom-4">More information required</h1>
 
-      {# red message box like in the mock #}
-      <div class="govuk-form-group">
-        <div style="border:6px solid #d4351c; padding:18px 22px; margin-bottom:26px;">
-          <p class="govuk-heading-m govuk-!-margin-0"><strong>Data can not be added</strong></p>
-        </div>
-      </div>
-
       {# Documentation URL (optional, .gov.uk/.org.uk if present) #}
       <div class="govuk-form-group {% if documentation_error %}govuk-form-group--error{% endif %}">
         {{ govukInput({
