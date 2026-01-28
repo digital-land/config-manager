@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch, Mock
 
-from application.blueprints.datamanager.views import (
+from application.blueprints.datamanager.utils import (
     get_spec_fields_union,
     read_raw_csv_preview,
     order_table_fields,
@@ -67,7 +67,9 @@ class TestDatamanagerViews:
     @patch("application.blueprints.datamanager.views.get_organisation_code_mapping")
     @patch("application.blueprints.datamanager.views.get_provision_orgs_for_dataset")
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_dashboard_add_get_orgs_for(self, mock_get, mock_provision, mock_org_mapping, client):
+    def test_dashboard_add_get_orgs_for(
+        self, mock_get, mock_provision, mock_org_mapping, client
+    ):
         """Test getting organizations for a dataset"""
         # Mock dataset response
         dataset_response = Mock()
@@ -197,7 +199,9 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.get_organisation_code_mapping")
     @patch("application.blueprints.datamanager.views.get_provision_orgs_for_dataset")
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_dashboard_add_provision_exception(self, mock_get, mock_provision, mock_org_mapping, client):
+    def test_dashboard_add_provision_exception(
+        self, mock_get, mock_provision, mock_org_mapping, client
+    ):
         """Test lines 139-141: provision_rows exception handling"""
         dataset_response = Mock()
         dataset_response.json.return_value = {
@@ -223,7 +227,9 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.get_organisation_code_mapping")
     @patch("application.blueprints.datamanager.views.get_provision_orgs_for_dataset")
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_dashboard_add_selected_orgs_list_comprehension(self, mock_get, mock_provision, mock_org_mapping, client):
+    def test_dashboard_add_selected_orgs_list_comprehension(
+        self, mock_get, mock_provision, mock_org_mapping, client
+    ):
         """Test line 166: selected_orgs list comprehension"""
         dataset_response = Mock()
         dataset_response.json.return_value = {
@@ -241,7 +247,7 @@ class TestSpecificLines:
         mock_provision.return_value = ["prefix:TEST1", "prefix:TEST2"]
         mock_org_mapping.return_value = {
             "prefix:TEST1": "Test Org 1",
-            "prefix:TEST2": "Test Org 2"
+            "prefix:TEST2": "Test Org 2",
         }
 
         response = client.get("/datamanager/add?get_orgs_for=test-dataset")
@@ -749,7 +755,13 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_dashboard_add_payload_creation_and_api_submission(
-        self, mock_endpoint, mock_get, mock_post, mock_provision, mock_org_mapping, client
+        self,
+        mock_endpoint,
+        mock_get,
+        mock_post,
+        mock_provision,
+        mock_org_mapping,
+        client,
     ):
         """Test lines 316-383: Payload creation, session management, and API submission"""
         mock_endpoint.return_value = "http://test-api"
@@ -840,7 +852,13 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_dashboard_add_api_error_handling(
-        self, mock_endpoint, mock_get, mock_post, mock_provision, mock_org_mapping, client
+        self,
+        mock_endpoint,
+        mock_get,
+        mock_post,
+        mock_provision,
+        mock_org_mapping,
+        client,
     ):
         """Test lines 373-383: API error handling for non-202 responses and exceptions"""
         mock_endpoint.return_value = "http://test-api"
@@ -887,7 +905,13 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_dashboard_add_api_json_decode_error(
-        self, mock_endpoint, mock_get, mock_post, mock_provision, mock_org_mapping, client
+        self,
+        mock_endpoint,
+        mock_get,
+        mock_post,
+        mock_provision,
+        mock_org_mapping,
+        client,
     ):
         """Test lines 373-383: API error handling when JSON decode fails"""
         mock_endpoint.return_value = "http://test-api"
@@ -932,7 +956,13 @@ class TestSpecificLines:
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_dashboard_add_network_exception(
-        self, mock_endpoint, mock_get, mock_post, mock_provision, mock_org_mapping, client
+        self,
+        mock_endpoint,
+        mock_get,
+        mock_post,
+        mock_provision,
+        mock_org_mapping,
+        client,
     ):
         """Test lines 373-383: Exception handling during API call"""
         mock_endpoint.return_value = "http://test-api"

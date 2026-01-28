@@ -31,13 +31,11 @@ from .utils import (
     fetch_all_response_details,
     get_organisation_code_mapping,
     get_provision_orgs_for_dataset,
-    get_spec_fields_union,
     handle_error,
     inject_now,
     order_table_fields,
     read_raw_csv_preview,
 )
-from .config import PROVISION_CSV_URL
 
 datamanager_bp = Blueprint("datamanager", __name__, url_prefix="/datamanager")
 logger = logging.getLogger(__name__)
@@ -59,6 +57,7 @@ def dashboard_config():
     return render_template(
         "datamanager/dashboard_config.html", datamanager={"name": "Dashboard"}
     )
+
 
 @datamanager_bp.route("/add/import", methods=["GET", "POST"])
 def dashboard_add_import():
@@ -437,9 +436,13 @@ def check_results(request_id):
             )
 
         result = response.json()
-        organisation = result.get("params", {}).get("organisationName", "Unknown organisation")
+        organisation = result.get("params", {}).get(
+            "organisationName", "Unknown organisation"
+        )
 
-        logger.info(f"Result status : {result.get('status')} for request_id: {request_id}")
+        logger.info(
+            f"Result status : {result.get('status')} for request_id: {request_id}"
+        )
 
         result.setdefault("params", {}).setdefault("organisation", organisation)
         logger.info(f"result: {result}")
@@ -911,18 +914,18 @@ def configure_column_mapping(request_id):
     r = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
     if r.status_code != 200:
         return render_template("error.html", message="Original request not found"), 404
-    
+
     req = r.json()
     params = req.get("params", {}) or {}
     organisation = params.get("organisationName", "Local Authority")
     dataset_id = params.get("dataset", "")
     print(organisation, dataset_id)
     source_url = params.get("url", "")
-    
+
     # 2) Get column-field-log to understand current mapping
     data_blob = (req.get("response") or {}).get("data") or {}
     column_field_log = data_blob.get("column-field-log", []) or []
-    
+
     # Build current mapping: column -> field
     mapping = {}
     for entry in column_field_log:
@@ -930,63 +933,69 @@ def configure_column_mapping(request_id):
         field = entry.get("field")
         if col and field:
             mapping[col] = field
-    
+
     # 3) Get only missing fields for dropdown options (where missing: true)
     spec_fields = [
-        entry.get("field") 
-        for entry in column_field_log 
+        entry.get("field")
+        for entry in column_field_log
         if entry.get("missing") is True and entry.get("field")
     ]
-    
+
     # 4) Get raw CSV headers and preview rows
     raw_headers, raw_rows = read_raw_csv_preview(source_url)
-    
+
     # Build raw table params for display at top
     raw_table_params = {
         "columns": raw_headers,
         "fields": raw_headers,
         "rows": [
-            {"columns": {raw_headers[i]: {"value": row[i]} for i in range(len(raw_headers))}}
+            {
+                "columns": {
+                    raw_headers[i]: {"value": row[i]} for i in range(len(raw_headers))
+                }
+            }
             for row in raw_rows
         ],
         "columnNameProcessing": "none",
     }
-    
+
     # 5) Build display rows for mapping interface
     display_rows = []
     for header in raw_headers:
         mapped_field = mapping.get(header, "")
-        display_rows.append({
-            "field": header,
-            "mapped_to": mapped_field,
-            "is_mapped": bool(mapped_field),
-        })
-    
+        display_rows.append(
+            {
+                "field": header,
+                "mapped_to": mapped_field,
+                "is_mapped": bool(mapped_field),
+            }
+        )
+
     # 6) Handle POST: user submitted new mappings
     if request.method == "POST":
         form = request.form.to_dict()
         new_mapping = {}
-        
+
         for header in raw_headers:
             chosen_spec = (form.get(f"map[{header}]") or "").strip()
             if chosen_spec and chosen_spec != "__NOT_MAPPED__":
                 new_mapping[header] = chosen_spec
-        
+
         # Store the column mapping in session (CSV format: column,field)
         # Use dataset:organisation as key since request_id changes
         column_mapping_csv = "column,field\n"
         for col, field in new_mapping.items():
             column_mapping_csv += f"{col},{field}\n"
-        
+
         session_key = f"{dataset_id}:{organisation}"
-        if not hasattr(session, 'column_mappings'):
-            session['column_mappings'] = {}
-        session['column_mappings'][session_key] = column_mapping_csv.strip()
+        if not hasattr(session, "column_mappings"):
+            session["column_mappings"] = {}
+        session["column_mappings"][session_key] = column_mapping_csv.strip()
         logger.info(f"Stored column mapping in session with key={session_key}")
-        
+
         # Get geom_type from form or fall back to params
         geom_type = (form.get("geom_type") or "").strip() or params.get("geom_type")
-        
+
         # Submit new check with updated mapping
         payload = {
             "params": {
@@ -1003,19 +1012,17 @@ def configure_column_mapping(request_id):
                 "organisationName": organisation,
             }
         }
-        
+
         logger.info("Re-check payload (configure):")
         logger.debug(json.dumps(payload, indent=2))
-        
+
         try:
             new_req = requests.post(
                 f"{async_api}/requests", json=payload, timeout=REQUESTS_TIMEOUT
             )
             if new_req.status_code == 202:
                 new_id = new_req.json()["id"]
-                return redirect(
-                    url_for("datamanager.check_results", request_id=new_id)
-                )
+                return redirect(url_for("datamanager.check_results", request_id=new_id))
             else:
                 detail = (
                     new_req.json()
@@ -1029,7 +1036,7 @@ def configure_column_mapping(request_id):
         except Exception as e:
             traceback.print_exc()
             return render_template("error.html", message=f"Backend error: {e}")
-    
+
     # 7) Render the configure page
     return render_template(
         "datamanager/configure.html",

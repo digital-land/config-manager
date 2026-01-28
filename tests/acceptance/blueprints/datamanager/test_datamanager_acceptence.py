@@ -42,15 +42,22 @@ class TestDatamanagerAcceptance:
             },
             status=200,
         )
-        
+
         # Mock GitHub provision CSV
         responses.add(
             responses.GET,
-            "https://raw.githubusercontent.com/digital-land/specification/refs/heads/main/specification/provision.csv",
-            body="dataset,organisation-entity,provision-reason,provision-date,notes\nbrownfield-land,local-authority-eng:TEST,expected,2024-01-01,Test provision",
+            (
+                "https://raw.githubusercontent.com/digital-land/specification/"
+                "refs/heads/main/specification/provision.csv"
+            ),
+            body=(
+                "dataset,organisation-entity,provision-reason,provision-date,notes\n"
+                "brownfield-land,local-authority-eng:TEST,expected,2024-01-01,"
+                "Test provision"
+            ),
             status=200,
         )
-        
+
         # Mock organisation.json endpoint
         responses.add(
             responses.GET,
@@ -298,7 +305,7 @@ class TestDatamanagerAcceptance:
             response = client.get("/datamanager/check-results/test-id")
             assert response.status_code == 200
 
-    @patch("application.blueprints.datamanager.views.get_spec_fields_union")
+    @patch("application.blueprints.datamanager.utils.get_spec_fields_union")
     @patch("application.blueprints.datamanager.views.read_raw_csv_preview")
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.requests.get")

@@ -1,6 +1,5 @@
 import csv
 import logging
-import os
 from datetime import datetime
 from io import StringIO
 
@@ -35,8 +34,8 @@ def get_provision_orgs_for_dataset(dataset_id: str) -> list:
         orgs = []
         seen = set()
         for row in reader:
-            if row.get('dataset') == dataset_id:
-                org_code = row.get('organisation', '')
+            if row.get("dataset") == dataset_id:
+                org_code = row.get("organisation", "")
                 if org_code and org_code not in seen:
                     orgs.append(org_code)
                     seen.add(org_code)
@@ -58,18 +57,18 @@ def get_organisation_code_mapping() -> dict:
         # Fetch with objects shape - returns list of dicts with column names as keys
         # Use _size=max to get all records in one request
         url = f"{DATASETTE_BASE_URL}/organisation.json?_shape=objects&_size=max"
-        
+
         page_count = 0
         while url:
             page_count += 1
-            
+
             response = requests.get(url, timeout=REQUESTS_TIMEOUT)
             response.raise_for_status()
             data = response.json()
-            
+
             # Extract rows from the response
             rows = data.get("rows", []) if isinstance(data, dict) else data
-            
+
             # Build the mapping from the list of dictionaries
             for row in rows:
                 if isinstance(row, dict):
@@ -77,19 +76,21 @@ def get_organisation_code_mapping() -> dict:
                     name = row.get("name")
                     if code and name:
                         org_mapping[code] = name
-            
+
             # Check for next page
             url = data.get("next_url") if isinstance(data, dict) else None
             if url:
                 # Make relative URLs absolute
                 if url.startswith("/"):
                     url = f"{DATASETTE_BASE_URL.rstrip('/')}{url}"
-        
-        logger.info(f"Built organisation mapping with {len(org_mapping)} entries from {page_count} page(s)")
-        
+
+        logger.info(
+            f"Built organisation mapping with {len(org_mapping)} entries from {page_count} page(s)"
+        )
+
     except Exception as e:
         logger.error(f"Failed to fetch organisation mapping: {e}", exc_info=True)
-    
+
     return org_mapping
 
 
@@ -254,7 +255,6 @@ def read_raw_csv_preview(source_url: str, max_rows: int = 50):
     return headers_, rows
 
 
-
 def build_lookup_csv_preview(new_entities: list) -> tuple:
     """
     Build lookup CSV preview for new entities.
@@ -311,7 +311,7 @@ def build_endpoint_csv_preview(endpoint_summary: dict) -> tuple:
         "Yes" if endpoint_summary.get("endpoint_url_in_endpoint_csv") is True else "No"
     )
     logger.info(f"Endpoint already exists: {endpoint_already_exists}")
-    
+
     endpoint_csv_text = ""
     if endpoint_summary.get("endpoint_url_in_endpoint_csv"):
         end_point_entry = endpoint_summary.get("existing_endpoint_entry", {})
@@ -320,7 +320,7 @@ def build_endpoint_csv_preview(endpoint_summary: dict) -> tuple:
         end_point_entry = endpoint_summary.get("new_endpoint_entry", {})
         endpoint_url = end_point_entry.get("endpoint-url", "")
         endpoint_csv_text = ",".join([end_point_entry.get(col, "") for col in ep_cols])
-    
+
     ep_row = [str(end_point_entry.get(col, "") or "") for col in ep_cols]
     endpoint_csv_table_params = {
         "columns": ep_cols,
@@ -329,7 +329,12 @@ def build_endpoint_csv_preview(endpoint_summary: dict) -> tuple:
         "columnNameProcessing": "none",
     }
 
-    return endpoint_already_exists, endpoint_url, endpoint_csv_table_params, endpoint_csv_text
+    return (
+        endpoint_already_exists,
+        endpoint_url,
+        endpoint_csv_table_params,
+        endpoint_csv_text,
+    )
 
 
 def build_source_csv_preview(source_summary_data: dict) -> tuple:
@@ -350,10 +355,10 @@ def build_source_csv_preview(source_summary_data: dict) -> tuple:
         "start-date",
         "end-date",
     ]
-    
+
     source_present = source_summary_data.get("documentation_url_in_source_csv")
     will_create_source_text = "No" if source_present else "Yes"
-    
+
     source_csv_text = ""
     if not source_present:
         src_source = source_summary_data.get("new_source_entry", {})
@@ -374,9 +379,9 @@ def build_source_csv_preview(source_summary_data: dict) -> tuple:
             "rows": [{"columns": {c: {"value": v} for c, v in zip(src_cols, src_row)}}],
             "columnNameProcessing": "none",
         }
-    
+
     logger.info(f"Will create source: {will_create_source_text}")
-    
+
     # Build summary panel model (like Endpoint Summary)
     source_summary = {
         "will_create": will_create_source_text,
@@ -464,11 +469,7 @@ def build_column_csv_preview(
                 "columns": col_csv_cols,
                 "fields": col_csv_cols,
                 "rows": [
-                    {
-                        "columns": {
-                            c: {"value": row.get(c, "")} for c in col_csv_cols
-                        }
-                    }
+                    {"columns": {c: {"value": row.get(c, "")} for c in col_csv_cols}}
                     for row in col_csv_rows
                 ],
                 "columnNameProcessing": "none",
