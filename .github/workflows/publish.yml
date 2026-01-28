@@ -51,6 +51,8 @@ jobs:
           aws-region: eu-west-2
 
       - uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: true
 
       - run: docker pull $DOCKER_REPO:main || echo "no current latest image"
 

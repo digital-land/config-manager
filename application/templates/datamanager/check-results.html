@@ -42,19 +42,12 @@
       <!-- Map Tab -->
       {% if geometries %}
       <div class="govuk-tabs__panel" id="map">
-        <div
-          class="app-map-container"
-          id="map-container"
-          data-geometries="{{ geometries | tojson | safe }}"
-        ></div>
+        <div class="app-map-container" id="map-container" data-geometries="{{ geometries | tojson | safe }}"></div>
       </div>
       {% endif %}
 
       <!-- Dataset table -->
-      <div
-        class="govuk-tabs__panel govuk-tabs__panel--hidden"
-        id="dataset-table"
-      >
+      <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="dataset-table">
         {% if table_params.rows %}
         <div class="app-scrollable-container app-scrollable">
           {{ table(table_params) }}
@@ -92,10 +85,7 @@
             {% for check in passed_checks %}
             <li class="govuk-task-list__item govuk-task-list__item--with-link">
               <div class="govuk-task-list__name-and-hint">{{ check }}</div>
-              <div
-                class="govuk-task-list__status"
-                id="before-you-start-1-status"
-              >
+              <div class="govuk-task-list__status" id="before-you-start-1-status">
                 <strong class="govuk-tag govuk-tag--green"> Passed </strong>
               </div>
             </li>
@@ -141,30 +131,20 @@
         <!-- Buttons -->
         <div class="govuk-button-group govuk-!-margin-top-6 right-side-buttons">
           {% if allow_add_data %}
-          <form
-            method="get"
-            action="{{ url_for('datamanager.add_data', request_id=result.id) }}"
-          >
+          <form method="get" action="{{ url_for('datamanager.add_data', request_id=result.id) }}">
             <button type="submit" class="govuk-button">Add data</button>
           </form>
           <form>
-            <a
-              href="{{ url_for('datamanager.index') }}"
-              class="govuk-button govuk-button--secondary"
-              >Configure data</a
-            >
+            <a href="{{ url_for('datamanager.index') }}" class="govuk-button govuk-button--secondary">Configure data</a>
           </form>
           {% else %}
-          <button
-            class="govuk-button govuk-button--secondary"
-            disabled
-            aria-disabled="true"
-          >
+          <button class="govuk-button govuk-button--secondary" disabled aria-disabled="true">
             Add data
           </button>
-          <a href="{{ url_for('datamanager.index') }}" class="govuk-button"
-            >Configure data</a
-          >
+          {% if must_fix|length > 0 %}
+          <a href="{{ url_for('datamanager.configure_column_mapping', request_id=request_id) }}"
+            class="govuk-button">Column mapping</a>
+          {% endif %}
           {% endif %}
         </div>
       </div>
@@ -178,7 +158,7 @@ super() }} {% if geometries %}
   window.serverContext = {
     containerId: "map-container",
     geometries: {{ geometries | tojson | safe }},
-    boundaryGeoJsonUrl: {{ boundary_geojson_url | tojson | safe if boundary_geojson_url else 'null' }}
+  boundaryGeoJsonUrl: { { boundary_geojson_url | tojson | safe if boundary_geojson_url else 'null' } }
   };
   console.log('serverContext set:', window.serverContext);
 </script>

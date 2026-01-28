@@ -83,17 +83,13 @@
         </fieldset>
       </div>
 
-      {# Licence select #}
+      {# Licence input #}
       <div class="govuk-form-group">
-        {{ govukSelect({
+        {{ govukInput({
         'id': 'licence',
         'name': 'licence',
         'label': { 'text': 'Data is provided under which licence?', 'classes': 'govuk-label--m' },
-        'items': [
-        { 'value': '', 'text': 'e.g OGL' },
-        { 'value': 'ogl', 'text': 'OGL' },
-        { 'value': 'cc-by', 'text': 'CC-BY' }
-        ],
+        'hint': { 'text': 'e.g. OGL, CC-BY' },
         'value': form.get('licence', '')
         }) }}
       </div>

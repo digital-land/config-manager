@@ -42,9 +42,32 @@ class TestDatamanagerAcceptance:
             },
             status=200,
         )
+        
+        # Mock GitHub provision CSV
+        responses.add(
+            responses.GET,
+            "https://raw.githubusercontent.com/digital-land/specification/refs/heads/main/specification/provision.csv",
+            body="dataset,organisation-entity,provision-reason,provision-date,notes\nbrownfield-land,local-authority-eng:TEST,expected,2024-01-01,Test provision",
+            status=200,
+        )
+        
+        # Mock organisation.json endpoint
+        responses.add(
+            responses.GET,
+            "https://datasette.planning.data.gov.uk/digital-land/organisation.json?_shape=objects&_size=max",
+            json={
+                "rows": [
+                    {
+                        "organisation": "local-authority-eng:TEST",
+                        "name": "Test Council",
+                    }
+                ]
+            },
+            status=200,
+        )
 
         # Step 1: Access dashboard
-        response = client.get("/datamanager/dashboard/add")
+        response = client.get("/datamanager/add")
         assert response.status_code == 200
 
         # Step 2: Submit form data
@@ -57,7 +80,7 @@ class TestDatamanagerAcceptance:
             form_data = {
                 "mode": "final",
                 "dataset": "brownfield-land",
-                "organisation": "Test Council (TEST)",
+                "organisation": "Test Council (local-authority-eng:TEST)",
                 "endpoint_url": "https://example.com/data.csv",
                 "documentation_url": "https://example.gov.uk/docs",
                 "licence": "ogl",
@@ -66,7 +89,7 @@ class TestDatamanagerAcceptance:
                 "start_year": "2024",
             }
 
-            response = client.post("/datamanager/dashboard/add", data=form_data)
+            response = client.post("/datamanager/add", data=form_data)
             assert response.status_code == 302
             assert "/check-results/test-request-123" in response.location
 
@@ -180,7 +203,7 @@ class TestDatamanagerAcceptance:
                 "endpoint_url": "invalid-url",  # Invalid URL
             }
 
-            response = client.post("/datamanager/dashboard/add", data=form_data)
+            response = client.post("/datamanager/add", data=form_data)
             assert response.status_code == 200  # Returns form with errors
 
     def test_loading_states_workflow(self, client):
@@ -316,13 +339,12 @@ class TestDatamanagerAcceptance:
         mock_post.return_value = post_response
 
         form_data = {
-            "map_raw[raw_field1]": "spec_field1",
-            "map_raw[raw_field2]": "__NOT_MAPPED__",
-            "map_spec_to_spec[required_field]": "spec_field1",
+            "map[raw_field1]": "required_field",
+            "map[raw_field2]": "__NOT_MAPPED__",
             "geom_type": "point",
         }
 
-        response = client.post("/datamanager/configure/test-id", data=form_data)
+        response = client.post("/datamanager/configure-columns/test-id", data=form_data)
         assert response.status_code == 302
 
         # Verify POST was called with correct mapping

@@ -210,6 +210,28 @@
     </section>
     {% endif %}
 
+    {% if has_column_mapping and column_csv_table_params %}
+    <section class="govuk-!-margin-bottom-9">
+      <h2 class="govuk-heading-m">column.csv (new mappings)</h2>
+      <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
+        {{ table(column_csv_table_params) }}
+      </div>
+      {% if column_csv_text != '' %}
+      <details class="govuk-details govuk-!-margin-bottom-4" data-module="govuk-details">
+        <summary class="govuk-details__summary">
+          <span class="govuk-details__summary-text">Copy CSV for <code>column.csv</code></span>
+        </summary>
+        <div class="govuk-details__text">
+          {# show CSV body only (drop header) #}
+          {% set _col_lines = (column_csv_text or '').splitlines() %}
+          <textarea class="govuk-textarea" rows="{{ _col_lines[1:] | length }}" readonly>{{ _col_lines[1:] | join('\n') }}</textarea>
+          <p class="govuk-hint govuk-!-margin-top-2">Copy these lines into your local <code>column.csv</code>.</p>
+        </div>
+      </details>
+      {% endif %}
+    </section>
+    {% endif %}
+
     <div class="govuk-button-group">
       <form method="get" action="{{ url_for('datamanager.index') }}">
         <button type="submit" class="govuk-button" disabled aria-disabled="true">

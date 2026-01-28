@@ -128,15 +128,11 @@ endblock %}
       </div>
 
       <!-- Licence -->
-      {{ govukSelect({
+      {{ govukInput({
       'id': 'licence',
       'name': 'licence',
       'label': { 'text': 'Data is provided under which licence?' },
-      'items': [
-      { 'value': '', 'text': 'e.g OGL' },
-      { 'value': 'ogl', 'text': 'OGL' },
-      { 'value': 'cc-by', 'text': 'CC-BY' }
-      ],
+      'hint': { 'text': 'e.g. OGL, CC-BY' },
       'value': form.get('licence', '')
       }) }}
 

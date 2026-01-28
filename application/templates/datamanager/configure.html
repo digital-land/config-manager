@@ -1,0 +1,96 @@
+{% extends 'layouts/base.html' %}
+{% from "components/table.html" import table %}
+{% from "govuk_frontend_jinja/components/select/macro.html" import govukSelect %}
+{% from "govuk_frontend_jinja/components/button/macro.html" import govukButton %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <span class="govuk-caption-xl">{{ organisation }}</span>
+    <h1 class="govuk-heading-xl">{{ dataset | title }}</h1>
+    <h2 class="govuk-heading-m">Column mapping</h2>
+    <p class="govuk-body">
+      Map the columns from your CSV file to the required specification fields.
+    </p>
+  </div>
+</div>
+
+<div class="govuk-grid-row govuk-!-margin-top-6">
+  <div class="govuk-grid-column-full">
+    <!-- Tabs for Raw CSV and Transformed Preview -->
+    <div class="govuk-tabs" data-module="govuk-tabs">
+      <ul class="govuk-tabs__list">
+        <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
+          <a class="govuk-tabs__tab" href="#raw-csv">Input CSV</a>
+        </li>
+      </ul>
+
+      <!-- Raw CSV Tab -->
+      <div class="govuk-tabs__panel" id="raw-csv">
+        {% if raw_table_params and raw_table_params.rows %}
+        <div class="app-scrollable-container app-scrollable">
+          {{ table(raw_table_params) }}
+        </div>
+        {% else %}
+        <p class="govuk-body">No raw data available</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mapping Form -->
+<div class="govuk-grid-row govuk-!-margin-top-6">
+  <div class="govuk-grid-column-full">
+    <form method="post" action="{{ url_for('datamanager.configure_column_mapping', request_id=request_id) }}">
+      
+      <h2 class="govuk-heading-m">Field mappings</h2>
+      <p class="govuk-body">Map each CSV column to a specification field.</p>
+
+      <table class="govuk-table">
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th scope="col" class="govuk-table__header">CSV Column (Field)</th>
+            <th scope="col" class="govuk-table__header">Map to</th>
+            <th scope="col" class="govuk-table__header">Status</th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for row in rows %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell">
+              <strong>{{ row.field }}</strong>
+            </td>
+            <td class="govuk-table__cell">
+              <select class="govuk-select" name="map[{{ row.field }}]">
+                <option value="__NOT_MAPPED__" {% if not row.mapped_to %}selected{% endif %}>Not mapped</option>
+                {% for opt in spec_options %}
+                <option value="{{ opt }}" {% if row.mapped_to == opt %}selected{% endif %}>{{ opt }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td class="govuk-table__cell">
+              {% if row.is_mapped %}
+              <strong class="govuk-tag govuk-tag--green">Mapped</strong>
+              {% else %}
+              <strong class="govuk-tag govuk-tag--grey">Unmapped</strong>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Submit Button -->
+      <div class="govuk-button-group govuk-!-margin-top-6">
+        {{ govukButton({
+          'text': 'Re-check with mappings'
+        }) }}
+        <a href="{{ url_for('datamanager.check_results', request_id=request_id) }}" class="govuk-link">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

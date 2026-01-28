@@ -4,9 +4,10 @@ import os
 import re
 import traceback
 from datetime import datetime
-from dotenv import load_dotenv
+from io import StringIO
 
 import requests
+import csv
 from flask import (
     Blueprint,
     jsonify,
@@ -20,193 +21,31 @@ from flask import (
 from application.utils import get_request_api_endpoint
 from shapely import wkt
 from shapely.geometry import mapping
-import csv
-from io import StringIO
 
-# Load .env file
-load_dotenv()
+from .utils import (
+    REQUESTS_TIMEOUT,
+    build_column_csv_preview,
+    build_endpoint_csv_preview,
+    build_lookup_csv_preview,
+    build_source_csv_preview,
+    fetch_all_response_details,
+    get_organisation_code_mapping,
+    get_provision_orgs_for_dataset,
+    get_spec_fields_union,
+    handle_error,
+    inject_now,
+    order_table_fields,
+    read_raw_csv_preview,
+)
+from .config import PROVISION_CSV_URL
 
 datamanager_bp = Blueprint("datamanager", __name__, url_prefix="/datamanager")
 logger = logging.getLogger(__name__)
 headers = {"Content-Type": "application/json", "Accept": "application/json"}
 planning_base_url = os.getenv("PLANNING_URL", "https://www.planning.data.gov.uk")
-datasette_base_url = os.getenv(
-    "DATASETTE_BASE_URL", "https://datasette.planning.data.gov.uk/digital-land"
-)
 
-REQUESTS_TIMEOUT = 20  # seconds
-
-
-@datamanager_bp.errorhandler(Exception)
-def handle_error(e):
-    logger.exception(f"Error: {e}")
-    return render_template("datamanager/error.html", message=str(e)), 500
-
-
-# put this near the top, replacing your current get_spec_fields_from_datasette
-def get_spec_fields_union(dataset_id):
-    """
-    Return the union of:
-      - global field list (all datasets)
-      - dataset-scoped field list (if dataset_id is provided)
-    Keep original casing; de-duplicate exact strings; stable order.
-    """
-    base = (f"{datasette_base_url}/dataset_field.json",)
-    headers = {"Accept": "application/json", "User-Agent": "Planning Data - Manage"}
-
-    def _fetch(url):
-        try:
-            r = requests.get(url, timeout=REQUESTS_TIMEOUT, headers=headers)
-            r.raise_for_status()
-            rows = r.json() or []
-            return [
-                (row.get("field") or "").strip() for row in rows if row.get("field")
-            ]
-        except Exception as e:
-            logger.warning(f"dataset_field fetch failed: {e} for {url}")
-            return []
-
-    # global list (all datasets)
-    global_fields = _fetch(f"{base}?_shape=array")
-
-    # dataset-filtered list (e.g. camel-case BFL items)
-    dataset_fields = (
-        _fetch(f"{base}?_shape=array&dataset={dataset_id}") if dataset_id else []
-    )
-
-    # union, preserve first-seen order, exact-string dedupe
-    seen, out = set(), []
-    for f in global_fields + dataset_fields:
-        if f and f not in seen:
-            seen.add(f)
-            out.append(f)
-
-    # optional: sort by lowercase while preserving casing (comment out if you prefer raw order)
-    out.sort(key=lambda x: x.lower())
-    return out
-
-
-def order_table_fields(all_fields):
-    leading = []
-    trailing = []
-
-    for field in all_fields:
-        if field.lower() == "reference":
-            # Insert at the beginning (splice(0, 0, field) equivalent)
-            leading.insert(0, field)
-        elif field.lower() == "name":
-            # Append to leading
-            leading.append(field)
-        else:
-            # All other fields go to trailing
-            trailing.append(field)
-
-    # Combine leading and trailing
-    ordered_fields = leading + trailing
-
-    return ordered_fields
-
-
-def fetch_all_response_details(
-    async_api: str, request_id: str, limit: int = 50
-) -> list:
-    """
-    Fetch all response details with multiple calls using the specified limit.
-    Similar to the pattern used in submit repository.
-    """
-    all_details = []
-    offset = 0
-    logger.info(
-        f"Fetching response details - API: {async_api}, Request ID: {request_id}"
-    )
-
-    while True:
-        try:
-            url = f"{async_api}/requests/{request_id}/response-details"
-            params = {"offset": offset, "limit": limit}
-            logger.debug(f"Fetching batch - URL: {url}, Params: {params}")
-
-            response = requests.get(url, params=params, timeout=REQUESTS_TIMEOUT)
-            content_length = getattr(response, "content", None)
-            content_length = (
-                len(content_length) if content_length is not None else "N/A"
-            )
-            logger.info(
-                f"Batch response - Status: {response.status_code}, Content-Length: {content_length}"
-            )
-
-            response.raise_for_status()
-            batch = response.json() or []
-            logger.info(f"Batch parsed - Items: {len(batch)}")
-
-            if not batch:
-                logger.info("No more batches available")
-                break
-
-            # Log sample of first batch for debugging
-            if offset == 0 and batch:
-                logger.info(
-                    f"First batch sample - Item keys: {list(batch[0].keys()) if batch[0] else 'Empty item'}"
-                )
-                if batch[0] and "converted_row" in batch[0]:
-                    converted_sample = batch[0]["converted_row"]
-                    if converted_sample:
-                        logger.info(
-                            f"First converted_row sample: {dict(list(converted_sample.items())[:3])}"
-                        )
-                    else:
-                        logger.info("Empty converted_row")
-
-            all_details.extend(batch)
-
-            if len(batch) < limit:
-                logger.info(f"Last batch received - Total items: {len(all_details)}")
-                break
-
-            offset += limit
-
-        except Exception as e:
-            logger.error(f"Failed to fetch batch at offset {offset}: {e}")
-            logger.error(f"Response status: {getattr(response, 'status_code', 'N/A')}")
-            response_text = getattr(response, "text", "N/A")
-            if hasattr(response_text, "__getitem__"):
-                logger.error(f"Response text: {response_text[:500]}")
-            else:
-                logger.error(f"Response text: {response_text}")
-            break
-
-    logger.info(f"Total response details fetched: {len(all_details)}")
-    return all_details
-
-
-def read_raw_csv_preview(source_url: str, max_rows: int = 50):
-    """
-    Fetch the CSV at source_url and return (headers, first N rows).
-    """
-    headers_, rows = [], []
-    if not source_url:
-        return headers_, rows
-    try:
-        resp = requests.get(source_url, timeout=REQUESTS_TIMEOUT)
-        text = resp.content.decode("utf-8", errors="ignore")
-        reader = csv.reader(StringIO(text))
-        first = next(reader, None)
-        if first is None:
-            return headers_, rows
-        headers_ = [h.strip().lstrip("\ufeff") for h in first if h is not None]
-        for i, r in enumerate(reader):
-            if i >= max_rows:
-                break
-            vals = (r + [""] * len(headers_))[: len(headers_)]
-            rows.append(vals)
-    except Exception as e:
-        logger.warning(f"Could not fetch/parse CSV preview: {e}")
-    return headers_, rows
-
-
-@datamanager_bp.context_processor
-def inject_now():
-    return {"now": datetime}
+datamanager_bp.errorhandler(Exception)(handle_error)
+datamanager_bp.context_processor(inject_now)
 
 
 @datamanager_bp.route("/")
@@ -214,18 +53,17 @@ def index():
     return render_template("datamanager/index.html", datamanager={"name": "Dashboard"})
 
 
-@datamanager_bp.route("/dashboard/config", methods=["GET"])
+@datamanager_bp.route("/config", methods=["GET"])
 def dashboard_config():
     # you can pass any context you like here
     return render_template(
         "datamanager/dashboard_config.html", datamanager={"name": "Dashboard"}
     )
 
-
-@datamanager_bp.route("/dashboard/add/import", methods=["GET", "POST"])
+@datamanager_bp.route("/add/import", methods=["GET", "POST"])
 def dashboard_add_import():
     """
-    Route to import endpoint configuration from CSV.
+    Route to import endpoint configuration from CSV. (usually created by provide service)
     User pastes CSV data, confirms it, then redirects to dashboard_add with pre-filled form.
     """
     errors = {}
@@ -273,7 +111,7 @@ def dashboard_add_import():
     )
 
 
-@datamanager_bp.route("/dashboard/add/import/confirm", methods=["GET", "POST"])
+@datamanager_bp.route("/add/import/confirm", methods=["GET", "POST"])
 def dashboard_add_import_confirm():
     """
     Confirmation page for imported CSV data.
@@ -304,7 +142,7 @@ def dashboard_add_import_confirm():
     )
 
 
-@datamanager_bp.route("/dashboard/add", methods=["GET", "POST"])
+@datamanager_bp.route("/add", methods=["GET", "POST"])
 def dashboard_add():
     planning_url = f"{planning_base_url}/dataset.json?_labels=on&_size=max"
     try:
@@ -332,7 +170,6 @@ def dashboard_add():
         matches = [name for name in dataset_options if query in name.lower()]
         return jsonify(matches[:10])
 
-    base_provision_url = f"{datasette_base_url}/provision.json"
     # fetch orgs for a dataset name (for UI suggestions)
     if request.args.get("get_orgs_for"):
         dataset_name = request.args["get_orgs_for"]
@@ -340,25 +177,16 @@ def dashboard_add():
         if not dataset_id:
             return jsonify([])
 
-        provision_url = (
-            f"{base_provision_url}?_labels=on&_size=max&dataset={dataset_id}"
-        )
         try:
-            provision_rows = (
-                requests.get(
-                    provision_url,
-                    timeout=REQUESTS_TIMEOUT,
-                    headers={"User-Agent": "Planning Data - Manage"},
-                )
-                .json()
-                .get("rows", [])
-            )
-        except Exception:
-            provision_rows = []
-        selected_orgs = [
-            f"{row['organisation']['label']} ({row['organisation']['value'].split(':', 1)[1]})"
-            for row in provision_rows
-        ]
+            org_codes = get_provision_orgs_for_dataset(dataset_id)
+            org_code_mapping = get_organisation_code_mapping()
+            # Format codes with names for display: "Name (CODE)"
+            selected_orgs = [
+                f"{org_code_mapping.get(code, code)} ({code})" for code in org_codes
+            ]
+        except Exception as e:
+            logger.error(f"Failed to fetch organisations: {e}")
+            return jsonify([])
         return jsonify(selected_orgs)
 
     form = {}
@@ -384,31 +212,15 @@ def dashboard_add():
         # Fetch org list for this dataset to convert org_value to display format
         org_display = org_value  # fallback
         if dataset_id:
-            provision_url = (
-                f"{base_provision_url}?_labels=on&_size=max&dataset={dataset_id}"
-            )
-            try:
-                provision_rows = (
-                    requests.get(
-                        provision_url,
-                        timeout=REQUESTS_TIMEOUT,
-                        headers={"User-Agent": "Planning Data - Manage"},
-                    )
-                    .json()
-                    .get("rows", [])
-                )
-                selected_orgs = [
-                    f"{row['organisation']['label']} ({row['organisation']['value'].split(':', 1)[1]})"
-                    for row in provision_rows
-                ]
-                # Find the matching org display string
-                for row in provision_rows:
-                    if row.get("organisation", {}).get("value") == org_value:
-                        code = row["organisation"]["value"].split(":", 1)[1]
-                        org_display = f"{row['organisation']['label']} ({code})"
-                        break
-            except Exception as e:
-                logger.warning(f"Failed to fetch orgs for dataset {dataset_id}: {e}")
+            org_codes = get_provision_orgs_for_dataset(dataset_id)
+            org_code_mapping = get_organisation_code_mapping()
+            # Format codes with names for display: "Name (CODE)"
+            selected_orgs = [
+                f"{org_code_mapping.get(code, code)} ({code})" for code in org_codes
+            ]
+            # If org_value is a code, look up its display name
+            if org_value in org_code_mapping:
+                org_display = f"{org_code_mapping[org_value]} ({org_value})"
 
         form = {
             "dataset": dataset_input,  # dataset NAME for display
@@ -453,37 +265,17 @@ def dashboard_add():
             column_mapping = {}
 
         # Preload org list + build a reverse map we'll use on submit
-        org_label_to_value = {}
+        org_codes = []
+        org_code_mapping = {}
         if dataset_id:
-            provision_url = (
-                f"{base_provision_url}?_labels=on&_size=max&dataset={dataset_id}"
-            )
-            try:
-                provision_rows = (
-                    requests.get(
-                        provision_url,
-                        timeout=REQUESTS_TIMEOUT,
-                        headers={"User-Agent": "Planning Data - Manage"},
-                    )
-                    .json()
-                    .get("rows", [])
-                )
-            except Exception:
-                provision_rows = []
+            org_codes = get_provision_orgs_for_dataset(dataset_id)
+            org_code_mapping = get_organisation_code_mapping()
+            # Format codes with names for display: "Name (CODE)"
             selected_orgs = [
-                f"{row['organisation']['label']} ({row['organisation']['value'].split(':', 1)[1]})"
-                for row in provision_rows
+                f"{org_code_mapping.get(code, code)} ({code})" for code in org_codes
             ]
-            # 🔑 map "Label (CODE)" -> "prefix:CODE"
-            org_label_to_value = {
-                f"{row['organisation']['label']} ({row['organisation']['value'].split(':', 1)[1]})": row[
-                    "organisation"
-                ][
-                    "value"
-                ]
-                for row in provision_rows
-                if row.get("organisation", {}).get("value")
-            }
+        else:
+            selected_orgs = []
 
         if mode == "final":
             # what the user submitted from the select/input
@@ -514,20 +306,14 @@ def dashboard_add():
 
             org_warning = form.get("org_warning", "false") == "true"
 
-            # resolve to real entity ref (prefix:CODE) using our map
-            org_value = org_label_to_value.get(org_input)
-
-            # Fallback: guess prefix from dataset + code in parentheses
-            if not org_value:
-                m = re.search(r"\(([^)]+)\)$", org_input)
-                code = m.group(1).strip() if m else ""
-                if code:
-                    # minimal rule-of-thumb by dataset
-                    if dataset_id == "brownfield-land":
-                        org_value = f"local-authority-eng:{code}"
-                    elif dataset_id == "listed-building":
-                        org_value = f"government-organisation:{code}"
-                    # add extra dataset rules here if needed
+            # Extract code from org_input "Label (CODE)" and resolve using org_code_mapping
+            org_value = None
+            m = re.search(r"\(([^)]+)\)$", org_input)
+            if m:
+                code = m.group(1).strip()
+                # Check if this code exists in the mapping
+                if code in org_code_mapping:
+                    org_value = code
 
             # Core required fields
             errors.update(
@@ -563,8 +349,9 @@ def dashboard_add():
                         "documentation_url": doc_url or None,
                         "licence": licence,  # ✅ defaulted above
                         "start_date": start_date_str,  # ✅ defaulted above
-                        # ✅ send the REAL entity reference (prefix:CODE)
+                        # ✅ send the REAL entity reference (prefix:CODE) here
                         "organisation": org_value,
+                        "organisationName": org_value,  # display name for UI
                     }
                 }
                 session["required_fields"] = {
@@ -634,7 +421,7 @@ def dashboard_add():
 def check_results(request_id):
     try:
         async_api = get_request_api_endpoint()
-        organisation = request.args.get("organisation", "Your organisation")
+        # organisation = request.args.get("organisation", "Your organisation")
 
         # Fetch summary
         response = requests.get(
@@ -650,16 +437,10 @@ def check_results(request_id):
             )
 
         result = response.json()
-        logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'local')}")
-        logger.info(f"API endpoint: {async_api}")
-        logger.info(f"Result status: {result.get('status')}")
-        logger.info(f"Result keys: {list(result.keys())}")
-        if result.get("response"):
-            logger.info(f"Response keys: {list(result.get('response', {}).keys())}")
-            if result.get("response", {}).get("data"):
-                logger.info(
-                    f"Data keys: {list(result.get('response', {}).get('data', {}).keys())}"
-                )
+        organisation = result.get("params", {}).get("organisationName", "Unknown organisation")
+
+        logger.info(f"Result status : {result.get('status')} for request_id: {request_id}")
+
         result.setdefault("params", {}).setdefault("organisation", organisation)
         logger.info(f"result: {result}")
 
@@ -954,6 +735,7 @@ def check_results(request_id):
                 entities_preview_url=entities_preview_url,
                 entity_preview_rows=entity_preview_rows,
                 boundary_geojson_url=boundary_geojson_url,
+                request_id=request_id,
             )
 
     except Exception as e:
@@ -1120,95 +902,92 @@ def add_data_confirm(request_id):
     raise Exception(f"Add data submission failed ({submit.status_code}): {detail}")
 
 
-# --- Configure screen: CSV + MUST-FIX on left, smart dropdowns on right ---
-@datamanager_bp.route("/configure/<request_id>", methods=["GET", "POST"])
-def configure(request_id):
+# --- Configure column screen ---
+@datamanager_bp.route("/configure-columns/<request_id>", methods=["GET", "POST"])
+def configure_column_mapping(request_id):
     async_api = get_request_api_endpoint()
 
     # 1) Load the original request summary
     r = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
     if r.status_code != 200:
         return render_template("error.html", message="Original request not found"), 404
-
+    
     req = r.json()
     params = req.get("params", {}) or {}
-    organisation = params.get(
-        "organisation", request.args.get("organisation", "Your organisation")
-    )
-    dataset_id = params.get("dataset", "") or ""
-    source_url = params.get("url", "") or ""
-    existing_geom_type = params.get("geom_type") or ""
-
-    # 2) Existing mapping known by backend (prefer echoed response over params)
-    existing_raw_to_spec = (
-        (req.get("response") or {}).get("data", {}).get("column-mapping")
-        or params.get("column_mapping")
-        or {}
-    )
-    existing_raw_to_spec_ci = {
-        (k or "").strip().lower(): (v or "").strip()
-        for k, v in existing_raw_to_spec.items()
-    }
-
-    # Build reverse map SPEC -> RAW from existing mapping
-    spec_to_raw = {}
-    for raw, spec in existing_raw_to_spec.items():
-        if raw and spec and spec not in spec_to_raw:
-            spec_to_raw[spec] = raw
-
-    # 3) Full specification list (scoped union)
-    spec_fields = get_spec_fields_union(dataset_id)
-    spec_lookup_lower = {(f or "").strip().lower(): f for f in spec_fields}
-
-    # 4) CSV headers + preview
-    raw_headers, raw_rows = read_raw_csv_preview(source_url)
-
-    # 5) Must-fix spec fields from last check
+    organisation = params.get("organisationName", "Local Authority")
+    dataset_id = params.get("dataset", "")
+    print(organisation, dataset_id)
+    source_url = params.get("url", "")
+    
+    # 2) Get column-field-log to understand current mapping
     data_blob = (req.get("response") or {}).get("data") or {}
-    cfl = data_blob.get("column-field-log", []) or []
-    must_fix_specs = [
-        row["field"] for row in cfl if row.get("missing") and row.get("field")
+    column_field_log = data_blob.get("column-field-log", []) or []
+    
+    # Build current mapping: column -> field
+    mapping = {}
+    for entry in column_field_log:
+        col = entry.get("column")
+        field = entry.get("field")
+        if col and field:
+            mapping[col] = field
+    
+    # 3) Get only missing fields for dropdown options (where missing: true)
+    spec_fields = [
+        entry.get("field") 
+        for entry in column_field_log 
+        if entry.get("missing") is True and entry.get("field")
     ]
-
-    # 6) Helper to normalise names for auto-match
-    def _norm(s: str) -> str:
-        return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
-
-    spec_by_norm = {_norm(f): f for f in spec_fields}
-
-    # 7) POST: collect mappings
+    
+    # 4) Get raw CSV headers and preview rows
+    raw_headers, raw_rows = read_raw_csv_preview(source_url)
+    
+    # Build raw table params for display at top
+    raw_table_params = {
+        "columns": raw_headers,
+        "fields": raw_headers,
+        "rows": [
+            {"columns": {raw_headers[i]: {"value": row[i]} for i in range(len(raw_headers))}}
+            for row in raw_rows
+        ],
+        "columnNameProcessing": "none",
+    }
+    
+    # 5) Build display rows for mapping interface
+    display_rows = []
+    for header in raw_headers:
+        mapped_field = mapping.get(header, "")
+        display_rows.append({
+            "field": header,
+            "mapped_to": mapped_field,
+            "is_mapped": bool(mapped_field),
+        })
+    
+    # 6) Handle POST: user submitted new mappings
     if request.method == "POST":
         form = request.form.to_dict()
-        new_mapping: dict[str, str] = {}
-
-        # A) RAW rows: map_raw[<raw>] -> <spec>
-        chosen_spec_by_raw = {}
-        for raw in raw_headers:
-            chosen_spec = (form.get(f"map_raw[{raw}]") or "").strip()
+        new_mapping = {}
+        
+        for header in raw_headers:
+            chosen_spec = (form.get(f"map[{header}]") or "").strip()
             if chosen_spec and chosen_spec != "__NOT_MAPPED__":
-                new_mapping[raw] = chosen_spec
-                chosen_spec_by_raw[raw] = chosen_spec
-
-        # Reverse of the current form choices too (SPEC -> RAW), preferred over existing
-        spec_to_raw_from_form = {}
-        for raw, spec in chosen_spec_by_raw.items():
-            spec_to_raw_from_form.setdefault(spec, raw)
-
-        # B) MUST-FIX rows
-        for mustfix_spec in must_fix_specs:
-            chosen_source_spec = (
-                form.get(f"map_spec_to_spec[{mustfix_spec}]") or ""
-            ).strip()
-            if not chosen_source_spec or chosen_source_spec == "__NOT_MAPPED__":
-                continue
-            source_raw = spec_to_raw_from_form.get(
-                chosen_source_spec
-            ) or spec_to_raw.get(chosen_source_spec)
-            if source_raw:
-                new_mapping[source_raw] = mustfix_spec
-
-        geom_type = (form.get("geom_type") or "").strip()
-
+                new_mapping[header] = chosen_spec
+        
+        # Store the column mapping in session (CSV format: column,field)
+        # Use dataset:organisation as key since request_id changes
+        column_mapping_csv = "column,field\n"
+        for col, field in new_mapping.items():
+            column_mapping_csv += f"{col},{field}\n"
+        
+        session_key = f"{dataset_id}:{organisation}"
+        if not hasattr(session, 'column_mappings'):
+            session['column_mappings'] = {}
+        session['column_mappings'][session_key] = column_mapping_csv.strip()
+        logger.info(f"Stored column mapping in session with key={session_key}")
+        
+        # Get geom_type from form or fall back to params
+        geom_type = (form.get("geom_type") or "").strip() or params.get("geom_type")
+        
+        # Submit new check with updated mapping
         payload = {
             "params": {
                 "type": "check_url",
@@ -1218,21 +997,25 @@ def configure(request_id):
                 "documentation_url": params.get("documentation_url"),
                 "licence": params.get("licence"),
                 "start_date": params.get("start_date"),
-                "column_mapping": new_mapping or None,  # RAW -> SPEC
-                "geom_type": geom_type or None,
-                "organisation": organisation,
+                "column_mapping": new_mapping or None,
+                "geom_type": geom_type,
+                "organisation": params.get("organisation"),
+                "organisationName": organisation,
             }
         }
+        
         logger.info("Re-check payload (configure):")
         logger.debug(json.dumps(payload, indent=2))
-
+        
         try:
             new_req = requests.post(
                 f"{async_api}/requests", json=payload, timeout=REQUESTS_TIMEOUT
             )
             if new_req.status_code == 202:
                 new_id = new_req.json()["id"]
-                return redirect(url_for("datamanager.configure", request_id=new_id))
+                return redirect(
+                    url_for("datamanager.check_results", request_id=new_id)
+                )
             else:
                 detail = (
                     new_req.json()
@@ -1246,117 +1029,16 @@ def configure(request_id):
         except Exception as e:
             traceback.print_exc()
             return render_template("error.html", message=f"Backend error: {e}")
-
-    # 8) Build raw preview table model
-    def table_from_csv(headers, rows):
-        if not headers or not rows:
-            return {
-                "columns": [],
-                "fields": [],
-                "rows": [],
-                "columnNameProcessing": "none",
-            }
-        out_rows = []
-        for r_ in rows:
-            out_rows.append(
-                {"columns": {headers[i]: {"value": r_[i]} for i in range(len(headers))}}
-            )
-        return {
-            "columns": headers,
-            "fields": headers,
-            "rows": out_rows,
-            "columnNameProcessing": "none",
-        }
-
-    raw_table_params = table_from_csv(raw_headers, raw_rows)
-
-    # 9) Transformed preview (always defined)
-    transformed_table_params = {
-        "columns": [],
-        "fields": [],
-        "rows": [],
-        "columnNameProcessing": "none",
-    }
-    try:
-        if (req.get("status") not in ["PENDING", "PROCESSING", "QUEUED"]) and (
-            req.get("response") is not None
-        ):
-            # Fetch first 50 rows for preview (not all data)
-            details = (
-                requests.get(
-                    f"{async_api}/requests/{request_id}/response-details",
-                    params={"offset": 0, "limit": 50},
-                    timeout=REQUESTS_TIMEOUT,
-                ).json()
-                or []
-            )
-            if details:
-                first = (details[0] or {}).get("converted_row", {}) or {}
-                t_columns = list(first.keys())
-                t_rows = []
-                for d in details:
-                    conv = d.get("converted_row") or {}
-                    t_rows.append(
-                        {"columns": {c: {"value": conv.get(c, "")} for c in t_columns}}
-                    )
-                transformed_table_params = {
-                    "columns": t_columns,
-                    "fields": t_columns,
-                    "rows": t_rows,
-                    "columnNameProcessing": "none",
-                }
-    except Exception:
-        traceback.print_exc()
-
-    # 10) Build UI rows (must-fix first)
-    csv_rows = []
-    for raw in raw_headers:
-        raw_key_ci = (raw or "").strip().lower()
-        mapped_spec = existing_raw_to_spec_ci.get(raw_key_ci, "")
-        if not mapped_spec:
-            auto = spec_by_norm.get(_norm(raw))
-            if auto:
-                mapped_spec = auto
-        if mapped_spec:
-            mapped_spec = spec_lookup_lower.get(
-                mapped_spec.strip().lower(), mapped_spec
-            )
-        csv_rows.append(
-            {
-                "kind": "raw",
-                "label": raw,
-                "preselect": mapped_spec,
-                "mapped": bool(mapped_spec),
-            }
-        )
-
-    mustfix_rows = []
-    for spec in must_fix_specs:
-        mapped_raw = spec_to_raw.get(spec, "")
-        mustfix_rows.append(
-            {
-                "kind": "mustfix",
-                "label": spec,
-                "preselect": mapped_raw,
-                "mapped": bool(mapped_raw),
-            }
-        )
-
-    display_rows = mustfix_rows + csv_rows
-
-    # 11) Render
+    
+    # 7) Render the configure page
     return render_template(
         "datamanager/configure.html",
         request_id=request_id,
         organisation=organisation,
         dataset=dataset_id,
         raw_table_params=raw_table_params,
-        transformed_table_params=transformed_table_params,
         rows=display_rows,
         spec_options=spec_fields,
-        raw_options=raw_headers,
-        must_fix_specs=must_fix_specs,
-        existing_geom_type=existing_geom_type,
     )
 
 
@@ -1470,38 +1152,8 @@ def entities_preview(request_id):
     # Existing entities preference
     existing_entities_list = entity_summary.get("existing-entities") or []
 
-    # New entities table
-    cols = ["reference", "prefix", "organisation", "entity"]
-    rows = [
-        {"columns": {c: {"value": (e.get(c) or "")} for c in cols}}
-        for e in new_entities
-    ]
-    logger.info(f"New entities rows: {rows}")
-    table_params = {
-        "columns": cols,
-        "fields": cols,
-        "rows": rows,
-        "columnNameProcessing": "none",
-    }
-
-    lookup_csv_text = ""
-
-    fields = [
-        "prefix",
-        "resource",
-        "endpoint",
-        "entry-number",
-        "organisation",
-        "reference",
-        "entity",
-        "entry-date",
-        "start-date",
-        "end-date",
-    ]
-
-    lookup_csv_text = "\n".join(
-        ",".join(item.get(field, "") for field in fields) for item in new_entities
-    )
+    # Build lookup CSV preview using utility function
+    table_params, lookup_csv_text = build_lookup_csv_preview(new_entities)
 
     # Existing entities table
     ex_cols = ["reference", "entity"]
@@ -1516,97 +1168,30 @@ def entities_preview(request_id):
         "columnNameProcessing": "none",
     }
 
-    # ---------- endpoint.csv preview ----------
-    endpoint_csv_table_params = None
-    endpoint_csv_text = ""
+    # Build endpoint CSV preview using utility function
+    (
+        endpoint_already_exists,
+        endpoint_url,
+        endpoint_csv_table_params,
+        endpoint_csv_text,
+    ) = build_endpoint_csv_preview(endpoint_summary)
     endpoint_csv_body = ""
 
-    ep_cols = [
-        "endpoint",
-        "endpoint-url",
-        "parameters",
-        "plugin",
-        "entry-date",
-        "start-date",
-        "end-date",
-    ]
-    endpoint_already_exists = (
-        "Yes" if endpoint_summary.get("endpoint_url_in_endpoint_csv") is True else "No"
+    # Build source CSV preview using utility function
+    source_summary, source_csv_table_params, source_csv_text = build_source_csv_preview(
+        source_summary_data
     )
-    logger.info(f"Endpoint already exists: {endpoint_already_exists}")
-    if endpoint_summary.get("endpoint_url_in_endpoint_csv"):
-        end_point_entry = endpoint_summary.get("existing_endpoint_entry", {})
-        endpoint_url = end_point_entry.get("endpoint-url", "")
-    else:
-        end_point_entry = endpoint_summary.get("new_endpoint_entry", {})
-        endpoint_url = end_point_entry.get("endpoint-url", "")
-        endpoint_csv_text = ",".join([end_point_entry.get(col, "") for col in ep_cols])
-    ep_row = [str(end_point_entry.get(col, "") or "") for col in ep_cols]
-    endpoint_csv_table_params = {
-        "columns": ep_cols,
-        "fields": ep_cols,
-        "rows": [{"columns": {c: {"value": v} for c, v in zip(ep_cols, ep_row)}}],
-        "columnNameProcessing": "none",
-    }
-
-    # ---------- source.csv preview + summary ----------
-    source_csv_table_params = None
-    source_csv_text = ""
     source_csv_body = ""
-    source_summary = None  # <<— new
-    src_source = {}
 
-    src_cols = [
-        "source",
-        "attribution",
-        "collection",
-        "documentation-url",
-        "endpoint",
-        "licence",
-        "organisation",
-        "pipelines",
-        "entry-date",
-        "start-date",
-        "end-date",
-    ]
-    # src_source = endpoint_summary.get("new_source_entry") or None
-    source_present = source_summary_data.get("documentation_url_in_source_csv")
-    will_create_source_text = "No" if source_present else "Yes"
-    if not source_present:
-        src_source = source_summary_data.get("new_source_entry", {})
-        src_row = [str(src_source.get(col, "") or "") for col in src_cols]
-        source_csv_table_params = {
-            "columns": src_cols,
-            "fields": src_cols,
-            "rows": [{"columns": {c: {"value": v} for c, v in zip(src_cols, src_row)}}],
-            "columnNameProcessing": "none",
-        }
-        source_csv_text = ",".join(src_cols) + "\n" + ",".join(src_row)
-    else:
-        src_source = source_summary_data.get("existing_source_entry", {})
-        src_row = [str(src_source.get(col, "") or "") for col in src_cols]
-        source_csv_table_params = {
-            "columns": src_cols,
-            "fields": src_cols,
-            "rows": [{"columns": {c: {"value": v} for c, v in zip(src_cols, src_row)}}],
-            "columnNameProcessing": "none",
-        }
-    logger.info(f"Will create source1: {will_create_source_text}")
-    # Build summary panel model (like Endpoint Summary)
-    source_summary = {
-        "will_create": will_create_source_text,
-        "source": src_source.get("source", ""),
-        "collection": src_source.get("collection", ""),
-        "organisation": src_source.get("organisation", ""),
-        "endpoint": src_source.get("endpoint", ""),
-        "licence": src_source.get("licence", ""),
-        "pipelines": src_source.get("pipelines", ""),
-        "entry_date": src_source.get("entry-date", ""),
-        "start_date": src_source.get("start-date", ""),
-        "end_date": src_source.get("end-date", ""),
-        "documentation_url": src_source.get("documentation-url", ""),
-        "attribution": src_source.get("attribution", ""),
-    }
+    # Build column CSV preview using utility function
+    params = req.get("params", {}) or {}
+    dataset_id = params.get("dataset", "")
+    organisation = params.get("organisation", "")
+    (
+        column_csv_table_params,
+        column_csv_text,
+        has_column_mapping,
+    ) = build_column_csv_preview(session, dataset_id, organisation, endpoint_summary)
 
     return render_template(
         "datamanager/entities_preview.html",
@@ -1629,6 +1214,10 @@ def entities_preview(request_id):
         source_csv_body=source_csv_body,
         # NEW: summary for source.csv
         source_summary=source_summary,
+        # Column mapping CSV
+        column_csv_table_params=column_csv_table_params,
+        column_csv_text=column_csv_text,
+        has_column_mapping=has_column_mapping,
         all_details=all_details,
         total_count=len(all_details),
         back_url=url_for(
