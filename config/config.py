@@ -23,7 +23,7 @@ class Config:
         os.getenv("GITHUB_APP_PRIVATE_KEY", "")
     ).decode("utf-8")
     SAFE_URLS = set(os.getenv("SAFE_URLS", "").split(","))
-    AUTHENTICATION_ON = False
+    AUTHENTICATION_ON = True
     S3_BUCKET_URL = (
         "https://digital-land-production-collection-dataset.s3.eu-west-2.amazonaws.com"
     )
@@ -49,7 +49,7 @@ class DevelopmentConfig(Config):
     ENV = "development"
     WTF_CSRF_ENABLED = False
     SAFE_URLS = {"localhost:5000"}
-    AUTHENTICATION_ON = False
+    AUTHENTICATION_ON = True
 
     # Override to load private key from file path for development
     _key_path = os.getenv("GITHUB_APP_PRIVATE_KEY_PATH")
