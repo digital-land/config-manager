@@ -10,6 +10,7 @@ import requests
 import csv
 from flask import (
     Blueprint,
+    current_app,
     jsonify,
     redirect,
     render_template,
@@ -19,6 +20,7 @@ from flask import (
 )
 
 from application.utils import get_request_api_endpoint
+from application.services.github import trigger_add_data_workflow, GitHubWorkflowError
 from shapely import wkt
 from shapely.geometry import mapping
 
@@ -46,17 +48,17 @@ datamanager_bp.errorhandler(Exception)(handle_error)
 datamanager_bp.context_processor(inject_now)
 
 
+@datamanager_bp.before_request
+def require_login():
+    """Require login for all datamanager routes"""
+    if current_app.config.get("AUTHENTICATION_ON", True):
+        if session.get("user") is None:
+            return redirect(url_for("auth.login", next=request.url))
+
+
 @datamanager_bp.route("/")
 def index():
     return render_template("datamanager/index.html", datamanager={"name": "Dashboard"})
-
-
-@datamanager_bp.route("/config", methods=["GET"])
-def dashboard_config():
-    # you can pass any context you like here
-    return render_template(
-        "datamanager/dashboard_config.html", datamanager={"name": "Dashboard"}
-    )
 
 
 @datamanager_bp.route("/add/import", methods=["GET", "POST"])
@@ -96,10 +98,21 @@ def dashboard_add_import():
                         )
 
                     if not errors:
-                        # Store in session for confirm page
-                        session["import_csv_data"] = parsed_data
+                        # Redirect directly to dashboard_add with query params to pre-fill the form
                         return redirect(
-                            url_for("datamanager.dashboard_add_import_confirm")
+                            url_for(
+                                "datamanager.dashboard_add",
+                                import_data="true",
+                                dataset=parsed_data.get("pipelines", ""),
+                                organisation=parsed_data.get("organisation", ""),
+                                endpoint_url=parsed_data.get("endpoint-url", ""),
+                                documentation_url=parsed_data.get(
+                                    "documentation-url", ""
+                                ),
+                                start_date=parsed_data.get("start-date", ""),
+                                plugin=parsed_data.get("plugin", ""),
+                                licence=parsed_data.get("licence", ""),
+                            )
                         )
 
             except Exception as e:
@@ -110,37 +123,7 @@ def dashboard_add_import():
     )
 
 
-@datamanager_bp.route("/add/import/confirm", methods=["GET", "POST"])
-def dashboard_add_import_confirm():
-    """
-    Confirmation page for imported CSV data.
-    Shows parsed data and allows user to proceed to dashboard_add.
-    """
-    parsed_data = session.get("import_csv_data")
-    if not parsed_data:
-        return redirect(url_for("datamanager.dashboard_add_import"))
-
-    if request.method == "POST":
-        # Redirect to dashboard_add with query params to pre-fill the form
-        return redirect(
-            url_for(
-                "datamanager.dashboard_add",
-                import_data="true",
-                dataset=parsed_data.get("pipelines", ""),
-                organisation=parsed_data.get("organisation", ""),
-                endpoint_url=parsed_data.get("endpoint-url", ""),
-                documentation_url=parsed_data.get("documentation-url", ""),
-                start_date=parsed_data.get("start-date", ""),
-                plugin=parsed_data.get("plugin", ""),
-                licence=parsed_data.get("licence", ""),
-            )
-        )
-
-    return render_template(
-        "datamanager/dashboard_add_import_confirm.html", data=parsed_data
-    )
-
-
+# TODO: This function needs to be broken up, why are querying and form handling in the same function?
 @datamanager_bp.route("/add", methods=["GET", "POST"])
 def dashboard_add():
     planning_url = f"{planning_base_url}/dataset.json?_labels=on&_size=max"
@@ -253,16 +236,6 @@ def dashboard_add():
         dataset_id = name_to_dataset_id.get(dataset_input)
         collection_id = name_to_collection_id.get(dataset_input)
 
-        column_mapping_str = form.get("column_mapping", "{}").strip()
-        geom_type = form.get("geom_type", "").strip()
-        try:
-            column_mapping = (
-                json.loads(column_mapping_str) if column_mapping_str else {}
-            )
-        except json.JSONDecodeError:
-            errors["column_mapping"] = True
-            column_mapping = {}
-
         # Preload org list + build a reverse map we'll use on submit
         org_codes = []
         org_code_mapping = {}
@@ -353,6 +326,7 @@ def dashboard_add():
                         "organisationName": org_value,  # display name for UI
                     }
                 }
+                # TODO: Is this the best way to save data to then be used for add data task?
                 session["required_fields"] = {
                     "collection": collection_id,
                     "dataset": dataset_id,
@@ -363,12 +337,8 @@ def dashboard_add():
                     "documentation_url": doc_url,
                     "licence": licence,
                     "start_date": start_date_str,
+                    "column_mapping": {},
                 }
-
-                if column_mapping:
-                    payload["params"]["column_mapping"] = column_mapping
-                if geom_type:
-                    payload["params"]["geom_type"] = geom_type
 
                 logger.info("Sending payload to request API:")
                 logger.debug(json.dumps(payload, indent=2))
@@ -475,6 +445,7 @@ def check_results(request_id):
                 f"Environment check - resp_details length: {len(resp_details) if resp_details else 'None'}"
             )
 
+            # TODO: This whole test is pointless?
             # Check if response-details endpoint exists and is accessible
             try:
                 test_response = requests.get(
@@ -502,7 +473,7 @@ def check_results(request_id):
 
             # --- TRUST BACKEND ONLY ---
             data = (result.get("response") or {}).get("data") or {}
-            entity_summary = data.get("entity-summary") or {}
+            entity_summary = data.get("pipeline-summary") or {}
             new_entities = data.get("new-entities") or []
 
             # exact lists as provided by BE
@@ -512,8 +483,12 @@ def check_results(request_id):
             existing_count = int(entity_summary.get("existing-in-resource") or 0)
             new_count = int(entity_summary.get("new-in-resource") or 0)
 
+            # Extract pipeline-issues if present
+            pipeline_issues = entity_summary.get("pipeline-issues") or []
+            logger.debug(f"pipeline-issues count: {len(pipeline_issues)}")
+
             logger.debug(f"BE data keys: {list(data.keys())}")
-            logger.debug(f"entity-summary: {entity_summary}")
+            logger.debug(f"pipeline-summary: {entity_summary}")
             logger.debug(f"existing-entities len: {len(existing_entities_list)}")
 
             # minimal message that only reflects BE numbers
@@ -739,6 +714,7 @@ def check_results(request_id):
                 entity_preview_rows=entity_preview_rows,
                 boundary_geojson_url=boundary_geojson_url,
                 request_id=request_id,
+                pipeline_issues=pipeline_issues,
             )
 
     except Exception as e:
@@ -746,6 +722,7 @@ def check_results(request_id):
         raise Exception(f"Error fetching results from backend: {e}")
 
 
+# Check in case documentation_url, licence, start_date are missing
 @datamanager_bp.route("/check-results/optional-submit", methods=["GET", "POST"])
 def optional_fields_submit():
     form = request.form.to_dict()
@@ -783,7 +760,8 @@ def optional_fields_submit():
     return redirect(url_for("datamanager.add_data", request_id=request_id))
 
 
-@datamanager_bp.route("/check-results/add-data", methods=["GET", "POST"])
+# Currently submits data for add data? and also shows form for optional fields if not there
+@datamanager_bp.route("/add-data", methods=["GET", "POST"])
 def add_data():
     async_api = get_request_api_endpoint()
 
@@ -792,10 +770,21 @@ def add_data():
     existing_lic = session.get("optional_fields", {}).get("licence")
     existing_start = session.get("optional_fields", {}).get("start_date")
 
+    # TODO: Break this function up / out
     def _submit_preview(doc_url: str, licence: str, start_date: str):
         # all required fields from session
         params = session.get("required_fields", {}).copy()
         logger.debug(f"Using required fields from session: {params}")
+
+        # Include column mapping if it exists
+        column_mapping = session.get("optional_fields", {}).get("column_mapping", {})
+        logger.debug(f"Using column mapping from session: {column_mapping}")
+        if column_mapping:
+            params["column_mapping"] = column_mapping
+            logger.info(
+                f"Including column mapping in add_data preview: {column_mapping}"
+            )
+
         params.update(
             {
                 "type": "add_data",
@@ -872,41 +861,10 @@ def add_data():
     return _submit_preview(doc_url, licence, start_date)
 
 
-@datamanager_bp.route("/check-results/<request_id>/add-data/confirm", methods=["POST"])
-def add_data_confirm(request_id):
-    async_api = get_request_api_endpoint()
-
-    # request_id is the PREVIEW add_data id
-    pr = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
-    if pr.status_code != 200:
-        return render_template("error.html", message="Preview not found"), 404
-    preview_req = pr.json() or {}
-    params = (preview_req.get("params") or {}).copy()
-    params["type"] = "add_data"
-    params["preview"] = False  # commit!
-
-    submit = requests.post(
-        f"{async_api}/requests", json={"params": params}, timeout=REQUESTS_TIMEOUT
-    )
-    if submit.status_code == 202:
-        body = submit.json() or {}
-        new_id = body.get("id")
-        msg = body.get("message") or "Entity assignment is in progress"
-        session.pop("optional_fields", None)
-        return redirect(
-            url_for("datamanager.add_data_progress", request_id=new_id, msg=msg)
-        )
-
-    detail = (
-        submit.json()
-        if "application/json" in (submit.headers.get("content-type") or "")
-        else submit.text
-    )
-    raise Exception(f"Add data submission failed ({submit.status_code}): {detail}")
-
-
 # --- Configure column screen ---
-@datamanager_bp.route("/configure-columns/<request_id>", methods=["GET", "POST"])
+@datamanager_bp.route(
+    "/check-results/<request_id>/configure-columns", methods=["GET", "POST"]
+)
 def configure_column_mapping(request_id):
     async_api = get_request_api_endpoint()
 
@@ -981,17 +939,12 @@ def configure_column_mapping(request_id):
             if chosen_spec and chosen_spec != "__NOT_MAPPED__":
                 new_mapping[header] = chosen_spec
 
-        # Store the column mapping in session (CSV format: column,field)
-        # Use dataset:organisation as key since request_id changes
-        column_mapping_csv = "column,field\n"
-        for col, field in new_mapping.items():
-            column_mapping_csv += f"{col},{field}\n"
-
-        session_key = f"{dataset_id}:{organisation}"
-        if not hasattr(session, "column_mappings"):
-            session["column_mappings"] = {}
-        session["column_mappings"][session_key] = column_mapping_csv.strip()
-        logger.info(f"Stored column mapping in session with key={session_key}")
+        # Store the column mapping in optional_fields
+        # Must reassign the dict for Flask to detect the change
+        optional_fields = session.get("optional_fields", {})
+        optional_fields["column_mapping"] = new_mapping
+        session["optional_fields"] = optional_fields
+        logger.info(f"Stored column mapping in session: {new_mapping}")
 
         # Get geom_type from form or fall back to params
         geom_type = (form.get("geom_type") or "").strip() or params.get("geom_type")
@@ -1058,7 +1011,7 @@ def add_data_progress(request_id):
     )
 
 
-@datamanager_bp.route("/add-data/result/<request_id>")
+@datamanager_bp.route("/add-data/<request_id>")
 def add_data_result(request_id):
     async_api = get_request_api_endpoint()
 
@@ -1128,7 +1081,7 @@ def add_data_result(request_id):
     )
 
 
-@datamanager_bp.route("/check-results/<request_id>/entities")
+@datamanager_bp.route("/add-data/<request_id>/entities")
 def entities_preview(request_id):
 
     async_api = get_request_api_endpoint()
@@ -1146,18 +1099,29 @@ def entities_preview(request_id):
         return render_template(
             "datamanager/add-data-preview-loading.html", request_id=request_id
         )
+    # Error state
+
+    response_payload = req.get("response") or {}
+    response_error = response_payload.get("error")
+    if response_error:
+        error_message = response_error.get("errMsg") or "Unknown error"
+        return render_template("datamanager/error.html", message=error_message)
 
     # Fetch all response details using multiple calls
     all_details = fetch_all_response_details(async_api, request_id)
 
-    data = (req.get("response") or {}).get("data") or {}
-    entity_summary = data.get("entity-summary") or {}
-    new_entities = entity_summary.get("new-entities") or []
+    data = response_payload.get("data") or {}
+    pipeline_summary = data.get("pipeline-summary") or {}
+    new_entities = pipeline_summary.get("new-entities") or []
     endpoint_summary = data.get("endpoint-summary") or {}
     source_summary_data = data.get("source-summary") or {}
 
     # Existing entities preference
-    existing_entities_list = entity_summary.get("existing-entities") or []
+    existing_entities_list = pipeline_summary.get("existing-entities") or []
+
+    # Extract pipeline-issues if present
+    pipeline_issues = pipeline_summary.get("pipeline-issues") or []
+    logger.debug(f"pipeline-issues count: {len(pipeline_issues)}")
 
     # Build lookup CSV preview using utility function
     table_params, lookup_csv_text = build_lookup_csv_preview(new_entities)
@@ -1193,18 +1157,18 @@ def entities_preview(request_id):
     # Build column CSV preview using utility function
     params = req.get("params", {}) or {}
     dataset_id = params.get("dataset", "")
-    organisation = params.get("organisation", "")
+    column_mapping = params.get("column_mapping", {})
     (
         column_csv_table_params,
         column_csv_text,
         has_column_mapping,
-    ) = build_column_csv_preview(session, dataset_id, organisation, endpoint_summary)
+    ) = build_column_csv_preview(column_mapping, dataset_id, endpoint_summary)
 
     return render_template(
         "datamanager/entities_preview.html",
         request_id=request_id,
-        new_count=int(entity_summary.get("new-in-resource") or 0),
-        existing_count=int(entity_summary.get("existing-in-resource") or 0),
+        new_count=int(pipeline_summary.get("new-in-resource") or 0),
+        existing_count=int(pipeline_summary.get("existing-in-resource") or 0),
         breakdown=data.get("new-entity-breakdown") or [],
         # endpoint_summary=endpoint_summary,
         endpoint_already_exists=endpoint_already_exists,
@@ -1231,4 +1195,111 @@ def entities_preview(request_id):
             "datamanager.add_data",
             request_id=(req.get("params") or {}).get("source_request_id") or request_id,
         ),
+        pipeline_issues=pipeline_issues,
+        dataset=dataset_id,
     )
+
+
+@datamanager_bp.route("/add-data/<request_id>/confirm", methods=["POST"])
+def add_data_confirm(request_id):
+    """
+    Confirm and trigger GitHub workflow to add data to the config repo.
+    """
+    async_api = get_request_api_endpoint()
+
+    # Fetch the request data from async API
+    r = requests.get(f"{async_api}/requests/{request_id}", timeout=REQUESTS_TIMEOUT)
+    if r.status_code != 200:
+        return render_template("error.html", message="Preview not found"), 404
+
+    req = r.json() or {}
+    response_payload = req.get("response") or {}
+    data = response_payload.get("data") or {}
+    params = req.get("params", {}) or {}
+
+    # Extract CSV data
+    pipeline_summary = data.get("pipeline-summary") or {}
+    endpoint_summary = data.get("endpoint-summary") or {}
+    source_summary_data = data.get("source-summary") or {}
+
+    # Get collection from source entry
+    source_entry = (
+        source_summary_data.get("new_source_entry")
+        or source_summary_data.get("existing_source_entry")
+        or {}
+    )
+    collection = source_entry.get("collection")
+
+    if not collection:
+        logger.warning(
+            f"Collection not found in source entry. Source summary keys: {source_summary_data.keys()}"
+        )
+        return render_template(
+            "datamanager/error.html", message="Collection not found in source entry"
+        )
+
+    # Build lookup CSV rows
+    new_entities = pipeline_summary.get("new-entities") or []
+    _, lookup_csv_text = build_lookup_csv_preview(new_entities)
+    lookup_csv_rows = lookup_csv_text.split("\n") if lookup_csv_text else []
+
+    # Build endpoint CSV rows
+    _, _, _, endpoint_csv_text = build_endpoint_csv_preview(endpoint_summary)
+    endpoint_csv_rows = [endpoint_csv_text] if endpoint_csv_text else []
+
+    # Build source CSV rows
+    _, _, source_csv_text = build_source_csv_preview(
+        source_summary_data, include_headers=False
+    )
+    source_csv_rows = [source_csv_text] if source_csv_text else []
+
+    # Build column CSV rows
+    dataset = params.get("dataset", "")
+    column_mapping = params.get("column_mapping", {})
+    _, column_csv_text, _ = build_column_csv_preview(
+        column_mapping, dataset, endpoint_summary, include_headers=False
+    )
+    column_csv_rows = column_csv_text.split("\n") if column_csv_text else []
+
+    try:
+        # Trigger the GitHub workflow
+        logger.info(f"Triggering GitHub workflow for collection: {collection}")
+        logger.debug(
+            f"Lookup rows: {len(lookup_csv_rows)}, Endpoint rows: {len(endpoint_csv_rows)}, Source rows: {len(source_csv_rows)}, Column rows: {len(column_csv_rows)}"  # noqa
+        )
+
+        result = trigger_add_data_workflow(
+            collection=collection,
+            lookup_csv_rows=lookup_csv_rows if lookup_csv_rows else None,
+            endpoint_csv_rows=endpoint_csv_rows if endpoint_csv_rows else None,
+            source_csv_rows=source_csv_rows if source_csv_rows else None,
+            column_csv_rows=column_csv_rows if column_csv_rows else None,
+            triggered_by=f"config-manager-user-{session.get('user', {}).get('login', 'unknown')}",
+        )
+
+        if result["success"]:
+            logger.info(f"Successfully triggered workflow for collection: {collection}")
+
+            return render_template(
+                "datamanager/add-data-success.html",
+                collection=collection,
+                new_entity_count=len(new_entities),
+                message=result["message"],
+            )
+        else:
+            logger.error(f"Failed to trigger workflow: {result['message']}")
+            return render_template(
+                "datamanager/error.html",
+                message=f"Failed to trigger workflow: {result['message']}",
+            )
+
+    except GitHubWorkflowError as e:
+        logger.exception(f"GitHub workflow error: {e}")
+        return render_template(
+            "datamanager/error.html", message=f"GitHub workflow error: {str(e)}"
+        )
+    except Exception as e:
+        logger.exception(f"Unexpected error triggering workflow: {e}")
+        return render_template(
+            "datamanager/error.html", message=f"Unexpected error: {str(e)}"
+        )

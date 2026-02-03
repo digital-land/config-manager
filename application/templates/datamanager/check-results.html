@@ -134,9 +134,6 @@
           <form method="get" action="{{ url_for('datamanager.add_data', request_id=result.id) }}">
             <button type="submit" class="govuk-button">Add data</button>
           </form>
-          <form>
-            <a href="{{ url_for('datamanager.index') }}" class="govuk-button govuk-button--secondary">Configure data</a>
-          </form>
           {% else %}
           <button class="govuk-button govuk-button--secondary" disabled aria-disabled="true">
             Add data

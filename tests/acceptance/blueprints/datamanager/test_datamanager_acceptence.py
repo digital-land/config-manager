@@ -108,32 +108,32 @@ class TestDatamanagerAcceptance:
                 "status": "COMPLETED",
                 "response": {
                     "data": {
-                        "entity-summary": {
+                        "pipeline-summary": {
                             "existing-in-resource": 3,
                             "new-in-resource": 2,
+                            "new-entities": [
+                                {
+                                    "reference": "REF1",
+                                    "prefix": "test",
+                                    "organisation": "TEST",
+                                    "entity": "123",
+                                },
+                                {
+                                    "reference": "REF2",
+                                    "prefix": "test",
+                                    "organisation": "TEST",
+                                    "entity": "124",
+                                },
+                            ],
                         },
-                        "new-entities": [
-                            {
-                                "reference": "REF1",
-                                "prefix": "test",
-                                "organisation": "TEST",
-                                "entity": "123",
-                            },
-                            {
-                                "reference": "REF2",
-                                "prefix": "test",
-                                "organisation": "TEST",
-                                "entity": "124",
-                            },
-                        ],
-                        "endpoint_url_validation": {"found_in_endpoint_csv": True},
+                        "endpoint-summary": {},
+                        "source-summary": {},
                     }
                 },
+                "params": {},
             }
 
-            response = client.get(
-                "/datamanager/check-results/test-request-123/entities"
-            )
+            response = client.get("/datamanager/add-data/test-request-123/entities")
             assert response.status_code == 200
 
     def test_add_data_workflow(self, client):
@@ -157,37 +157,44 @@ class TestDatamanagerAcceptance:
             mock_post.return_value.status_code = 202
             mock_post.return_value.json.return_value = {"id": "preview-123"}
 
-            response = client.get("/datamanager/check-results/add-data")
+            response = client.get("/datamanager/add-data")
             assert response.status_code == 302
 
     def test_add_data_confirm_workflow(self, client):
         """Test add data confirmation workflow"""
         with patch(
+            "application.blueprints.datamanager.views.trigger_add_data_workflow"
+        ) as mock_workflow, patch(
             "application.blueprints.datamanager.views.requests.get"
-        ) as mock_get, patch(
-            "application.blueprints.datamanager.views.requests.post"
-        ) as mock_post:
+        ) as mock_get:
 
             mock_get.return_value.status_code = 200
             mock_get.return_value.json.return_value = {
                 "params": {
                     "type": "add_data",
-                    "collection": "test-collection",
                     "dataset": "test-dataset",
-                }
+                },
+                "response": {
+                    "data": {
+                        "pipeline-summary": {"new-entities": []},
+                        "endpoint-summary": {},
+                        "source-summary": {
+                            "new_source_entry": {"collection": "test-collection"}
+                        },
+                    }
+                },
             }
 
-            mock_post.return_value.status_code = 202
-            mock_post.return_value.json.return_value = {
-                "id": "final-123",
-                "message": "Processing started",
+            mock_workflow.return_value = {
+                "success": True,
+                "message": "Workflow triggered successfully",
             }
 
-            response = client.post(
-                "/datamanager/check-results/preview-123/add-data/confirm"
-            )
-            assert response.status_code == 302
-            assert "/add-data/progress/final-123" in response.location
+            with client.session_transaction() as sess:
+                sess["user"] = {"login": "test-user"}
+
+            response = client.post("/datamanager/add-data/preview-123/confirm")
+            assert response.status_code == 200
 
     def test_form_validation_workflow(self, client):
         """Test form validation in submission workflow"""
@@ -351,7 +358,9 @@ class TestDatamanagerAcceptance:
             "geom_type": "point",
         }
 
-        response = client.post("/datamanager/configure-columns/test-id", data=form_data)
+        response = client.post(
+            "/datamanager/check-results/test-id/configure-columns", data=form_data
+        )
         assert response.status_code == 302
 
         # Verify POST was called with correct mapping

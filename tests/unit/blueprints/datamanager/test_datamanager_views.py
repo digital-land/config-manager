@@ -16,11 +16,6 @@ class TestDatamanagerViews:
         response = client.get("/datamanager/")
         assert response.status_code == 200
 
-    def test_dashboard_config_route(self, client):
-        """Test the dashboard config route"""
-        response = client.get("/datamanager/config")
-        assert response.status_code == 200
-
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_dashboard_add_get(self, mock_get, client):
         """Test dashboard add GET request"""
@@ -431,14 +426,14 @@ class TestSpecificLines:
             "start_year": "2024",
         }
 
-        response = client.post("/datamanager/check-results/add-data", data=form_data)
+        response = client.post("/datamanager/add-data", data=form_data)
         assert response.status_code == 302
 
+    @patch("application.blueprints.datamanager.views.trigger_add_data_workflow")
     @patch("application.blueprints.datamanager.views.requests.get")
-    @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_add_data_confirm_add_data_confirm_complex(
-        self, mock_endpoint, mock_post, mock_get, client
+        self, mock_endpoint, mock_get, mock_workflow, client
     ):
         """Test lines 714-742: Add data confirm logic"""
         mock_endpoint.return_value = "http://test-api"
@@ -446,20 +441,31 @@ class TestSpecificLines:
         get_response = Mock()
         get_response.status_code = 200
         get_response.json.return_value = {
-            "params": {"type": "add_data", "preview": True}
+            "params": {"type": "add_data", "preview": True, "dataset": "test-dataset"},
+            "response": {
+                "data": {
+                    "pipeline-summary": {"new-entities": []},
+                    "endpoint-summary": {},
+                    "source-summary": {
+                        "new_source_entry": {"collection": "test-collection"}
+                    },
+                }
+            },
         }
         mock_get.return_value = get_response
 
-        post_response = Mock()
-        post_response.status_code = 202
-        post_response.json.return_value = {"id": "new-id", "message": "Success"}
-        mock_post.return_value = post_response
+        # Mock workflow trigger
+        mock_workflow.return_value = {
+            "success": True,
+            "message": "Workflow triggered successfully",
+        }
 
         with client.session_transaction() as sess:
             sess["optional_fields"] = {"test": "data"}
+            sess["user"] = {"login": "test-user"}
 
-        response = client.post("/datamanager/check-results/test-id/add-data/confirm")
-        assert response.status_code == 302
+        response = client.post("/datamanager/add-data/test-id/confirm")
+        assert response.status_code == 200  # Returns rendered template, not redirect
 
     @patch("application.blueprints.datamanager.views.render_template")
     @patch("application.blueprints.datamanager.views.requests.get")
@@ -499,7 +505,7 @@ class TestSpecificLines:
 
         mock_get.side_effect = [main_response, csv_response, details_response]
 
-        response = client.get("/datamanager/configure-columns/test-id")
+        response = client.get("/datamanager/check-results/test-id/configure-columns")
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.render_template")
@@ -551,7 +557,7 @@ class TestSpecificLines:
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
-        response = client.get("/datamanager/add-data/result/test-id")
+        response = client.get("/datamanager/add-data/test-id")
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.requests.get")
@@ -612,7 +618,7 @@ class TestSpecificLines:
         }
         mock_get.return_value = mock_response
 
-        response = client.get("/datamanager/check-results/test-id/entities")
+        response = client.get("/datamanager/add-data/test-id/entities")
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.requests.get")
@@ -826,8 +832,8 @@ class TestSpecificLines:
         assert payload["params"]["licence"] == "ogl"
         assert payload["params"]["start_date"] == "2024-01-01"
         assert payload["params"]["organisation"] == "local-authority-eng:ABC123"
-        assert payload["params"]["column_mapping"] == {"raw_field": "spec_field"}
-        assert payload["params"]["geom_type"] == "point"
+        # Note: column_mapping and geom_type are not sent in initial check_url request
+        # They are only used when re-checking from the configure page
 
         # Verify session data was set
         with client.session_transaction() as sess:

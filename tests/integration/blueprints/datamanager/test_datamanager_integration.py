@@ -11,11 +11,6 @@ class TestDatamanagerIntegration:
         assert response.status_code == 200
         assert b"Dashboard" in response.data
 
-    def test_dashboard_config_renders_template(self, client):
-        """Test dashboard config route renders correctly"""
-        response = client.get("/datamanager/config")
-        assert response.status_code == 200
-
     @responses.activate
     def test_dashboard_add_with_external_api(self, client):
         """Test dashboard add route with mocked external API calls"""

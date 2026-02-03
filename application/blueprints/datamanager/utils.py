@@ -5,9 +5,7 @@ from io import StringIO
 
 import requests
 from dotenv import load_dotenv
-from flask import render_template
-
-from .config import DATASETTE_BASE_URL, PROVISION_CSV_URL
+from flask import current_app, render_template
 
 # Load .env file for this module
 load_dotenv()
@@ -28,7 +26,8 @@ def get_provision_orgs_for_dataset(dataset_id: str) -> list:
     Returns a list of organisation codes.
     """
     try:
-        response = requests.get(PROVISION_CSV_URL, timeout=REQUESTS_TIMEOUT)
+        provision_url = current_app.config.get("PROVISION_CSV_URL")
+        response = requests.get(provision_url, timeout=REQUESTS_TIMEOUT)
         response.raise_for_status()
         reader = csv.DictReader(StringIO(response.text))
         orgs = []
@@ -54,9 +53,10 @@ def get_organisation_code_mapping() -> dict:
     """
     org_mapping = {}
     try:
+        datasette_url = current_app.config.get("DATASETTE_BASE_URL")
         # Fetch with objects shape - returns list of dicts with column names as keys
         # Use _size=max to get all records in one request
-        url = f"{DATASETTE_BASE_URL}/organisation.json?_shape=objects&_size=max"
+        url = f"{datasette_url}/organisation.json?_shape=objects&_size=max"
 
         page_count = 0
         while url:
@@ -82,7 +82,7 @@ def get_organisation_code_mapping() -> dict:
             if url:
                 # Make relative URLs absolute
                 if url.startswith("/"):
-                    url = f"{DATASETTE_BASE_URL.rstrip('/')}{url}"
+                    url = f"{datasette_url.rstrip('/')}{url}"
 
         logger.info(
             f"Built organisation mapping with {len(org_mapping)} entries from {page_count} page(s)"
@@ -102,7 +102,8 @@ def get_spec_fields_union(dataset_id):
       - dataset-scoped field list (if dataset_id is provided)
     Keep original casing; de-duplicate exact strings; stable order.
     """
-    base = (f"{DATASETTE_BASE_URL}/dataset_field.json",)
+    datasette_url = current_app.config.get("DATASETTE_BASE_URL")
+    base = (f"{datasette_url}/dataset_field.json",)
     headers = {"Accept": "application/json", "User-Agent": "Planning Data - Manage"}
 
     def _fetch(url):
@@ -337,10 +338,16 @@ def build_endpoint_csv_preview(endpoint_summary: dict) -> tuple:
     )
 
 
-def build_source_csv_preview(source_summary_data: dict) -> tuple:
+def build_source_csv_preview(
+    source_summary_data: dict, include_headers: bool = True
+) -> tuple:
     """
     Build source CSV preview and summary.
     Returns (source_summary, table_params, csv_text)
+
+    Args:
+        source_summary_data: Source summary data from API response
+        include_headers: If True, include CSV headers in csv_text. Default True.
     """
     src_cols = [
         "source",
@@ -369,7 +376,10 @@ def build_source_csv_preview(source_summary_data: dict) -> tuple:
             "rows": [{"columns": {c: {"value": v} for c, v in zip(src_cols, src_row)}}],
             "columnNameProcessing": "none",
         }
-        source_csv_text = ",".join(src_cols) + "\n" + ",".join(src_row)
+        if include_headers:
+            source_csv_text = ",".join(src_cols) + "\n" + ",".join(src_row)
+        else:
+            source_csv_text = ",".join(src_row)
     else:
         src_source = source_summary_data.get("existing_source_entry", {})
         src_row = [str(src_source.get(col, "") or "") for col in src_cols]
@@ -402,92 +412,88 @@ def build_source_csv_preview(source_summary_data: dict) -> tuple:
 
 
 def build_column_csv_preview(
-    session: dict, dataset_id: str, organisation: str, endpoint_summary: dict
+    column_mapping: dict,
+    dataset_id: str,
+    endpoint_summary: dict,
+    include_headers: bool = True,
 ) -> tuple:
     """
-    Build column CSV preview from session data.
+    Build column CSV preview from column mapping data.
     Returns (column_csv_table_params, column_csv_text, has_column_mapping)
+
+    Args:
+        column_mapping: Column mapping dict from request params
+        dataset_id: Dataset ID
+        endpoint_summary: Endpoint summary data from API response
+        include_headers: If True, include CSV headers in csv_text. Default True.
     """
     column_csv_table_params = None
     column_csv_text = ""
     has_column_mapping = False
 
-    session_key = f"{dataset_id}:{organisation}"
-    column_mappings = session.get("column_mappings", {})
+    logger.info("Entities preview: Checking for column mapping")
+    logger.info(f"Column mapping data: {column_mapping}")
 
-    logger.info(f"Entities preview: Checking for column mapping with key={session_key}")
-    logger.info(f"Available keys in session: {list(column_mappings.keys())}")
-
-    if session_key in column_mappings:
+    if column_mapping:
         has_column_mapping = True
-        # Parse the stored CSV mapping
-        mapping_csv = column_mappings[session_key]
-        mapping_lines = mapping_csv.strip().split("\n")
 
-        if len(mapping_lines) > 1:  # Has header and at least one data row
-            # Get endpoint info from the request
-            endpoint_hash = endpoint_summary.get("new_endpoint_entry", {}).get(
-                "endpoint", ""
-            ) or endpoint_summary.get("existing_endpoint_entry", {}).get("endpoint", "")
+        # Get endpoint info from the request
+        endpoint_hash = endpoint_summary.get("new_endpoint_entry", {}).get(
+            "endpoint", ""
+        ) or endpoint_summary.get("existing_endpoint_entry", {}).get("endpoint", "")
 
-            # Build column CSV rows
-            col_csv_cols = [
-                "dataset",
-                "endpoint",
-                "resource",
-                "column",
-                "field",
-                "start-date",
-                "end-date",
-                "entry-date",
-            ]
+        # Build column CSV rows
+        col_csv_cols = [
+            "dataset",
+            "endpoint",
+            "resource",
+            "column",
+            "field",
+            "start-date",
+            "end-date",
+            "entry-date",
+        ]
 
-            col_csv_rows = []
-            # Skip header line, process data lines
-            for line in mapping_lines[1:]:
-                if line.strip():
-                    parts = line.split(",")
-                    if len(parts) >= 2:
-                        column_name = parts[0].strip()
-                        field_name = parts[1].strip()
+        col_csv_rows = []
+        # Build rows from the mapping dict
+        for column_name, field_name in column_mapping.items():
+            col_csv_rows.append(
+                {
+                    "dataset": dataset_id,
+                    "endpoint": endpoint_hash,
+                    "resource": "",
+                    "column": column_name,
+                    "field": field_name,
+                    "start-date": "",
+                    "end-date": "",
+                    "entry-date": "",
+                }
+            )
 
-                        col_csv_rows.append(
-                            {
-                                "dataset": dataset_id,
-                                "endpoint": endpoint_hash,
-                                "resource": "",
-                                "column": column_name,
-                                "field": field_name,
-                                "start-date": "",
-                                "end-date": "",
-                                "entry-date": "",
-                            }
-                        )
+        # Build table params
+        column_csv_table_params = {
+            "columns": col_csv_cols,
+            "fields": col_csv_cols,
+            "rows": [
+                {"columns": {c: {"value": row.get(c, "")} for c in col_csv_cols}}
+                for row in col_csv_rows
+            ],
+            "columnNameProcessing": "none",
+        }
 
-            # Build table params
-            column_csv_table_params = {
-                "columns": col_csv_cols,
-                "fields": col_csv_cols,
-                "rows": [
-                    {"columns": {c: {"value": row.get(c, "")} for c in col_csv_cols}}
-                    for row in col_csv_rows
-                ],
-                "columnNameProcessing": "none",
-            }
-
-            # Build CSV text
+        # Build CSV text
+        if include_headers:
             column_csv_text = ",".join(col_csv_cols) + "\n"
             for row in col_csv_rows:
                 column_csv_text += (
                     ",".join([row.get(c, "") for c in col_csv_cols]) + "\n"
                 )
             column_csv_text = column_csv_text.strip()
-
-        # Clear the column mapping from session after using it
-        column_mappings.pop(session_key, None)
-        session["column_mappings"] = column_mappings
-        session.modified = True
-        logger.info(f"Cleared column mapping for key={session_key} from session")
+        else:
+            csv_rows = []
+            for row in col_csv_rows:
+                csv_rows.append(",".join([row.get(c, "") for c in col_csv_cols]))
+            column_csv_text = "\n".join(csv_rows)
 
     return column_csv_table_params, column_csv_text, has_column_mapping
 

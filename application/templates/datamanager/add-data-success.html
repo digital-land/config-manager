@@ -1,0 +1,54 @@
+{% extends 'layouts/base.html' %}
+
+{%- from "govuk_frontend_jinja/components/notification-banner/macro.html" import govukNotificationBanner -%}
+
+{% block content %}
+<div class="govuk-width-container">
+  <main class="govuk-main-wrapper" id="main-content" role="main">
+
+    {{ govukNotificationBanner({
+      "type": "success",
+      "html": "<h3 class=\"govuk-notification-banner__heading\">Data successfully submitted</h3><p class=\"govuk-body\">The GitHub workflow has been triggered to add the data to the config repository.</p>"
+    }) }}
+
+    <h1 class="govuk-heading-l">Workflow triggered successfully</h1>
+
+    <dl class="govuk-summary-list">
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Collection</dt>
+        <dd class="govuk-summary-list__value">{{ collection }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">New entities</dt>
+        <dd class="govuk-summary-list__value">{{ new_entity_count }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Status</dt>
+        <dd class="govuk-summary-list__value">{{ message }}</dd>
+      </div>
+    </dl>
+
+    <h2 class="govuk-heading-m">What happens next</h2>
+    <p class="govuk-body">
+      The GitHub Action workflow will process the data and add it to the <code>digital-land/config</code> repository.
+      You can monitor the progress in the GitHub Actions tab of the repository.
+    </p>
+
+    <p class="govuk-body">
+      <a href="https://github.com/digital-land/config/actions" class="govuk-link" target="_blank" rel="noopener noreferrer">
+        View GitHub Actions workflow runs
+      </a>
+    </p>
+
+    <div class="govuk-button-group govuk-!-margin-top-6">
+      <a href="{{ url_for('datamanager.dashboard_add') }}" class="govuk-button" data-module="govuk-button">
+        Add more data
+      </a>
+      <a href="{{ url_for('base.index') }}" class="govuk-link">
+        Return to home
+      </a>
+    </div>
+
+  </main>
+</div>
+{% endblock content %}
