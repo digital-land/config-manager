@@ -2,6 +2,7 @@
 GitHub App service for authenticating and triggering workflows.
 """
 
+import json
 import time
 import logging
 import requests
@@ -156,6 +157,15 @@ def trigger_add_data_workflow(
 
         payload = {"event_type": "add-data-via-api", "client_payload": client_payload}
 
+        # GitHub enforces a 10KB limit on client_payload
+        client_payload_size = len(json.dumps(client_payload).encode("utf-8"))
+        client_payload_kb = client_payload_size / 1024
+        logger.info(f"client_payload size: {client_payload_kb:.1f}KB")
+        if client_payload_size > 10240:
+            raise GitHubWorkflowError(
+                f"client_payload is {client_payload_kb:.1f}KB, exceeds GitHub's 10KB limit"
+            )
+
         # Step 4: Trigger workflow
         logger.info(f"Triggering workflow for collection: {collection}")
         logger.debug(f"Payload: {payload}")
@@ -177,8 +187,8 @@ def trigger_add_data_workflow(
                 "message": f"Workflow triggered successfully for collection '{collection}'",
             }
         else:
-            error_msg = f"Unexpected status code: {response.status_code}"
-            logger.error(f"{error_msg}. Response: {response.text}")
+            error_msg = f"Unexpected status code: {response.status_code} - {response.text}"
+            logger.error(error_msg)
             return {
                 "success": False,
                 "status_code": response.status_code,

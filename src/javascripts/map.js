@@ -186,7 +186,7 @@ function initMap() {
     });
 
     if (!bounds.isEmpty()) {
-      map.fitBounds(bounds, { padding: 20, maxZoom: 9 });
+      map.fitBounds(bounds, { padding: 20, maxZoom: 9, duration: 0 });
     }
 
     // Add popup on click for both polygons and points

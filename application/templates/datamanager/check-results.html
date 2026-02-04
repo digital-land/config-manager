@@ -155,11 +155,10 @@ super() }} {% if geometries %}
   window.serverContext = {
     containerId: "map-container",
     geometries: {{ geometries | tojson | safe }},
-  boundaryGeoJsonUrl: { { boundary_geojson_url | tojson | safe if boundary_geojson_url else 'null' } }
+    boundaryGeoJsonUrl: {% if boundary_geojson_url %}{{ boundary_geojson_url | tojson | safe }}{% else %}null{% endif %}
   };
   console.log('serverContext set:', window.serverContext);
 </script>
-{% endif %}
 <script>
   console.log("About to load external script");
 </script>
@@ -167,4 +166,5 @@ super() }} {% if geometries %}
 <script>
   console.log("After external script tag");
 </script>
+{% endif %}
 {% endblock %}
