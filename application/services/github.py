@@ -187,7 +187,9 @@ def trigger_add_data_workflow(
                 "message": f"Workflow triggered successfully for collection '{collection}'",
             }
         else:
-            error_msg = f"Unexpected status code: {response.status_code} - {response.text}"
+            error_msg = (
+                f"Unexpected status code: {response.status_code} - {response.text}"
+            )
             logger.error(error_msg)
             return {
                 "success": False,
