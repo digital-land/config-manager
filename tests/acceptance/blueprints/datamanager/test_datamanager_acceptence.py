@@ -94,6 +94,7 @@ class TestDatamanagerAcceptance:
                 "start_day": "1",
                 "start_month": "1",
                 "start_year": "2024",
+                "authoritative": "true",
             }
 
             response = client.post("/datamanager/add", data=form_data)
@@ -144,6 +145,7 @@ class TestDatamanagerAcceptance:
                 "dataset": "test-dataset",
                 "url": "https://example.com/data.csv",
                 "organisation": "local-authority-eng:TEST",
+                "authoritative": True,
             }
             sess["optional_fields"] = {
                 "documentation_url": "https://example.gov.uk/docs",

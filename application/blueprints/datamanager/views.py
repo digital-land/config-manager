@@ -28,6 +28,7 @@ from .utils import (
     REQUESTS_TIMEOUT,
     build_column_csv_preview,
     build_endpoint_csv_preview,
+    build_entity_organisation_csv,
     build_lookup_csv_preview,
     build_source_csv_preview,
     fetch_all_response_details,
@@ -249,6 +250,7 @@ def dashboard_add():
         else:
             selected_orgs = []
 
+        # TODO: This feels wrong as a practice for form completion
         if mode == "final":
             # what the user submitted from the select/input
             org_input = (form.get("organisation") or "").strip()
@@ -257,6 +259,12 @@ def dashboard_add():
 
             # ✅ licence defaults to 'ogl' if blank
             licence = (form.get("licence") or "ogl").strip().lower()
+
+            authoritative_raw = form.get("authoritative", "").strip()
+            if authoritative_raw:
+                authoritative = authoritative_raw.lower() in ("true", "yes", "1")
+            else:
+                authoritative = None
 
             # ✅ start_date defaults to today if user leaves all blank; partial dates still error
             day = (form.get("start_day") or "").strip()
@@ -300,9 +308,9 @@ def dashboard_add():
                         not endpoint_url
                         or not re.match(r"https?://[^\s]+", endpoint_url)
                     ),
+                    "authoritative": authoritative is None,
                 }
             )
-
             # Optional fields validation (doc_url only if present)
             if doc_url and not re.match(
                 r"^https?://[^\s/]+\.(gov\.uk|org\.uk)(/.*)?$", doc_url
@@ -310,6 +318,7 @@ def dashboard_add():
                 errors["documentation_url"] = True
 
             if not any(errors.values()):
+                # Params are being patched here that won't work, like documentation_url ???
                 payload = {
                     "params": {
                         "type": "check_url",
@@ -324,6 +333,7 @@ def dashboard_add():
                         # ✅ send the REAL entity reference (prefix:CODE) here
                         "organisation": org_value,
                         "organisationName": org_value,  # display name for UI
+                        "authoritative": authoritative,
                     }
                 }
                 # TODO: Is this the best way to save data to then be used for add data task?
@@ -332,6 +342,7 @@ def dashboard_add():
                     "dataset": dataset_id,
                     "url": endpoint_url,
                     "organisation": org_value,
+                    "authoritative": authoritative,
                 }
                 session["optional_fields"] = {
                     "documentation_url": doc_url,
@@ -722,45 +733,46 @@ def check_results(request_id):
         raise Exception(f"Error fetching results from backend: {e}")
 
 
-# Check in case documentation_url, licence, start_date are missing
-@datamanager_bp.route("/check-results/optional-submit", methods=["GET", "POST"])
-def optional_fields_submit():
-    form = request.form.to_dict()
-    request_id = form.get("request_id")
-    documentation_url = form.get("documentation_url", "").strip()
-    licence = form.get("licence", "").strip()
-    start_day = form.get("start_day", "").strip()
-    start_month = form.get("start_month", "").strip()
-    start_year = form.get("start_year", "").strip()
+# # Check in case documentation_url, licence, start_date, are missing??? Not sure what this really does
+# @datamanager_bp.route("/check-results/optional-submit", methods=["GET", "POST"])
+# def optional_fields_submit():
+#     form = request.form.to_dict()
+#     request_id = form.get("request_id")
+#     documentation_url = form.get("documentation_url", "").strip()
+#     licence = form.get("licence", "").strip()
+#     start_day = form.get("start_day", "").strip()
+#     start_month = form.get("start_month", "").strip()
+#     start_year = form.get("start_year", "").strip()
 
-    start_date = None
-    if start_day and start_month and start_year:
-        start_date = f"{start_year}-{start_month.zfill(2)}-{start_day.zfill(2)}"
+#     start_date = None
+#     if start_day and start_month and start_year:
+#         start_date = f"{start_year}-{start_month.zfill(2)}-{start_day.zfill(2)}"
 
-    # 🔹 Save in backend
-    async_api = get_request_api_endpoint()
-    payload = {
-        "params": {
-            "type": "check_url",
-            "documentation_url": documentation_url or None,
-            "licence": licence or None,
-            "start_date": start_date,
-        }
-    }
-    logger.info("Submitting optional fields to request API")
-    try:
-        requests.patch(
-            f"{async_api}/requests/{request_id}", json=payload, timeout=REQUESTS_TIMEOUT
-        )
-        logger.info(f"Successfully updated request {request_id} in request-api")
-        logger.debug(json.dumps(payload, indent=2))
-    except Exception as e:
-        logger.error(f"Failed to update request {request_id} in request-api: {e}")
+#     # 🔹 Save in backend
+#     async_api = get_request_api_endpoint()
+#     # Again these params won't be saved?
+#     payload = {
+#         "params": {
+#             "type": "check_url",
+#             "documentation_url": documentation_url or None,
+#             "licence": licence or None,
+#             "start_date": start_date,
+#         }
+#     }
+#     logger.info("Submitting optional fields to request API")
+#     try:
+#         requests.patch(
+#             f"{async_api}/requests/{request_id}", json=payload, timeout=REQUESTS_TIMEOUT
+#         )
+#         logger.info(f"Successfully updated request {request_id} in request-api")
+#         logger.debug(json.dumps(payload, indent=2))
+#     except Exception as e:
+#         logger.error(f"Failed to update request {request_id} in request-api: {e}")
 
-    return redirect(url_for("datamanager.add_data", request_id=request_id))
+#     return redirect(url_for("datamanager.add_data", request_id=request_id))
 
 
-# Currently submits data for add data? and also shows form for optional fields if not there
+# Currently submits data for add data, and shows additional form for missed stuff
 @datamanager_bp.route("/add-data", methods=["GET", "POST"])
 def add_data():
     async_api = get_request_api_endpoint()
@@ -770,8 +782,13 @@ def add_data():
     existing_lic = session.get("optional_fields", {}).get("licence")
     existing_start = session.get("optional_fields", {}).get("start_date")
 
+    # authoritative from required fields (now required)
+    existing_auth = session.get("required_fields", {}).get("authoritative")
+
     # TODO: Break this function up / out
-    def _submit_preview(doc_url: str, licence: str, start_date: str):
+    def _submit_preview(
+        doc_url: str, licence: str, start_date: str, authoritative: bool
+    ):
         # all required fields from session
         params = session.get("required_fields", {}).copy()
         logger.debug(f"Using required fields from session: {params}")
@@ -792,6 +809,7 @@ def add_data():
                 "documentation_url": doc_url,
                 "licence": licence,
                 "start_date": start_date,
+                "authoritative": authoritative,
             }
         )
         try:
@@ -821,21 +839,36 @@ def add_data():
         raise Exception(f"Preview submission failed ({r.status_code}): {detail}")
 
     if request.method == "GET":
-        if existing_doc and existing_lic and existing_start:
-            # Optional fields are present → use EXISTING payload to preview
-            return _submit_preview(existing_doc, existing_lic, existing_start)
+        if (
+            existing_doc
+            and existing_lic
+            and existing_start
+            and (existing_auth is not None)
+        ):
+            # All required fields are present → use EXISTING payload to preview
+            return _submit_preview(
+                existing_doc, existing_lic, existing_start, existing_auth
+            )
 
         # Pre-populate form with any existing data for the initial GET request
         form_data = {
-            "documentation_url": existing_doc,
             "licence": existing_lic,
+            "documentation_url": existing_doc,
+            "authoritative": existing_auth,
         }
         return render_template("datamanager/add-data.html", form=form_data)
 
-    # POST – user submitted optional fields
+    # POST – user submitted optional fields + authoritative
     form = request.form.to_dict()
     doc_url = (form.get("documentation_url") or existing_doc or "").strip()
     licence = (form.get("licence") or existing_lic or "").strip()
+    authoritative_raw = form.get("authoritative") or existing_auth
+    if not authoritative_raw or str(authoritative_raw).strip() == "":
+        authoritative = None
+    elif str(authoritative_raw).strip().lower() in ("true", "yes", "1"):
+        authoritative = True
+    else:
+        authoritative = False
 
     d = (form.get("start_day") or "").strip()
     m = (form.get("start_month") or "").strip()
@@ -846,9 +879,14 @@ def add_data():
         else (existing_start or "").strip()
     )
 
-    if not (doc_url and licence and start_date):
-        # Still missing something – re-show optional screen
-        return render_template("datamanager/add-data.html", form=form)
+    # Validate required fields
+    errors = {}
+    if authoritative is None:
+        errors["authoritative"] = True
+
+    if not (doc_url and licence and start_date) or errors:
+        # Still missing something – re-show optional screen with errors
+        return render_template("datamanager/add-data.html", form=form, errors=errors)
 
     # Remember locally (optional)
     session["optional_fields"] = {
@@ -857,8 +895,13 @@ def add_data():
         "start_date": start_date,
     }
 
+    # Update required_fields with authoritative value
+    if "required_fields" not in session:
+        session["required_fields"] = {}
+    session["required_fields"]["authoritative"] = authoritative
+
     # Now preview with the UPDATED payload
-    return _submit_preview(doc_url, licence, start_date)
+    return _submit_preview(doc_url, licence, start_date, authoritative)
 
 
 # --- Configure column screen ---
@@ -1164,6 +1207,28 @@ def entities_preview(request_id):
         has_column_mapping,
     ) = build_column_csv_preview(column_mapping, dataset_id, endpoint_summary)
 
+    # Build entity-organisation CSV preview (only for authoritative data)
+    authoritative = params.get("authoritative", False)
+    entity_org_table_params = None
+    entity_org_csv_text = ""
+    has_entity_org = False
+    entity_org_warning = None
+
+    if authoritative:
+        entity_organisation_data = pipeline_summary.get("entity-organisation") or []
+        if entity_organisation_data:
+            (
+                entity_org_table_params,
+                entity_org_csv_text,
+                has_entity_org,
+            ) = build_entity_organisation_csv(entity_organisation_data)
+        else:
+            entity_org_warning = "No entity-organisation data found"
+    else:
+        entity_org_warning = (
+            "This must be manually created currently for non-authoritative data"
+        )
+
     return render_template(
         "datamanager/entities_preview.html",
         request_id=request_id,
@@ -1197,6 +1262,11 @@ def entities_preview(request_id):
         ),
         pipeline_issues=pipeline_issues,
         dataset=dataset_id,
+        # Entity organisation CSV
+        entity_org_table_params=entity_org_table_params,
+        entity_org_csv_text=entity_org_csv_text,
+        has_entity_org=has_entity_org,
+        entity_org_warning=entity_org_warning,
     )
 
 
@@ -1261,11 +1331,24 @@ def add_data_confirm(request_id):
     )
     column_csv_rows = column_csv_text.split("\n") if column_csv_text else []
 
+    # Build entity-organisation CSV rows (only for authoritative data)
+    entity_organisation_csv_rows = []
+    authoritative = params.get("authoritative", False)
+    if authoritative:
+        entity_organisation_data = pipeline_summary.get("entity-organisation") or []
+        if entity_organisation_data:
+            _, entity_org_csv_text, _ = build_entity_organisation_csv(
+                entity_organisation_data, include_headers=False
+            )
+            entity_organisation_csv_rows = (
+                entity_org_csv_text.split("\n") if entity_org_csv_text else []
+            )
+
     try:
         # Trigger the GitHub workflow
         logger.info(f"Triggering GitHub workflow for collection: {collection}")
         logger.debug(
-            f"Lookup rows: {len(lookup_csv_rows)}, Endpoint rows: {len(endpoint_csv_rows)}, Source rows: {len(source_csv_rows)}, Column rows: {len(column_csv_rows)}"  # noqa
+            f"Lookup rows: {len(lookup_csv_rows)}, Endpoint rows: {len(endpoint_csv_rows)}, Source rows: {len(source_csv_rows)}, Column rows: {len(column_csv_rows)}, Entity-org rows: {len(entity_organisation_csv_rows)}"  # noqa
         )
 
         result = trigger_add_data_workflow(
@@ -1274,6 +1357,9 @@ def add_data_confirm(request_id):
             endpoint_csv_rows=endpoint_csv_rows if endpoint_csv_rows else None,
             source_csv_rows=source_csv_rows if source_csv_rows else None,
             column_csv_rows=column_csv_rows if column_csv_rows else None,
+            entity_organisation_csv_rows=(
+                entity_organisation_csv_rows if entity_organisation_csv_rows else None
+            ),
             triggered_by=f"config-manager-user-{session.get('user', {}).get('login', 'unknown')}",
         )
 

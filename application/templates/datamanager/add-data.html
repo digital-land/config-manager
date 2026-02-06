@@ -7,6 +7,7 @@
 {# convenient flags for errors #}
 {% set documentation_error = errors.get('documentation_url') if errors else None %}
 {% set startdate_error = errors.get('start_date') if errors else None %}
+{% set authoritative_error = errors.get('authoritative') if errors else None %}
 {% set today = now.now() %}
 
 {% block content %}
@@ -15,7 +16,7 @@
 
     <form class="govuk-form" method="post" action="{{ url_for('datamanager.add_data') }}" novalidate>
       {# Error summary #}
-      {% if documentation_error or startdate_error %}
+      {% if documentation_error or startdate_error or authoritative_error %}
       <div class="govuk-error-summary" role="alert" data-module="govuk-error-summary">
         <h2 class="govuk-error-summary__title">There is a problem</h2>
         <div class="govuk-error-summary__body">
@@ -25,6 +26,9 @@
             {% endif %}
             {% if startdate_error %}
             <li><a href="#start-day">Enter a valid start date (day, month and year)</a></li>
+            {% endif %}
+            {% if authoritative_error %}
+            <li><a href="#authoritative">Select whether this is the authoritative source</a></li>
             {% endif %}
           </ul>
         </div>
@@ -91,6 +95,21 @@
         'label': { 'text': 'Data is provided under which licence?', 'classes': 'govuk-label--m' },
         'hint': { 'text': 'e.g. OGL, CC-BY' },
         'value': form.get('licence', '')
+        }) }}
+      </div>
+
+      {# Authoritative source (required) #}
+      <div class="govuk-form-group {% if authoritative_error %}govuk-form-group--error{% endif %}">
+        {{ govukSelect({
+        'id': 'authoritative',
+        'name': 'authoritative',
+        'label': { 'html': 'Is this the authoritative source? <span class="govuk-required">*</span>', 'classes': 'govuk-label--m' },
+        'items': [
+          { 'value': '', 'text': 'Select an option', 'selected': not form.get('authoritative') and form.get('authoritative') is not true and form.get('authoritative') is not false },
+          { 'value': 'yes', 'text': 'Yes', 'selected': form.get('authoritative') == 'yes' or form.get('authoritative') is true },
+          { 'value': 'no', 'text': 'No', 'selected': form.get('authoritative') == 'no' or form.get('authoritative') is false }
+        ],
+        'errorMessage': ( { 'text': 'Select whether this is the authoritative source' } if authoritative_error else None )
         }) }}
       </div>
 

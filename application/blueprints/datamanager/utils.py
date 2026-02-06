@@ -498,5 +498,64 @@ def build_column_csv_preview(
     return column_csv_table_params, column_csv_text, has_column_mapping
 
 
+def build_entity_organisation_csv(
+    entity_organisation_data: list, include_headers: bool = True
+) -> tuple:
+    """
+    Build entity-organisation CSV preview.
+    Returns (table_params, csv_text, has_data)
+
+    Args:
+        entity_organisation_data: List of entity-organisation entries from pipeline-summary
+        include_headers: If True, include CSV headers in csv_text. Default True.
+    """
+    cols = ["dataset", "entity-minimum", "entity-maximum", "organisation"]
+
+    if not entity_organisation_data:
+        return None, "", False
+
+    # Build table rows
+    rows = []
+    for entry in entity_organisation_data:
+        rows.append(
+            {
+                "columns": {
+                    "dataset": {"value": str(entry.get("dataset", ""))},
+                    "entity-minimum": {"value": str(entry.get("entity-minimum", ""))},
+                    "entity-maximum": {"value": str(entry.get("entity-maximum", ""))},
+                    "organisation": {"value": str(entry.get("organisation", ""))},
+                }
+            }
+        )
+
+    table_params = {
+        "columns": cols,
+        "fields": cols,
+        "rows": rows,
+        "columnNameProcessing": "none",
+    }
+
+    # Build CSV text
+    csv_lines = []
+    if include_headers:
+        csv_lines.append(",".join(cols))
+
+    for entry in entity_organisation_data:
+        csv_lines.append(
+            ",".join(
+                [
+                    str(entry.get("dataset", "")),
+                    str(entry.get("entity-minimum", "")),
+                    str(entry.get("entity-maximum", "")),
+                    str(entry.get("organisation", "")),
+                ]
+            )
+        )
+
+    csv_text = "\n".join(csv_lines)
+
+    return table_params, csv_text, True
+
+
 def inject_now():
     return {"now": datetime}

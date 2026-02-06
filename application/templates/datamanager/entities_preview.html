@@ -232,6 +232,38 @@
     </section>
     {% endif %}
 
+    <!-- Entity Organisation CSV -->
+    <section class="govuk-!-margin-bottom-9">
+      <h2 class="govuk-heading-m">entity-organisation.csv</h2>
+      {% if entity_org_warning %}
+      <div class="govuk-warning-text">
+        <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+        <strong class="govuk-warning-text__text">
+          <span class="govuk-visually-hidden">Warning</span>
+          {{ entity_org_warning }}
+        </strong>
+      </div>
+      {% elif has_entity_org and entity_org_table_params %}
+      <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
+        {{ table(entity_org_table_params) }}
+      </div>
+      {% if entity_org_csv_text != '' %}
+      <details class="govuk-details govuk-!-margin-bottom-4" data-module="govuk-details">
+        <summary class="govuk-details__summary">
+          <span class="govuk-details__summary-text">Copy CSV for <code>entity-organisation.csv</code></span>
+        </summary>
+        <div class="govuk-details__text">
+          {% set _eo_lines = (entity_org_csv_text or '').splitlines() %}
+          <textarea class="govuk-textarea" rows="{{ [_eo_lines[1:] | length, 2] | max }}" readonly>{{ _eo_lines[1:] | join('\n') }}</textarea>
+          <p class="govuk-hint govuk-!-margin-top-2">Copy these lines into your local <code>entity-organisation.csv</code>.</p>
+        </div>
+      </details>
+      {% endif %}
+      {% else %}
+      <p class="govuk-body">No entity-organisation data found.</p>
+      {% endif %}
+    </section>
+
     <!-- Pipeline Issues -->
     {% if pipeline_issues %}
     <section class="govuk-!-margin-bottom-9">

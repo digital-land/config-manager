@@ -101,6 +101,7 @@ def trigger_add_data_workflow(
     endpoint_csv_rows: list = None,
     source_csv_rows: list = None,
     column_csv_rows: list = None,
+    entity_organisation_csv_rows: list = None,
     triggered_by: str = "config-manager",
 ) -> dict:
     """
@@ -112,6 +113,7 @@ def trigger_add_data_workflow(
         endpoint_csv_rows: List of CSV row strings for endpoint.csv
         source_csv_rows: List of CSV row strings for source.csv
         column_csv_rows: List of CSV row strings for column.csv
+        entity_organisation_csv_rows: List of CSV row strings for entity-organisation.csv
         triggered_by: Identifier for who/what triggered this
 
     Returns:
@@ -154,6 +156,10 @@ def trigger_add_data_workflow(
             client_payload["source_csv_rows"] = source_csv_rows
         if column_csv_rows:
             client_payload["column_csv_rows"] = column_csv_rows
+        if entity_organisation_csv_rows:
+            client_payload["entity_organisation_csv_rows"] = (
+                entity_organisation_csv_rows
+            )
 
         payload = {"event_type": "add-data-via-api", "client_payload": client_payload}
 

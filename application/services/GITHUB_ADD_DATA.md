@@ -29,6 +29,9 @@ The workflow is triggered via GitHub's repository dispatch API using a GitHub Ap
     ],
     "column_csv_rows": [
       "article-4-direction-area,fc506934d0ccc949f0f1ecd12ff8992587598e40950b067f2e1fc874b260a17a,,geom,geometry,,,"
+    ],
+    "entity_organisation_csv_rows": [
+      "article-4-direction,7010009399,7010009401,local-authority:SKP"
     ]
   }
 }
@@ -49,6 +52,7 @@ All CSV row fields are optional. Only provide the ones you want to update:
 - `client_payload.endpoint_csv_rows`: Array of CSV rows to append to `collection/{collection}/endpoint.csv`
 - `client_payload.column_csv_rows`: Array of CSV rows to append to `pipeline/{collection}/column.csv`
 - `client_payload.source_csv_rows`: Array of CSV rows to append to `collection/{collection}/source.csv`
+- `client_payload.entity_organisation_csv_rows`: Array of CSV rows to append to `pipeline/{collection}/entity-organisation.csv` (only for authoritative data)
 - `client_payload.triggered_by`: Optional identifier for who/what triggered the workflow
 
 ## CSV Row Formats
@@ -86,6 +90,16 @@ Example:
 ```
 fc506934d0ccc949f0f1ecd12ff8992587598e40950b067f2e1fc874b260a17a,,article-4-direction,,,OGL3,local-authority:SKP,article-4-direction-area,2025-01-29T00:00:00Z,,
 ```
+
+### entity-organisation.csv
+Format: `dataset,entity-minimum,entity-maximum,organisation`
+
+Example:
+```
+article-4-direction,7010009399,7010009401,local-authority:SKP
+```
+
+**Note:** Entity organisation rows are only included when the data source is marked as `authoritative=true`.
 
 ## Authentication
 

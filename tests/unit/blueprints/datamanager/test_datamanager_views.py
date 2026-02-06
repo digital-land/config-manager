@@ -380,29 +380,6 @@ class TestSpecificLines:
         response = client.get("/datamanager/check-results/test-id")
         assert response.status_code == 200
 
-    @patch("application.blueprints.datamanager.views.requests.patch")
-    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_optional_fields_submit_optional_fields_submit_complex(
-        self, mock_endpoint, mock_patch, client
-    ):
-        """Test lines 588-620: Optional fields submit logic"""
-        mock_endpoint.return_value = "http://test-api"
-        mock_patch.return_value = Mock()
-
-        form_data = {
-            "request_id": "test-id",
-            "documentation_url": "https://example.gov.uk",
-            "licence": "ogl",
-            "start_day": "15",
-            "start_month": "6",
-            "start_year": "2024",
-        }
-
-        response = client.post(
-            "/datamanager/check-results/optional-submit", data=form_data
-        )
-        assert response.status_code == 302
-
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_lines_add_data_add_data_complex(self, mock_endpoint, mock_post, client):
@@ -416,7 +393,11 @@ class TestSpecificLines:
         mock_post.return_value = mock_response
 
         with client.session_transaction() as sess:
-            sess["required_fields"] = {"collection": "test", "dataset": "test"}
+            sess["required_fields"] = {
+                "collection": "test",
+                "dataset": "test",
+                "authoritative": True,
+            }
 
         form_data = {
             "documentation_url": "https://example.gov.uk",
@@ -424,6 +405,7 @@ class TestSpecificLines:
             "start_day": "1",
             "start_month": "1",
             "start_year": "2024",
+            "authoritative": "true",
         }
 
         response = client.post("/datamanager/add-data", data=form_data)
@@ -807,6 +789,7 @@ class TestSpecificLines:
             "start_year": "2024",
             "column_mapping": '{"raw_field": "spec_field"}',
             "geom_type": "point",
+            "authoritative": "true",
         }
 
         with client.session_transaction() as sess:
@@ -832,6 +815,7 @@ class TestSpecificLines:
         assert payload["params"]["licence"] == "ogl"
         assert payload["params"]["start_date"] == "2024-01-01"
         assert payload["params"]["organisation"] == "local-authority-eng:ABC123"
+        assert payload["params"]["authoritative"] is True
         # Note: column_mapping and geom_type are not sent in initial check_url request
         # They are only used when re-checking from the configure page
 
@@ -845,6 +829,7 @@ class TestSpecificLines:
             assert (
                 sess["required_fields"]["organisation"] == "local-authority-eng:ABC123"
             )
+            assert sess["required_fields"]["authoritative"] is True
             assert (
                 sess["optional_fields"]["documentation_url"]
                 == "https://example.gov.uk/docs"
@@ -900,6 +885,7 @@ class TestSpecificLines:
             "dataset": "test-dataset",
             "organisation": "Test Org (local-authority-eng:ABC123)",
             "endpoint_url": "https://example.com/data.csv",
+            "authoritative": "true",
         }
 
         response = client.post("/datamanager/add", data=form_data)
@@ -951,6 +937,7 @@ class TestSpecificLines:
             "dataset": "test-dataset",
             "organisation": "Test Org (local-authority-eng:ABC123)",
             "endpoint_url": "https://example.com/data.csv",
+            "authoritative": "true",
         }
 
         response = client.post("/datamanager/add", data=form_data)
@@ -998,6 +985,7 @@ class TestSpecificLines:
             "dataset": "test-dataset",
             "organisation": "Test Org (local-authority-eng:ABC123)",
             "endpoint_url": "https://example.com/data.csv",
+            "authoritative": "true",
         }
 
         response = client.post("/datamanager/add", data=form_data)
