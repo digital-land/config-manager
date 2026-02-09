@@ -12,6 +12,11 @@ endblock %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
     <h1 class="govuk-heading-xl">Check Planning data</h1>
+    <p class="govuk-body">
+      <a href="{{ url_for('datamanager.dashboard_add_import') }}" class="govuk-link">
+        Import from CSV
+      </a>
+    </p>
   </div>
 </div>
 
@@ -24,8 +29,9 @@ endblock %}
       {% set documentation_error = errors.get('documentation_url') %}
       {% set dataset_error = errors.get('dataset') %}
       {% set environment_error = errors.get('endpoint_url') %}
+      {% set authoritative_error = errors.get('authoritative') %}
 
-      {% if organisation_error or documentation_error or dataset_error or environment_error or errors.start_date %}
+      {% if organisation_error or documentation_error or dataset_error or environment_error or errors.start_date or authoritative_error %}
       <div class="govuk-error-summary" role="alert" data-module="govuk-error-summary">
         <h2 class="govuk-error-summary__title">There is a problem</h2>
         <div class="govuk-error-summary__body">
@@ -36,6 +42,7 @@ endblock %}
             {% if documentation_error %}<li><a href="#documentation-url">Enter a valid documentation URL</a></li>{%
             endif %}
             {% if errors.start_date %}<li><a href="#start-day">Enter a valid start date</a></li>{% endif %}
+            {% if authoritative_error %}<li><a href="#authoritative">Select whether this is the authoritative source</a></li>{% endif %}
           </ul>
         </div>
       </div>
@@ -98,7 +105,7 @@ endblock %}
       <div class="govuk-form-group govuk-!-margin-top-6">
         <!-- Start date -->
         <fieldset class="govuk-fieldset" role="group" aria-describedby="start-date-error">
-          <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">Start date (defaults to today)</legend>
+          <legend class="govuk-label">Start date (defaults to today)</legend>
           {% if errors.start_date %}
           <p id="start-date-error" class="govuk-error-message">
             <span class="govuk-visually-hidden">Error:</span> Enter a valid date
@@ -123,17 +130,28 @@ endblock %}
       </div>
 
       <!-- Licence -->
-      {{ govukSelect({
+      {{ govukInput({
       'id': 'licence',
       'name': 'licence',
       'label': { 'text': 'Data is provided under which licence?' },
-      'items': [
-      { 'value': '', 'text': 'e.g OGL' },
-      { 'value': 'ogl', 'text': 'OGL' },
-      { 'value': 'cc-by', 'text': 'CC-BY' }
-      ],
+      'hint': { 'text': 'e.g. OGL, CC-BY' },
       'value': form.get('licence', '')
       }) }}
+
+      <!-- Authoritative source -->
+      <div class="govuk-form-group {% if errors.get('authoritative') %}govuk-form-group--error{% endif %}">
+        {{ govukSelect({
+        'id': 'authoritative',
+        'name': 'authoritative',
+        'label': { 'html': 'Is this the authoritative source? <span class="govuk-required">*</span>' },
+        'items': [
+          { 'value': '', 'text': 'Select an option', 'selected': not form.get('authoritative') },
+          { 'value': 'yes', 'text': 'Yes', 'selected': form.get('authoritative') == 'yes' },
+          { 'value': 'no', 'text': 'No', 'selected': form.get('authoritative') == 'no' }
+        ],
+        'errorMessage': ( { 'text': 'Select whether this is the authoritative source' } if errors.get('authoritative') else None )
+        }) }}
+      </div>
 
       <div class="govuk-form-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
         {{ govukButton({

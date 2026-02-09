@@ -2,6 +2,7 @@
 """
 Flask app factory class
 """
+
 # import os.path
 # import sentry_sdk
 import logging

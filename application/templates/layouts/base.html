@@ -66,20 +66,3 @@
 {% block content %}
 <h1 class="govuk-heading-xl">{{ title|default('Index') }}</h1>
 {% endblock content %}
-
-{% block pageScripts %}
-<!-- GOV.UK Frontend CSS -->
-<link rel="stylesheet" href="https://unpkg.com/govuk-frontend/dist/govuk/all.min.css" />
-
-<!-- GOV.UK Frontend JS -->
-<script src="https://unpkg.com/govuk-frontend/dist/govuk/all.min.js"></script>
-
-<script>
-  // Initialise GOV.UK Frontend components globally
-  document.addEventListener("DOMContentLoaded", function () {
-    if (window.GOVUKFrontend) {
-      window.GOVUKFrontend.initAll();
-    }
-  });
-</script>
-{% endblock pageScripts %}

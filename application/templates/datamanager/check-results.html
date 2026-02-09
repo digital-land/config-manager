@@ -1,16 +1,15 @@
-{% extends 'layouts/base.html' %}
-{% from "components/table.html" import table %}
-
-{% block content %}
+{% extends 'layouts/base.html' %} {% from "components/table.html" import table
+%} {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
-
     <!-- Blocking errors -->
     {% if show_error %}
     <div class="govuk-error-summary govuk-!-margin-bottom-6" role="alert">
       <h2 class="govuk-error-summary__title">Data cannot be added</h2>
       <div class="govuk-error-summary__body">
-        <p><strong>Please fix the blocking issues before adding data</strong></p>
+        <p>
+          <strong>Please fix the blocking issues before adding data</strong>
+        </p>
       </div>
     </div>
     {% endif %}
@@ -20,18 +19,10 @@
     <h1 class="govuk-heading-xl">{{ result.params.dataset | title }}</h1>
     <h2 class="govuk-heading-m govuk-!-margin-top-3">Data has been checked</h2>
 
-    <!-- Entity summary (uses server-built message + flag) -->
-    <!--<div class="govuk-inset-text">
-      {{ new_entities_message }}
-      {% if show_entities_link %}
-      <div class="govuk-!-margin-top-2">
-        <a class="govuk-button" href="{{ entities_preview_url }}">View new entities</a>
-      </div>
-      {% endif %}
-    </div> -->
-
     <!-- Tabs -->
+
     <div class="govuk-tabs" data-module="govuk-tabs">
+      {% if geometries %}
       <ul class="govuk-tabs__list">
         <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
           <a class="govuk-tabs__tab" href="#map">Map</a>
@@ -40,151 +31,140 @@
           <a class="govuk-tabs__tab" href="#dataset-table">Dataset table</a>
         </li>
       </ul>
+      {% else %}
+      <ul class="govuk-tabs__list">
+        <li class="govuk-tabs__list-item">
+          <a class="govuk-tabs__tab" href="#dataset-table">Dataset table</a>
+        </li>
+      </ul>
+      {% endif %}
 
       <!-- Map Tab -->
+      {% if geometries %}
       <div class="govuk-tabs__panel" id="map">
-        <div id="map-container" style="height: 450px; border: 1px solid #ccc;" data-geometries='{{ geometries | tojson | safe }}'>
-        </div>
+        <div class="app-map-container" id="map-container" data-geometries="{{ geometries | tojson | safe }}"></div>
       </div>
+      {% endif %}
 
       <!-- Dataset table -->
       <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="dataset-table">
         {% if table_params.rows %}
-        <div class="dl-table-scrollable-container">
+        <div class="app-scrollable-container app-scrollable">
           {{ table(table_params) }}
-        </div>
-
-        <p class="govuk-body govuk-!-margin-top-4">
-          Showing rows {{ showing_start }} to {{ showing_end }} of {{ total_rows }}
-        </p>
-
-        <div class="govuk-pagination">
-          {% if page > 1 %}
-          <a class="govuk-link" href="?page={{ page-1 }}">Previous</a>
-          {% endif %}
-          {% if showing_end < total_rows %} <a class="govuk-link govuk-!-margin-left-4" href="?page={{ page+1 }}">
-            Next</a>
-          {% endif %}
         </div>
         {% else %}
         <p class="govuk-body">No rows to display</p>
         {% endif %}
       </div>
+    </div>
 
-      <!-- Metadata & Results -->
-      <div class="govuk-grid-row govuk-!-margin-top-6">
-        <div class="govuk-grid-column-one-third">
-          <h3 class="govuk-heading-s">Dataset actions</h3>
-          <p><a class="govuk-link" href="#">Share these results</a></p>
-        </div>
+    <!-- Metadata & Results -->
+    <div class="govuk-grid-row govuk-!-margin-top-6">
+      <div class="govuk-grid-column-full">
+        <dl class="govuk-summary-list">
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">File name</dt>
+            <dd class="govuk-summary-list__value">{{ result.params.url }}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Date checked</dt>
+            <dd class="govuk-summary-list__value">
+              {{ result.modified or result.created }}
+            </dd>
+          </div>
+        </dl>
 
-        <div class="govuk-grid-column-two-thirds">
-          <dl class="govuk-summary-list">
-            <div class="govuk-summary-list__row">
-              <dt class="govuk-summary-list__key">File name</dt>
-              <dd class="govuk-summary-list__value">{{ result.params.url.split('/')[-1] }}</dd>
-            </div>
-            <div class="govuk-summary-list__row">
-              <dt class="govuk-summary-list__key">Date checked</dt>
-              <dd class="govuk-summary-list__value">{{ result.modified or result.created }}</dd>
-            </div>
-          </dl>
+        <!-- Passed Checks -->
+        {% if passed_checks %}
 
-          <!-- Passed Checks -->
-          {% if passed_checks %}
-          <h2 class="govuk-heading-m govuk-!-margin-top-6">Data that passed the checks</h2>
-          <div class="govuk-!-margin-bottom-4">
+        <h2 class="govuk-heading-m govuk-!-margin-top-6">
+          Data that passed the checks
+        </h2>
+        <div class="govuk-width-container">
+          <ul class="govuk-task-list">
             {% for check in passed_checks %}
-            <div class="govuk-!-margin-bottom-2" style="display:flex; justify-content:space-between;">
-              <span>{{ check }}</span>
-              <strong class="govuk-tag govuk-tag--green">Passed</strong>
-            </div>
+            <li class="govuk-task-list__item govuk-task-list__item--with-link">
+              <div class="govuk-task-list__name-and-hint">{{ check }}</div>
+              <div class="govuk-task-list__status" id="before-you-start-1-status">
+                <strong class="govuk-tag govuk-tag--green"> Passed </strong>
+              </div>
+            </li>
             {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <!-- Must fix (blocking issues) -->
+        {% if must_fix %}
+        <h2 class="govuk-heading-m govuk-!-margin-top-4">
+          Issues that must be fixed before adding data
+        </h2>
+        <div class="govuk-!-margin-bottom-4 govuk-body">
+          {% for issue in must_fix %}
+          <div class="app-card-details">
+            <span><a class="govuk-link" href="#">{{ issue }}</a></span>
+            <strong class="govuk-tag govuk-tag--red">Must fix</strong>
           </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Fixable issues -->
+        {% if fixable %}
+        <h2 class="govuk-heading-m">
+          Issues that can be fixed after adding data
+        </h2>
+        <p class="govuk-body">
+          Data can be added with these issues, but they should be fixed over
+          time.
+        </p>
+        <div class="govuk-!-margin-bottom-4 govuk-body">
+          {% for issue in fixable %}
+          <div class="app-card-details">
+            <span><a class="govuk-link" href="#">{{ issue }}</a></span>
+            <strong class="govuk-tag govuk-tag--yellow">Needs fixing</strong>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Buttons -->
+        <div class="govuk-button-group govuk-!-margin-top-6 right-side-buttons">
+          {% if allow_add_data %}
+          <form method="get" action="{{ url_for('datamanager.add_data', request_id=result.id) }}">
+            <button type="submit" class="govuk-button">Add data</button>
+          </form>
+          {% else %}
+          <button class="govuk-button govuk-button--secondary" disabled aria-disabled="true">
+            Add data
+          </button>
+          {% if must_fix|length > 0 %}
+          <a href="{{ url_for('datamanager.configure_column_mapping', request_id=request_id) }}"
+            class="govuk-button">Column mapping</a>
           {% endif %}
-
-          <!-- Must fix (blocking issues) -->
-          {% if must_fix %}
-          <h2 class="govuk-heading-m govuk-!-margin-top-4">Issues that must be fixed before adding data</h2>
-          <div class="govuk-!-margin-bottom-4 govuk-body">
-            {% for issue in must_fix %}
-            <div style="display:flex; justify-content:space-between; border-top:1px solid #b1b4b6; padding:10px 0;">
-              <span><a class="govuk-link" href="#">{{ issue }}</a></span>
-              <strong class="govuk-tag govuk-tag--red">Must fix</strong>
-            </div>
-            {% endfor %}
-          </div>
           {% endif %}
-
-          <!-- Fixable issues -->
-          {% if fixable %}
-          <h2 class="govuk-heading-m">Issues that can be fixed after adding data</h2>
-          <p class="govuk-body">
-            Data can be added with these issues, but they should be fixed over time.
-          </p>
-          <div class="govuk-!-margin-bottom-4 govuk-body">
-            {% for issue in fixable %}
-            <div style="display:flex; justify-content:space-between; border-top:1px solid #b1b4b6; padding:10px 0;">
-              <span><a class="govuk-link" href="#">{{ issue }}</a></span>
-              <strong class="govuk-tag govuk-tag--yellow">Needs fixing</strong>
-            </div>
-            {% endfor %}
-          </div>
-          {% endif %}
-
-          <!-- Buttons -->
-          <div class="govuk-button-group govuk-!-margin-top-6" style="display:flex; justify-content:flex-end; gap: 10px;">
-            {% if allow_add_data %}
-            <form method="get" action="{{ url_for('datamanager.add_data', request_id=result.id) }}">
-              <button type="submit" class="govuk-button">Add data</button>
-            </form>
-            <a href="{{ url_for('datamanager.index') }}" class="govuk-button govuk-button--secondary">Configure data</a>
-            {% else %}
-            <button class="govuk-button govuk-button--secondary" disabled aria-disabled="true">Add data</button>
-            <a href="{{ url_for('datamanager.index') }}" class="govuk-button">Configure data</a>
-            {% endif %}
-          </div>
-
         </div>
       </div>
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block pageScripts %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
+{% endblock %} {% block pageStyles %} {% endblock %} {% block pageScripts %} {{
+super() }} {% if geometries %}
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    window.GOVUKFrontend.initAll();
-    const mapContainer = document.getElementById('map-container');
-    if (mapContainer) {
-      const map = L.map(mapContainer).setView([54.0, -2.0], 6);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-      const geometries = JSON.parse(mapContainer.dataset.geometries || "[]");
-      if (geometries.length > 0) {
-        const geoLayer = L.geoJSON({
-          type: "FeatureCollection",
-          features: geometries
-        }, {
-          style: {
-            color: "red",
-            weight: 2,
-            fillOpacity: 0.35
-          },
-          onEachFeature: (feature, layer) => {
-            if (feature.properties?.reference) {
-              layer.bindPopup("Reference: " + feature.properties.reference);
-            }
-          }
-        }).addTo(map);
-        map.fitBounds(geoLayer.getBounds());
-      }
-    }
-  });
+  console.log('Inline script working');
+  window.serverContext = {
+    containerId: "map-container",
+    geometries: {{ geometries | tojson | safe }},
+    boundaryGeoJsonUrl: {% if boundary_geojson_url %}{{ boundary_geojson_url | tojson | safe }}{% else %}null{% endif %}
+  };
+  console.log('serverContext set:', window.serverContext);
 </script>
+<script>
+  console.log("About to load external script");
+</script>
+<script src="{{ url_for('static', filename='javascripts/map.js') }}"></script>
+<script>
+  console.log("After external script tag");
+</script>
+{% endif %}
 {% endblock %}

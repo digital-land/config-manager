@@ -1,10 +1,10 @@
-import pytest
 import json
 from unittest.mock import patch, Mock
 
-from application.blueprints.datamanager.views import (
+from application.blueprints.datamanager.utils import (
     get_spec_fields_union,
     read_raw_csv_preview,
+    order_table_fields,
 )
 
 
@@ -14,11 +14,6 @@ class TestDatamanagerViews:
     def test_index_route(self, client):
         """Test the index route returns correct template"""
         response = client.get("/datamanager/")
-        assert response.status_code == 200
-
-    def test_dashboard_config_route(self, client):
-        """Test the dashboard config route"""
-        response = client.get("/datamanager/dashboard/config")
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.requests.get")
@@ -36,7 +31,7 @@ class TestDatamanagerViews:
         }
         mock_get.return_value = mock_response
 
-        response = client.get("/datamanager/dashboard/add")
+        response = client.get("/datamanager/add")
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.requests.get")
@@ -59,13 +54,17 @@ class TestDatamanagerViews:
         }
         mock_get.return_value = mock_response
 
-        response = client.get("/datamanager/dashboard/add?autocomplete=test")
+        response = client.get("/datamanager/add?autocomplete=test")
         assert response.status_code == 200
         data = json.loads(response.data)
         assert "test-dataset" in data
 
+    @patch("application.blueprints.datamanager.views.get_organisation_code_mapping")
+    @patch("application.blueprints.datamanager.views.get_provision_orgs_for_dataset")
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_dashboard_add_get_orgs_for(self, mock_get, client):
+    def test_dashboard_add_get_orgs_for(
+        self, mock_get, mock_provision, mock_org_mapping, client
+    ):
         """Test getting organizations for a dataset"""
         # Mock dataset response
         dataset_response = Mock()
@@ -78,19 +77,16 @@ class TestDatamanagerViews:
                 }
             ]
         }
+        mock_get.return_value = dataset_response
 
-        # Mock provision response
-        provision_response = Mock()
-        provision_response.json.return_value = {
-            "rows": [{"organisation": {"label": "Test Org", "value": "prefix:TEST123"}}]
-        }
+        # Mock utility functions
+        mock_provision.return_value = ["prefix:TEST123"]
+        mock_org_mapping.return_value = {"prefix:TEST123": "Test Org"}
 
-        mock_get.side_effect = [dataset_response, provision_response]
-
-        response = client.get("/datamanager/dashboard/add?get_orgs_for=test-dataset")
+        response = client.get("/datamanager/add?get_orgs_for=test-dataset")
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert "Test Org (TEST123)" in data
+        assert "Test Org (prefix:TEST123)" in data
 
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_get_spec_fields_union_success(self, mock_get):
@@ -195,8 +191,12 @@ class TestSpecificLines:
         result = get_spec_fields_union("test-dataset")
         assert result == ["AField", "MField", "ZField"]  # Should be sorted
 
+    @patch("application.blueprints.datamanager.views.get_organisation_code_mapping")
+    @patch("application.blueprints.datamanager.views.get_provision_orgs_for_dataset")
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_dashboard_add_provision_exception(self, mock_get, client):
+    def test_dashboard_add_provision_exception(
+        self, mock_get, mock_provision, mock_org_mapping, client
+    ):
         """Test lines 139-141: provision_rows exception handling"""
         dataset_response = Mock()
         dataset_response.json.return_value = {
@@ -208,21 +208,23 @@ class TestSpecificLines:
                 }
             ]
         }
+        mock_get.return_value = dataset_response
 
-        def side_effect_func(url, *args, **kwargs):
-            if "provision.json" in url:
-                raise Exception("Network error")
-            return dataset_response
+        # Mock provision to raise exception
+        mock_provision.side_effect = Exception("Network error")
+        mock_org_mapping.return_value = {}
 
-        mock_get.side_effect = side_effect_func
-
-        response = client.get("/datamanager/dashboard/add?get_orgs_for=test-dataset")
+        response = client.get("/datamanager/add?get_orgs_for=test-dataset")
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data == []
 
+    @patch("application.blueprints.datamanager.views.get_organisation_code_mapping")
+    @patch("application.blueprints.datamanager.views.get_provision_orgs_for_dataset")
     @patch("application.blueprints.datamanager.views.requests.get")
-    def test_dashboard_add_selected_orgs_list_comprehension(self, mock_get, client):
+    def test_dashboard_add_selected_orgs_list_comprehension(
+        self, mock_get, mock_provision, mock_org_mapping, client
+    ):
         """Test line 166: selected_orgs list comprehension"""
         dataset_response = Mock()
         dataset_response.json.return_value = {
@@ -234,22 +236,20 @@ class TestSpecificLines:
                 }
             ]
         }
+        mock_get.return_value = dataset_response
 
-        provision_response = Mock()
-        provision_response.json.return_value = {
-            "rows": [
-                {"organisation": {"label": "Test Org 1", "value": "prefix:TEST1"}},
-                {"organisation": {"label": "Test Org 2", "value": "prefix:TEST2"}},
-            ]
+        # Mock utility functions
+        mock_provision.return_value = ["prefix:TEST1", "prefix:TEST2"]
+        mock_org_mapping.return_value = {
+            "prefix:TEST1": "Test Org 1",
+            "prefix:TEST2": "Test Org 2",
         }
 
-        mock_get.side_effect = [dataset_response, provision_response]
-
-        response = client.get("/datamanager/dashboard/add?get_orgs_for=test-dataset")
+        response = client.get("/datamanager/add?get_orgs_for=test-dataset")
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert "Test Org 1 (TEST1)" in data
-        assert "Test Org 2 (TEST2)" in data
+        assert "Test Org 1 (prefix:TEST1)" in data
+        assert "Test Org 2 (prefix:TEST2)" in data
 
     @patch("application.blueprints.datamanager.views.requests.get")
     def test_ldashboard_add_provision_exception_in_post(self, mock_get, client):
@@ -279,7 +279,7 @@ class TestSpecificLines:
             "endpoint_url": "https://example.com/data.csv",
         }
 
-        response = client.post("/datamanager/dashboard/add", data=form_data)
+        response = client.post("/datamanager/add", data=form_data)
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.requests.get")
@@ -306,7 +306,7 @@ class TestSpecificLines:
             "org_warning": "true",
         }
 
-        response = client.post("/datamanager/dashboard/add", data=form_data)
+        response = client.post("/datamanager/add", data=form_data)
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.requests.get")
@@ -333,12 +333,27 @@ class TestSpecificLines:
                 }
             },
             "params": {
-                "organisation": "test-org",
+                "organisation": "local-authority-eng:ABC123",
                 "documentation_url": None,
                 "licence": None,
                 "start_date": None,
                 "url": "https://example.com/data.csv",
             },
+        }
+        main_response.raise_for_status.return_value = None
+
+        entity_response = Mock()
+        entity_response.json.return_value = {
+            "entities": [
+                {"reference": "E12345678", "local-planning-authority": "ABC123"}
+            ]
+        }
+        entity_response.raise_for_status.return_value = None
+
+        boundary_response = Mock()
+        boundary_response.json.return_value = {
+            "type": "FeatureCollection",
+            "features": [],
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
@@ -354,35 +369,16 @@ class TestSpecificLines:
                 ]
                 details_response.raise_for_status.return_value = None
                 return details_response
+            elif "entity.json" in url:
+                return entity_response
+            elif "entity.geojson" in url:
+                return boundary_response
             return main_response
 
         mock_get.side_effect = mock_get_side_effect
 
         response = client.get("/datamanager/check-results/test-id")
         assert response.status_code == 200
-
-    @patch("application.blueprints.datamanager.views.requests.patch")
-    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_optional_fields_submit_optional_fields_submit_complex(
-        self, mock_endpoint, mock_patch, client
-    ):
-        """Test lines 588-620: Optional fields submit logic"""
-        mock_endpoint.return_value = "http://test-api"
-        mock_patch.return_value = Mock()
-
-        form_data = {
-            "request_id": "test-id",
-            "documentation_url": "https://example.gov.uk",
-            "licence": "ogl",
-            "start_day": "15",
-            "start_month": "6",
-            "start_year": "2024",
-        }
-
-        response = client.post(
-            "/datamanager/check-results/optional-submit", data=form_data
-        )
-        assert response.status_code == 302
 
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
@@ -397,7 +393,11 @@ class TestSpecificLines:
         mock_post.return_value = mock_response
 
         with client.session_transaction() as sess:
-            sess["required_fields"] = {"collection": "test", "dataset": "test"}
+            sess["required_fields"] = {
+                "collection": "test",
+                "dataset": "test",
+                "authoritative": True,
+            }
 
         form_data = {
             "documentation_url": "https://example.gov.uk",
@@ -405,16 +405,17 @@ class TestSpecificLines:
             "start_day": "1",
             "start_month": "1",
             "start_year": "2024",
+            "authoritative": "true",
         }
 
-        response = client.post("/datamanager/check-results/add-data", data=form_data)
+        response = client.post("/datamanager/add-data", data=form_data)
         assert response.status_code == 302
 
+    @patch("application.blueprints.datamanager.views.trigger_add_data_workflow")
     @patch("application.blueprints.datamanager.views.requests.get")
-    @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_add_data_confirm_add_data_confirm_complex(
-        self, mock_endpoint, mock_post, mock_get, client
+        self, mock_endpoint, mock_get, mock_workflow, client
     ):
         """Test lines 714-742: Add data confirm logic"""
         mock_endpoint.return_value = "http://test-api"
@@ -422,20 +423,31 @@ class TestSpecificLines:
         get_response = Mock()
         get_response.status_code = 200
         get_response.json.return_value = {
-            "params": {"type": "add_data", "preview": True}
+            "params": {"type": "add_data", "preview": True, "dataset": "test-dataset"},
+            "response": {
+                "data": {
+                    "pipeline-summary": {"new-entities": []},
+                    "endpoint-summary": {},
+                    "source-summary": {
+                        "new_source_entry": {"collection": "test-collection"}
+                    },
+                }
+            },
         }
         mock_get.return_value = get_response
 
-        post_response = Mock()
-        post_response.status_code = 202
-        post_response.json.return_value = {"id": "new-id", "message": "Success"}
-        mock_post.return_value = post_response
+        # Mock workflow trigger
+        mock_workflow.return_value = {
+            "success": True,
+            "message": "Workflow triggered successfully",
+        }
 
         with client.session_transaction() as sess:
             sess["optional_fields"] = {"test": "data"}
+            sess["user"] = {"login": "test-user"}
 
-        response = client.post("/datamanager/check-results/test-id/add-data/confirm")
-        assert response.status_code == 302
+        response = client.post("/datamanager/add-data/test-id/confirm")
+        assert response.status_code == 200  # Returns rendered template, not redirect
 
     @patch("application.blueprints.datamanager.views.render_template")
     @patch("application.blueprints.datamanager.views.requests.get")
@@ -443,7 +455,7 @@ class TestSpecificLines:
     def test_configure_configure_complex(
         self, mock_endpoint, mock_get, mock_render, client
     ):
-        """Test lines 748-969: Configure complex logic"""
+        """Test lines : Configure complex logic"""
         mock_endpoint.return_value = "http://test-api"
         mock_render.return_value = "<html>Configure page</html>"
 
@@ -475,7 +487,7 @@ class TestSpecificLines:
 
         mock_get.side_effect = [main_response, csv_response, details_response]
 
-        response = client.get("/datamanager/configure/test-id")
+        response = client.get("/datamanager/check-results/test-id/configure-columns")
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.render_template")
@@ -527,7 +539,7 @@ class TestSpecificLines:
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
-        response = client.get("/datamanager/add-data/result/test-id")
+        response = client.get("/datamanager/add-data/test-id")
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.requests.get")
@@ -588,37 +600,7 @@ class TestSpecificLines:
         }
         mock_get.return_value = mock_response
 
-        response = client.get("/datamanager/check-results/test-id/entities")
-        assert response.status_code == 200
-
-    @pytest.mark.skip("Skipping as requested")
-    @patch("application.blueprints.datamanager.views.render_template")
-    @patch("application.blueprints.datamanager.views.requests.get")
-    @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
-    def test_configure_table_from_csv_empty(
-        self, mock_endpoint, mock_get, mock_render, client
-    ):
-        """Test table_from_csv with empty data"""
-        mock_endpoint.return_value = "http://test-api"
-        mock_render.return_value = "<html>Configure page</html>"
-
-        main_response = Mock()
-        main_response.status_code = 200
-        main_response.json.return_value = {
-            "params": {
-                "dataset": "test-dataset",
-                "url": "https://example.com/data.csv",
-            },
-            "response": {"data": {}},
-            "status": "COMPLETED",
-        }
-
-        csv_response = Mock()
-        csv_response.content = b""  # Empty CSV
-
-        mock_get.side_effect = [main_response, csv_response]
-
-        response = client.get("/datamanager/configure/test-id")
+        response = client.get("/datamanager/add-data/test-id/entities")
         assert response.status_code == 200
 
     @patch("application.blueprints.datamanager.views.requests.get")
@@ -641,9 +623,24 @@ class TestSpecificLines:
                 }
             },
             "params": {
-                "organisation": "test-org",
+                "organisation": "local-authority-eng:ABC123",
                 "url": "https://example.com/data.csv",
             },
+        }
+        main_response.raise_for_status.return_value = None
+
+        entity_response = Mock()
+        entity_response.json.return_value = {
+            "entities": [
+                {"reference": "E12345678", "local-planning-authority": "ABC123"}
+            ]
+        }
+        entity_response.raise_for_status.return_value = None
+
+        boundary_response = Mock()
+        boundary_response.json.return_value = {
+            "type": "FeatureCollection",
+            "features": [],
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
@@ -662,6 +659,10 @@ class TestSpecificLines:
                 ]
                 details_response.raise_for_status.return_value = None
                 return details_response
+            elif "entity.json" in url:
+                return entity_response
+            elif "entity.geojson" in url:
+                return boundary_response
             return main_response
 
         mock_get.side_effect = mock_get_side_effect
@@ -689,9 +690,24 @@ class TestSpecificLines:
                 }
             },
             "params": {
-                "organisation": "test-org",
+                "organisation": "local-authority-eng:ABC123",
                 "url": "https://example.com/data.csv",
             },
+        }
+        main_response.raise_for_status.return_value = None
+
+        entity_response = Mock()
+        entity_response.json.return_value = {
+            "entities": [
+                {"reference": "E12345678", "local-planning-authority": "ABC123"}
+            ]
+        }
+        entity_response.raise_for_status.return_value = None
+
+        boundary_response = Mock()
+        boundary_response.json.return_value = {
+            "type": "FeatureCollection",
+            "features": [],
         }
 
         def mock_get_side_effect(url, *args, **kwargs):
@@ -710,6 +726,10 @@ class TestSpecificLines:
                 ]
                 details_response.raise_for_status.return_value = None
                 return details_response
+            elif "entity.json" in url:
+                return entity_response
+            elif "entity.geojson" in url:
+                return boundary_response
             return main_response
 
         mock_get.side_effect = mock_get_side_effect
@@ -717,11 +737,19 @@ class TestSpecificLines:
         response = client.get("/datamanager/check-results/test-id")
         assert response.status_code == 200
 
+    @patch("application.blueprints.datamanager.views.get_organisation_code_mapping")
+    @patch("application.blueprints.datamanager.views.get_provision_orgs_for_dataset")
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_dashboard_add_payload_creation_and_api_submission(
-        self, mock_endpoint, mock_get, mock_post, client
+        self,
+        mock_endpoint,
+        mock_get,
+        mock_post,
+        mock_provision,
+        mock_org_mapping,
+        client,
     ):
         """Test lines 316-383: Payload creation, session management, and API submission"""
         mock_endpoint.return_value = "http://test-api"
@@ -737,19 +765,11 @@ class TestSpecificLines:
                 }
             ]
         }
-        # Mock provision response for organization mapping
-        provision_response = Mock()
-        provision_response.json.return_value = {
-            "rows": [
-                {
-                    "organisation": {
-                        "label": "Test Org",
-                        "value": "local-authority-eng:ABC123",
-                    }
-                }
-            ]
-        }
-        mock_get.side_effect = [dataset_response, provision_response]
+        mock_get.return_value = dataset_response
+
+        # Mock utility functions
+        mock_provision.return_value = ["local-authority-eng:ABC123"]
+        mock_org_mapping.return_value = {"local-authority-eng:ABC123": "Test Org"}
 
         # Mock successful API response
         api_response = Mock()
@@ -760,7 +780,7 @@ class TestSpecificLines:
         form_data = {
             "mode": "final",
             "dataset": "test-dataset",
-            "organisation": "Test Org (ABC123)",
+            "organisation": "Test Org (local-authority-eng:ABC123)",
             "endpoint_url": "https://example.com/data.csv",
             "documentation_url": "https://example.gov.uk/docs",
             "licence": "ogl",
@@ -769,13 +789,14 @@ class TestSpecificLines:
             "start_year": "2024",
             "column_mapping": '{"raw_field": "spec_field"}',
             "geom_type": "point",
+            "authoritative": "true",
         }
 
         with client.session_transaction() as sess:
             # Clear any existing session data
             sess.clear()
 
-        response = client.post("/datamanager/dashboard/add", data=form_data)
+        response = client.post("/datamanager/add", data=form_data)
 
         # Verify redirect response
         assert response.status_code == 302
@@ -794,8 +815,9 @@ class TestSpecificLines:
         assert payload["params"]["licence"] == "ogl"
         assert payload["params"]["start_date"] == "2024-01-01"
         assert payload["params"]["organisation"] == "local-authority-eng:ABC123"
-        assert payload["params"]["column_mapping"] == {"raw_field": "spec_field"}
-        assert payload["params"]["geom_type"] == "point"
+        assert payload["params"]["authoritative"] is True
+        # Note: column_mapping and geom_type are not sent in initial check_url request
+        # They are only used when re-checking from the configure page
 
         # Verify session data was set
         with client.session_transaction() as sess:
@@ -807,6 +829,7 @@ class TestSpecificLines:
             assert (
                 sess["required_fields"]["organisation"] == "local-authority-eng:ABC123"
             )
+            assert sess["required_fields"]["authoritative"] is True
             assert (
                 sess["optional_fields"]["documentation_url"]
                 == "https://example.gov.uk/docs"
@@ -814,11 +837,19 @@ class TestSpecificLines:
             assert sess["optional_fields"]["licence"] == "ogl"
             assert sess["optional_fields"]["start_date"] == "2024-01-01"
 
+    @patch("application.blueprints.datamanager.views.get_organisation_code_mapping")
+    @patch("application.blueprints.datamanager.views.get_provision_orgs_for_dataset")
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_dashboard_add_api_error_handling(
-        self, mock_endpoint, mock_get, mock_post, client
+        self,
+        mock_endpoint,
+        mock_get,
+        mock_post,
+        mock_provision,
+        mock_org_mapping,
+        client,
     ):
         """Test lines 373-383: API error handling for non-202 responses and exceptions"""
         mock_endpoint.return_value = "http://test-api"
@@ -834,21 +865,11 @@ class TestSpecificLines:
                 }
             ]
         }
+        mock_get.return_value = dataset_response
 
-        # Mock provision response
-        provision_response = Mock()
-        provision_response.json.return_value = {
-            "rows": [
-                {
-                    "organisation": {
-                        "label": "Test Org",
-                        "value": "local-authority-eng:ABC123",
-                    }
-                }
-            ]
-        }
-
-        mock_get.side_effect = [dataset_response, provision_response]
+        # Mock utility functions
+        mock_provision.return_value = ["local-authority-eng:ABC123"]
+        mock_org_mapping.return_value = {"local-authority-eng:ABC123": "Test Org"}
 
         # Test case 1: API returns 500 error with JSON response
         api_response = Mock()
@@ -862,23 +883,32 @@ class TestSpecificLines:
         form_data = {
             "mode": "final",
             "dataset": "test-dataset",
-            "organisation": "Test Org (ABC123)",
+            "organisation": "Test Org (local-authority-eng:ABC123)",
             "endpoint_url": "https://example.com/data.csv",
+            "authoritative": "true",
         }
 
-        response = client.post("/datamanager/dashboard/add", data=form_data)
+        response = client.post("/datamanager/add", data=form_data)
         assert response.status_code == 500
 
+    @patch("application.blueprints.datamanager.views.get_organisation_code_mapping")
+    @patch("application.blueprints.datamanager.views.get_provision_orgs_for_dataset")
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_dashboard_add_api_json_decode_error(
-        self, mock_endpoint, mock_get, mock_post, client
+        self,
+        mock_endpoint,
+        mock_get,
+        mock_post,
+        mock_provision,
+        mock_org_mapping,
+        client,
     ):
         """Test lines 373-383: API error handling when JSON decode fails"""
         mock_endpoint.return_value = "http://test-api"
 
-        # Mock dataset and provision responses
+        # Mock dataset response
         dataset_response = Mock()
         dataset_response.json.return_value = {
             "datasets": [
@@ -889,20 +919,11 @@ class TestSpecificLines:
                 }
             ]
         }
+        mock_get.return_value = dataset_response
 
-        provision_response = Mock()
-        provision_response.json.return_value = {
-            "rows": [
-                {
-                    "organisation": {
-                        "label": "Test Org",
-                        "value": "local-authority-eng:ABC123",
-                    }
-                }
-            ]
-        }
-
-        mock_get.side_effect = [dataset_response, provision_response]
+        # Mock utility functions
+        mock_provision.return_value = ["local-authority-eng:ABC123"]
+        mock_org_mapping.return_value = {"local-authority-eng:ABC123": "Test Org"}
 
         # Test case 2: API returns 400 error with invalid JSON (falls back to text)
         api_response = Mock()
@@ -914,23 +935,32 @@ class TestSpecificLines:
         form_data = {
             "mode": "final",
             "dataset": "test-dataset",
-            "organisation": "Test Org (ABC123)",
+            "organisation": "Test Org (local-authority-eng:ABC123)",
             "endpoint_url": "https://example.com/data.csv",
+            "authoritative": "true",
         }
 
-        response = client.post("/datamanager/dashboard/add", data=form_data)
+        response = client.post("/datamanager/add", data=form_data)
         assert response.status_code == 500
 
+    @patch("application.blueprints.datamanager.views.get_organisation_code_mapping")
+    @patch("application.blueprints.datamanager.views.get_provision_orgs_for_dataset")
     @patch("application.blueprints.datamanager.views.requests.post")
     @patch("application.blueprints.datamanager.views.requests.get")
     @patch("application.blueprints.datamanager.views.get_request_api_endpoint")
     def test_dashboard_add_network_exception(
-        self, mock_endpoint, mock_get, mock_post, client
+        self,
+        mock_endpoint,
+        mock_get,
+        mock_post,
+        mock_provision,
+        mock_org_mapping,
+        client,
     ):
         """Test lines 373-383: Exception handling during API call"""
         mock_endpoint.return_value = "http://test-api"
 
-        # Mock dataset and provision responses
+        # Mock dataset response
         dataset_response = Mock()
         dataset_response.json.return_value = {
             "datasets": [
@@ -941,20 +971,11 @@ class TestSpecificLines:
                 }
             ]
         }
+        mock_get.return_value = dataset_response
 
-        provision_response = Mock()
-        provision_response.json.return_value = {
-            "rows": [
-                {
-                    "organisation": {
-                        "label": "Test Org",
-                        "value": "local-authority-eng:ABC123",
-                    }
-                }
-            ]
-        }
-
-        mock_get.side_effect = [dataset_response, provision_response]
+        # Mock utility functions
+        mock_provision.return_value = ["local-authority-eng:ABC123"]
+        mock_org_mapping.return_value = {"local-authority-eng:ABC123": "Test Org"}
 
         # Test case 3: Network exception during API call
         mock_post.side_effect = Exception("Connection timeout")
@@ -962,9 +983,95 @@ class TestSpecificLines:
         form_data = {
             "mode": "final",
             "dataset": "test-dataset",
-            "organisation": "Test Org (ABC123)",
+            "organisation": "Test Org (local-authority-eng:ABC123)",
             "endpoint_url": "https://example.com/data.csv",
+            "authoritative": "true",
         }
 
-        response = client.post("/datamanager/dashboard/add", data=form_data)
+        response = client.post("/datamanager/add", data=form_data)
         assert response.status_code == 500
+
+        """Test get_statistical_geography function with exception """
+        with patch(
+            "application.blueprints.datamanager.views.get_request_api_endpoint"
+        ) as mock_endpoint:
+            mock_endpoint.return_value = "http://test-api"
+
+            main_response = Mock()
+            main_response.status_code = 200
+            main_response.json.return_value = {
+                "status": "COMPLETED",
+                "response": {
+                    "data": {
+                        "entity-summary": {},
+                        "new-entities": [],
+                        "existing-entities": [],
+                    }
+                },
+                "params": {"organisation": "test-org"},
+            }
+
+            details_response = Mock()
+            details_response.status_code = 200
+            details_response.json.return_value = []
+            details_response.raise_for_status.return_value = None
+
+            # Third call (organisation) raises exception
+            mock_get.side_effect = [
+                main_response,
+                details_response,
+                Exception("Network error"),
+            ]
+
+            with patch(
+                "application.blueprints.datamanager.views.render_template"
+            ) as mock_render:
+                mock_render.return_value = "rendered_template"
+                from application.blueprints.datamanager.views import check_results
+
+                result = check_results("test-id")
+                assert result is not None
+
+    def test_field_ordering(self):
+        all_fields = [
+            "name",
+            "reference",
+            "address",
+            "postcode",
+            "created_date",
+            "updated_date",
+        ]
+        expected = [
+            "reference",
+            "name",
+            "address",
+            "postcode",
+            "created_date",
+            "updated_date",
+        ]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_only_reference_field(self):
+        all_fields = ["address", "reference", "postcode"]
+        expected = ["reference", "address", "postcode"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_only_name_field(self):
+        all_fields = ["address", "name", "postcode"]
+        expected = ["name", "address", "postcode"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_no_reference_or_name_fields(self):
+        all_fields = ["address", "postcode", "geometry"]
+        expected = ["address", "postcode", "geometry"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_case_insensitive_matching(self):
+        all_fields = ["Address", "REFERENCE", "Name", "postcode"]
+        expected = ["REFERENCE", "Name", "Address", "postcode"]
+        assert order_table_fields(all_fields) == expected
+
+    def test_field_ordering_multiple_similar_fields(self):
+        all_fields = ["reference", "name", "other_reference", "display_name"]
+        expected = ["reference", "name", "other_reference", "display_name"]
+        assert order_table_fields(all_fields) == expected

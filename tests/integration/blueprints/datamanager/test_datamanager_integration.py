@@ -11,11 +11,6 @@ class TestDatamanagerIntegration:
         assert response.status_code == 200
         assert b"Dashboard" in response.data
 
-    def test_dashboard_config_renders_template(self, client):
-        """Test dashboard config route renders correctly"""
-        response = client.get("/datamanager/dashboard/config")
-        assert response.status_code == 200
-
     @responses.activate
     def test_dashboard_add_with_external_api(self, client):
         """Test dashboard add route with mocked external API calls"""
@@ -35,7 +30,7 @@ class TestDatamanagerIntegration:
             status=200,
         )
 
-        response = client.get("/datamanager/dashboard/add")
+        response = client.get("/datamanager/add")
         assert response.status_code == 200
 
     @responses.activate
@@ -61,7 +56,7 @@ class TestDatamanagerIntegration:
             status=200,
         )
 
-        response = client.get("/datamanager/dashboard/add?autocomplete=brown")
+        response = client.get("/datamanager/add?autocomplete=brown")
         assert response.status_code == 200
         data = json.loads(response.data)
         assert "brownfield-land" in data
@@ -85,27 +80,33 @@ class TestDatamanagerIntegration:
             status=200,
         )
 
-        # Mock provision API
+        # Mock provision CSV from GitHub
         responses.add(
             responses.GET,
-            "https://datasette.planning.data.gov.uk/digital-land/provision.json?_labels=on&_size=max&dataset=test-id",
+            "https://raw.githubusercontent.com/digital-land/specification/refs/heads/main/specification/provision.csv",
+            body="dataset,organisation\ntest-id,local-authority-eng:TEST\n",
+            status=200,
+        )
+
+        # Mock organisation.json API
+        responses.add(
+            responses.GET,
+            "https://datasette.planning.data.gov.uk/digital-land/organisation.json?_shape=objects&_size=max",
             json={
                 "rows": [
                     {
-                        "organisation": {
-                            "label": "Test Council",
-                            "value": "local-authority-eng:TEST",
-                        }
+                        "organisation": "local-authority-eng:TEST",
+                        "name": "Test Council",
                     }
                 ]
             },
             status=200,
         )
 
-        response = client.get("/datamanager/dashboard/add?get_orgs_for=test-dataset")
+        response = client.get("/datamanager/add?get_orgs_for=test-dataset")
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert "Test Council (TEST)" in data
+        assert "Test Council (local-authority-eng:TEST)" in data
 
     @responses.activate
     def test_dashboard_add_post_integration(self, client):
@@ -131,5 +132,5 @@ class TestDatamanagerIntegration:
             "endpoint_url": "http://example.com/data.csv",
         }
 
-        response = client.post("/datamanager/dashboard/add", data=form_data)
+        response = client.post("/datamanager/add", data=form_data)
         assert response.status_code == 200

@@ -85,12 +85,12 @@
   background: rgba(govuk-colour("green"), 0.05);
 }
 
-.dl-table__header--border-right {
+.app-table__header--border-right {
   padding-right: 10px;
   border-right: 1px solid govuk-colour("mid-grey");
 }
 
-.dl-table__header--border-right + .govuk-table__cell {
+.app-table__header--border-right + .govuk-table__cell {
   padding-left: 10px;
   padding-right: 10px;
 }

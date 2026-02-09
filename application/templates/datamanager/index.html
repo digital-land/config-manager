@@ -43,20 +43,4 @@
    
   </div>
   </div>
-  <div class="govuk-grid-row govuk-!-margin-top-6">
-
-  <div class="govuk-grid-column-two-thirds">
-    <h1 class="govuk-heading-l">Configuration</h1>
-   <!-- <p class="govuk-body">Configuration of data that is already on the platform</p>= -->
-   <span class="govuk-caption-l govuk-!-f-24">Configuration of data that is already on the platform</span>
-    <div class="govuk-!-margin-top-4 govuk-button-group">
-        {{ govukButton({
-            'text': 'Configure data',
-            'href': url_for('datamanager.dashboard_config'),
-            'classes': 'govuk-button--secondary',
-            'attributes': { 'aria-label': 'Configure data' }
-        }) }}
-    </div>
-  </div>
-  </div>
 {% endblock %}

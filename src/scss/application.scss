@@ -11,6 +11,7 @@
 @import "components/actions-list";
 @import "components/card";
 @import "components/collapsible-section";
+@import "components/custom-utilities";
 @import "components/data-example";
 @import "components/forms";
 @import "components/govuk-details";
@@ -122,4 +123,9 @@
       font-weight: 700;
     }
   }
+}
+
+.app-map-container{
+  height: 450px; 
+  border: 1px solid #ccc
 }
