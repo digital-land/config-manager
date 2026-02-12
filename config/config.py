@@ -9,6 +9,7 @@ class Config:
     ENV = "production"
     APP_ROOT = os.path.abspath(os.path.dirname(__file__))
     PROJECT_ROOT = os.path.abspath(os.path.join(APP_ROOT, os.pardir))
+    SECRET_KEY = os.getenv("SECRET_KEY")
     DATABASE_URL = os.getenv("DATABASE_URL")
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://")
@@ -62,4 +63,4 @@ class TestConfig(Config):
     DEBUG = True
     TESTING = True
     AUTHENTICATION_ON = False
-    SECRET_KEY = "testing"  # Only for testing, not used in production
+    SECRET_KEY = "testing"
