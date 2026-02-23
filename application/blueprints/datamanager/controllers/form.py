@@ -260,7 +260,7 @@ def handle_dashboard_add_import():
 
 
 def _submit_add_data_preview(request_id, add_data_fields):
-    """Submit an add_data preview request and redirect to entities preview."""
+    """Submit an add_data async request and redirect to entities preview."""
     check_req = fetch_request(request_id)
     check_params = check_req.get("params", {})
 
@@ -271,6 +271,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
         "dataset": check_params.get("dataset"),
         "url": check_params.get("url"),
         "organisationName": check_params.get("organisationName"),
+        "organisation": check_params.get("organisationName"),
         "column_mapping": check_params.get("column_mapping", {}),
         "documentation_url": add_data_fields["documentation_url"],
         "licence": add_data_fields["licence"],
