@@ -210,3 +210,77 @@ def trigger_add_data_workflow(
     except Exception as e:
         logger.exception(f"Unexpected error triggering workflow: {e}")
         raise GitHubWorkflowError(f"Unexpected error: {e}")
+
+
+def trigger_add_data_async_workflow(
+    request_id: str,
+    triggered_by: str = "config-manager",
+) -> dict:
+    """
+    Trigger the 'add-data-async' workflow in the digital-land/config repository.
+
+    Instead of sending CSV data in the payload (which can exceed GitHub's 10KB limit),
+    this sends only a request_id. The workflow fetches the full data from the async API.
+    """
+    app_id = current_app.config.get("GITHUB_APP_ID")
+    installation_id = current_app.config.get("GITHUB_APP_INSTALLATION_ID")
+    private_key = current_app.config.get("GITHUB_APP_PRIVATE_KEY")
+
+    if not all([app_id, installation_id, private_key]):
+        error_msg = "GitHub App credentials not configured"
+        logger.info(error_msg)
+        raise GitHubWorkflowError(error_msg)
+
+    try:
+        logger.info(f"Generating JWT for App ID: {app_id}")
+        jwt_token = generate_jwt(app_id, private_key)
+
+        logger.info(f"Getting installation token for installation: {installation_id}")
+        access_token = get_installation_token(jwt_token, installation_id)
+
+        payload = {
+            "event_type": "add-data-async",
+            "client_payload": {
+                "request_id": request_id,
+                "triggered_by": triggered_by,
+            },
+        }
+
+        logger.info(f"Triggering async workflow for request_id: {request_id}")
+        logger.debug(f"Payload: {payload}")
+
+        url = "https://api.github.com/repos/digital-land/config/dispatches"
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {access_token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+
+        if response.status_code == 204:
+            logger.info(
+                f"Successfully triggered async workflow for request_id: {request_id}"
+            )
+            return {
+                "success": True,
+                "status_code": 204,
+                "message": f"Async workflow triggered successfully for request '{request_id}'",
+            }
+        else:
+            error_msg = (
+                f"Unexpected status code: {response.status_code} - {response.text}"
+            )
+            logger.error(error_msg)
+            return {
+                "success": False,
+                "status_code": response.status_code,
+                "message": f"Failed to trigger async workflow: {error_msg}",
+            }
+
+    except GitHubAppError as e:
+        logger.exception(f"Unexpected github error triggering async workflow: {e}")
+        raise
+    except Exception as e:
+        logger.exception(f"Unexpected error triggering async workflow: {e}")
+        raise GitHubWorkflowError(f"Unexpected error: {e}")

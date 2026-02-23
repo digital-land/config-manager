@@ -20,7 +20,11 @@ from flask import (
 )
 
 from application.utils import get_request_api_endpoint
-from application.services.github import trigger_add_data_workflow, GitHubWorkflowError
+from application.services.github import (
+    trigger_add_data_workflow,
+    trigger_add_data_async_workflow,
+    GitHubWorkflowError,
+)
 from shapely import wkt
 from shapely.geometry import mapping
 
@@ -1386,6 +1390,50 @@ def add_data_confirm(request_id):
         )
     except Exception as e:
         logger.exception(f"Unexpected error triggering workflow: {e}")
+        return render_template(
+            "datamanager/error.html", message=f"Unexpected error: {str(e)}"
+        )
+
+
+@datamanager_bp.route("/add-data/<request_id>/confirm-async", methods=["POST"])
+def add_data_confirm_async(request_id):
+    """
+    Confirm and trigger the async GitHub workflow to add data to the config repo.
+    Instead of sending CSV rows (which can exceed GitHub's 10KB payload limit),
+    this sends only the request_id. The workflow fetches data from the async API.
+    """
+    try:
+        logger.info(f"Triggering async GitHub workflow for request_id: {request_id}")
+
+        result = trigger_add_data_async_workflow(
+            request_id=request_id,
+            triggered_by=f"config-manager-user-{session.get('user', {}).get('login', 'unknown')}",
+        )
+
+        if result["success"]:
+            logger.info(
+                f"Successfully triggered async workflow for request_id: {request_id}"
+            )
+            return render_template(
+                "datamanager/add-data-success.html",
+                collection="",
+                new_entity_count=0,
+                message=result["message"],
+            )
+        else:
+            logger.error(f"Failed to trigger async workflow: {result['message']}")
+            return render_template(
+                "datamanager/error.html",
+                message=f"Failed to trigger async workflow: {result['message']}",
+            )
+
+    except GitHubWorkflowError as e:
+        logger.exception(f"GitHub async workflow error: {e}")
+        return render_template(
+            "datamanager/error.html", message=f"GitHub workflow error: {str(e)}"
+        )
+    except Exception as e:
+        logger.exception(f"Unexpected error triggering async workflow: {e}")
         return render_template(
             "datamanager/error.html", message=f"Unexpected error: {str(e)}"
         )

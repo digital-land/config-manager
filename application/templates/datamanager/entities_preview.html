@@ -318,6 +318,12 @@
         </button>
       </form>
 
+      <form method="post" action="{{ url_for('datamanager.add_data_confirm_async', request_id=request_id) }}">
+        <button type="submit" class="govuk-button govuk-button--secondary" data-module="govuk-button">
+          Add via async
+        </button>
+      </form>
+
       <form>
         <a href="{{ url_for('datamanager.index') }}" class="govuk-button govuk-button--secondary">Go Back</a>
       </form>

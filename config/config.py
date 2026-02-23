@@ -63,3 +63,4 @@ class TestConfig(Config):
     DEBUG = True
     TESTING = True
     AUTHENTICATION_ON = False
+    SECRET_KEY = "testing"
