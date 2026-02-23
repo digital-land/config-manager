@@ -20,80 +20,6 @@ def handle_error(e):
     return render_template("datamanager/error.html", message=str(e)), 500
 
 
-def get_provision_orgs_for_dataset(dataset_id: str) -> list:
-    """
-    Fetch organisation codes for a given dataset from the provision CSV.
-    Returns a list of organisation codes.
-    """
-    try:
-        provision_url = current_app.config.get("PROVISION_CSV_URL")
-        response = requests.get(provision_url, timeout=REQUESTS_TIMEOUT)
-        response.raise_for_status()
-        reader = csv.DictReader(StringIO(response.text))
-        orgs = []
-        seen = set()
-        for row in reader:
-            if row.get("dataset") == dataset_id:
-                org_code = row.get("organisation", "")
-                if org_code and org_code not in seen:
-                    orgs.append(org_code)
-                    seen.add(org_code)
-        return orgs
-    except Exception as e:
-        logger.error(f"Failed to fetch provision orgs for dataset: {e}")
-        return []
-
-
-def get_organisation_code_mapping() -> dict:
-    """
-    Build a mapping from organisation code to organisation name.
-    Fetches from the organisation.json datasette endpoint.
-    Handles pagination to fetch all records.
-    Returns a dict: {code: name}
-    """
-    org_mapping = {}
-    try:
-        datasette_url = current_app.config.get("DATASETTE_BASE_URL")
-        # Fetch with objects shape - returns list of dicts with column names as keys
-        # Use _size=max to get all records in one request
-        url = f"{datasette_url}/organisation.json?_shape=objects&_size=max"
-
-        page_count = 0
-        while url:
-            page_count += 1
-
-            response = requests.get(url, timeout=REQUESTS_TIMEOUT)
-            response.raise_for_status()
-            data = response.json()
-
-            # Extract rows from the response
-            rows = data.get("rows", []) if isinstance(data, dict) else data
-
-            # Build the mapping from the list of dictionaries
-            for row in rows:
-                if isinstance(row, dict):
-                    code = row.get("organisation")
-                    name = row.get("name")
-                    if code and name:
-                        org_mapping[code] = name
-
-            # Check for next page
-            url = data.get("next_url") if isinstance(data, dict) else None
-            if url:
-                # Make relative URLs absolute
-                if url.startswith("/"):
-                    url = f"{datasette_url.rstrip('/')}{url}"
-
-        logger.info(
-            f"Built organisation mapping with {len(org_mapping)} entries from {page_count} page(s)"
-        )
-
-    except Exception as e:
-        logger.error(f"Failed to fetch organisation mapping: {e}", exc_info=True)
-
-    return org_mapping
-
-
 # put this near the top, replacing your current get_spec_fields_from_datasette
 def get_spec_fields_union(dataset_id):
     """
@@ -157,78 +83,6 @@ def order_table_fields(all_fields):
     ordered_fields = leading + trailing
 
     return ordered_fields
-
-
-def fetch_all_response_details(
-    async_api: str, request_id: str, limit: int = 50
-) -> list:
-    """
-    Fetch all response details with multiple calls using the specified limit.
-    Similar to the pattern used in submit repository.
-    """
-    all_details = []
-    offset = 0
-    logger.info(
-        f"Fetching response details - API: {async_api}, Request ID: {request_id}"
-    )
-
-    while True:
-        try:
-            url = f"{async_api}/requests/{request_id}/response-details"
-            params = {"offset": offset, "limit": limit}
-            logger.debug(f"Fetching batch - URL: {url}, Params: {params}")
-
-            response = requests.get(url, params=params, timeout=REQUESTS_TIMEOUT)
-            content_length = getattr(response, "content", None)
-            content_length = (
-                len(content_length) if content_length is not None else "N/A"
-            )
-            logger.info(
-                f"Batch response - Status: {response.status_code}, Content-Length: {content_length}"
-            )
-
-            response.raise_for_status()
-            batch = response.json() or []
-            logger.info(f"Batch parsed - Items: {len(batch)}")
-
-            if not batch:
-                logger.info("No more batches available")
-                break
-
-            # Log sample of first batch for debugging
-            if offset == 0 and batch:
-                logger.info(
-                    f"First batch sample - Item keys: {list(batch[0].keys()) if batch[0] else 'Empty item'}"
-                )
-                if batch[0] and "converted_row" in batch[0]:
-                    converted_sample = batch[0]["converted_row"]
-                    if converted_sample:
-                        logger.info(
-                            f"First converted_row sample: {dict(list(converted_sample.items())[:3])}"
-                        )
-                    else:
-                        logger.info("Empty converted_row")
-
-            all_details.extend(batch)
-
-            if len(batch) < limit:
-                logger.info(f"Last batch received - Total items: {len(all_details)}")
-                break
-
-            offset += limit
-
-        except Exception as e:
-            logger.error(f"Failed to fetch batch at offset {offset}: {e}")
-            logger.error(f"Response status: {getattr(response, 'status_code', 'N/A')}")
-            response_text = getattr(response, "text", "N/A")
-            if hasattr(response_text, "__getitem__"):
-                logger.error(f"Response text: {response_text[:500]}")
-            else:
-                logger.error(f"Response text: {response_text}")
-            break
-
-    logger.info(f"Total response details fetched: {len(all_details)}")
-    return all_details
 
 
 def read_raw_csv_preview(source_url: str, max_rows: int = 50):
@@ -555,6 +409,100 @@ def build_entity_organisation_csv(
     csv_text = "\n".join(csv_lines)
 
     return table_params, csv_text, True
+
+
+def build_check_tables(column_field_log, resp_details):
+    """Build converted, transformed, and issue log table params from check response data.
+
+    Returns (converted_table, transformed_table, issue_log_table) where each
+    is a dict compatible with the table() macro in components/table.html.
+    """
+    # Converted table: entry_number + columns from column_field_log "column" key
+    # plus any extra fields found in converted_row data (e.g. geom)
+    converted_headers = ["entry_number"] + [
+        entry["column"] for entry in column_field_log if entry.get("column")
+    ]
+    known_columns = set(converted_headers)
+
+    # First pass: discover any extra fields present in the data but not in column_field_log
+    unmapped_columns = set()
+    for row in resp_details:
+        converted = row.get("converted_row") or {}
+        for key in converted:
+            if key not in known_columns:
+                converted_headers.append(key)
+                known_columns.add(key)
+                unmapped_columns.add(key)
+
+    converted_rows = []
+    for row in resp_details:
+        converted = row.get("converted_row") or {}
+        if any(str(v).strip() for v in converted.values()):
+            columns = {"entry_number": {"value": str(row.get("entry_number", ""))}}
+            columns.update({
+                col: {"value": str(converted.get(col, ""))}
+                for col in converted_headers if col != "entry_number"
+            })
+            converted_rows.append({"columns": columns})
+
+    converted_table = {
+        "columns": converted_headers,
+        "fields": converted_headers,
+        "rows": converted_rows,
+        "columnNameProcessing": "none",
+        "unmapped_columns": unmapped_columns,
+    }
+
+    # Transformed table: entry_number + columns from column_field_log "field" key
+    transformed_headers = ["entry_number"] + [
+        entry["field"] for entry in column_field_log if entry.get("field")
+    ]
+    transformed_rows = []
+    for row in resp_details:
+        transformed = row.get("transformed_row") or []
+        field_values = {
+            item["field"]: item.get("value", "")
+            for item in transformed
+            if isinstance(item, dict) and item.get("field")
+        }
+        if any(str(v).strip() for v in field_values.values()):
+            columns = {"entry_number": {"value": str(row.get("entry_number", ""))}}
+            columns.update({
+                col: {"value": str(field_values.get(col, ""))}
+                for col in transformed_headers if col != "entry_number"
+            })
+            transformed_rows.append({"columns": columns})
+
+    transformed_table = {
+        "columns": transformed_headers,
+        "fields": transformed_headers,
+        "rows": transformed_rows,
+        "columnNameProcessing": "none",
+    }
+
+    # Issue log table: flattened from all rows' issue_logs
+    issue_log_headers = [
+        "entry-number", "field", "issue-type", "severity",
+        "message", "description", "value", "responsibility",
+    ]
+    issue_log_rows = []
+    for row in resp_details:
+        for issue in (row.get("issue_logs") or []):
+            issue_log_rows.append({
+                "columns": {
+                    col: {"value": str(issue.get(col, ""))}
+                    for col in issue_log_headers
+                }
+            })
+
+    issue_log_table = {
+        "columns": issue_log_headers,
+        "fields": issue_log_headers,
+        "rows": issue_log_rows,
+        "columnNameProcessing": "none",
+    }
+
+    return converted_table, transformed_table, issue_log_table
 
 
 def inject_now():

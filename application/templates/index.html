@@ -3,10 +3,37 @@
 
 {% set app_header_classes = "app-header--flush" %}
 
+{% block mastHead %}
+<header class="govuk-header {{ app_header_classes }} govuk-!-padding-top-2" role="banner" data-module="govuk-header">
+  <div class="govuk-header__container govuk-width-container app-govuk-header__container">
+    <div class="app-header__content">
+      <span class="app-header__team-name">
+        <a href="https://digital-land.info"
+          class="govuk-header__link govuk-header__link--homepage app-govuk-header__link--homepage app-govuk-header__link--homepage--bold">
+          <span class="govuk-header__logotype-text">
+            Digital Land
+          </span>
+        </a>
+      </span>
+    </div>
+  </div>
+</header>
+{% endblock mastHead %}
+
 {% block main %}
 <main id="content" role="main">
 
-  <section class="app-hero{{ ' app-hero--flush' if session['user'] }}" id="intro">
+  {% if session['user'] %}
+    {% from 'components/user-bar.html' import appUserBar %}
+    <div class="govuk-width-container">
+      {{ appUserBar({
+        "user": session['user'],
+        "classes": "govuk-!-margin-bottom-0"
+      }) }}
+    </div>
+  {% endif %}
+
+  <section class="app-hero{{ ' app-hero--flush' if session['user'] }} govuk-!-padding-top-0 govuk-!-margin-bottom-6" id="intro">
     <div class="app-hero__content govuk-width-container">
 
       {{ govukPhaseBanner({
@@ -16,8 +43,8 @@
       }) }}
       <div class="govuk-grid-row">
         <div class="govuk-grid-column-two-thirds">
-          <h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Config manager</h1>
-          <p class="govuk-body-l">A prototype to help manage the configuration of pipelines</p>
+          <h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Manage Service</h1>
+          <p class="govuk-body-l">A service to help manage the Planning Data Platform's configuration data and processing pipelines</p>
         </div>
         <div class="govuk-grid-column-one-third"></div>
       </div>
@@ -25,14 +52,6 @@
   </section>
 
   <section class="govuk-width-container app-tools-list">
-
-    {% if session['user'] %}
-      {% from 'components/user-bar.html' import appUserBar %}
-      {{ appUserBar({
-        "user": session['user'],
-        "classes": "govuk-!-margin-bottom-9"
-      }) }}
-    {% endif %}
 
     {# Flash messages: keep using Notification banner inside page content #}
     {%- from "govuk_frontend_jinja/components/notification-banner/macro.html" import govukNotificationBanner %}
@@ -52,7 +71,7 @@
     {% if not authentication_on or session['user'] %}
     <div class="govuk-grid-row">
       <div class="govuk-grid-column-one-third">
-        <a class="app-tools-list__item" href="{{ url_for('datamanager.dashboard_add')}}">
+        <a class="app-tools-list__item" href="{{ url_for('datamanager.dashboard_get')}}">
           <h3 class="govuk-heading-s app-tools-list__item__heading">Add data</h3>
           <p class="govuk-body">Add and validate new data for datasets</p>
         </a>

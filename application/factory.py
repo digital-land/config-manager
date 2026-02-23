@@ -97,7 +97,7 @@ def register_blueprints(app):
 
     app.register_blueprint(dataset_bp)
 
-    from application.blueprints.datamanager.views import datamanager_bp
+    from application.blueprints.datamanager.router import datamanager_bp
 
     app.register_blueprint(datamanager_bp)
 

@@ -76,8 +76,7 @@ digital-land @ git+https://github.com/digital-land/pipeline.git
     # via -r requirements/requirements.in
 digital-land-frontend @ git+https://github.com/digital-land/digital-land-frontend.git
     # via -r requirements/requirements.in
-# duckdb==1.3.0
-duckdb
+duckdb==1.4.4
     # via digital-land
 esridump==1.13.0
     # via digital-land
@@ -107,8 +106,10 @@ fsspec==2025.5.1
     # via dask
 geojson==3.0.1
     # via digital-land
-govuk-frontend-jinja==2.5.0
-    # via digital-land-frontend
+govuk-frontend-jinja==3.10.0
+    # via
+    #   -r requirements/requirements.in
+    #   digital-land-frontend
 gunicorn==20.1.0
     # via -r requirements/requirements.in
 h11==0.14.0
@@ -200,7 +201,7 @@ pluggy==1.0.0
     # via datasette
 psutil==7.0.0
     # via digital-land
-psycopg2-binary==2.9.10
+psycopg2==2.9.11
     # via -r requirements/requirements.in
 pyarrow==20.0.0
     # via digital-land

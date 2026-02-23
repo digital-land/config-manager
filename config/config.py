@@ -32,6 +32,11 @@ class Config:
     CONFIG_REPO_BRANCH = os.getenv("CONFIG_REPO_BRANCH", "config-manager-update")
     ENVIRONMENT = os.getenv("ENVIRONMENT", "local").lower()
 
+    # Planning Data base URL
+    PLANNING_BASE_URL = os.getenv(
+        "PLANNING_URL", "https://www.planning.data.gov.uk"
+    )
+
     # Datasette base URL
     DATASETTE_BASE_URL = os.getenv(
         "DATASETTE_BASE_URL", "https://datasette.planning.data.gov.uk/digital-land"
@@ -64,3 +69,21 @@ class TestConfig(Config):
     TESTING = True
     AUTHENTICATION_ON = False
     SECRET_KEY = "testing"
+
+
+def get_request_api_endpoint():
+    """
+    Returns the async request backend API endpoint based on the ENVIRONMENT variable.
+    ENVIRONMENT: local | development | staging | production
+    Default environment is local
+    """
+    env = Config.ENVIRONMENT
+
+    mapping = {
+        "local": "http://localhost:8000",
+        "development": "http://development-pub-async-api-lb-69142969.eu-west-2.elb.amazonaws.com",
+        "staging": "http://staging-pub-async-api-lb-12493311.eu-west-2.elb.amazonaws.com",
+        "production": "http://production-pub-async-api-lb-636110663.eu-west-2.elb.amazonaws.com",
+    }
+
+    return mapping.get(env, mapping["local"])

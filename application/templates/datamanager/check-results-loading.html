@@ -3,11 +3,18 @@
 {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
-    <a href="{{ url_for('datamanager.dashboard_add') }}" class="govuk-back-link">Back</a>
+    <a href="{{ url_for('datamanager.dashboard_get') }}" class="govuk-back-link">Back</a>
 
-    <h1 class="govuk-heading-xl">
-      {{ (result.params.organisation or 'Your organisation') }} — {{ result.params.dataset | title }}
-    </h1>
+    <h1 class="govuk-heading-xl">Checking data</h1>
+
+    <p class="govuk-body-l govuk-!-margin-bottom-1">
+      Organisation: <strong>{{ result.params.organisation_display or result.params.organisation or 'Unknown' }}</strong>
+      <span class="govuk-body govuk-!-margin-left-1">({{ result.params.organisationName }})</span>
+    </p>
+    <p class="govuk-body-l">
+      Dataset: <strong>{{ result.params.dataset_display or result.params.dataset or 'Unknown' }}</strong>
+      <span class="govuk-body govuk-!-margin-left-1">({{ result.params.dataset }})</span>
+    </p>
     <h2 class="govuk-heading-l">Checking data</h2>
     <p class="govuk-body">Do not close this page</p>
 

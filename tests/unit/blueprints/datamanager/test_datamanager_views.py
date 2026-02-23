@@ -1027,7 +1027,7 @@ class TestSpecificLines:
                 "application.blueprints.datamanager.views.render_template"
             ) as mock_render:
                 mock_render.return_value = "rendered_template"
-                from application.blueprints.datamanager.views import check_results
+                from application.blueprints.datamanager.router import check_results
 
                 result = check_results("test-id")
                 assert result is not None

@@ -1,0 +1,43 @@
+{% macro dataTables(converted_table, transformed_table, issue_log_table) %}
+{% from "components/table.html" import table %}
+<div class="govuk-tabs" data-module="govuk-tabs">
+  <ul class="govuk-tabs__list">
+    <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
+      <a class="govuk-tabs__tab" href="#converted-table">Converted</a>
+    </li>
+    <li class="govuk-tabs__list-item">
+      <a class="govuk-tabs__tab" href="#transformed-table">Transformed</a>
+    </li>
+    {% if issue_log_table and issue_log_table.rows %}
+    <li class="govuk-tabs__list-item">
+      <a class="govuk-tabs__tab" href="#issue-log-table">Issue logs</a>
+    </li>
+    {% endif %}
+  </ul>
+  <div class="govuk-tabs__panel" id="converted-table">
+    {% if converted_table.rows %}
+      <div class="app-scrollable-container app-scrollable">
+        {{ table(converted_table) }}
+      </div>
+    {% else %}
+      <p class="govuk-body">No rows to display</p>
+    {% endif %}
+  </div>
+  <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="transformed-table">
+    {% if transformed_table.rows %}
+      <div class="app-scrollable-container app-scrollable">
+        {{ table(transformed_table) }}
+      </div>
+    {% else %}
+      <p class="govuk-body">No rows to display</p>
+    {% endif %}
+  </div>
+  {% if issue_log_table and issue_log_table.rows %}
+  <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="issue-log-table">
+    <div class="app-scrollable-container app-scrollable">
+      {{ table(issue_log_table) }}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}

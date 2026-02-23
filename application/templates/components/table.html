@@ -9,7 +9,11 @@
     <thead class="govuk-table__head dl-table__head app-table__head">
       <tr class="govuk-table__row">
         {% for column in params.columns %}
+        {% if params.unmapped_columns and column in params.unmapped_columns %}
+        <th scope="col" class="govuk-table__header dl-table__header app-table__header" style="color: #d4351c;">{{ column }}</th>
+        {% else %}
         <th scope="col" class="govuk-table__header dl-table__header app-table__header">{{ column }}</th>
+        {% endif %}
         {% endfor %}
       </tr>
     </thead>
@@ -27,7 +31,11 @@
             {{ row.columns[field].value }}
           </a>
           {% else %}
+          {% if row.columns[field].value | length > 50 %}
+          {{ row.columns[field].value[:50] }}...
+          {% else %}
           {{ row.columns[field].value }}
+          {% endif %}
           {% endif %}
         </td>
 
