@@ -21,10 +21,10 @@ reqs:
 	python -m piptools compile requirements/dev-requirements.in
 	python -m piptools compile requirements/requirements.in
 
-piptool-sync:
+sync:
 	python -m piptools sync requirements/requirements.txt requirements/dev-requirements.txt
 
-piptool-upgrade:
+upgrade:
 	python -m piptools compile --upgrade requirements/requirements.in
 	python -m piptools compile --upgrade requirements/dev-requirements.in
 	python -m piptools sync requirements/requirements.txt requirements/dev-requirements.txt
