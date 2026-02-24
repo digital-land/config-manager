@@ -154,13 +154,13 @@ def handle_check_results(request_id, result):
     column_field_log = data.get("column-field-log", []) or []
 
     # Build converted, transformed and issue log tables
-    converted_table, transformed_table, issue_log_table = build_check_tables(column_field_log, resp_details)
+    converted_table, transformed_table, issue_log_table, spec_fields = build_check_tables(column_field_log, resp_details)
 
     # Build column mapping rows for inline configure UI
     unmapped_columns = converted_table.get("unmapped_columns", set())
     mapping_rows = build_column_mapping_rows(column_field_log, unmapped_columns)
 
-    # Checks
+    # Checks: must_fix is missing columns in column_field_log, passed_checks is columns that exist (even if missing values exist still passes), fixable is everything in error_summary (issue_logs combined)
     must_fix, fixable, passed_checks = [], [], []
     for err in error_summary:
         fixable.append(err)
@@ -185,6 +185,7 @@ def handle_check_results(request_id, result):
         boundary_geojson_url=boundary_geojson_url,
         request_id=request_id,
         mapping_rows=mapping_rows,
+        spec_fields=sorted(spec_fields),
     )
 
 

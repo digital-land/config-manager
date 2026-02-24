@@ -423,6 +423,8 @@ def build_check_tables(column_field_log, resp_details):
         entry["column"] for entry in column_field_log if entry.get("column")
     ]
     known_columns = set(converted_headers)
+    # Also extract spec fields for use in column mapping UI
+    spec_fields = {entry["field"] for entry in column_field_log if entry.get("field")}
 
     # First pass: discover any extra fields present in the data but not in column_field_log
     unmapped_columns = set()
@@ -502,7 +504,7 @@ def build_check_tables(column_field_log, resp_details):
         "columnNameProcessing": "none",
     }
 
-    return converted_table, transformed_table, issue_log_table
+    return converted_table, transformed_table, issue_log_table, spec_fields
 
 
 def inject_now():

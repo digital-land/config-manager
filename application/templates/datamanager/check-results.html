@@ -10,7 +10,7 @@
       <h2 class="govuk-error-summary__title">Data cannot be added</h2>
       <div class="govuk-error-summary__body">
         <p>
-          <strong>Please fix the blocking issues before adding data</strong>
+          <strong>Please address the columns not found before adding data</strong>
         </p>
       </div>
     </div>
@@ -22,7 +22,8 @@
     <h2 class="govuk-heading-m govuk-!-margin-top-3">Data has been checked</h2>
 
     <div class="govuk-inset-text">
-      All transformation and issues shown here are with entity lookup disabled.
+      <p>All transformation and issues shown here are with entity lookup disabled.</p>
+      <p>Columns shown in <span style="color: red;">Red</span> in the Converted table are not being matched to any fields in the current configuration, and as such are not being transformed.</p>
     </div>
 
     <!-- Map -->
@@ -53,7 +54,7 @@
         {% if passed_checks %}
 
         <h2 class="govuk-heading-m govuk-!-margin-top-6">
-          Data that passed the checks
+          Columns found
         </h2>
         <div class="govuk-width-container">
           <ul class="govuk-task-list">
@@ -72,51 +73,55 @@
         <!-- Must fix (blocking issues) -->
         {% if must_fix %}
         <h2 class="govuk-heading-m govuk-!-margin-top-4">
-          Issues that must be fixed before adding data
+          Columns not found
         </h2>
-        <div class="govuk-!-margin-bottom-4 govuk-body">
-          {% for issue in must_fix %}
-          <div class="app-card-details">
-            <span><a class="govuk-link" href="#">{{ issue }}</a></span>
-            <strong class="govuk-tag govuk-tag--red">Must fix</strong>
-          </div>
-          {% endfor %}
+        <div class="govuk-width-container">
+          <ul class="govuk-task-list">
+            {% for issue in must_fix %}
+            <li class="govuk-task-list__item govuk-task-list__item--with-link">
+              <div class="govuk-task-list__name-and-hint">{{ issue }}</div>
+              <div class="govuk-task-list__status">
+                <strong class="govuk-tag govuk-tag--red">Not found</strong>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
         </div>
         {% endif %}
 
         <!-- Fixable issues -->
         {% if fixable %}
-        <h2 class="govuk-heading-m">
-          Issues that can be fixed after adding data
+        <h2 class="govuk-heading-m govuk-!-margin-top-4">
+          Error summary
         </h2>
-        <p class="govuk-body">
-          Data can be added with these issues, but they should be fixed over
-          time.
-        </p>
-        <div class="govuk-!-margin-bottom-4 govuk-body">
-          {% for issue in fixable %}
-          <div class="app-card-details">
-            <span><a class="govuk-link" href="#">{{ issue }}</a></span>
-            <strong class="govuk-tag govuk-tag--yellow">Needs fixing</strong>
-          </div>
-          {% endfor %}
+        <div class="govuk-width-container">
+          <ul class="govuk-task-list">
+            {% for issue in fixable %}
+            <li class="govuk-task-list__item govuk-task-list__item--with-link">
+              <div class="govuk-task-list__name-and-hint">{{ issue }}</div>
+              <div class="govuk-task-list__status">
+                <strong class="govuk-tag govuk-tag--yellow">Needs fixing</strong>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
         </div>
         {% endif %}
 
         <!-- Column Mapping -->
         {% if mapping_rows %}
-        {{ columnMapping(mapping_rows, request_id) }}
+        {{ columnMapping(mapping_rows, request_id, spec_fields) }}
         {% endif %}
 
         <!-- Buttons -->
         <div class="govuk-button-group govuk-!-margin-top-6 right-side-buttons">
           {% if allow_add_data %}
           <form method="get" action="{{ url_for('datamanager.add_data', request_id=result.id) }}">
-            <button type="submit" class="govuk-button">Add data</button>
+            <button type="submit" class="govuk-button">Check Entities</button>
           </form>
           {% else %}
           <button class="govuk-button govuk-button--secondary" disabled aria-disabled="true">
-            Add data
+            Check Entities
           </button>
           {% endif %}
         </div>

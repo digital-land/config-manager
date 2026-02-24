@@ -1,4 +1,4 @@
-{% macro columnMapping(mapping_rows, request_id) %}
+{% macro columnMapping(mapping_rows, request_id, spec_fields=[]) %}
 <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid #1d70b8;">
   <details data-module="govuk-details" style="margin: 0;">
     <summary style="cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
@@ -25,8 +25,12 @@
               {% if row.is_mapped %}
               {{ row.field }}
               {% else %}
-              <input class="govuk-input govuk-input--width-20" type="text"
-                     name="map[{{ row.column }}]" value="" placeholder="Enter field name">
+              <select class="govuk-select" name="map[{{ row.column }}]">
+                <option value="">-- select a field --</option>
+                {% for field in spec_fields %}
+                <option value="{{ field }}">{{ field }}</option>
+                {% endfor %}
+              </select>
               {% endif %}
             </td>
             <td class="govuk-table__cell">
@@ -42,7 +46,7 @@
       </table>
 
       <div class="govuk-button-group">
-        <button type="submit" class="govuk-button govuk-button--secondary">
+        <button type="submit" class="govuk-button">
           Re-check with mappings
         </button>
       </div>

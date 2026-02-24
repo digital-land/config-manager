@@ -98,7 +98,7 @@ def handle_dashboard_get():
         errors=errors,
     )
 
-# Handle form submission in POST route, TODO: consider schema validation moudle for form here
+# Handle form submission in POST route, TODO: consider schema validation module for form here
 def handle_dashboard_add():
     form = request.form.to_dict()
     errors = {}
@@ -270,7 +270,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
         "collection": check_params.get("collection"),
         "dataset": check_params.get("dataset"),
         "url": check_params.get("url"),
-        "organisationName": check_params.get("organisationName"),
+        "organisationName": check_params.get("organisationName"), # TODO: Fix inconsistent org naming in async API params
         "organisation": check_params.get("organisationName"),
         "column_mapping": check_params.get("column_mapping", {}),
         "documentation_url": add_data_fields["documentation_url"],
