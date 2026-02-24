@@ -3,18 +3,14 @@ import logging
 from flask import (
     render_template,
     session,
-    url_for,
 )
 
 from . import ControllerError
-from ..services.async_api import (
-    fetch_response_details,
-)
 from ..services.github import (
     trigger_add_data_async_workflow,
     GitHubWorkflowError,
 )
-from ..utils import (
+from ..utils.csv_formats import (
     build_column_csv_preview,
     build_endpoint_csv_preview,
     build_entity_organisation_csv,
@@ -35,25 +31,21 @@ def handle_entities_preview(request_id, req):
             "datamanager/add-data-preview-loading.html", request_id=request_id
         )
 
-    # Error state
+    # Error state in async
     response_payload = req.get("response") or {}
     response_error = response_payload.get("error")
     if response_error:
         raise ControllerError(response_error.get("errMsg") or "Unknown error")
 
-    # Fetch all response details using multiple calls
-    all_details = fetch_response_details(request_id)
-
     data = response_payload.get("data") or {}
+
     pipeline_summary = data.get("pipeline-summary") or {}
-    new_entities = pipeline_summary.get("new-entities") or []
     endpoint_summary = data.get("endpoint-summary") or {}
     source_summary_data = data.get("source-summary") or {}
 
     existing_entities_list = pipeline_summary.get("existing-entities") or []
-
+    new_entities = pipeline_summary.get("new-entities") or []
     pipeline_issues = pipeline_summary.get("pipeline-issues") or []
-    logger.debug(f"pipeline-issues count: {len(pipeline_issues)}")
 
     # Build lookup CSV preview
     table_params, lookup_csv_text = build_lookup_csv_preview(new_entities)
@@ -121,7 +113,6 @@ def handle_entities_preview(request_id, req):
         request_id=request_id,
         new_count=int(pipeline_summary.get("new-in-resource") or 0),
         existing_count=int(pipeline_summary.get("existing-in-resource") or 0),
-        breakdown=data.get("new-entity-breakdown") or [],
         endpoint_already_exists=endpoint_already_exists,
         endpoint_url=endpoint_url,
         table_params=table_params,
@@ -129,22 +120,13 @@ def handle_entities_preview(request_id, req):
         existing_table_params=existing_table_params,
         endpoint_csv_table_params=endpoint_csv_table_params,
         endpoint_csv_text=endpoint_csv_text,
-        endpoint_csv_body="",
         source_csv_table_params=source_csv_table_params,
         source_csv_text=source_csv_text,
-        source_csv_body="",
         source_summary=source_summary,
         column_csv_table_params=column_csv_table_params,
         column_csv_text=column_csv_text,
         has_column_mapping=has_column_mapping,
-        all_details=all_details,
-        total_count=len(all_details),
-        back_url=url_for(
-            "datamanager.add_data",
-            request_id=(req.get("params") or {}).get("source_request_id") or request_id,
-        ),
         pipeline_issues=pipeline_issues,
-        dataset=dataset_id,
         entity_org_table_params=entity_org_table_params,
         entity_org_csv_text=entity_org_csv_text,
         has_entity_org=has_entity_org,
@@ -169,7 +151,5 @@ def handle_add_data_confirm(request_id):
     logger.info(f"Successfully triggered async workflow for request_id: {request_id}")
     return render_template(
         "datamanager/add-data-success.html",
-        collection="",
-        new_entity_count=0,
         message=result["message"],
     )

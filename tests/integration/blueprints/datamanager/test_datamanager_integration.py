@@ -1,136 +1,136 @@
-import json
-import responses
+from unittest.mock import patch
+
+import responses as rsps
+
+ASYNC_BASE = "http://localhost:8000/requests"
+
+PENDING_CHECK_RESULT = {
+    "id": "test-id",
+    "status": "PENDING",
+    "response": None,
+    "params": {
+        "organisationName": "local-authority-eng:ABC",
+        "dataset": "brownfield-land",
+    },
+}
+
+PENDING_ADD_DATA_RESULT = {
+    "id": "test-id",
+    "status": "PENDING",
+    "response": None,
+    "params": {"dataset": "brownfield-land"},
+}
 
 
-class TestDatamanagerIntegration:
-    """Integration tests for datamanager blueprint"""
-
-    def test_index_renders_template(self, client):
-        """Test index route renders correctly"""
+class TestDashboardGet:
+    def test_returns_200(self, client):
         response = client.get("/datamanager/")
         assert response.status_code == 200
-        assert b"Dashboard" in response.data
 
-    @responses.activate
-    def test_dashboard_add_with_external_api(self, client):
-        """Test dashboard add route with mocked external API calls"""
-        # Mock the planning data API response
-        responses.add(
-            responses.GET,
-            "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
-            json={
-                "datasets": [
-                    {
-                        "name": "brownfield-land",
-                        "dataset": "brownfield-land",
-                        "collection": "brownfield-land-collection",
-                    }
-                ]
-            },
-            status=200,
-        )
+    def test_contains_form(self, client):
+        response = client.get("/datamanager/")
+        assert b"<form" in response.data
 
-        response = client.get("/datamanager/add")
+    def test_autocomplete_returns_json(self, client):
+        with patch("application.blueprints.datamanager.controllers.form.search_datasets", return_value=["brownfield-land"]):
+            response = client.get("/datamanager/?autocomplete=brown")
+        assert response.status_code == 200
+        assert b"brownfield-land" in response.data
+
+
+class TestImportRoute:
+    def test_get_returns_200(self, client):
+        response = client.get("/datamanager/import")
         assert response.status_code == 200
 
-    @responses.activate
-    def test_dashboard_add_autocomplete_integration(self, client):
-        """Test autocomplete functionality with external API"""
-        responses.add(
-            responses.GET,
-            "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
-            json={
-                "datasets": [
-                    {
-                        "name": "brownfield-land",
-                        "dataset": "brownfield-land",
-                        "collection": "test",
-                    },
-                    {
-                        "name": "conservation-area",
-                        "dataset": "conservation-area",
-                        "collection": "test",
-                    },
-                ]
-            },
-            status=200,
-        )
+    def test_post_with_valid_csv_redirects(self, client):
+        csv_data = "organisation,pipelines,endpoint-url\nlocal-authority-eng:ABC,brownfield-land,https://example.com/data.csv"
+        response = client.post("/datamanager/import", data={"mode": "parse", "csv_data": csv_data})
+        assert response.status_code == 302
+        assert "import_data=true" in response.headers["Location"]
 
-        response = client.get("/datamanager/add?autocomplete=brown")
+    def test_post_with_invalid_csv_shows_error(self, client):
+        response = client.post("/datamanager/import", data={"mode": "parse", "csv_data": "not,valid,csv\nmissing,required,fields"})
         assert response.status_code == 200
-        data = json.loads(response.data)
-        assert "brownfield-land" in data
+        assert b"error" in response.data.lower()
 
-    @responses.activate
-    def test_dashboard_add_get_orgs_integration(self, client):
-        """Test get organizations functionality with external APIs"""
-        # Mock dataset API
-        responses.add(
-            responses.GET,
-            "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
-            json={
-                "datasets": [
-                    {
-                        "name": "test-dataset",
-                        "dataset": "test-id",
-                        "collection": "test-collection",
-                    }
-                ]
-            },
-            status=200,
-        )
 
-        # Mock provision CSV from GitHub
-        responses.add(
-            responses.GET,
-            "https://raw.githubusercontent.com/digital-land/specification/refs/heads/main/specification/provision.csv",
-            body="dataset,organisation\ntest-id,local-authority-eng:TEST\n",
-            status=200,
-        )
-
-        # Mock organisation.json API
-        responses.add(
-            responses.GET,
-            "https://datasette.planning.data.gov.uk/digital-land/organisation.json?_shape=objects&_size=max",
-            json={
-                "rows": [
-                    {
-                        "organisation": "local-authority-eng:TEST",
-                        "name": "Test Council",
-                    }
-                ]
-            },
-            status=200,
-        )
-
-        response = client.get("/datamanager/add?get_orgs_for=test-dataset")
+class TestCheckResultsRoute:
+    @rsps.activate
+    def test_pending_renders_loading(self, client):
+        rsps.add(rsps.GET, f"{ASYNC_BASE}/test-id", json=PENDING_CHECK_RESULT, status=200)
+        with patch("application.blueprints.datamanager.controllers.check.get_organisation_name", return_value="Test Org"):
+            with patch("application.blueprints.datamanager.controllers.check.get_dataset_name", return_value="Brownfield Land"):
+                response = client.get("/datamanager/check-results/test-id")
         assert response.status_code == 200
-        data = json.loads(response.data)
-        assert "Test Council (local-authority-eng:TEST)" in data
 
-    @responses.activate
-    def test_dashboard_add_post_integration(self, client):
-        """Test POST request to dashboard add"""
-        responses.add(
-            responses.GET,
-            "https://www.planning.data.gov.uk/dataset.json?_labels=on&_size=max",
-            json={
-                "datasets": [
-                    {
-                        "name": "test-dataset",
-                        "dataset": "test-id",
-                        "collection": "test-collection",
-                    }
-                ]
-            },
-            status=200,
-        )
+    @rsps.activate
+    def test_not_found_returns_404(self, client):
+        rsps.add(rsps.GET, f"{ASYNC_BASE}/bad-id", json={"detail": {"errMsg": "not found"}}, status=400)
+        response = client.get("/datamanager/check-results/bad-id")
+        assert response.status_code == 404
 
-        form_data = {
-            "mode": "preview",
-            "dataset": "test-dataset",
-            "endpoint_url": "http://example.com/data.csv",
-        }
+    @rsps.activate
+    def test_failed_status_returns_404(self, client):
+        rsps.add(rsps.GET, f"{ASYNC_BASE}/test-id", json={**PENDING_CHECK_RESULT, "status": "FAILED"}, status=200)
+        response = client.get("/datamanager/check-results/test-id")
+        assert response.status_code == 404
 
-        response = client.post("/datamanager/add", data=form_data)
+
+class TestEntitiesPreviewRoute:
+    @rsps.activate
+    def test_pending_renders_loading(self, client):
+        rsps.add(rsps.GET, f"{ASYNC_BASE}/test-id", json=PENDING_ADD_DATA_RESULT, status=200)
+        response = client.get("/datamanager/add-data/test-id/entities")
         assert response.status_code == 200
+        assert b"Preparing entities preview" in response.data
+
+    @rsps.activate
+    def test_not_found_returns_404(self, client):
+        rsps.add(rsps.GET, f"{ASYNC_BASE}/bad-id", json={"detail": {"errMsg": "not found"}}, status=400)
+        response = client.get("/datamanager/add-data/bad-id/entities")
+        assert response.status_code == 404
+
+    @rsps.activate
+    def test_queued_also_renders_loading(self, client):
+        queued = {**PENDING_ADD_DATA_RESULT, "status": "QUEUED"}
+        rsps.add(rsps.GET, f"{ASYNC_BASE}/test-id", json=queued, status=200)
+        response = client.get("/datamanager/add-data/test-id/entities")
+        assert response.status_code == 200
+        assert b"Preparing entities preview" in response.data
+
+
+class TestAddDataConfirmRoute:
+    def test_success_renders_success_page(self, client):
+        with client.session_transaction() as sess:
+            sess["user"] = {"login": "test-user"}
+        with patch(
+            "application.blueprints.datamanager.controllers.add.trigger_add_data_async_workflow",
+            return_value={"success": True, "message": "Workflow triggered"},
+        ):
+            response = client.post("/datamanager/add-data/test-id/confirm-async")
+        assert response.status_code == 200
+        assert b"triggered" in response.data.lower()
+
+    def test_workflow_failure_renders_error(self, client):
+        with client.session_transaction() as sess:
+            sess["user"] = {"login": "test-user"}
+        with patch(
+            "application.blueprints.datamanager.controllers.add.trigger_add_data_async_workflow",
+            return_value={"success": False, "message": "Dispatch rejected"},
+        ):
+            response = client.post("/datamanager/add-data/test-id/confirm-async")
+        assert response.status_code == 200
+        assert b"govuk-error-summary" in response.data
+
+    def test_github_error_renders_error(self, client):
+        from application.blueprints.datamanager.services.github import GitHubWorkflowError
+        with client.session_transaction() as sess:
+            sess["user"] = {"login": "test-user"}
+        with patch(
+            "application.blueprints.datamanager.controllers.add.trigger_add_data_async_workflow",
+            side_effect=GitHubWorkflowError("credentials not configured"),
+        ):
+            response = client.post("/datamanager/add-data/test-id/confirm-async")
+        assert response.status_code == 200
+        assert b"govuk-error-summary" in response.data

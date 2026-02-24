@@ -201,7 +201,7 @@ pluggy==1.0.0
     # via datasette
 psutil==7.0.0
     # via digital-land
-psycopg2==2.9.11
+psycopg2-binary==2.9.11
     # via -r requirements/requirements.in
 pyarrow==20.0.0
     # via digital-land
