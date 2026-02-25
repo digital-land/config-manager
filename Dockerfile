@@ -37,4 +37,10 @@ RUN python -m pip install --upgrade pip setuptools wheel && \
 
 EXPOSE 5000
 
+RUN groupadd --system appuser && \
+    useradd --system --gid appuser --no-create-home appuser && \
+    chown -R appuser:appuser /app /venv
+
+USER appuser
+
 ENTRYPOINT ["sh", "-c", "flask db upgrade && flask run"]
