@@ -75,7 +75,7 @@ def get_request_api_endpoint():
     ENVIRONMENT: local | development | staging | production
     Default environment is local
     """
-    env = Config.ENVIRONMENT
+    env = os.getenv("ENVIRONMENT", "local").lower()
 
     mapping = {
         "local": "http://localhost:8000",
