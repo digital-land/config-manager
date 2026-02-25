@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 from application.blueprints.datamanager.services.github import GitHubWorkflowError
 
-
 PENDING_ADD_DATA_RESULT = {
     "status": "PENDING",
     "response": None,

@@ -228,9 +228,9 @@ def handle_dashboard_add_import():
                         f for f in required_fields if not parsed_data.get(f, "").strip()
                     ]
                     if missing:
-                        errors[
-                            "csv_data"
-                        ] = f"Missing required fields: {', '.join(missing)}"
+                        errors["csv_data"] = (
+                            f"Missing required fields: {', '.join(missing)}"
+                        )
 
                     if not errors:
                         return redirect(

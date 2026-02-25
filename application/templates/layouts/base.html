@@ -2,6 +2,7 @@
 {%- from 'govuk_frontend_jinja/components/details/macro.html' import govukDetails -%}
 {%- from "govuk_frontend_jinja/components/phase-banner/macro.html" import govukPhaseBanner -%}
 {% extends 'digital-land-frontend/layouts/base.jinja' %}
+{% set htmlClasses = "govuk-template--rebranded" %}
 {% from 'macro/data-item.html' import appDataItem %}
 
 {% block cookieBanner %}

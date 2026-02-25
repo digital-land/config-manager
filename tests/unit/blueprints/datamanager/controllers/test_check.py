@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-
 PENDING_RESULT = {
     "status": "PENDING",
     "response": None,

@@ -1,10 +1,8 @@
 {% extends 'layouts/base.html' %}
 
 
-{% set app_header_classes = "app-header--flush" %}
-
 {% block mastHead %}
-<header class="govuk-header {{ app_header_classes }} govuk-!-padding-top-2" role="banner" data-module="govuk-header">
+<header class="govuk-header govuk-!-padding-top-2" role="banner" data-module="govuk-header">
   <div class="govuk-header__container govuk-width-container app-govuk-header__container">
     <div class="app-header__content">
       <span class="app-header__team-name">
@@ -20,18 +18,12 @@
 </header>
 {% endblock mastHead %}
 
-{% block main %}
-<main id="content" role="main">
+{% block container %}
+<div class="govuk-width-container app-before-content-container">
+  {% block beforeContent %}{{ super() }}{% endblock %}
+</div>
 
-  {% if session['user'] %}
-    {% from 'components/user-bar.html' import appUserBar %}
-    <div class="govuk-width-container">
-      {{ appUserBar({
-        "user": session['user'],
-        "classes": "govuk-!-margin-bottom-0"
-      }) }}
-    </div>
-  {% endif %}
+<main class="govuk-main-wrapper" style="padding-top: 0px;" id="main-content">
 
   <section class="app-hero{{ ' app-hero--flush' if session['user'] }} govuk-!-padding-top-0 govuk-!-margin-bottom-6" id="intro">
     <div class="app-hero__content govuk-width-container">
@@ -165,4 +157,4 @@
   </section>
 
 </main>
-{% endblock main %}
+{% endblock container %}
