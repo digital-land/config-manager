@@ -12,7 +12,10 @@ PENDING_ADD_DATA_RESULT = {
 
 class TestEntitiesPreviewRoute:
     def test_renders_loading_template_when_pending(self, client):
-        with patch("application.blueprints.datamanager.router.fetch_request", return_value=PENDING_ADD_DATA_RESULT):
+        with patch(
+            "application.blueprints.datamanager.router.fetch_request",
+            return_value=PENDING_ADD_DATA_RESULT,
+        ):
             response = client.get("/datamanager/add-data/test-id/entities")
         assert response.status_code == 200
         assert b"Preparing entities preview" in response.data
@@ -28,7 +31,9 @@ class TestAddDataConfirmRoute:
         ):
             response = client.post("/datamanager/add-data/test-id/confirm-async")
         assert response.status_code == 200
-        assert b"triggered" in response.data.lower() or b"success" in response.data.lower()
+        assert (
+            b"triggered" in response.data.lower() or b"success" in response.data.lower()
+        )
 
     def test_returns_error_when_workflow_raises(self, client):
         with client.session_transaction() as sess:

@@ -2,7 +2,7 @@ init:
 	mkdir -p application/static/javascripts application/static/stylesheets
 	npm install
 	python -m pip install --upgrade pip setuptools wheel
-	python -m pip install -r requirements/requirements.txt
+	python -m pip install -r requirements/requirements.txt -r requirements/dev-requirements.txt
 
 clean:
 	@echo "Cleaning up node modules and generated assets..."
@@ -18,15 +18,15 @@ clean:
 	@echo "Clean complete! Run 'make init' or 'npm install' to rebuild."
 
 reqs:
-	python -m piptools compile requirements/dev-requirements.in
 	python -m piptools compile requirements/requirements.in
+	python -m piptools compile requirements/dev-requirements.in
 
 sync:
 	python -m piptools sync requirements/requirements.txt requirements/dev-requirements.txt
 
 upgrade:
-	python -m piptools compile --upgrade requirements/dev-requirements.in
 	python -m piptools compile --upgrade requirements/requirements.in
+	python -m piptools compile --upgrade requirements/dev-requirements.in
 	python -m piptools sync requirements/requirements.txt requirements/dev-requirements.txt
 
 black:

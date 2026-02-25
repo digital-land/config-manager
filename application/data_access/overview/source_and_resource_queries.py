@@ -345,7 +345,9 @@ def get_new_resources(dates=[yesterday(string=True)]):
                 FROM resource
                 WHERE start_date IN %(dates)s
                 ORDER BY start_date
-                """ % {"dates": tuple(dates)}
+                """ % {
+            "dates": tuple(dates)
+        }
 
     rows = get_datasette_query("digital-land", sql)
 

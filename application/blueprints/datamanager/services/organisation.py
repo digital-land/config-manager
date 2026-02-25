@@ -64,7 +64,10 @@ def _get_org_mapping() -> dict:
     Handles pagination. Cached for 10 minutes.
     """
     now = time.monotonic()
-    if _org_mapping_cache["data"] is not None and now < _org_mapping_cache["expires_at"]:
+    if (
+        _org_mapping_cache["data"] is not None
+        and now < _org_mapping_cache["expires_at"]
+    ):
         return _org_mapping_cache["data"]
 
     org_mapping = {}

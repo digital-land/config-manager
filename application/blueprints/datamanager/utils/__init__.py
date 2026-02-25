@@ -110,7 +110,6 @@ def read_raw_csv_preview(source_url: str, max_rows: int = 50):
     return headers_, rows
 
 
-
 def build_check_tables(column_field_log, resp_details):
     """Build converted, transformed, and issue log table params from check response data.
 
@@ -141,10 +140,13 @@ def build_check_tables(column_field_log, resp_details):
         converted = row.get("converted_row") or {}
         if any(str(v).strip() for v in converted.values()):
             columns = {"entry_number": {"value": str(row.get("entry_number", ""))}}
-            columns.update({
-                col: {"value": str(converted.get(col, ""))}
-                for col in converted_headers if col != "entry_number"
-            })
+            columns.update(
+                {
+                    col: {"value": str(converted.get(col, ""))}
+                    for col in converted_headers
+                    if col != "entry_number"
+                }
+            )
             converted_rows.append({"columns": columns})
 
     converted_table = {
@@ -169,10 +171,13 @@ def build_check_tables(column_field_log, resp_details):
         }
         if any(str(v).strip() for v in field_values.values()):
             columns = {"entry_number": {"value": str(row.get("entry_number", ""))}}
-            columns.update({
-                col: {"value": str(field_values.get(col, ""))}
-                for col in transformed_headers if col != "entry_number"
-            })
+            columns.update(
+                {
+                    col: {"value": str(field_values.get(col, ""))}
+                    for col in transformed_headers
+                    if col != "entry_number"
+                }
+            )
             transformed_rows.append({"columns": columns})
 
     transformed_table = {
@@ -184,18 +189,26 @@ def build_check_tables(column_field_log, resp_details):
 
     # Issue log table: flattened from all rows' issue_logs
     issue_log_headers = [
-        "entry-number", "field", "issue-type", "severity",
-        "message", "description", "value", "responsibility",
+        "entry-number",
+        "field",
+        "issue-type",
+        "severity",
+        "message",
+        "description",
+        "value",
+        "responsibility",
     ]
     issue_log_rows = []
     for row in resp_details:
-        for issue in (row.get("issue_logs") or []):
-            issue_log_rows.append({
-                "columns": {
-                    col: {"value": str(issue.get(col, ""))}
-                    for col in issue_log_headers
+        for issue in row.get("issue_logs") or []:
+            issue_log_rows.append(
+                {
+                    "columns": {
+                        col: {"value": str(issue.get(col, ""))}
+                        for col in issue_log_headers
+                    }
                 }
-            })
+            )
 
     issue_log_table = {
         "columns": issue_log_headers,

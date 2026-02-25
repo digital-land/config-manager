@@ -1,7 +1,8 @@
 -c requirements.txt
-pytest
+pytest>=9.0
 flake8
 pre-commit
 black
 isort
-pytest-cov
+pytest-cov>=4.0
+pip-tools

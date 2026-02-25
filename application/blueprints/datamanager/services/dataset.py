@@ -77,6 +77,6 @@ def get_dataset_name(dataset_id: str, default: str = None) -> str | None:
 def search_datasets(query: str, limit: int = 10) -> list:
     """Search dataset names matching a query string (case-insensitive)."""
     query_lower = query.lower()
-    return [
-        name for name in get_dataset_options() if query_lower in name.lower()
-    ][:limit]
+    return [name for name in get_dataset_options() if query_lower in name.lower()][
+        :limit
+    ]

@@ -187,22 +187,48 @@ class TestAddDataJourney:
     @rsps.activate
     def test_form_submission_redirects_to_check_results(self, client):
         rsps.add(rsps.POST, ASYNC_BASE, json={"id": "check-id-1"}, status=202)
-        with patch("application.blueprints.datamanager.controllers.form.get_dataset_id", return_value="article-4-direction-area"):
-            with patch("application.blueprints.datamanager.controllers.form.get_collection_id", return_value="article-4-direction"):
-                with patch("application.blueprints.datamanager.controllers.form.get_provision_orgs_for_dataset", return_value=["local-authority:SKP"]):
-                    with patch("application.blueprints.datamanager.controllers.form.is_valid_organisation", return_value=True):
-                        with patch("application.blueprints.datamanager.controllers.form.format_org_options", return_value=[{"code": "local-authority:SKP", "label": "Stockport MBC"}]):
-                            response = client.post("/datamanager/", data={
-                                "dataset": "article-4-direction-area",
-                                "organisation": "local-authority:SKP",
-                                "endpoint_url": ENDPOINT_URL,
-                                "documentation_url": "https://www.stockport.gov.uk/planning-development-open-datasets",
-                                "licence": "ogl3",
-                                "start_day": "22",
-                                "start_month": "1",
-                                "start_year": "2026",
-                                "authoritative": "yes",
-                            })
+        with patch(
+            "application.blueprints.datamanager.controllers.form.get_dataset_id",
+            return_value="article-4-direction-area",
+        ):
+            with patch(
+                "application.blueprints.datamanager.controllers.form.get_collection_id",
+                return_value="article-4-direction",
+            ):
+                with patch(
+                    "application.blueprints.datamanager.controllers.form.get_provision_orgs_for_dataset",
+                    return_value=["local-authority:SKP"],
+                ):
+                    with patch(
+                        "application.blueprints.datamanager.controllers.form.is_valid_organisation",
+                        return_value=True,
+                    ):
+                        with patch(
+                            "application.blueprints.datamanager.controllers.form.format_org_options",
+                            return_value=[
+                                {
+                                    "code": "local-authority:SKP",
+                                    "label": "Stockport MBC",
+                                }
+                            ],
+                        ):
+                            response = client.post(
+                                "/datamanager/",
+                                data={
+                                    "dataset": "article-4-direction-area",
+                                    "organisation": "local-authority:SKP",
+                                    "endpoint_url": ENDPOINT_URL,
+                                    "documentation_url": (
+                                        "https://www.stockport.gov.uk"
+                                        "/planning-development-open-datasets"
+                                    ),
+                                    "licence": "ogl3",
+                                    "start_day": "22",
+                                    "start_month": "1",
+                                    "start_year": "2026",
+                                    "authoritative": "yes",
+                                },
+                            )
         assert response.status_code == 302
         assert "check-results/check-id-1" in response.headers["Location"]
 
@@ -210,11 +236,24 @@ class TestAddDataJourney:
 
     @rsps.activate
     def test_check_results_shows_unmapped_geom_column(self, client):
-        rsps.add(rsps.GET, f"{ASYNC_BASE}/check-id-1", json=CHECK_RESULT_COMPLETE, status=200)
-        rsps.add(rsps.GET, f"{ASYNC_BASE}/check-id-1/response-details", json=RESP_DETAILS_WITH_GEOM, status=200)
+        rsps.add(
+            rsps.GET, f"{ASYNC_BASE}/check-id-1", json=CHECK_RESULT_COMPLETE, status=200
+        )
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/check-id-1/response-details",
+            json=RESP_DETAILS_WITH_GEOM,
+            status=200,
+        )
         # Boundary URL fetch is not registered — rsps raises ConnectionError which check.py catches
-        with patch("application.blueprints.datamanager.controllers.check.get_organisation_name", return_value="Stockport MBC"):
-            with patch("application.blueprints.datamanager.controllers.check.get_dataset_name", return_value="Article 4 Direction Area"):
+        with patch(
+            "application.blueprints.datamanager.controllers.check.get_organisation_name",
+            return_value="Stockport MBC",
+        ):
+            with patch(
+                "application.blueprints.datamanager.controllers.check.get_dataset_name",
+                return_value="Article 4 Direction Area",
+            ):
                 response = client.get("/datamanager/check-results/check-id-1")
         assert response.status_code == 200
         assert b"geom" in response.data
@@ -224,7 +263,9 @@ class TestAddDataJourney:
 
     @rsps.activate
     def test_column_mapping_resubmit_redirects_to_new_check(self, client):
-        rsps.add(rsps.GET, f"{ASYNC_BASE}/check-id-1", json=CHECK_RESULT_COMPLETE, status=200)
+        rsps.add(
+            rsps.GET, f"{ASYNC_BASE}/check-id-1", json=CHECK_RESULT_COMPLETE, status=200
+        )
         rsps.add(rsps.POST, ASYNC_BASE, json={"id": "check-id-2"}, status=202)
         response = client.post(
             "/datamanager/check-results/check-id-1",
@@ -237,7 +278,12 @@ class TestAddDataJourney:
 
     @rsps.activate
     def test_check_entities_submits_preview_and_redirects(self, client):
-        rsps.add(rsps.GET, f"{ASYNC_BASE}/check-id-2", json=RECHECK_RESULT_COMPLETE, status=200)
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/check-id-2",
+            json=RECHECK_RESULT_COMPLETE,
+            status=200,
+        )
         rsps.add(rsps.POST, ASYNC_BASE, json={"id": "preview-id-1"}, status=202)
         with client.session_transaction() as sess:
             sess["add_data_fields"] = {
@@ -249,13 +295,21 @@ class TestAddDataJourney:
             }
         response = client.get("/datamanager/add-data/check-id-2")
         assert response.status_code == 302
-        assert "preview-id-1/entities" in response.headers["Location"] or "entities" in response.headers["Location"]
+        assert (
+            "preview-id-1/entities" in response.headers["Location"]
+            or "entities" in response.headers["Location"]
+        )
 
     # --- Step 6: Entities preview — 3 new entities, endpoint not in system ---
 
     @rsps.activate
     def test_entities_preview_shows_3_new_entities(self, client):
-        rsps.add(rsps.GET, f"{ASYNC_BASE}/preview-id-1", json=ENTITIES_PREVIEW_COMPLETE, status=200)
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/preview-id-1",
+            json=ENTITIES_PREVIEW_COMPLETE,
+            status=200,
+        )
         response = client.get("/datamanager/add-data/preview-id-1/entities")
         assert response.status_code == 200
         assert b"3" in response.data
@@ -264,7 +318,12 @@ class TestAddDataJourney:
 
     @rsps.activate
     def test_entities_preview_endpoint_not_in_system(self, client):
-        rsps.add(rsps.GET, f"{ASYNC_BASE}/preview-id-1", json=ENTITIES_PREVIEW_COMPLETE, status=200)
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/preview-id-1",
+            json=ENTITIES_PREVIEW_COMPLETE,
+            status=200,
+        )
         response = client.get("/datamanager/add-data/preview-id-1/entities")
         assert response.status_code == 200
         assert b"No" in response.data  # endpoint_already_exists = "No"

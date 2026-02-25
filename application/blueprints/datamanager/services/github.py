@@ -2,7 +2,6 @@
 GitHub App service for authenticating and triggering workflows.
 """
 
-import json
 import time
 import logging
 import requests

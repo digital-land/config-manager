@@ -98,6 +98,7 @@ def handle_dashboard_get():
         errors=errors,
     )
 
+
 # Handle form submission in POST route, TODO: consider schema validation module for form here
 def handle_dashboard_add():
     form = request.form.to_dict()
@@ -153,8 +154,7 @@ def handle_dashboard_add():
                 or not org_code_input
             ),
             "endpoint_url": (
-                not endpoint_url
-                or not re.match(r"https?://[^\s]+", endpoint_url)
+                not endpoint_url or not re.match(r"https?://[^\s]+", endpoint_url)
             ),
             "authoritative": authoritative not in ("yes", "no"),
         }
@@ -188,9 +188,7 @@ def handle_dashboard_add():
                 )
             )
         except AsyncAPIError as e:
-            raise Exception(
-                f"Check tool submission failed: {e.detail}"
-            ) from e
+            raise Exception(f"Check tool submission failed: {e.detail}") from e
 
     # Re-render form with errors
     return render_template(
@@ -230,9 +228,9 @@ def handle_dashboard_add_import():
                         f for f in required_fields if not parsed_data.get(f, "").strip()
                     ]
                     if missing:
-                        errors["csv_data"] = (
-                            f"Missing required fields: {', '.join(missing)}"
-                        )
+                        errors[
+                            "csv_data"
+                        ] = f"Missing required fields: {', '.join(missing)}"
 
                     if not errors:
                         return redirect(
@@ -270,7 +268,9 @@ def _submit_add_data_preview(request_id, add_data_fields):
         "collection": check_params.get("collection"),
         "dataset": check_params.get("dataset"),
         "url": check_params.get("url"),
-        "organisationName": check_params.get("organisationName"), # TODO: Fix inconsistent org naming in async API params
+        "organisationName": check_params.get(
+            "organisationName"
+        ),  # TODO: Fix inconsistent org naming in async API params
         "organisation": check_params.get("organisationName"),
         "column_mapping": check_params.get("column_mapping", {}),
         "documentation_url": add_data_fields["documentation_url"],
@@ -280,9 +280,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
     }
 
     preview_id = submit_request(params)
-    return redirect(
-        url_for("datamanager.entities_preview", request_id=preview_id)
-    )
+    return redirect(url_for("datamanager.entities_preview", request_id=preview_id))
 
 
 def _has_all_add_data_fields(add_data_fields):
@@ -304,11 +302,15 @@ def handle_add_data(request_id):
 
     # GET — show the form pre-filled with whatever we have
     if request.method == "GET":
-        return render_template("datamanager/add-data.html", request_id=request_id, form={
-            "documentation_url": add_data_fields.get("documentation_url", ""),
-            "licence": add_data_fields.get("licence", ""),
-            "authoritative": add_data_fields.get("authoritative"),
-        })
+        return render_template(
+            "datamanager/add-data.html",
+            request_id=request_id,
+            form={
+                "documentation_url": add_data_fields.get("documentation_url", ""),
+                "licence": add_data_fields.get("licence", ""),
+                "authoritative": add_data_fields.get("authoritative"),
+            },
+        )
 
     # POST — validate the form submission
     form = request.form.to_dict()
@@ -319,9 +321,7 @@ def handle_add_data(request_id):
     d = (form.get("start_day") or "").strip()
     m = (form.get("start_month") or "").strip()
     y = (form.get("start_year") or "").strip()
-    start_date = (
-        f"{y}-{m.zfill(2)}-{d.zfill(2)}" if (d and m and y) else ""
-    )
+    start_date = f"{y}-{m.zfill(2)}-{d.zfill(2)}" if (d and m and y) else ""
 
     errors = {}
     if authoritative not in ("yes", "no"):
@@ -333,7 +333,9 @@ def handle_add_data(request_id):
             errors["start_date"] = True
 
     if errors:
-        return render_template("datamanager/add-data.html", request_id=request_id, form=form, errors=errors)
+        return render_template(
+            "datamanager/add-data.html", request_id=request_id, form=form, errors=errors
+        )
 
     # Save to session and submit
     add_data_fields = {

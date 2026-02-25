@@ -28,13 +28,11 @@ from .controllers.add import (
 )
 from .services.async_api import (
     AsyncAPIError,
-    submit_request,
     fetch_request,
 )
 from .utils import (
     handle_error,
     inject_now,
-    read_raw_csv_preview,
 )
 
 datamanager_bp = Blueprint("datamanager", __name__, url_prefix="/datamanager")
@@ -80,7 +78,8 @@ def check_results(request_id):
     except AsyncAPIError:
         return (
             render_template(
-                "datamanager/error.html", message="Error in fetching check results from the Async"
+                "datamanager/error.html",
+                message="Error in fetching check results from the Async",
             ),
             404,
         )
@@ -88,7 +87,8 @@ def check_results(request_id):
     if result.get("status") == "FAILED":
         return (
             render_template(
-                "datamanager/error.html", message="The check request failed during processing. Please review the request details and try again."
+                "datamanager/error.html",
+                message="The check request failed during processing. Please review the request details and try again.",
             ),
             404,
         )
@@ -112,7 +112,7 @@ def check_results_post(request_id):
 
 @datamanager_bp.route("/add-data/<request_id>", methods=["GET", "POST"])
 def add_data(request_id):
-    """Entry point for add data form, only shows if there are still required fields to be filled in, which submits to async workflow and then redirects to entities page with preview and confirm."""
+    """Entry point for add data form. Submits to async workflow and redirects to entities preview."""
     return handle_add_data(request_id)
 
 
@@ -121,9 +121,14 @@ def entities_preview(request_id):
     try:
         req = fetch_request(request_id)
     except AsyncAPIError:
-        return render_template("datamanager/error.html", message="Preview not found"), 404
+        return (
+            render_template("datamanager/error.html", message="Preview not found"),
+            404,
+        )
 
-    logger.info(f"Entities preview for request_id: {request_id}, status: {req.get('status')}")
+    logger.info(
+        f"Entities preview for request_id: {request_id}, status: {req.get('status')}"
+    )
 
     try:
         return handle_entities_preview(request_id, req)

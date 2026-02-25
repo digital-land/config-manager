@@ -4,7 +4,8 @@ from config.config import get_request_api_endpoint
 
 
 # --- Planning Data API URLs ---
-# TODO: This is temporary, this is helpful to move all url's to be retrieved from the overall config.py for Config-manager
+# TODO: This is temporary, this is helpful to move all url's to be retrieved
+# from the overall config.py for Config-manager
 
 
 def get_planning_base_url():

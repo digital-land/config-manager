@@ -8,6 +8,7 @@ import requests
 from dateutil.relativedelta import relativedelta
 from requests import HTTPError
 
+
 def compute_hash(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 

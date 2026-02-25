@@ -41,7 +41,9 @@ def handle_check_results(request_id, result):
         raise ControllerError("Organisation code missing from result params")
 
     result["params"]["organisation_display"] = get_organisation_name(organisation_code)
-    result["params"]["dataset_display"] = get_dataset_name(dataset_id, default=dataset_id)
+    result["params"]["dataset_display"] = get_dataset_name(
+        dataset_id, default=dataset_id
+    )
 
     # Format date checked
     raw_date = result.get("modified") or result.get("created") or ""
@@ -56,9 +58,7 @@ def handle_check_results(request_id, result):
         result.get("status") in ["PENDING", "PROCESSING", "QUEUED"]
         or result.get("response") is None
     ):
-        return render_template(
-            "datamanager/check-results-loading.html", result=result
-        )
+        return render_template("datamanager/check-results-loading.html", result=result)
 
     # Check async error
     response_data = result.get("response")
@@ -85,8 +85,7 @@ def handle_check_results(request_id, result):
                     for item in transformed_row
                     if isinstance(item, dict)
                     and (
-                        item.get("field") == "geometry"
-                        or item.get("field") == "point"
+                        item.get("field") == "geometry" or item.get("field") == "point"
                     )
                 ),
                 None,
@@ -121,9 +120,7 @@ def handle_check_results(request_id, result):
             resp = requests.get(get_entity_search_url(dataset_id, lpa_id))
             resp.raise_for_status()
             d = resp.json()
-            entity = (
-                d.get("entities", [])[0] if d and d.get("entities") else None
-            )
+            entity = d.get("entities", [])[0] if d and d.get("entities") else None
             if not entity:
                 boundary_geojson_url = {
                     "type": "FeatureCollection",
@@ -141,7 +138,9 @@ def handle_check_results(request_id, result):
                         "features": [],
                     }
                 else:
-                    boundary_geojson_url = requests.get(get_entity_geojson_url(reference)).json()
+                    boundary_geojson_url = requests.get(
+                        get_entity_geojson_url(reference)
+                    ).json()
         else:
             boundary_geojson_url = {"type": "FeatureCollection", "features": []}
     except Exception as e:
@@ -154,13 +153,19 @@ def handle_check_results(request_id, result):
     column_field_log = data.get("column-field-log", []) or []
 
     # Build converted, transformed and issue log tables
-    converted_table, transformed_table, issue_log_table, spec_fields = build_check_tables(column_field_log, resp_details)
+    (
+        converted_table,
+        transformed_table,
+        issue_log_table,
+        spec_fields,
+    ) = build_check_tables(column_field_log, resp_details)
 
     # Build column mapping rows for inline configure UI
     unmapped_columns = converted_table.get("unmapped_columns", set())
     mapping_rows = build_column_mapping_rows(column_field_log, unmapped_columns)
 
-    # Checks: must_fix is missing columns in column_field_log, passed_checks is columns that exist (even if missing values exist still passes), fixable is everything in error_summary (issue_logs combined)
+    # Checks: must_fix is missing columns in column_field_log, passed_checks is columns that exist
+    # (even if missing values exist still passes), fixable is everything in error_summary (issue_logs combined)
     must_fix, fixable, passed_checks = [], [], []
     for err in error_summary:
         fixable.append(err)
@@ -199,7 +204,12 @@ def handle_check_resubmit(request_id):
     try:
         req = fetch_request(request_id)
     except AsyncAPIError:
-        return render_template("datamanager/error.html", message="Original request not found"), 404
+        return (
+            render_template(
+                "datamanager/error.html", message="Original request not found"
+            ),
+            404,
+        )
 
     params = req.get("params", {}) or {}
 

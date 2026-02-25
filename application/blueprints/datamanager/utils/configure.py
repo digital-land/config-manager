@@ -14,17 +14,21 @@ def build_column_mapping_rows(column_field_log, unmapped_columns):
         col = entry.get("column")
         field = entry.get("field", "")
         if col:
-            rows.append({
-                "column": col,
-                "field": field,
-                "is_mapped": True,
-            })
+            rows.append(
+                {
+                    "column": col,
+                    "field": field,
+                    "is_mapped": True,
+                }
+            )
 
     for col in sorted(unmapped_columns):
-        rows.append({
-            "column": col,
-            "field": "",
-            "is_mapped": False,
-        })
+        rows.append(
+            {
+                "column": col,
+                "field": "",
+                "is_mapped": False,
+            }
+        )
 
     return rows

@@ -33,9 +33,7 @@ class Config:
     ENVIRONMENT = os.getenv("ENVIRONMENT", "local").lower()
 
     # Planning Data base URL
-    PLANNING_BASE_URL = os.getenv(
-        "PLANNING_URL", "https://www.planning.data.gov.uk"
-    )
+    PLANNING_BASE_URL = os.getenv("PLANNING_URL", "https://www.planning.data.gov.uk")
 
     # Datasette base URL
     DATASETTE_BASE_URL = os.getenv(

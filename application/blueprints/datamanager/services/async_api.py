@@ -68,9 +68,7 @@ def fetch_request(request_id: str) -> dict:
     Returns the parsed JSON response on 200.
     Raises AsyncAPIError on non-200 status.
     """
-    response = requests.get(
-        get_async_request_url(request_id), timeout=REQUESTS_TIMEOUT
-    )
+    response = requests.get(get_async_request_url(request_id), timeout=REQUESTS_TIMEOUT)
 
     if response.status_code != 200:
         raise AsyncAPIError(
@@ -139,9 +137,7 @@ def fetch_response_details(request_id: str, limit: int = 50) -> list:
 
         except Exception as e:
             logger.error(f"Failed to fetch batch at offset {offset}: {e}")
-            logger.error(
-                f"Response status: {getattr(response, 'status_code', 'N/A')}"
-            )
+            logger.error(f"Response status: {getattr(response, 'status_code', 'N/A')}")
             response_text = getattr(response, "text", "N/A")
             if hasattr(response_text, "__getitem__"):
                 logger.error(f"Response text: {response_text[:500]}")

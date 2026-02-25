@@ -33,9 +33,18 @@ class TestTriggerAddDataAsyncWorkflow:
             app.config["GITHUB_APP_ID"] = "app-id"
             app.config["GITHUB_APP_INSTALLATION_ID"] = "install-id"
             app.config["GITHUB_APP_PRIVATE_KEY"] = "key"
-            with patch("application.blueprints.datamanager.services.github.generate_jwt", return_value="jwt-token"):
-                with patch("application.blueprints.datamanager.services.github.get_installation_token", return_value="access-token"):
-                    with patch("application.blueprints.datamanager.services.github.requests.post", return_value=mock_dispatch):
+            with patch(
+                "application.blueprints.datamanager.services.github.generate_jwt",
+                return_value="jwt-token",
+            ):
+                with patch(
+                    "application.blueprints.datamanager.services.github.get_installation_token",
+                    return_value="access-token",
+                ):
+                    with patch(
+                        "application.blueprints.datamanager.services.github.requests.post",
+                        return_value=mock_dispatch,
+                    ):
                         result = trigger_add_data_async_workflow("request-123")
 
         assert result["success"] is True
@@ -50,9 +59,18 @@ class TestTriggerAddDataAsyncWorkflow:
             app.config["GITHUB_APP_ID"] = "app-id"
             app.config["GITHUB_APP_INSTALLATION_ID"] = "install-id"
             app.config["GITHUB_APP_PRIVATE_KEY"] = "key"
-            with patch("application.blueprints.datamanager.services.github.generate_jwt", return_value="jwt-token"):
-                with patch("application.blueprints.datamanager.services.github.get_installation_token", return_value="access-token"):
-                    with patch("application.blueprints.datamanager.services.github.requests.post", return_value=mock_dispatch):
+            with patch(
+                "application.blueprints.datamanager.services.github.generate_jwt",
+                return_value="jwt-token",
+            ):
+                with patch(
+                    "application.blueprints.datamanager.services.github.get_installation_token",
+                    return_value="access-token",
+                ):
+                    with patch(
+                        "application.blueprints.datamanager.services.github.requests.post",
+                        return_value=mock_dispatch,
+                    ):
                         result = trigger_add_data_async_workflow("request-123")
 
         assert result["success"] is False
