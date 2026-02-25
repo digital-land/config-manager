@@ -50,19 +50,19 @@ def require_login():
             return redirect(url_for("auth.login", next=request.url))
 
 
-@datamanager_bp.get("/")
+# TODO: remove these view functions and move logic entirely into controllers
+
+
 def dashboard_get():
     return handle_dashboard_get()
 
 
-@datamanager_bp.post("/")
 def dashboard_add():
     logger.debug("Received form POST data:")
     logger.debug(json.dumps(request.form.to_dict(), indent=2))
     return handle_dashboard_add()
 
 
-@datamanager_bp.route("/import", methods=["GET", "POST"])
 def dashboard_add_import():
     if request.method == "POST":
         logger.debug("Import POST data:")
@@ -70,7 +70,6 @@ def dashboard_add_import():
     return handle_dashboard_add_import()
 
 
-@datamanager_bp.get("/check-results/<request_id>")
 def check_results(request_id):
     """Fetch and display check results from the async API."""
     try:
@@ -101,7 +100,6 @@ def check_results(request_id):
         return render_template("datamanager/error.html", message=e.message)
 
 
-@datamanager_bp.post("/check-results/<request_id>")
 def check_results_post(request_id):
     """Re-run check with updated pipeline configuration (e.g. column mappings)."""
     try:
@@ -110,13 +108,11 @@ def check_results_post(request_id):
         return render_template("datamanager/error.html", message=e.message)
 
 
-@datamanager_bp.route("/add-data/<request_id>", methods=["GET", "POST"])
 def add_data(request_id):
     """Entry point for add data form. Submits to async workflow and redirects to entities preview."""
     return handle_add_data(request_id)
 
 
-@datamanager_bp.route("/add-data/<request_id>/entities")
 def entities_preview(request_id):
     try:
         req = fetch_request(request_id)
@@ -136,7 +132,6 @@ def entities_preview(request_id):
         return render_template("datamanager/error.html", message=e.message)
 
 
-@datamanager_bp.route("/add-data/<request_id>/confirm-async", methods=["POST"])
 def add_data_confirm_async(request_id):
     logger.info(f"Triggering async GitHub workflow for request_id: {request_id}")
 
@@ -144,3 +139,29 @@ def add_data_confirm_async(request_id):
         return handle_add_data_confirm(request_id)
     except ControllerError as e:
         return render_template("datamanager/error.html", message=e.message)
+
+
+datamanager_bp.add_url_rule("/", view_func=dashboard_get, methods=["GET"])
+datamanager_bp.add_url_rule("/", view_func=dashboard_add, methods=["POST"])
+datamanager_bp.add_url_rule(
+    "/import", view_func=dashboard_add_import, methods=["GET", "POST"]
+)
+datamanager_bp.add_url_rule(
+    "/check-results/<request_id>", view_func=check_results, methods=["GET"]
+)
+datamanager_bp.add_url_rule(
+    "/check-results/<request_id>", view_func=check_results_post, methods=["POST"]
+)
+datamanager_bp.add_url_rule(
+    "/add-data/<request_id>", view_func=add_data, methods=["GET", "POST"]
+)
+datamanager_bp.add_url_rule(
+    "/add-data/<request_id>/entities",
+    view_func=entities_preview,
+    methods=["GET"],
+)
+datamanager_bp.add_url_rule(
+    "/add-data/<request_id>/confirm-async",
+    view_func=add_data_confirm_async,
+    methods=["POST"],
+)
