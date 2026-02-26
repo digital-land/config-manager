@@ -1,0 +1,57 @@
+{% macro columnMapping(mapping_rows, request_id, spec_fields=[]) %}
+<div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid #1d70b8;">
+  <details data-module="govuk-details" style="margin: 0;">
+    <summary style="cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+      <span class="govuk-heading-m" style="display: inline; margin: 0; color: #1d70b8;">Configure columns</span>
+      <span class="govuk-body" style="margin: 0; font-size: 1.2em; color: #1d70b8;">&#9660;</span>
+    </summary>
+    <div class="govuk-!-margin-top-4">
+    <form method="post" action="{{ url_for('datamanager.check_results', request_id=request_id) }}">
+      <table class="govuk-table">
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th scope="col" class="govuk-table__header">Column</th>
+            <th scope="col" class="govuk-table__header">Field</th>
+            <th scope="col" class="govuk-table__header">Status</th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for row in mapping_rows %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell">
+              <strong>{{ row.column }}</strong>
+            </td>
+            <td class="govuk-table__cell">
+              {% if row.is_mapped %}
+              {{ row.field }}
+              {% else %}
+              <select class="govuk-select" name="map[{{ row.column }}]">
+                <option value="">-- select a field --</option>
+                {% for field in spec_fields %}
+                <option value="{{ field }}">{{ field }}</option>
+                {% endfor %}
+              </select>
+              {% endif %}
+            </td>
+            <td class="govuk-table__cell">
+              {% if row.is_mapped %}
+              <strong class="govuk-tag govuk-tag--green">Mapped</strong>
+              {% else %}
+              <strong class="govuk-tag govuk-tag--red">Unmapped</strong>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="govuk-button-group">
+        <button type="submit" class="govuk-button">
+          Re-check with mappings
+        </button>
+      </div>
+    </form>
+    </div>
+  </details>
+</div>
+{% endmacro %}

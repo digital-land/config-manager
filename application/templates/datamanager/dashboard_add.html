@@ -11,9 +11,9 @@ endblock %}
 {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
-    <h1 class="govuk-heading-xl">Check Planning data</h1>
+    <h1 class="govuk-heading-xl">Check and Add Planning data</h1>
     <p class="govuk-body">
-      <a href="{{ url_for('datamanager.dashboard_add_import') }}" class="govuk-link">
+      <a href="{{ url_for('datamanager.dashboard_add_import') }}" class="govuk-button" data-module="govuk-button">
         Import from CSV
       </a>
     </p>
@@ -23,7 +23,6 @@ endblock %}
 <div class="govuk-grid-row govuk-!-margin-top-6">
   <div class="govuk-grid-column-one-half">
     <form method="post" action="{{ url_for('datamanager.dashboard_add') }}" novalidate>
-      <input type="hidden" id="mode" name="mode" value="">
 
       {% set organisation_error = errors.get('organisation') %}
       {% set documentation_error = errors.get('documentation_url') %}
@@ -155,8 +154,7 @@ endblock %}
 
       <div class="govuk-form-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
         {{ govukButton({
-        'text': 'Check data',
-        'attributes': { 'onclick': "document.getElementById('mode').value='final';" }
+        'text': 'Check data'
         }) }}
       </div>
     </form>
@@ -175,14 +173,21 @@ endblock %}
     const orgWarningInput = document.getElementById("org-warning");
     const datasetValue = datasetHidden.value || "";
     const orgValue = hiddenOrgInput.value && hiddenOrgInput.value !== "undefined" ? hiddenOrgInput.value : "";
-    const orgList = JSON.parse(`{{ selected_orgs | default([]) | tojson | safe }}`);
-    document.querySelector("form").addEventListener("submit", function() {
-      console.log("📤 Submitting form with:");
-      console.log("Dataset:", document.getElementById("dataset").value);
-      console.log("Organisation:", document.getElementById("organisation").value);
-      console.log("Endpoint URL:", document.getElementById("endpoint-url").value);
-      console.log("Mode:", document.getElementById("mode").value);
-    });
+    const orgList = JSON.parse(`{{ org_values | default([]) | tojson | safe }}`);
+
+    // Build lookup from display label to org code
+    function buildOrgLookup(orgs) {
+      const lookup = {};
+      orgs.forEach(function(o) { lookup[o.label] = o.code; });
+      return lookup;
+    }
+
+    // Resolve an org code to its display label
+    function orgCodeToLabel(orgs, code) {
+      if (!code) return "";
+      var match = orgs.find(function(o) { return o.code === code; });
+      return match ? match.label : code;
+    }
 
     function updateOrgAutocomplete(orgs, defaultValue, placeholderText) {
       const newWrapper = document.createElement("div");
@@ -204,18 +209,20 @@ endblock %}
         return;
       }
       orgWarningInput.value = "false";
+      const lookup = buildOrgLookup(orgs);
+      const labels = orgs.map(function(o) { return o.label; });
       accessibleAutocomplete({
         element: newWrapper,
         id: "org-autocomplete",
         name: "org-autocomplete-visible",
-        source: orgs,
+        source: labels,
         displayMenu: "overlay",
         defaultValue: defaultValue,
         placeholder: placeholderText || "Type organisation name...",
         confirmOnBlur: false,
         autoselect: true,
         onConfirm: function(val) {
-          hiddenOrgInput.value = val;
+          hiddenOrgInput.value = lookup[val] || "";
         }
       });
     }
@@ -231,14 +238,14 @@ endblock %}
       displayMenu: "overlay",
       placeholder: "Type dataset name…",
       source: function(query, populateResults) {
-        fetch(`{{ url_for('datamanager.dashboard_add') }}?autocomplete=${encodeURIComponent(query)}`)
+        fetch(`{{ url_for('datamanager.dashboard_get') }}?autocomplete=${encodeURIComponent(query)}`)
           .then((response) => response.json())
           .then((data) => populateResults(data));
       },
       onConfirm: function(val) {
         datasetHidden.value = val;
         hiddenOrgInput.value = "";
-        fetch(`{{ url_for('datamanager.dashboard_add') }}?get_orgs_for=${encodeURIComponent(val)}`)
+        fetch(`{{ url_for('datamanager.dashboard_get') }}?get_orgs_for=${encodeURIComponent(val)}`)
           .then(res => res.json())
           .then(orgs => {
             updateOrgAutocomplete(orgs, "", "Type organisation name...");
@@ -246,7 +253,7 @@ endblock %}
       }
     });
     if (datasetValue && orgList.length > 0) {
-      updateOrgAutocomplete(orgList, orgValue, "Type organisation name...");
+      updateOrgAutocomplete(orgList, orgCodeToLabel(orgList, orgValue), "Type organisation name...");
     } else {
       updateOrgAutocomplete([], "", "Select a dataset first...");
     }

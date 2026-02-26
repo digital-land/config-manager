@@ -2,6 +2,7 @@
 {%- from 'govuk_frontend_jinja/components/details/macro.html' import govukDetails -%}
 {%- from "govuk_frontend_jinja/components/phase-banner/macro.html" import govukPhaseBanner -%}
 {% extends 'digital-land-frontend/layouts/base.jinja' %}
+{% set htmlClasses = "govuk-template--rebranded" %}
 {% from 'macro/data-item.html' import appDataItem %}
 
 {% block cookieBanner %}
@@ -22,7 +23,7 @@
 {% endblock %}
 
 {% block mastHead %}
-<header class="govuk-header {{ app_header_classes }}" role="banner" data-module="govuk-header">
+<header class="govuk-header {{ app_header_classes }} govuk-!-padding-top-2" role="banner" data-module="govuk-header">
   <div class="govuk-header__container govuk-width-container app-govuk-header__container">
     <div class="app-header__content">
       <span class="app-header__team-name">
@@ -35,7 +36,7 @@
       </span>
       <a href="/" class="govuk-header__link govuk-header__link--homepage">
         <span class="govuk-header__product-name">
-          Config manager
+          Manage Service
         </span>
       </a>
       <strong class="govuk-tag govuk-phase-banner__content__tag app-header__tag">

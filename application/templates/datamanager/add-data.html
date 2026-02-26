@@ -14,7 +14,7 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <form class="govuk-form" method="post" action="{{ url_for('datamanager.add_data') }}" novalidate>
+    <form class="govuk-form" method="post" action="{{ url_for('datamanager.add_data', request_id=request_id) }}" novalidate>
       {# Error summary #}
       {% if documentation_error or startdate_error or authoritative_error %}
       <div class="govuk-error-summary" role="alert" data-module="govuk-error-summary">
