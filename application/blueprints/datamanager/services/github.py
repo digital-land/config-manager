@@ -29,6 +29,26 @@ class GitHubWorkflowError(GitHubAppError):
     pass
 
 
+def _github_headers(access_token: str) -> dict:
+    return {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {access_token}",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+
+def _get_access_token() -> str:
+    """Authenticate as the GitHub App and return an installation access token."""
+    app_id = current_app.config.get("GITHUB_APP_ID")
+    installation_id = current_app.config.get("GITHUB_APP_INSTALLATION_ID")
+    private_key = current_app.config.get("GITHUB_APP_PRIVATE_KEY")
+
+    if not all([app_id, installation_id, private_key]):
+        raise GitHubWorkflowError("GitHub App credentials not configured")
+
+    jwt_token = generate_jwt(app_id, private_key)
+    return get_installation_token(jwt_token, installation_id)
+
 def generate_jwt(app_id: str, private_key: str) -> str:
     """
     Generate a JWT for GitHub App authentication.
@@ -97,6 +117,7 @@ def get_installation_token(jwt_token: str, installation_id: str) -> str:
 def trigger_add_data_async_workflow(
     request_id: str,
     triggered_by: str = "config-manager",
+    github_new: bool = True,
 ) -> dict:
     """
     Trigger the 'add-data-async' workflow in the digital-land/config repository.
@@ -104,27 +125,15 @@ def trigger_add_data_async_workflow(
     Instead of sending CSV data in the payload (which can exceed GitHub's 10KB limit),
     this sends only a request_id. The workflow fetches the full data from the async API.
     """
-    app_id = current_app.config.get("GITHUB_APP_ID")
-    installation_id = current_app.config.get("GITHUB_APP_INSTALLATION_ID")
-    private_key = current_app.config.get("GITHUB_APP_PRIVATE_KEY")
-
-    if not all([app_id, installation_id, private_key]):
-        error_msg = "GitHub App credentials not configured"
-        logger.info(error_msg)
-        raise GitHubWorkflowError(error_msg)
-
     try:
-        logger.info(f"Generating JWT for App ID: {app_id}")
-        jwt_token = generate_jwt(app_id, private_key)
-
-        logger.info(f"Getting installation token for installation: {installation_id}")
-        access_token = get_installation_token(jwt_token, installation_id)
+        access_token = _get_access_token()
 
         payload = {
             "event_type": "add-data-async",
             "client_payload": {
                 "request_id": request_id,
                 "triggered_by": triggered_by,
+                "github_new": github_new,
             },
         }
 
@@ -132,13 +141,9 @@ def trigger_add_data_async_workflow(
         logger.debug(f"Payload: {payload}")
 
         url = "https://api.github.com/repos/digital-land/config/dispatches"
-        headers = {
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {access_token}",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
-
-        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response = requests.post(
+            url, headers=_github_headers(access_token), json=payload, timeout=10
+        )
 
         if response.status_code == 204:
             logger.info(

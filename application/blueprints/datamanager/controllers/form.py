@@ -5,6 +5,7 @@ from datetime import date, datetime
 from io import StringIO
 
 from flask import (
+    current_app,
     jsonify,
     redirect,
     render_template,
@@ -18,6 +19,7 @@ from ..services.async_api import (
     fetch_request,
     submit_request,
 )
+
 from ..services.dataset import (
     get_collection_id,
     get_dataset_id,
@@ -177,6 +179,7 @@ def handle_dashboard_add():
             "start_date": start_date_str,
             "column_mapping": {},
             "authoritative": authoritative == "yes",
+            "github_new": form.get("github_new", "true").strip() != "false",
         }
 
         try:
@@ -277,6 +280,11 @@ def _submit_add_data_preview(request_id, add_data_fields):
         "licence": add_data_fields["licence"],
         "start_date": add_data_fields["start_date"],
         "authoritative": add_data_fields["authoritative"],
+        "github_branch": (
+            current_app.config.get("CONFIG_REPO_BRANCH") or None
+            if not add_data_fields.get("github_new", True)
+            else None
+        ),
     }
 
     preview_id = submit_request(params)
@@ -290,10 +298,16 @@ def _has_all_add_data_fields(add_data_fields):
         and add_data_fields.get("licence")
         and add_data_fields.get("start_date")
         and add_data_fields.get("authoritative") is not None
+        and add_data_fields.get("github_new") is not None
     )
 
 
 def handle_add_data(request_id):
+    """
+    This will only show a form if required fields for add_data are not already in session.
+    Otherwise it will submit directly.
+    This is to allow for future use where the check tool can be jumped directly in, but then add data fields still need to be collected before submission.
+    """
     add_data_fields = session.get("add_data_fields", {})
 
     # If all fields already set in session, submit directly — no form needed
@@ -309,6 +323,11 @@ def handle_add_data(request_id):
                 "documentation_url": add_data_fields.get("documentation_url", ""),
                 "licence": add_data_fields.get("licence", ""),
                 "authoritative": add_data_fields.get("authoritative"),
+                "github_new": (
+                    "false"
+                    if add_data_fields.get("github_new") is False
+                    else "true"
+                ),
             },
         )
 
@@ -317,6 +336,7 @@ def handle_add_data(request_id):
     doc_url = form.get("documentation_url", "").strip()
     licence = form.get("licence", "").strip()
     authoritative = form.get("authoritative", "").strip().lower() or None
+    github_new_raw = form.get("github_new", "").strip()
 
     d = (form.get("start_day") or "").strip()
     m = (form.get("start_month") or "").strip()
@@ -326,11 +346,12 @@ def handle_add_data(request_id):
     errors = {}
     if authoritative not in ("yes", "no"):
         errors["authoritative"] = True
-    if not (doc_url and licence and start_date):
-        if not doc_url:
-            errors["documentation_url"] = True
-        if not start_date:
-            errors["start_date"] = True
+    if not doc_url:
+        errors["documentation_url"] = True
+    if not start_date:
+        errors["start_date"] = True
+    if github_new_raw not in ("true", "false"):
+        errors["github_new"] = True
 
     if errors:
         return render_template(
@@ -344,6 +365,7 @@ def handle_add_data(request_id):
         "start_date": start_date,
         "column_mapping": session.get("add_data_fields", {}).get("column_mapping", {}),
         "authoritative": authoritative == "yes",
+        "github_new": github_new_raw != "false",
     }
     session["add_data_fields"] = add_data_fields
 

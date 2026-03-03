@@ -134,9 +134,10 @@ def entities_preview(request_id):
 
 def add_data_confirm_async(request_id):
     logger.info(f"Triggering async GitHub workflow for request_id: {request_id}")
+    github_new = request.form.get("github_new", "true").lower() != "false"
 
     try:
-        return handle_add_data_confirm(request_id)
+        return handle_add_data_confirm(request_id, github_new=github_new)
     except ControllerError as e:
         return render_template("datamanager/error.html", message=e.message)
 
