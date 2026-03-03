@@ -89,7 +89,7 @@ def handle_entities_preview(request_id, req):
         has_column_mapping,
     ) = build_column_csv_preview(column_mapping, dataset_id, endpoint_summary)
 
-    github_new = not params.get("github_branch")
+    github_branch = params.get("github_branch") or None
 
     # Build entity-organisation CSV preview (only for authoritative data)
     authoritative = params.get("authoritative", False)
@@ -116,7 +116,7 @@ def handle_entities_preview(request_id, req):
     return render_template(
         "datamanager/entities_preview.html",
         request_id=request_id,
-        github_new=github_new,
+        github_branch=github_branch,
         new_count=int(pipeline_summary.get("new-in-resource") or 0),
         existing_count=int(pipeline_summary.get("existing-in-resource") or 0),
         endpoint_already_exists=endpoint_already_exists,
@@ -140,12 +140,12 @@ def handle_entities_preview(request_id, req):
     )
 
 
-def handle_add_data_confirm(request_id, github_new: bool = True):
+def handle_add_data_confirm(request_id, github_branch: str | None = None):
     try:
         result = trigger_add_data_async_workflow(
             request_id=request_id,
             triggered_by=f"config-manager-user-{session.get('user', {}).get('login', 'unknown')}",
-            github_new=github_new,
+            github_branch=github_branch,
         )
     except GitHubWorkflowError as e:
         logger.exception(f"GitHub async workflow error: {e}")
@@ -159,5 +159,5 @@ def handle_add_data_confirm(request_id, github_new: bool = True):
     return render_template(
         "datamanager/add-data-success.html",
         message=result["message"],
-        github_new=github_new,
+        github_branch=github_branch,
     )

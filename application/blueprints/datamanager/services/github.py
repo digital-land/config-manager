@@ -117,7 +117,7 @@ def get_installation_token(jwt_token: str, installation_id: str) -> str:
 def trigger_add_data_async_workflow(
     request_id: str,
     triggered_by: str = "config-manager",
-    github_new: bool = True,
+    github_branch: str = None,
 ) -> dict:
     """
     Trigger the 'add-data-async' workflow in the digital-land/config repository.
@@ -133,12 +133,12 @@ def trigger_add_data_async_workflow(
             "client_payload": {
                 "request_id": request_id,
                 "triggered_by": triggered_by,
-                "github_new": github_new,
+                "branch": github_branch,
             },
         }
 
         logger.info(f"Triggering async workflow for request_id: {request_id}")
-        logger.debug(f"Payload: {payload}")
+        logger.info(f"Payload: {payload}")
 
         url = "https://api.github.com/repos/digital-land/config/dispatches"
         response = requests.post(
