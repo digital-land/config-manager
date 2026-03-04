@@ -144,7 +144,7 @@ def handle_add_data_confirm(request_id, github_branch: str | None = None):
     try:
         result = trigger_add_data_async_workflow(
             request_id=request_id,
-            triggered_by=f"config-manager-user-{session.get('user', {}).get('login', 'unknown')}",
+            triggered_by=f"{session.get('user', {}).get('login', 'unknown')}",
             github_branch=github_branch,
         )
     except GitHubWorkflowError as e:

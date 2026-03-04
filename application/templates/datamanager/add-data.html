@@ -123,7 +123,16 @@
           <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
             GitHub branch
           </legend>
-          <div class="govuk-hint">Choose whether to open a new branch and PR or add to the existing config branch.</div>
+          <div class="govuk-hint">Create a dedicated branch and PR for this import only, or add to a shared branch that multiple imports can be committed to over time.</div>
+          <div class="govuk-warning-text govuk-!-margin-bottom-2">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-warning-text__assistive">Warning</span>
+              when creating a new branch check that the
+              <a class="govuk-link" href="https://github.com/digital-land/config/tree/{{ config['CONFIG_REPO_BRANCH'] }}" target="_blank" rel="noopener noreferrer">current config branch</a>
+              has not created any new files in the collection you wish to add to.
+            </strong>
+          </div>
           {% if github_new_error %}
           <p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> Select a GitHub branch option</p>
           {% endif %}
