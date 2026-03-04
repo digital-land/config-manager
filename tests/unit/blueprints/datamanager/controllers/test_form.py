@@ -8,6 +8,7 @@ class TestHasAllAddDataFields:
             "licence": "ogl3",
             "start_date": "2024-01-01",
             "authoritative": True,
+            "github_new": True,
         }
         assert _has_all_add_data_fields(fields) is True
 
@@ -17,6 +18,7 @@ class TestHasAllAddDataFields:
             "licence": "ogl3",
             "start_date": "2024-01-01",
             "authoritative": True,
+            "github_new": True,
         }
         assert not _has_all_add_data_fields(fields)
 
@@ -26,5 +28,6 @@ class TestHasAllAddDataFields:
             "licence": "ogl3",
             "start_date": "2024-01-01",
             "authoritative": None,
+            "github_new": True,
         }
         assert not _has_all_add_data_fields(fields)
