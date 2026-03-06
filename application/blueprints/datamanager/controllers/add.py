@@ -22,21 +22,24 @@ logger = logging.getLogger(__name__)
 
 
 def handle_entities_preview(request_id, req):
-    # Loading state
-    if (
-        req.get("status") in {"PENDING", "PROCESSING", "QUEUED"}
-        or req.get("response") is None
-    ):
+    # Check State
+    status = req.get("status")
+
+    if status == "FAILED":
+        response_payload = req.get("response") or {}
+        response_error = response_payload.get("error")
+        raise ControllerError(
+            response_error.get("errMsg")
+            if response_error
+            else "Async Failed processing for this task with no error information"
+        )
+
+    if status in {"PENDING", "PROCESSING", "QUEUED"} or req.get("response") is None:
         return render_template(
             "datamanager/add-data-preview-loading.html", request_id=request_id
         )
 
-    # Error state in async
     response_payload = req.get("response") or {}
-    response_error = response_payload.get("error")
-    if response_error:
-        raise ControllerError(response_error.get("errMsg") or "Unknown error")
-
     data = response_payload.get("data") or {}
 
     pipeline_summary = data.get("pipeline-summary") or {}
@@ -86,6 +89,8 @@ def handle_entities_preview(request_id, req):
         has_column_mapping,
     ) = build_column_csv_preview(column_mapping, dataset_id, endpoint_summary)
 
+    github_branch = params.get("github_branch") or None
+
     # Build entity-organisation CSV preview (only for authoritative data)
     authoritative = params.get("authoritative", False)
     entity_org_table_params = None
@@ -111,6 +116,7 @@ def handle_entities_preview(request_id, req):
     return render_template(
         "datamanager/entities_preview.html",
         request_id=request_id,
+        github_branch=github_branch,
         new_count=int(pipeline_summary.get("new-in-resource") or 0),
         existing_count=int(pipeline_summary.get("existing-in-resource") or 0),
         endpoint_already_exists=endpoint_already_exists,
@@ -134,11 +140,12 @@ def handle_entities_preview(request_id, req):
     )
 
 
-def handle_add_data_confirm(request_id):
+def handle_add_data_confirm(request_id, github_branch: str | None = None):
     try:
         result = trigger_add_data_async_workflow(
             request_id=request_id,
-            triggered_by=f"config-manager-user-{session.get('user', {}).get('login', 'unknown')}",
+            triggered_by=f"{session.get('user', {}).get('login', 'unknown')}",
+            github_branch=github_branch,
         )
     except GitHubWorkflowError as e:
         logger.exception(f"GitHub async workflow error: {e}")
@@ -152,4 +159,5 @@ def handle_add_data_confirm(request_id):
     return render_template(
         "datamanager/add-data-success.html",
         message=result["message"],
+        github_branch=github_branch,
     )

@@ -292,6 +292,7 @@ class TestAddDataJourney:
                 "start_date": "2026-01-22",
                 "authoritative": True,
                 "column_mapping": {"geom": "geometry"},
+                "github_new": True,
             }
         response = client.get("/datamanager/add-data/check-id-2")
         assert response.status_code == 302

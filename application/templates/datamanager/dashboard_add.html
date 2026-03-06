@@ -152,6 +152,43 @@ endblock %}
         }) }}
       </div>
 
+      {# GitHub branch selection #}
+      <div class="govuk-form-group">
+        <fieldset class="govuk-fieldset" id="github-branch">
+          <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">
+            GitHub branch
+          </legend>
+          <div class="govuk-hint">Create a dedicated branch and PR for this import only, or add to a shared branch that multiple imports can be committed to over time.</div>
+          <div class="govuk-warning-text govuk-!-margin-bottom-2">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-warning-text__assistive">Warning</span>
+              when creating a new branch check that the
+              <a class="govuk-link" href="https://github.com/digital-land/config/tree/{{ config['CONFIG_REPO_BRANCH'] }}" target="_blank" rel="noopener noreferrer">current config branch</a>
+              has not created any new files in the collection you wish to add to.
+            </strong>
+          </div>
+          <div class="govuk-radios">
+            <div class="govuk-radios__item">
+              <input class="govuk-radios__input" id="github-branch-new" name="github_new" type="radio" value="true"
+                {% if form.get('github_new', 'true') != 'false' %}checked{% endif %}>
+              <label class="govuk-label govuk-radios__label" for="github-branch-new">
+                Create new branch and PR
+              </label>
+            </div>
+            {% if config['CONFIG_REPO_BRANCH'] %}
+            <div class="govuk-radios__item">
+              <input class="govuk-radios__input" id="github-branch-existing" name="github_new" type="radio" value="false"
+                {% if form.get('github_new') == 'false' %}checked{% endif %}>
+              <label class="govuk-label govuk-radios__label" for="github-branch-existing">
+                Add to existing branch (<code>{{ config['CONFIG_REPO_BRANCH'] }}</code>)
+              </label>
+            </div>
+            {% endif %}
+          </div>
+        </fieldset>
+      </div>
+
       <div class="govuk-form-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
         {{ govukButton({
         'text': 'Check data'

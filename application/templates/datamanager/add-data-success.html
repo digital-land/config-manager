@@ -18,11 +18,18 @@
         <dt class="govuk-summary-list__key">Status</dt>
         <dd class="govuk-summary-list__value">{{ message }}</dd>
       </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Branch</dt>
+        <dd class="govuk-summary-list__value">
+          {% if github_branch %}Existing branch: <code>{{ github_branch }}</code>{% else %}New branch (created by workflow){% endif %}
+        </dd>
+      </div>
     </dl>
 
     <h2 class="govuk-heading-m">What happens next</h2>
     <p class="govuk-body">
-      The GitHub Action workflow will process the data and add it to the <code>digital-land/config</code> repository.
+      The GitHub Action workflow will process the data and add it to the <code>digital-land/config</code> repository
+      {% if github_branch %}on the <code>{{ github_branch }}</code> branch, updating the existing pull request if one is open{% else %}on a new branch with a new pull request{% endif %}.
       You can monitor the progress in the GitHub Actions tab of the repository.
     </p>
 
