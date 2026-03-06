@@ -49,6 +49,7 @@ def _get_access_token() -> str:
     jwt_token = generate_jwt(app_id, private_key)
     return get_installation_token(jwt_token, installation_id)
 
+
 def generate_jwt(app_id: str, private_key: str) -> str:
     """
     Generate a JWT for GitHub App authentication.

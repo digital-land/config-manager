@@ -306,7 +306,7 @@ def handle_add_data(request_id):
     """
     This will only show a form if required fields for add_data are not already in session.
     Otherwise it will submit directly.
-    This is to allow for future use where the check tool can be jumped directly in, but then add data fields still need to be collected before submission.
+    This is to allow for future use where the check tool can be jumped directly in.
     """
     add_data_fields = session.get("add_data_fields", {})
 
@@ -324,9 +324,7 @@ def handle_add_data(request_id):
                 "licence": add_data_fields.get("licence", ""),
                 "authoritative": add_data_fields.get("authoritative"),
                 "github_new": (
-                    "false"
-                    if add_data_fields.get("github_new") is False
-                    else "true"
+                    "false" if add_data_fields.get("github_new") is False else "true"
                 ),
             },
         )
