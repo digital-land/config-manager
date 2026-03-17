@@ -3,6 +3,7 @@
 {% from "govuk_frontend_jinja/components/button/macro.html" import govukButton %}
 {% from "govuk_frontend_jinja/components/input/macro.html" import govukInput %}
 {% from "govuk_frontend_jinja/components/select/macro.html" import govukSelect %}
+{% from "datamanager/components/github-branch.html" import githubBranch %}
 
 {# convenient flags for errors #}
 {% set documentation_error = errors.get('documentation_url') if errors else None %}
@@ -63,7 +64,7 @@
       <div class="govuk-form-group {% if startdate_error %}govuk-form-group--error{% endif %}">
         <fieldset class="govuk-fieldset" role="group" aria-describedby="start-date-hint">
           <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
-            Start date (to default to the date on the day of entry)
+            Start date
           </legend>
           {% if startdate_error %}
           <p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> Enter a valid date</p> {%
@@ -72,19 +73,19 @@
             <div class="govuk-date-input__item">
               <div class="govuk-form-group">
                 <label class="govuk-label govuk-date-input__label" for="start-day">Day</label>
-                <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="start-day" name="start_day" type="text" inputmode="numeric" value="{{ form.get('start_day') or today.day }}">
+                <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="start-day" name="start_day" type="text" inputmode="numeric" value="{{ form.get('start_day') or '' }}">
               </div>
             </div>
             <div class="govuk-date-input__item">
               <div class="govuk-form-group">
                 <label class="govuk-label govuk-date-input__label" for="start-month">Month</label>
-                <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="start-month" name="start_month" type="text" inputmode="numeric" value="{{ form.get('start_month') or today.month }}">
+                <input class="govuk-input govuk-date-input__input govuk-input--width-2" id="start-month" name="start_month" type="text" inputmode="numeric" value="{{ form.get('start_month') or '' }}">
               </div>
             </div>
             <div class="govuk-date-input__item">
               <div class="govuk-form-group">
                 <label class="govuk-label govuk-date-input__label" for="start-year">Year</label>
-                <input class="govuk-input govuk-date-input__input govuk-input--width-4" id="start-year" name="start_year" type="text" inputmode="numeric" value="{{ form.get('start_year') or today.year }}">
+                <input class="govuk-input govuk-date-input__input govuk-input--width-4" id="start-year" name="start_year" type="text" inputmode="numeric" value="{{ form.get('start_year') or '' }}">
               </div>
             </div>
           </div>
@@ -93,12 +94,15 @@
 
       {# Licence input #}
       <div class="govuk-form-group">
-        {{ govukInput({
+        {{ govukSelect({
         'id': 'licence',
         'name': 'licence',
-        'label': { 'text': 'Data is provided under which licence?', 'classes': 'govuk-label--m' },
-        'hint': { 'text': 'e.g. OGL, CC-BY' },
-        'value': form.get('licence', '')
+        'label': { 'text': 'Data is provided under which licence?' },
+        'items': [
+          { 'value': 'ogl3', 'text': 'OGL3 (Open Government Licence)', 'selected': form.get('licence', 'ogl3') == 'ogl3' },
+          { 'value': 'odc-by', 'text': 'ODC-By (Open Data Commons Attribution)', 'selected': form.get('licence') == 'odc-by' },
+          { 'value': 'cc0', 'text': 'CC0 (Creative Commons Zero)', 'selected': form.get('licence') == 'cc0' }
+        ]
         }) }}
       </div>
 
@@ -118,44 +122,7 @@
       </div>
 
       {# GitHub branch selection #}
-      <div class="govuk-form-group {% if github_new_error %}govuk-form-group--error{% endif %}">
-        <fieldset class="govuk-fieldset" id="github-branch">
-          <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
-            GitHub branch
-          </legend>
-          <div class="govuk-hint">Create a dedicated branch and PR for this import only, or add to a shared branch that multiple imports can be committed to over time.</div>
-          <div class="govuk-warning-text govuk-!-margin-bottom-2">
-            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
-            <strong class="govuk-warning-text__text">
-              <span class="govuk-warning-text__assistive">Warning</span>
-              when creating a new branch check that the
-              <a class="govuk-link" href="https://github.com/digital-land/config/tree/{{ config['CONFIG_REPO_BRANCH'] }}" target="_blank" rel="noopener noreferrer">current config branch</a>
-              has not created any new files in the collection you wish to add to.
-            </strong>
-          </div>
-          {% if github_new_error %}
-          <p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> Select a GitHub branch option</p>
-          {% endif %}
-          <div class="govuk-radios">
-            <div class="govuk-radios__item">
-              <input class="govuk-radios__input" id="github-branch-new" name="github_new" type="radio" value="true"
-                {% if not form or form.get('github_new', 'true') != 'false' %}checked{% endif %}>
-              <label class="govuk-label govuk-radios__label" for="github-branch-new">
-                Create new branch and PR
-              </label>
-            </div>
-            {% if config['CONFIG_REPO_BRANCH'] %}
-            <div class="govuk-radios__item">
-              <input class="govuk-radios__input" id="github-branch-existing" name="github_new" type="radio" value="false"
-                {% if form and form.get('github_new') == 'false' %}checked{% endif %}>
-              <label class="govuk-label govuk-radios__label" for="github-branch-existing">
-                Add to existing branch (<code>{{ config['CONFIG_REPO_BRANCH'] }}</code>)
-              </label>
-            </div>
-            {% endif %}
-          </div>
-        </fieldset>
-      </div>
+      {{ githubBranch(form, config, legend_size="m") }}
 
       <div class="govuk-form-group govuk-!-margin-top-6" style="display:flex; justify-content:flex-end;">
         {{ govukButton({ 'text': 'Continue', 'type': 'submit' }) }}

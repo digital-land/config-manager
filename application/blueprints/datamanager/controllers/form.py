@@ -4,7 +4,6 @@ import re
 from datetime import date, datetime
 from io import StringIO
 
-from application.blueprints.datamanager.utils.csv_formats import csv_wrap
 from flask import (
     current_app,
     jsonify,
@@ -125,24 +124,17 @@ def handle_dashboard_add():
     licence = (form.get("licence") or "ogl3").strip().lower()
     authoritative = form.get("authoritative", "").strip().lower() or None
 
-    # Add csv filter to wrap values in quotes if they contain commas, to prevent breaking the CSV format in the preview
-    doc_url = csv_wrap(doc_url)
-    endpoint_url = csv_wrap(endpoint_url)
-
-    # start_date defaults to today if blank; partial dates are an error
     day = (form.get("start_day") or "").strip()
     month = (form.get("start_month") or "").strip()
     year = (form.get("start_year") or "").strip()
     start_date_str = None
 
-    if not any([day, month, year]):
-        start_date_str = date.today().isoformat()
-    elif all([day, month, year]):
+    if all([day, month, year]):
         try:
             start_date_str = date(int(year), int(month), int(day)).isoformat()
         except (ValueError, TypeError):
             errors["start_date"] = True
-    else:
+    elif any([day, month, year]):
         errors["start_date"] = True
 
     org_warning = form.get("org_warning", "false") == "true"
@@ -168,6 +160,8 @@ def handle_dashboard_add():
     )
 
     # Submit Data and set session with add data variables
+    geom_type = form.get("geom_type", "").strip() or None
+
     if not any(errors.values()):
         payload = {
             "params": {
@@ -176,6 +170,7 @@ def handle_dashboard_add():
                 "dataset": dataset_id,
                 "url": endpoint_url,
                 "organisationName": org_code_input,
+                "geom_type": geom_type,
             }
         }
         session["add_data_fields"] = {
@@ -218,9 +213,17 @@ def handle_dashboard_add_import():
 
     if request.method == "POST":
         mode = request.form.get("mode", "").strip()
-        csv_data = request.form.get("csv_data", "").strip()
 
-        if mode == "parse":
+        uploaded_file = request.files.get("csv_file")
+        if uploaded_file and uploaded_file.filename:
+            try:
+                csv_data = uploaded_file.read().decode("utf-8").strip()
+            except Exception as e:
+                errors["csv_data"] = f"Could not read uploaded file: {str(e)}"
+        else:
+            csv_data = request.form.get("csv_data", "").strip()
+
+        if mode == "parse" and not errors:
             try:
                 reader = csv.DictReader(StringIO(csv_data))
                 rows = list(reader)
@@ -285,6 +288,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
         "licence": add_data_fields["licence"],
         "start_date": add_data_fields["start_date"],
         "authoritative": add_data_fields["authoritative"],
+        "geom_type": check_params.get("geom_type"),
         "github_branch": (
             current_app.config.get("CONFIG_REPO_BRANCH") or None
             if not add_data_fields.get("github_new", True)
@@ -305,6 +309,17 @@ def _has_all_add_data_fields(add_data_fields):
         and add_data_fields.get("authoritative") is not None
         and add_data_fields.get("github_new") is not None
     )
+
+
+def _parse_start_date(start_date_str):
+    """Split an ISO date string into start_day, start_month, start_year form fields."""
+    if not start_date_str:
+        return {}
+    try:
+        d = date.fromisoformat(start_date_str)
+        return {"start_day": str(d.day), "start_month": str(d.month), "start_year": str(d.year)}
+    except (ValueError, TypeError):
+        return {}
 
 
 def handle_add_data(request_id):
@@ -331,6 +346,7 @@ def handle_add_data(request_id):
                 "github_new": (
                     "false" if add_data_fields.get("github_new") is False else "true"
                 ),
+                **(_parse_start_date(add_data_fields.get("start_date"))),
             },
         )
 

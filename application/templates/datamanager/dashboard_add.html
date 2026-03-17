@@ -3,6 +3,7 @@
 {% from "govuk_frontend_jinja/components/button/macro.html" import govukButton %}
 {% from "govuk_frontend_jinja/components/input/macro.html" import govukInput %}
 {% from "govuk_frontend_jinja/components/select/macro.html" import govukSelect %}
+{% from "datamanager/components/github-branch.html" import githubBranch %}
 
 {% block pageStylesheets %}
 <link rel="stylesheet" href="{{ url_for('static', filename='stylesheets/accessible-autocomplete.min.css') }}">{%
@@ -12,11 +13,14 @@ endblock %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
     <h1 class="govuk-heading-xl">Check and Add Planning data</h1>
-    <p class="govuk-body">
-      <a href="{{ url_for('datamanager.dashboard_add_import') }}" class="govuk-button" data-module="govuk-button">
-        Import from CSV
-      </a>
-    </p>
+    <div style="display:flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+      <a href="{{ url_for('datamanager.dashboard_add_import') }}" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">Import from CSV</a>
+      <form method="post" action="{{ url_for('datamanager.dashboard_add_import') }}" enctype="multipart/form-data" style="margin:0;">
+        <input type="hidden" name="mode" value="parse">
+        <input type="file" name="csv_file" id="csv-file-upload" accept=".csv" style="display:none;">
+        <button type="button" class="govuk-button govuk-!-margin-bottom-0" onclick="document.getElementById('csv-file-upload').click()">Upload CSV file</button>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -74,6 +78,23 @@ endblock %}
         <input type="hidden" name="org_warning" id="org-warning" value="false">
       </div>
 
+      <!-- Geometry type (tree dataset only) -->
+      <div class="govuk-form-group" id="geom-type-group" style="display:none;">
+        <fieldset class="govuk-fieldset">
+          <legend class="govuk-fieldset__legend">Are the geometries points or polygons?</legend>
+          <div class="govuk-radios govuk-radios--inline">
+            <div class="govuk-radios__item">
+              <input class="govuk-radios__input" id="geom-type-point" name="geom_type" type="radio" value="point" {% if form.get('geom_type') == 'point' %}checked{% endif %}>
+              <label class="govuk-label govuk-radios__label" for="geom-type-point">Point</label>
+            </div>
+            <div class="govuk-radios__item">
+              <input class="govuk-radios__input" id="geom-type-polygon" name="geom_type" type="radio" value="polygon" {% if form.get('geom_type') == 'polygon' %}checked{% endif %}>
+              <label class="govuk-label govuk-radios__label" for="geom-type-polygon">Polygon</label>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
       <!-- Endpoint URL -->
       <div class="govuk-form-group {% if environment_error %}govuk-form-group--error{% endif %}">
         {{ govukInput({
@@ -88,7 +109,7 @@ endblock %}
       <!-- Documentation URL -->
       <div class="govuk-form-group {% if documentation_error %}govuk-form-group--error{% endif %}">
         {{ govukInput({
-        'label': { 'text': 'Documentation URL (optional)' },
+        'label': { 'text': 'Documentation URL' },
         'id': 'documentation-url',
         'name': 'documentation_url',
         'value': form.get('documentation_url', ''),
@@ -104,7 +125,7 @@ endblock %}
       <div class="govuk-form-group govuk-!-margin-top-6">
         <!-- Start date -->
         <fieldset class="govuk-fieldset" role="group" aria-describedby="start-date-error">
-          <legend class="govuk-label">Start date (defaults to today)</legend>
+          <legend class="govuk-label">Start date</legend>
           {% if errors.start_date %}
           <p id="start-date-error" class="govuk-error-message">
             <span class="govuk-visually-hidden">Error:</span> Enter a valid date
@@ -114,28 +135,33 @@ endblock %}
           <div class="govuk-date-input" id="start-date">
             <div class="govuk-date-input__item">
               <label class="govuk-label govuk-date-input__label" for="start-day">Day</label>
-              <input class="govuk-input govuk-input--width-2" id="start-day" name="start_day" type="text" inputmode="numeric" value="{{ form.start_day or today.day }}">
+              <input class="govuk-input govuk-input--width-2" id="start-day" name="start_day" type="text" inputmode="numeric" value="{{ form.start_day or '' }}">
             </div>
             <div class="govuk-date-input__item">
               <label class="govuk-label govuk-date-input__label" for="start-month">Month</label>
-              <input class="govuk-input govuk-input--width-2" id="start-month" name="start_month" type="text" inputmode="numeric" value="{{ form.start_month or today.month }}">
+              <input class="govuk-input govuk-input--width-2" id="start-month" name="start_month" type="text" inputmode="numeric" value="{{ form.start_month or '' }}">
             </div>
             <div class="govuk-date-input__item">
               <label class="govuk-label govuk-date-input__label" for="start-year">Year</label>
-              <input class="govuk-input govuk-input--width-4" id="start-year" name="start_year" type="text" inputmode="numeric" value="{{ form.start_year or today.year }}">
+              <input class="govuk-input govuk-input--width-4" id="start-year" name="start_year" type="text" inputmode="numeric" value="{{ form.start_year or '' }}">
             </div>
           </div>
         </fieldset>
       </div>
 
-      <!-- Licence -->
-      {{ govukInput({
-      'id': 'licence',
-      'name': 'licence',
-      'label': { 'text': 'Data is provided under which licence?' },
-      'hint': { 'text': 'e.g. OGL, CC-BY' },
-      'value': form.get('licence', '')
-      }) }}
+      {# Licence input #}
+      <div class="govuk-form-group">
+        {{ govukSelect({
+        'id': 'licence',
+        'name': 'licence',
+        'label': { 'text': 'Data is provided under which licence?' },
+        'items': [
+          { 'value': 'ogl3', 'text': 'OGL3 (Open Government Licence)', 'selected': form.get('licence', 'ogl3') == 'ogl3' },
+          { 'value': 'odc-by', 'text': 'ODC-By (Open Data Commons Attribution)', 'selected': form.get('licence') == 'odc-by' },
+          { 'value': 'cc0', 'text': 'CC0 (Creative Commons Zero)', 'selected': form.get('licence') == 'cc0' }
+        ]
+        }) }}
+      </div>
 
       <!-- Authoritative source -->
       <div class="govuk-form-group {% if errors.get('authoritative') %}govuk-form-group--error{% endif %}">
@@ -153,41 +179,7 @@ endblock %}
       </div>
 
       {# GitHub branch selection #}
-      <div class="govuk-form-group">
-        <fieldset class="govuk-fieldset" id="github-branch">
-          <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">
-            GitHub branch
-          </legend>
-          <div class="govuk-hint">Create a dedicated branch and PR for this import only, or add to a shared branch that multiple imports can be committed to over time.</div>
-          <div class="govuk-warning-text govuk-!-margin-bottom-2">
-            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
-            <strong class="govuk-warning-text__text">
-              <span class="govuk-warning-text__assistive">Warning</span>
-              when creating a new branch check that the
-              <a class="govuk-link" href="https://github.com/digital-land/config/tree/{{ config['CONFIG_REPO_BRANCH'] }}" target="_blank" rel="noopener noreferrer">current config branch</a>
-              has not created any new files in the collection you wish to add to.
-            </strong>
-          </div>
-          <div class="govuk-radios">
-            <div class="govuk-radios__item">
-              <input class="govuk-radios__input" id="github-branch-new" name="github_new" type="radio" value="true"
-                {% if form.get('github_new', 'true') != 'false' %}checked{% endif %}>
-              <label class="govuk-label govuk-radios__label" for="github-branch-new">
-                Create new branch and PR
-              </label>
-            </div>
-            {% if config['CONFIG_REPO_BRANCH'] %}
-            <div class="govuk-radios__item">
-              <input class="govuk-radios__input" id="github-branch-existing" name="github_new" type="radio" value="false"
-                {% if form.get('github_new') == 'false' %}checked{% endif %}>
-              <label class="govuk-label govuk-radios__label" for="github-branch-existing">
-                Add to existing branch (<code>{{ config['CONFIG_REPO_BRANCH'] }}</code>)
-              </label>
-            </div>
-            {% endif %}
-          </div>
-        </fieldset>
-      </div>
+      {{ githubBranch(form, config) }}
 
       <div class="govuk-form-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
         {{ govukButton({
@@ -282,6 +274,7 @@ endblock %}
       onConfirm: function(val) {
         datasetHidden.value = val;
         hiddenOrgInput.value = "";
+        document.getElementById('geom-type-group').style.display = (val.toLowerCase() === 'tree') ? 'block' : 'none';
         fetch(`{{ url_for('datamanager.dashboard_get') }}?get_orgs_for=${encodeURIComponent(val)}`)
           .then(res => res.json())
           .then(orgs => {
@@ -293,6 +286,16 @@ endblock %}
       updateOrgAutocomplete(orgList, orgCodeToLabel(orgList, orgValue), "Type organisation name...");
     } else {
       updateOrgAutocomplete([], "", "Select a dataset first...");
+    }
+  });
+
+  if (datasetValue.toLowerCase() === 'tree') {
+    document.getElementById('geom-type-group').style.display = 'block';
+  }
+
+  document.getElementById('csv-file-upload').addEventListener('change', function() {
+    if (this.files.length > 0) {
+      this.closest('form').submit();
     }
   });
 </script>

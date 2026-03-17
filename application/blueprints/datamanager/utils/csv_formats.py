@@ -1,6 +1,15 @@
+import csv
+import io
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _row_to_csv(values: list) -> str:
+    """Serialise a list of values to a RFC 4180-compliant CSV row string."""
+    buf = io.StringIO()
+    csv.writer(buf).writerow(values)
+    return buf.getvalue().rstrip("\r\n")
 
 
 def build_lookup_csv_preview(new_entities: list) -> tuple:
@@ -67,7 +76,7 @@ def build_endpoint_csv_preview(endpoint_summary: dict) -> tuple:
     else:
         end_point_entry = endpoint_summary.get("new_endpoint_entry", {})
         endpoint_url = end_point_entry.get("endpoint-url", "")
-        endpoint_csv_text = ",".join([end_point_entry.get(col, "") for col in ep_cols])
+        endpoint_csv_text = _row_to_csv([end_point_entry.get(col, "") for col in ep_cols])
 
     ep_row = [str(end_point_entry.get(col, "") or "") for col in ep_cols]
     endpoint_csv_table_params = {
@@ -124,9 +133,9 @@ def build_source_csv_preview(
             "columnNameProcessing": "none",
         }
         if include_headers:
-            source_csv_text = ",".join(src_cols) + "\n" + ",".join(src_row)
+            source_csv_text = _row_to_csv(src_cols) + "\n" + _row_to_csv(src_row)
         else:
-            source_csv_text = ",".join(src_row)
+            source_csv_text = _row_to_csv(src_row)
     else:
         src_source = source_summary_data.get("existing_source_entry", {})
         src_row = [str(src_source.get(col, "") or "") for col in src_cols]
@@ -294,11 +303,3 @@ def build_entity_organisation_csv(
     csv_text = "\n".join(csv_lines)
 
     return table_params, csv_text, True
-
-
-def csv_wrap(value):
-    """Wrap value in quotes if it contains a comma."""
-    value = str(value)
-    if "," in value:
-        return f'"{value}"'
-    return value

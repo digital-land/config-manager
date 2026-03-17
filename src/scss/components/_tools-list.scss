@@ -2,12 +2,37 @@
   margin-bottom: govuk-spacing(9);
 }
 
+.app-tools-list__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+
+  &::after {
+    display: none;
+  }
+
+  > [class*="govuk-grid-column"] {
+    float: none;
+    display: flex;
+  }
+
+  .app-tools-list__item {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+}
+
 .app-tools-list__item {
   display: inline-block;
   background: govuk-colour('light-grey');
   border-top: 4px solid govuk-colour('blue');
   padding: govuk-spacing(5);
   text-decoration: none;
+
+  &[data-blocked] {
+    opacity: 0.7;
+  }
 
   &:hover {
     background: darken(govuk-colour('light-grey'), 2);
