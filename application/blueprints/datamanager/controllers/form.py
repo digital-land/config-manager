@@ -4,6 +4,7 @@ import re
 from datetime import date, datetime
 from io import StringIO
 
+from application.blueprints.datamanager.utils.csv_formats import csv_wrap
 from flask import (
     current_app,
     jsonify,
@@ -123,6 +124,10 @@ def handle_dashboard_add():
     doc_url = form.get("documentation_url", "").strip()
     licence = (form.get("licence") or "ogl3").strip().lower()
     authoritative = form.get("authoritative", "").strip().lower() or None
+
+    # Add csv filter to wrap values in quotes if they contain commas, to prevent breaking the CSV format in the preview
+    doc_url = csv_wrap(doc_url)
+    endpoint_url = csv_wrap(endpoint_url)
 
     # start_date defaults to today if blank; partial dates are an error
     day = (form.get("start_day") or "").strip()

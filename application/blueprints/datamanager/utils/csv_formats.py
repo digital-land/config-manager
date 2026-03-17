@@ -294,3 +294,11 @@ def build_entity_organisation_csv(
     csv_text = "\n".join(csv_lines)
 
     return table_params, csv_text, True
+
+
+def csv_wrap(value):
+    """Wrap value in quotes if it contains a comma."""
+    value = str(value)
+    if "," in value:
+        return f'"{value}"'
+    return value
