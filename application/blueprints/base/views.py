@@ -1,6 +1,14 @@
 from datetime import datetime
 
-from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
+from flask import (
+    Blueprint,
+    current_app,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
 from application.db.models import ServiceLock
 from application.extensions import db
@@ -36,7 +44,11 @@ def toggle_add_data_lock():
     if lock:
         db.session.delete(lock)
     else:
-        db.session.add(ServiceLock(name=ADD_DATA_LOCK, locked_by=username, locked_at=datetime.utcnow()))
+        db.session.add(
+            ServiceLock(
+                name=ADD_DATA_LOCK, locked_by=username, locked_at=datetime.utcnow()
+            )
+        )
     db.session.commit()
     return redirect(url_for("base.index"))
 

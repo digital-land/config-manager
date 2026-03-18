@@ -84,7 +84,7 @@ endblock %}
           <legend class="govuk-fieldset__legend">Are the geometries points or polygons?</legend>
           <div class="govuk-radios govuk-radios--inline">
             <div class="govuk-radios__item">
-              <input class="govuk-radios__input" id="geom-type-point" name="geom_type" type="radio" value="point" {% if form.get('geom_type') == 'point' %}checked{% endif %}>
+              <input class="govuk-radios__input" id="geom-type-point" name="geom_type" type="radio" value="point" {% if form.get('geom_type', 'point') != 'polygon' %}checked{% endif %}>
               <label class="govuk-label govuk-radios__label" for="geom-type-point">Point</label>
             </div>
             <div class="govuk-radios__item">

@@ -1,7 +1,5 @@
 import io
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from application.blueprints.datamanager.controllers.form import (
     _has_all_add_data_fields,
@@ -64,7 +62,10 @@ class TestParseStartDate:
 class TestDashboardGetOrgsFor:
     def test_returns_formatted_org_list_when_dataset_found(self, client):
         formatted = [
-            {"code": "local-authority:ABC", "label": "ABC Council (local-authority:ABC)"}
+            {
+                "code": "local-authority:ABC",
+                "label": "ABC Council (local-authority:ABC)",
+            }
         ]
         with patch(
             "application.blueprints.datamanager.controllers.form.get_dataset_id",

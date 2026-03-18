@@ -39,9 +39,7 @@ def _get_datasets():
         prov_response.raise_for_status()
         reader = csv.DictReader(StringIO(prov_response.text))
         provision_dataset_ids = {
-            row["dataset"].strip()
-            for row in reader
-            if row.get("dataset", "").strip()
+            row["dataset"].strip() for row in reader if row.get("dataset", "").strip()
         }
 
         # Step 2: enrich with name + collection from the planning API

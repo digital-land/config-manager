@@ -174,7 +174,9 @@ class TestGetOrgMapping:
 
     def test_stale_cache_returned_on_error(self, app):
         # Pre-seed the cache with stale data and expired timestamp
-        org_module._org_mapping_cache["data"] = {"local-authority:CACHED": "Cached Council"}
+        org_module._org_mapping_cache["data"] = {
+            "local-authority:CACHED": "Cached Council"
+        }
         org_module._org_mapping_cache["expires_at"] = time.monotonic() - 1
 
         with app.app_context():
@@ -227,7 +229,9 @@ class TestFormatOrgOptions:
                 "application.blueprints.datamanager.services.organisation.requests.get"
             ) as mock_get:
                 mock_get.return_value = _make_org_mapping_response(ORG_ROWS)
-                result = format_org_options(["local-authority:ABC", "local-authority:DEF"])
+                result = format_org_options(
+                    ["local-authority:ABC", "local-authority:DEF"]
+                )
 
         assert result == [
             {

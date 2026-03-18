@@ -319,7 +319,11 @@ def _parse_start_date(start_date_str):
         return {}
     try:
         d = date.fromisoformat(start_date_str)
-        return {"start_day": str(d.day), "start_month": str(d.month), "start_year": str(d.year)}
+        return {
+            "start_day": str(d.day),
+            "start_month": str(d.month),
+            "start_year": str(d.year),
+        }
     except (ValueError, TypeError):
         return {}
 

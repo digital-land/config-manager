@@ -76,7 +76,9 @@ def build_endpoint_csv_preview(endpoint_summary: dict) -> tuple:
     else:
         end_point_entry = endpoint_summary.get("new_endpoint_entry", {})
         endpoint_url = end_point_entry.get("endpoint-url", "")
-        endpoint_csv_text = _row_to_csv([end_point_entry.get(col, "") for col in ep_cols])
+        endpoint_csv_text = _row_to_csv(
+            [end_point_entry.get(col, "") for col in ep_cols]
+        )
 
     ep_row = [str(end_point_entry.get(col, "") or "") for col in ep_cols]
     endpoint_csv_table_params = {
