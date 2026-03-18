@@ -163,6 +163,7 @@ def handle_dashboard_add():
     geom_type = form.get("geom_type", "").strip() or None
 
     if not any(errors.values()):
+        column_mapping = {"WKT": "geometry"} if geom_type == "polygon" else {}
         payload = {
             "params": {
                 "type": "check_url",
@@ -171,6 +172,7 @@ def handle_dashboard_add():
                 "url": endpoint_url,
                 "organisationName": org_code_input,
                 "geom_type": geom_type,
+                "column_mapping": column_mapping or None,
             }
         }
         session["add_data_fields"] = {

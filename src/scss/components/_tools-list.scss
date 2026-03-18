@@ -48,8 +48,9 @@
   border: 1px solid govuk-colour('mid-grey');
   border-radius: 4px;
   padding: govuk-spacing(1) govuk-spacing(3);
-  font-family: inherit;
+  font-family: $govuk-font-family;
   font-size: inherit;
+  font-weight: inherit;
   cursor: pointer;
   text-decoration: underline;
   color: govuk-colour('black');
