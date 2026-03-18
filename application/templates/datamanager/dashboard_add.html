@@ -287,16 +287,16 @@ endblock %}
     } else {
       updateOrgAutocomplete([], "", "Select a dataset first...");
     }
-  });
 
-  if (datasetValue.toLowerCase() === 'tree') {
-    document.getElementById('geom-type-group').style.display = 'block';
-  }
-
-  document.getElementById('csv-file-upload').addEventListener('change', function() {
-    if (this.files.length > 0) {
-      this.closest('form').submit();
+    if (datasetValue.toLowerCase() === 'tree') {
+      document.getElementById('geom-type-group').style.display = 'block';
     }
+
+    document.getElementById('csv-file-upload').addEventListener('change', function() {
+      if (this.files.length > 0) {
+        this.closest('form').submit();
+      }
+    });
   });
 </script>
 {% endblock %}

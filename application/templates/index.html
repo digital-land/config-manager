@@ -62,46 +62,58 @@
 
     {% if not authentication_on or session['user'] %}
     <div class="govuk-grid-row app-tools-list__row">
+
+      {# Add data card #}
       <div class="govuk-grid-column-one-third">
         <div class="app-tools-list__item" {% if add_data_lock %}data-blocked="true"{% endif %}>
-          {% if add_data_lock %}
-          <div style="pointer-events: none; flex: 1;">
-            <h3 class="govuk-heading-s app-tools-list__item__heading">Add data</h3>
-            <p class="govuk-body">Add and validate new data for datasets</p>
-            <p class="govuk-body-s govuk-!-margin-bottom-0">Blocked by <strong>{{ add_data_lock.locked_by }}</strong></p>
-          </div>
-          {% else %}
-          <a href="{{ url_for('datamanager.dashboard_get')}}" style="text-decoration: none; flex: 1;">
-            <h3 class="govuk-heading-s app-tools-list__item__heading">Add data</h3>
-            <p class="govuk-body govuk-!-margin-bottom-0">Add and validate new data for datasets</p>
-          </a>
-          {% endif %}
-          <form method="post" action="{{ url_for('base.toggle_add_data_lock') }}" style="text-align: center; margin-top: 1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex:0 0 auto;">
             {% if add_data_lock %}
-            <button type="submit" class="govuk-button govuk-!-margin-bottom-0" style="font-size: 0.875rem;">Unblock Add Data</button>
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-0"><a href="{{ url_for('datamanager.dashboard_get') }}" class="govuk-link govuk-link--no-visited-state app-tools-list__card-link" style="text-decoration:none; color:inherit;">Add data</a></h3>
+            <strong class="govuk-tag app-tag--locked">LOCKED</strong>
             {% else %}
-            <button type="submit" class="govuk-button govuk-button--warning govuk-!-margin-bottom-0" style="font-size: 0.875rem;">Block Add Data</button>
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-0"><a href="{{ url_for('datamanager.dashboard_get') }}" class="govuk-link govuk-link--no-visited-state app-tools-list__card-link" style="text-decoration:none; color:inherit;">Add data</a></h3>
+            <strong class="govuk-tag app-tag--unlocked">UNLOCKED</strong>
+            {% endif %}
+          </div>
+          <p class="govuk-body-s govuk-!-margin-top-2" style="flex:1;">Add and validate new data for datasets</p>
+          {% if add_data_lock %}
+          <p class="govuk-body-s govuk-!-margin-bottom-0">Locked by <strong>{{ add_data_lock.locked_by }}</strong><br>{{ add_data_lock.locked_at.strftime('%-d %B %Y at %H:%M') }}</p>
+          {% endif %}
+          <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
+          <form method="post" action="{{ url_for('base.toggle_add_data_lock') }}" style="flex:0 0 auto; width:100%;">
+            {% if add_data_lock %}
+            <button type="submit" class="app-process-action-btn">Unlock this process</button>
+            {% else %}
+            <button type="submit" class="app-process-action-btn">Lock this process</button>
             {% endif %}
           </form>
         </div>
       </div>
+
+      {# Assign entities card (UI only) #}
       <div class="govuk-grid-column-one-third">
-        <div class="app-tools-list__item" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">
-          <h3 class="govuk-heading-s app-tools-list__item__heading">Assign Entities</h3>
-          <p class="govuk-body">Assign entity numbers to new data entries</p>
+        <div class="app-tools-list__item">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex:0 0 auto;">
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-0" style="color:#505a5f;">Assign entities</h3>
+            <strong class="govuk-tag app-tag--inactive">INACTIVE</strong>
+          </div>
+          <p class="govuk-body-s govuk-!-margin-top-2" style="flex:1;">Assign entity numbers to new data entries</p>
+          <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
+          <button type="button" class="app-process-action-btn" disabled style="opacity:0.4; cursor:not-allowed;">Lock this process</button>
         </div>
       </div>
+
     </div><!-- /.govuk-grid-row -->
 
     {% if add_data_blocked_by %}
     <div id="add-data-blocked-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;">
       <div style="background:#fff;padding:2rem;max-width:480px;width:90%;">
-        <h2 class="govuk-heading-m">Add Data is currently blocked</h2>
-        <p class="govuk-body"><strong>{{ add_data_blocked_by }}</strong> has blocked the Add Data process.</p>
-        <p class="govuk-body">Would you like to open it up again?</p>
+        <h2 class="govuk-heading-m">Add Data is currently locked</h2>
+        <p class="govuk-body"><strong>{{ add_data_blocked_by }}</strong> has locked the Add Data process.</p>
+        <p class="govuk-body">Would you like to unlock it?</p>
         <div style="display:flex;gap:1rem;align-items:center;">
           <form method="post" action="{{ url_for('base.toggle_add_data_lock') }}">
-            <button type="submit" class="govuk-button govuk-!-margin-bottom-0">Yes, unblock it</button>
+            <button type="submit" class="govuk-button govuk-!-margin-bottom-0">Yes, unlock it</button>
           </form>
           <a href="{{ url_for('base.index') }}" class="govuk-link">No, go back</a>
         </div>

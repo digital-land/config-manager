@@ -120,9 +120,12 @@
             <button type="submit" class="govuk-button">Check Entities</button>
           </form>
           {% else %}
-          <button class="govuk-button govuk-button--secondary" disabled aria-disabled="true">
-            Check Entities
-          </button>
+          <button class="govuk-button govuk-button--secondary" disabled aria-disabled="true">Check Entities</button>
+          {% if can_override %}
+          <a href="{{ url_for('datamanager.add_data', request_id=result.id) }}" class="govuk-button govuk-button--warning">Override</a>
+          {% else %}
+          <button class="govuk-button govuk-button--warning" disabled aria-disabled="true" style="opacity:0.4; cursor:not-allowed;" title="You are not authorised to override blocking issues">Override</button>
+          {% endif %}
           {% endif %}
         </div>
       </div>
