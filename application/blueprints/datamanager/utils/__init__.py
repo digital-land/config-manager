@@ -1,5 +1,7 @@
 import csv
 import logging
+import os
+import re
 from datetime import datetime
 from io import StringIO
 
@@ -13,6 +15,22 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 REQUESTS_TIMEOUT = 20  # seconds
+
+
+def get_allowed_override_users() -> set:
+    """Read config/allowed-users.md and return a set of GitHub usernames."""
+    project_root = os.path.dirname(current_app.root_path)
+    path = os.path.join(project_root, "config", "allowed-users.md")
+    try:
+        with open(path, "r") as f:
+            content = f.read()
+        return {
+            m.group(1).strip().lower()
+            for m in re.finditer(r"^[-*]\s+(\S+)", content, re.MULTILINE)
+        }
+    except Exception as e:
+        logger.warning(f"Could not read allowed-users.md: {e}")
+        return set()
 
 
 def handle_error(e):

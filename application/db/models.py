@@ -1,4 +1,5 @@
 import enum
+from datetime import datetime
 
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import declarative_mixin, declared_attr
@@ -430,6 +431,14 @@ class Transform(DateModel, VersionedMixin):
     dataset = db.relationship("Dataset")
     endpoint = db.relationship("Endpoint")
     field = db.relationship("Field")
+
+
+class ServiceLock(db.Model):
+    __tablename__ = "service_lock"
+
+    name = db.Column(db.Text, primary_key=True)
+    locked_by = db.Column(db.Text, nullable=False)
+    locked_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 
 class Filter(DateModel, VersionedMixin):

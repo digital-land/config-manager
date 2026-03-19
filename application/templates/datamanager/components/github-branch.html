@@ -1,0 +1,28 @@
+{% macro githubBranch(form, config, legend_size="s") %}
+<div class="govuk-form-group">
+  <fieldset class="govuk-fieldset" id="github-branch">
+    <legend class="govuk-fieldset__legend govuk-fieldset__legend--{{ legend_size }}">
+      GitHub branch
+    </legend>
+    <div class="govuk-hint">Use the shared branch for most imports. Only create a dedicated branch if this change is urgent or needs its own review — check the <a class="govuk-link" href="https://github.com/digital-land/config/tree/{{ config['CONFIG_REPO_BRANCH'] }}" target="_blank" rel="noopener noreferrer">current config branch</a> first to avoid merge conflicts.</div>
+    <div class="govuk-radios">
+      {% if config['CONFIG_REPO_BRANCH'] %}
+      <div class="govuk-radios__item">
+        <input class="govuk-radios__input" id="github-branch-existing" name="github_new" type="radio" value="false"
+          {% if (not form) or form.get('github_new', 'false') != 'true' %}checked{% endif %}>
+        <label class="govuk-label govuk-radios__label" for="github-branch-existing">
+          Use shared <code>{{ config['CONFIG_REPO_BRANCH'] }}</code> branch <strong class="govuk-tag govuk-tag--blue govuk-!-margin-left-1">RECOMMENDED</strong>
+        </label>
+      </div>
+      {% endif %}
+      <div class="govuk-radios__item">
+        <input class="govuk-radios__input" id="github-branch-new" name="github_new" type="radio" value="true"
+          {% if form and form.get('github_new') == 'true' %}checked{% endif %}>
+        <label class="govuk-label govuk-radios__label" for="github-branch-new">
+          Create a dedicated branch and PR
+        </label>
+      </div>
+    </div>
+  </fieldset>
+</div>
+{% endmacro %}

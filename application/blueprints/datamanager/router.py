@@ -11,6 +11,9 @@ from flask import (
     session,
 )
 
+from application.db.models import ServiceLock
+from application.extensions import db
+
 from .controllers.form import (
     handle_dashboard_get,
     handle_dashboard_add,
@@ -48,6 +51,13 @@ def require_login():
     if current_app.config.get("AUTHENTICATION_ON", True):
         if session.get("user") is None:
             return redirect(url_for("auth.login", next=request.url))
+
+    try:
+        lock = db.session.get(ServiceLock, "add_data")
+    except Exception:
+        lock = None
+    if lock:
+        return redirect(url_for("base.index", add_data_blocked_by=lock.locked_by))
 
 
 # TODO: remove these view functions and move logic entirely into controllers
