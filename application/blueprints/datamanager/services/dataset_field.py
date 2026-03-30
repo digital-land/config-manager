@@ -42,9 +42,7 @@ def _get_dataset_fields() -> dict[str, list[dict]]:
         for row in reader:
             dataset = row.get("dataset", "").strip()
             if dataset:
-                result[dataset].append(
-                    {k: v for k, v in row.items() if k != "dataset"}
-                )
+                result[dataset].append({k: v for k, v in row.items() if k != "dataset"})
 
     except Exception:
         logger.exception("Error fetching dataset-field CSV")
