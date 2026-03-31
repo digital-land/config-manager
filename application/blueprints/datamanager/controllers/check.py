@@ -20,6 +20,9 @@ from ..services.async_api import (
 from ..services.dataset import (
     get_dataset_name,
 )
+from ..services.dataset_field import (
+    get_field_names_for_dataset,
+)
 from ..services.organisation import (
     get_organisation_name,
 )
@@ -117,8 +120,8 @@ def handle_check_results(request_id, result):
     boundary_geojson_url = ""
     try:
         if ":" in organisation_code:
-            dataset_id, lpa_id = organisation_code.split(":", 1)
-            resp = requests.get(get_entity_search_url(dataset_id, lpa_id))
+            lpa_prefix, lpa_id = organisation_code.split(":", 1)
+            resp = requests.get(get_entity_search_url(lpa_prefix, lpa_id))
             resp.raise_for_status()
             d = resp.json()
             entity = d.get("entities", [])[0] if d and d.get("entities") else None
@@ -164,6 +167,9 @@ def handle_check_results(request_id, result):
     # Build column mapping rows for inline configure UI
     unmapped_columns = converted_table.get("unmapped_columns", set())
     mapping_rows = build_column_mapping_rows(column_field_log, unmapped_columns)
+    # Merge spec fields with all dataset fields so the mapping dropdown includes
+    # fields that aren't present in this check's column-field-log
+    spec_fields = spec_fields | set(get_field_names_for_dataset(dataset_id))
 
     # Checks: must_fix is missing columns in column_field_log, passed_checks is columns that exist
     # (even if missing values exist still passes), fixable is everything in error_summary (issue_logs combined)

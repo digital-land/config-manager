@@ -92,6 +92,16 @@ def handle_dashboard_get():
 
         session.pop("import_csv_data", None)
 
+    if (
+        not form.get("start_day")
+        and not form.get("start_month")
+        and not form.get("start_year")
+    ):
+        today = date.today()
+        form["start_day"] = str(today.day)
+        form["start_month"] = str(today.month)
+        form["start_year"] = str(today.year)
+
     return render_template(
         "datamanager/dashboard_add.html",
         dataset_input=dataset_input,

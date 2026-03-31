@@ -254,7 +254,11 @@ class TestAddDataJourney:
                 "application.blueprints.datamanager.controllers.check.get_dataset_name",
                 return_value="Article 4 Direction Area",
             ):
-                response = client.get("/datamanager/check-results/check-id-1")
+                with patch(
+                    "application.blueprints.datamanager.controllers.check.get_field_names_for_dataset",
+                    return_value=[],
+                ):
+                    response = client.get("/datamanager/check-results/check-id-1")
         assert response.status_code == 200
         assert b"geom" in response.data
         assert b"map[geom]" in response.data  # column mapping select input name

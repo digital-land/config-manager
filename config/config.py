@@ -46,6 +46,12 @@ class Config:
         "https://raw.githubusercontent.com/digital-land/specification/refs/heads/main/specification/provision.csv",
     )
 
+    # Dataset field specification
+    DATASET_FIELD_CSV_URL = os.getenv(
+        "DATASET_FIELD_CSV_URL",
+        "https://raw.githubusercontent.com/digital-land/specification/refs/heads/main/specification/dataset-field.csv",
+    )
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -81,7 +87,7 @@ def get_request_api_endpoint():
         "local": "http://localhost:8000",
         "development": "http://development-pub-async-api-lb-69142969.eu-west-2.elb.amazonaws.com",
         "staging": "http://staging-pub-async-api-lb-12493311.eu-west-2.elb.amazonaws.com",
-        "production": "http://development-pub-async-api-lb-69142969.eu-west-2.elb.amazonaws.com",
+        "production": "http://staging-pub-async-api-lb-12493311.eu-west-2.elb.amazonaws.com",
     }
 
     return mapping.get(env, mapping["local"])
