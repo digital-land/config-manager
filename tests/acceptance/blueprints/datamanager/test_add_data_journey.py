@@ -300,10 +300,7 @@ class TestAddDataJourney:
             }
         response = client.get("/datamanager/add-data/check-id-2")
         assert response.status_code == 302
-        assert (
-            "preview-id-1/entities" in response.headers["Location"]
-            or "entities" in response.headers["Location"]
-        )
+        assert "check-transform/preview-id-1" in response.headers["Location"]
 
     # --- Step 6: Entities preview — 3 new entities, endpoint not in system ---
 
