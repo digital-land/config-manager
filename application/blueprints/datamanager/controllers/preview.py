@@ -5,11 +5,16 @@ from flask import (
     session,
 )
 
+from application.db.models import RequestMeta
+from application.extensions import db
+
 from . import ControllerError
 from ..services.github import (
     trigger_add_data_async_workflow,
     GitHubWorkflowError,
 )
+from ..services.dataset import get_dataset_name
+from ..services.organisation import get_organisation_name
 from ..utils.csv_formats import (
     build_column_csv_preview,
     build_endpoint_csv_preview,
@@ -48,7 +53,6 @@ def handle_entities_preview(request_id, req):
 
     existing_entities_list = pipeline_summary.get("existing-entities") or []
     new_entities = pipeline_summary.get("new-entities") or []
-    pipeline_issues = pipeline_summary.get("pipeline-issues") or []
 
     # Build lookup CSV preview
     table_params, lookup_csv_text = build_lookup_csv_preview(new_entities)
@@ -91,6 +95,19 @@ def handle_entities_preview(request_id, req):
 
     github_branch = params.get("github_branch") or None
 
+    # Retire endpoint details
+    request_meta = db.session.get(RequestMeta, request_id)
+    retire_endpoint = request_meta.retire_endpoint if request_meta else False
+    existing_endpoint = source_summary_data.get("existing_endpoint_for_organisation_dataset") or ""
+    organisation_code = params.get("organisationName") or params.get("organisation", "")
+    retire_summary = None
+    if retire_endpoint and existing_endpoint:
+        retire_summary = {
+            "endpoint": existing_endpoint,
+            "dataset": get_dataset_name(dataset_id, default=dataset_id),
+            "organisation": get_organisation_name(organisation_code),
+        }
+
     # Build entity-organisation CSV preview (only for authoritative data)
     authoritative = params.get("authoritative", False)
     entity_org_table_params = None
@@ -117,6 +134,7 @@ def handle_entities_preview(request_id, req):
         "datamanager/entities_preview.html",
         request_id=request_id,
         github_branch=github_branch,
+        retire_summary=retire_summary,
         new_count=int(pipeline_summary.get("new-in-resource") or 0),
         existing_count=int(pipeline_summary.get("existing-in-resource") or 0),
         endpoint_already_exists=endpoint_already_exists,
@@ -132,7 +150,6 @@ def handle_entities_preview(request_id, req):
         column_csv_table_params=column_csv_table_params,
         column_csv_text=column_csv_text,
         has_column_mapping=has_column_mapping,
-        pipeline_issues=pipeline_issues,
         entity_org_table_params=entity_org_table_params,
         entity_org_csv_text=entity_org_csv_text,
         has_entity_org=has_entity_org,

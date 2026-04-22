@@ -166,7 +166,8 @@ def handle_check_results(request_id, result):
 
     # Build column mapping rows for inline configure UI
     unmapped_columns = converted_table.get("unmapped_columns", set())
-    mapping_rows = build_column_mapping_rows(column_field_log, unmapped_columns)
+    user_column_mapping = result.get("params", {}).get("column_mapping") or {}
+    mapping_rows = build_column_mapping_rows(column_field_log, unmapped_columns, user_column_mapping)
     # Merge spec fields with all dataset fields so the mapping dropdown includes
     # fields that aren't present in this check's column-field-log
     spec_fields = spec_fields | set(get_field_names_for_dataset(dataset_id))
@@ -227,8 +228,8 @@ def handle_check_resubmit(request_id):
 
     params = req.get("params", {}) or {}
 
-    # Collect user-submitted column mappings
-    column_mapping = {}
+    # Start from any mappings already stored on this request, then merge new ones on top
+    column_mapping = dict(params.get("column_mapping") or {})
     form = request.form.to_dict()
     for key, value in form.items():
         if key.startswith("map[") and key.endswith("]"):
@@ -236,6 +237,12 @@ def handle_check_resubmit(request_id):
             field_value = value.strip()
             if field_value:
                 column_mapping[col_name] = field_value
+
+    # Remove any mappings the user has chosen to unmap
+    for key, value in form.items():
+        if key.startswith("unmap[") and key.endswith("]") and value == "yes":
+            col_name = key[6:-1]
+            column_mapping.pop(col_name, None)
 
     # Submit new check with updated config
     payload_params = {

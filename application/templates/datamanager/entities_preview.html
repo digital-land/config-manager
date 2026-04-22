@@ -282,51 +282,27 @@
       </div>
     </div>
 
-    <!-- Pipeline Issues -->
-    {% if pipeline_issues %}
+    <!-- Retire Summary -->
+    {% if retire_summary %}
     <div class="govuk-!-margin-bottom-6">
-      <h2 class="govuk-heading-m"><u>Pipeline Issues</u></h2>
+      <h2 class="govuk-heading-m"><u>Retire Summary</u></h2>
       <div style="border: 1px solid #b1b4b6; padding: 20px;">
-        <p class="govuk-body">
-          The following issues were detected during pipeline processing:
-        </p>
-        <details class="govuk-details govuk-!-margin-bottom-0" data-module="govuk-details">
-          <summary class="govuk-details__summary">
-            <span class="govuk-details__summary-text">View all pipeline issues ({{ pipeline_issues | length }})</span>
-          </summary>
-          <div class="govuk-details__text">
-            <div class="app-scrollable-container app-scrollable">
-              <table class="govuk-table">
-                <thead class="govuk-table__head">
-                  <tr class="govuk-table__row">
-                    <th scope="col" class="govuk-table__header">Entry</th>
-                    <th scope="col" class="govuk-table__header">Line</th>
-                    <th scope="col" class="govuk-table__header">Issue Type</th>
-                    <th scope="col" class="govuk-table__header">Field</th>
-                    <th scope="col" class="govuk-table__header">Value</th>
-                    <th scope="col" class="govuk-table__header">Message</th>
-                  </tr>
-                </thead>
-                <tbody class="govuk-table__body">
-                  {% for issue in pipeline_issues %}
-                  <tr class="govuk-table__row">
-                    <td class="govuk-table__cell">{{ issue['entry-number'] }}</td>
-                    <td class="govuk-table__cell">{{ issue['line-number'] }}</td>
-                    <td class="govuk-table__cell">
-                      <strong class="govuk-tag {% if issue['issue-type'] == 'missing value' %}govuk-tag--red{% elif issue['issue-type'] == 'unknown entity' %}govuk-tag--yellow{% else %}govuk-tag--grey{% endif %}">
-                        {{ issue['issue-type'] }}
-                      </strong>
-                    </td>
-                    <td class="govuk-table__cell"><code>{{ issue.field }}</code></td>
-                    <td class="govuk-table__cell">{{ issue.value or '(empty)' }}</td>
-                    <td class="govuk-table__cell">{{ issue.message or '-' }}</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+        <div style="background-color: #f3f2f1; padding: 10px 15px;">
+          <dl class="govuk-summary-list govuk-!-margin-bottom-0">
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Dataset</dt>
+              <dd class="govuk-summary-list__value">{{ retire_summary.dataset }}</dd>
             </div>
-          </div>
-        </details>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Organisation</dt>
+              <dd class="govuk-summary-list__value">{{ retire_summary.organisation }}</dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Endpoint to retire</dt>
+              <dd class="govuk-summary-list__value"><code>{{ retire_summary.endpoint }}</code></dd>
+            </div>
+          </dl>
+        </div>
       </div>
     </div>
     {% endif %}

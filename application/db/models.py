@@ -441,6 +441,13 @@ class ServiceLock(db.Model):
     locked_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 
+class RequestMeta(db.Model):
+    __tablename__ = "request_meta"
+
+    request_id = db.Column(db.Text, primary_key=True)
+    retire_endpoint = db.Column(db.Boolean, nullable=False, default=False)
+
+
 class Filter(DateModel, VersionedMixin):
     id = db.Column(db.Integer, primary_key=True)
     pipeline_id = db.Column(db.Text, db.ForeignKey("pipeline.pipeline"), nullable=False)

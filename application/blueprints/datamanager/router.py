@@ -11,7 +11,7 @@ from flask import (
     session,
 )
 
-from application.db.models import ServiceLock
+from application.db.models import RequestMeta, ServiceLock
 from application.extensions import db
 
 from .controllers.form import (
@@ -25,10 +25,11 @@ from .controllers.check import (
     handle_check_results,
     handle_check_resubmit,
 )
-from .controllers.add import (
+from .controllers.preview import (
     handle_entities_preview,
     handle_add_data_confirm,
 )
+from .controllers.transform import handle_check_transform
 from .services.async_api import (
     AsyncAPIError,
     fetch_request,
@@ -142,6 +143,37 @@ def entities_preview(request_id):
         return render_template("datamanager/error.html", message=e.message)
 
 
+def check_transform(request_id):
+    """Fetch and display transformed facts while the add_data job runs."""
+    try:
+        req = fetch_request(request_id)
+    except AsyncAPIError:
+        return (
+            render_template(
+                "datamanager/error.html", message="Transform request not found"
+            ),
+            404,
+        )
+
+    try:
+        return handle_check_transform(request_id, req)
+    except ControllerError as e:
+        return render_template("datamanager/error.html", message=e.message)
+
+
+def check_transform_post(request_id):
+    """Store retire-endpoint decision from transform page and continue to preview."""
+    retire = request.form.get("retire_endpoint") == "yes"
+    meta = db.session.get(RequestMeta, request_id)
+    if meta is None:
+        meta = RequestMeta(request_id=request_id, retire_endpoint=retire)
+        db.session.add(meta)
+    else:
+        meta.retire_endpoint = retire
+    db.session.commit()
+    return redirect(url_for("datamanager.entities_preview", request_id=request_id))
+
+
 def add_data_confirm_async(request_id):
     logger.info(f"Triggering async GitHub workflow for request_id: {request_id}")
     github_branch = request.form.get("github_branch") or None
@@ -170,6 +202,12 @@ datamanager_bp.add_url_rule(
     "/add-data/<request_id>/entities",
     view_func=entities_preview,
     methods=["GET"],
+)
+datamanager_bp.add_url_rule(
+    "/check-transform/<request_id>", view_func=check_transform, methods=["GET"]
+)
+datamanager_bp.add_url_rule(
+    "/check-transform/<request_id>", view_func=check_transform_post, methods=["POST"]
 )
 datamanager_bp.add_url_rule(
     "/add-data/<request_id>/confirm-async",

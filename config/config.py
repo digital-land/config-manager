@@ -58,7 +58,7 @@ class DevelopmentConfig(Config):
     ENV = "development"
     WTF_CSRF_ENABLED = False
     SAFE_URLS = {"localhost:5000"}
-    AUTHENTICATION_ON = True
+    AUTHENTICATION_ON = False
 
     # Override to load private key from file path for development
     _key_path = os.getenv("GITHUB_APP_PRIVATE_KEY_PATH")

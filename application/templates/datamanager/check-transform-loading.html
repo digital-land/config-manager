@@ -1,0 +1,19 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <span class="govuk-caption-l">{{ organisation_display }}</span>
+    <h1 class="govuk-heading-l">{{ dataset_display }}</h1>
+    <h2 class="govuk-heading-m govuk-!-margin-top-3">Transforming data…</h2>
+    <p class="govuk-body">We're running the pipeline transform for your request. This should only take a moment.</p>
+    <p class="govuk-body">This page will refresh automatically.</p>
+    <p class="govuk-body">
+      If nothing happens, you can <a class="govuk-link" href="{{ url_for('datamanager.check_transform', request_id=request_id) }}">refresh manually</a>.
+    </p>
+  </div>
+</div>
+
+<!-- Auto-refresh every 2 seconds -->
+<meta http-equiv="refresh" content="2">
+{% endblock %}
