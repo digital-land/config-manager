@@ -119,6 +119,7 @@ def trigger_add_data_async_workflow(
     request_id: str,
     triggered_by: str = "config-manager",
     github_branch: str = None,
+    endpoints_to_retire: list = None,
 ) -> dict:
     """
     Trigger the 'add-data-async' workflow in the digital-land/config repository.
@@ -135,6 +136,7 @@ def trigger_add_data_async_workflow(
                 "request_id": request_id,
                 "triggered_by": triggered_by,
                 "branch": github_branch,
+                "endpoints_to_retire": endpoints_to_retire or [],
             },
         }
 

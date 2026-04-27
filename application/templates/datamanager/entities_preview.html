@@ -291,16 +291,18 @@
           <dl class="govuk-summary-list govuk-!-margin-bottom-0">
             <div class="govuk-summary-list__row">
               <dt class="govuk-summary-list__key">Dataset</dt>
-              <dd class="govuk-summary-list__value">{{ retire_summary.dataset }}</dd>
+              <dd class="govuk-summary-list__value">{{ retire_summary[0].dataset }}</dd>
             </div>
             <div class="govuk-summary-list__row">
               <dt class="govuk-summary-list__key">Organisation</dt>
-              <dd class="govuk-summary-list__value">{{ retire_summary.organisation }}</dd>
+              <dd class="govuk-summary-list__value">{{ retire_summary[0].organisation }}</dd>
             </div>
+            {% for ep in retire_summary %}
             <div class="govuk-summary-list__row">
               <dt class="govuk-summary-list__key">Endpoint to retire</dt>
-              <dd class="govuk-summary-list__value"><code>{{ retire_summary.endpoint }}</code></dd>
+              <dd class="govuk-summary-list__value"><code>{{ ep['endpoint-url'] or ep.endpoint }}</code></dd>
             </div>
+            {% endfor %}
           </dl>
         </div>
       </div>

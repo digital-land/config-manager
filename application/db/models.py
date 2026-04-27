@@ -445,7 +445,7 @@ class RequestMeta(db.Model):
     __tablename__ = "request_meta"
 
     request_id = db.Column(db.Text, primary_key=True)
-    retire_endpoint = db.Column(db.Boolean, nullable=False, default=False)
+    endpoints_to_retire = db.Column(db.Text, nullable=True)  # JSON list of endpoint hashes
 
 
 class Filter(DateModel, VersionedMixin):

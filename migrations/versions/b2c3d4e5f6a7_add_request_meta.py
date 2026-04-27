@@ -19,7 +19,7 @@ def upgrade():
     op.create_table(
         "request_meta",
         sa.Column("request_id", sa.Text(), nullable=False),
-        sa.Column("retire_endpoint", sa.Boolean(), nullable=False, server_default="false"),
+        sa.Column("endpoints_to_retire", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("request_id"),
     )
 
