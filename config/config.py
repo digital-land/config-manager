@@ -73,6 +73,7 @@ class TestConfig(Config):
     TESTING = True
     AUTHENTICATION_ON = False
     SECRET_KEY = "testing"
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
 
 
 def get_request_api_endpoint():
