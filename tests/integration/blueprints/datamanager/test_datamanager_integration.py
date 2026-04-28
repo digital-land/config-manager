@@ -338,7 +338,8 @@ class TestCheckTransformRoute:
                     return_value=400,
                 ):
                     with patch(
-                        "application.blueprints.datamanager.controllers.transform.get_entities_for_organisation_and_dataset",
+                        "application.blueprints.datamanager.controllers"
+                        ".transform.get_entities_for_organisation_and_dataset",
                         return_value=platform_entities,
                     ):
                         response = client.get("/datamanager/check-transform/test-id")

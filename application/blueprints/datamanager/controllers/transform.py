@@ -151,7 +151,8 @@ def handle_check_transform(request_id, req):
     pipeline_summary = response_data.get("pipeline-summary") or {}
     new_count = int(pipeline_summary.get("new-in-resource") or 0)
 
-    # Query Planning Data to get count of existing entities for this org/dataset, to check growth percentage against new count
+    # Query Planning Data to get count of existing entities for this org/dataset,
+    # to check growth percentage against new count
 
     org_entity = get_org_entity(organisation_code)
     platform_entities = (
@@ -176,7 +177,9 @@ def handle_check_transform(request_id, req):
 
     entities_data = build_entities_data(resp_details, platform_entities)
 
-    # Create tables for transformed data and issue logs, with empty string defaults to avoid rendering issues with None values. The tables expect all columns to be present in every row, so we ensure that with the dict comprehensions below.
+    # Create tables for transformed data and issue logs, with empty string defaults
+    # to avoid rendering issues with None values. The tables expect all columns to
+    # be present in every row, so we ensure that with the dict comprehensions below.
 
     transform_rows = []
     for item in resp_details:
@@ -210,7 +213,10 @@ def handle_check_transform(request_id, req):
                 if col == "severity" and val.lower() == "error":
                     cols[col] = {
                         "value": val,
-                        "html": '<span style="background-color:#d4351c;color:white;padding:2px 8px;border-radius:3px;">error</span>',
+                        "html": (
+                            '<span style="background-color:#d4351c;color:white;'
+                            'padding:2px 8px;border-radius:3px;">error</span>'
+                        ),
                     }
                 else:
                     cols[col] = {"value": val}
