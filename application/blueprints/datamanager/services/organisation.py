@@ -19,6 +19,12 @@ _org_mapping_cache = {
 }
 _ORG_MAPPING_TTL = 600  # 10 minutes — changes very rarely
 
+_org_entity_cache = {
+    "data": None,
+    "expires_at": 0,
+}
+_ORG_ENTITY_TTL = 600  # 10 minutes
+
 
 def get_provision_orgs_for_dataset(dataset_id: str) -> list:
     """
@@ -110,6 +116,51 @@ def _get_org_mapping() -> dict:
             return _org_mapping_cache["data"]
 
     return org_mapping
+
+
+def get_org_entity_lookup() -> dict:
+    """
+    Build and cache a mapping of organisation code -> entity number,
+    fetched from the planning data /organisation.json endpoint.
+    Cached for 10 minutes.
+    """
+    now = time.monotonic()
+    if _org_entity_cache["data"] is not None and now < _org_entity_cache["expires_at"]:
+        return _org_entity_cache["data"]
+
+    entity_mapping = {}
+    try:
+        planning_url = current_app.config.get("PLANNING_BASE_URL")
+        response = requests.get(
+            f"{planning_url}/organisation.json", timeout=REQUESTS_TIMEOUT
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        for orgs in data.get("organisations", {}).values():
+            for org in orgs:
+                code = org.get("organisation")
+                entity = org.get("entity")
+                if code and entity is not None:
+                    entity_mapping[code] = entity
+
+        _org_entity_cache["data"] = entity_mapping
+        _org_entity_cache["expires_at"] = now + _ORG_ENTITY_TTL
+
+    except Exception as e:
+        logger.error(f"Failed to fetch organisation entity mapping: {e}", exc_info=True)
+        if _org_entity_cache["data"] is not None:
+            logger.warning(
+                "Returning stale organisation entity mapping after fetch failure"
+            )
+            return _org_entity_cache["data"]
+
+    return entity_mapping
+
+
+def get_org_entity(code: str) -> int | None:
+    """Return the entity number for an organisation code, or None if not found."""
+    return get_org_entity_lookup().get(code)
 
 
 def get_organisation_name(code: str) -> str:

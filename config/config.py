@@ -58,7 +58,7 @@ class DevelopmentConfig(Config):
     ENV = "development"
     WTF_CSRF_ENABLED = False
     SAFE_URLS = {"localhost:5000"}
-    AUTHENTICATION_ON = True
+    AUTHENTICATION_ON = False
 
     # Override to load private key from file path for development
     _key_path = os.getenv("GITHUB_APP_PRIVATE_KEY_PATH")
@@ -73,6 +73,7 @@ class TestConfig(Config):
     TESTING = True
     AUTHENTICATION_ON = False
     SECRET_KEY = "testing"
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
 
 
 def get_request_api_endpoint():
@@ -87,7 +88,7 @@ def get_request_api_endpoint():
         "local": "http://localhost:8000",
         "development": "http://development-pub-async-api-lb-69142969.eu-west-2.elb.amazonaws.com",
         "staging": "http://staging-pub-async-api-lb-12493311.eu-west-2.elb.amazonaws.com",
-        "production": "http://staging-pub-async-api-lb-12493311.eu-west-2.elb.amazonaws.com",
+        "production": "http://production-pub-async-api-lb-636110663.eu-west-2.elb.amazonaws.com",
     }
 
     return mapping.get(env, mapping["local"])

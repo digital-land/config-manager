@@ -1,0 +1,178 @@
+{% extends 'layouts/base.html' %}
+{% from "components/table.html" import table %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <span class="govuk-caption-xl">{{ organisation_display }}</span>
+    <span class="govuk-body-l" style="display: block; color: #505a5f; margin-bottom: 10px;">{{ dataset_display }}</span>
+    <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 10px 0 10px;">
+    <h1 class="govuk-heading-xl" style="margin-bottom: 10px;">Data Submission Assessment</h1>
+    <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 0 0 20px;">
+    <p id="tab-desc-entities" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4">All entities for this dataset and organisation, with new additions highlighted in <span style="color: #00703c; font-weight: bold;">green</span> and existing entities also present in this resource highlighted in <span style="color: #d4692a; font-weight: bold;">orange</span>.</p>
+    <p id="tab-desc-transformed" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4" style="display:none;">The individual facts extracted from the submitted data by the pipeline <b>with entity lookup enabled</b>.</p>
+    <p id="tab-desc-issue-log" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4" style="display:none;">Any issues the pipeline raised while processing the data.</p>
+
+    <div class="govuk-tabs" data-module="govuk-tabs">
+      <ul class="govuk-tabs__list">
+        <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
+          <a class="govuk-tabs__tab" href="#entities-table">Entities</a>
+        </li>
+        <li class="govuk-tabs__list-item">
+          <a class="govuk-tabs__tab" href="#transformed-table">Transformed</a>
+        </li>
+        {% if issue_log_table and issue_log_table.rows %}
+        <li class="govuk-tabs__list-item">
+          <a class="govuk-tabs__tab" href="#issue-log-table">Issue logs</a>
+        </li>
+        {% endif %}
+      </ul>
+
+      <div class="govuk-tabs__panel" id="entities-table">
+        {% if entities_data and entities_data.rows %}
+        <div class="app-scrollable-container app-scrollable">
+          <table class="govuk-table dl-table app-table">
+            <thead class="govuk-table__head">
+              <tr class="govuk-table__row">
+                {% for col in entities_data.columns %}
+                <th scope="col" class="govuk-table__header">{{ col }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody class="govuk-table__body">
+              {% for row in entities_data.rows %}
+              <tr class="govuk-table__row" {% if row.is_in_both %}style="background-color: #ffd8b0;"{% elif row.is_new %}style="background-color: #d4edda;"{% endif %}>
+                {% for col in entities_data.columns %}
+                <td class="govuk-table__cell app-wrap">
+                  {% set val = row.fields[col] %}
+                  {% if val | length > 50 %}{{ val[:50] }}...{% else %}{{ val }}{% endif %}
+                </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="govuk-body">No entities to display.</p>
+        {% endif %}
+      </div>
+
+      <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="transformed-table">
+        {% if transformed_table.rows %}
+        <div class="app-scrollable-container app-scrollable">
+          {{ table(transformed_table) }}
+        </div>
+        {% else %}
+        <p class="govuk-body">No transformed rows to display.</p>
+        {% endif %}
+      </div>
+
+      {% if issue_log_table and issue_log_table.rows %}
+      <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="issue-log-table">
+        <div class="app-scrollable-container app-scrollable">
+          {{ table(issue_log_table) }}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% set _is_error = entity_growth_check.error %}
+    <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid {{ '#d4351c' if _is_error else '#00703c' }};">
+      <details data-module="govuk-details" style="margin: 0;">
+        <summary style="cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+          <span class="govuk-heading-m" style="display: inline; margin: 0; color: {{ '#d4351c' if _is_error else '#00703c' }};">
+            Entity Growth Detection
+            <strong class="govuk-tag {{ 'govuk-tag--red' if _is_error else 'govuk-tag--green' }}" style="margin-left: 10px; vertical-align: middle;">
+              {{ 'Warning' if _is_error else 'Passed' }}
+            </strong>
+          </span>
+          <span class="govuk-body" style="margin: 0; font-size: 1.2em; color: {{ '#d4351c' if _is_error else '#00703c' }};">&#9660;</span>
+        </summary>
+        <div class="govuk-!-margin-top-4">
+          <dl class="govuk-summary-list">
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Existing entities</dt>
+              <dd class="govuk-summary-list__value">{{ entity_growth_check.existing_count }}</dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">New entities</dt>
+              <dd class="govuk-summary-list__value">{{ entity_growth_check.new_count }}</dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Growth</dt>
+              <dd class="govuk-summary-list__value">
+                {% if entity_growth_check.growth_pct is not none %}{{ entity_growth_check.growth_pct }}%{% else %}N/A (no existing entities){% endif %}
+              </dd>
+            </div>
+          </dl>
+          {% if _is_error %}
+          <div class="govuk-warning-text govuk-!-margin-bottom-0">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-visually-hidden">Warning</span>
+              New entities exceed 10% of existing entities. Please review before continuing.
+            </strong>
+          </div>
+          {% else %}
+          <p class="govuk-body govuk-!-margin-bottom-0">New entity count is within the expected threshold.</p>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+
+    {% if existing_endpoints %}
+    <form method="post" action="{{ url_for('datamanager.check_transform', request_id=request_id) }}">
+    <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid #1d70b8;">
+      <details data-module="govuk-details" style="margin: 0;">
+        <summary style="cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+          <span class="govuk-heading-m" style="display: inline; margin: 0; color: #1d70b8;">Retire endpoints</span>
+          <span class="govuk-body" style="margin: 0; font-size: 1.2em; color: #1d70b8;">&#9660;</span>
+        </summary>
+        <div class="govuk-!-margin-top-4">
+          <p class="govuk-body">Select any existing endpoints to retire when adding this data:</p>
+          <div class="govuk-checkboxes">
+            {% for ep in existing_endpoints %}
+            {% set ep_hash = ep.endpoint if ep is mapping else ep %}
+            {% set ep_url = ep['endpoint-url'] if ep is mapping else ep %}
+            <div class="govuk-checkboxes__item">
+              <input class="govuk-checkboxes__input" id="retire-endpoint-{{ loop.index }}" name="retire_endpoints" type="checkbox" value="{{ ep_hash }}">
+              <label class="govuk-label govuk-checkboxes__label" for="retire-endpoint-{{ loop.index }}">
+                <code style="word-break: break-all;">{{ ep_url }}</code>
+                <span class="govuk-hint govuk-!-margin-bottom-0" style="font-size: 0.8rem; word-break: break-all;">{{ ep_hash }}</span>
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </details>
+    </div>
+    <div class="govuk-button-group govuk-!-margin-top-6">
+      <button type="submit" class="govuk-button">Continue to preview</button>
+      <a href="{{ url_for('datamanager.dashboard_get') }}" class="govuk-link">Cancel</a>
+    </div>
+    </form>
+    {% else %}
+    <div class="govuk-button-group govuk-!-margin-top-6">
+      <a href="{{ url_for('datamanager.entities_preview', request_id=request_id) }}" class="govuk-button">
+        Continue to preview
+      </a>
+      <a href="{{ url_for('datamanager.dashboard_get') }}" class="govuk-link">
+        Cancel
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<script>
+  document.querySelectorAll('.govuk-tabs__tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var target = this.getAttribute('href').replace('#', '').replace('-table', '');
+      document.querySelectorAll('[id^="tab-desc-"]').forEach(function(el) { el.style.display = 'none'; });
+      var desc = document.getElementById('tab-desc-' + target);
+      if (desc) desc.style.display = '';
+    });
+  });
+</script>
+
+{% endblock %}

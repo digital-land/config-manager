@@ -25,7 +25,7 @@ class TestAddDataConfirmRoute:
         with client.session_transaction() as sess:
             sess["user"] = {"login": "test-user"}
         with patch(
-            "application.blueprints.datamanager.controllers.add.trigger_add_data_async_workflow",
+            "application.blueprints.datamanager.controllers.preview.trigger_add_data_async_workflow",
             return_value={"success": True, "message": "Workflow triggered"},
         ):
             response = client.post("/datamanager/add-data/test-id/confirm-async")
@@ -38,7 +38,7 @@ class TestAddDataConfirmRoute:
         with client.session_transaction() as sess:
             sess["user"] = {"login": "test-user"}
         with patch(
-            "application.blueprints.datamanager.controllers.add.trigger_add_data_async_workflow",
+            "application.blueprints.datamanager.controllers.preview.trigger_add_data_async_workflow",
             side_effect=GitHubWorkflowError("GitHub App credentials not configured"),
         ):
             response = client.post("/datamanager/add-data/test-id/confirm-async")

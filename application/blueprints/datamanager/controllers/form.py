@@ -281,7 +281,7 @@ def handle_dashboard_add_import():
 
 
 def _submit_add_data_preview(request_id, add_data_fields):
-    """Submit an add_data async request and redirect to entities preview."""
+    """Submit an add_data async request and redirect to check-transform."""
     check_req = fetch_request(request_id)
     check_params = check_req.get("params", {})
 
@@ -309,7 +309,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
     }
 
     preview_id = submit_request(params)
-    return redirect(url_for("datamanager.entities_preview", request_id=preview_id))
+    return redirect(url_for("datamanager.check_transform", request_id=preview_id))
 
 
 def _has_all_add_data_fields(add_data_fields):

@@ -34,8 +34,19 @@
               {% endif %}
             </td>
             <td class="govuk-table__cell">
-              {% if row.is_mapped %}
-              <strong class="govuk-tag govuk-tag--green">Mapped</strong>
+              {% if row.user_ignored %}
+              <strong class="govuk-tag govuk-tag--red">Unmapped</strong>
+              <span class="govuk-hint" style="display: block; font-size: 0.8em; margin-top: 4px;">Pipeline mapping overridden</span>
+              {% elif row.user_defined %}
+              <select name="unmap[{{ row.column }}]" style="background-color: #00703c; color: #ffffff; font-weight: 700; font-size: 0.875rem; padding: 2px 8px; border: none; border-radius: 0; cursor: pointer; appearance: auto;">
+                <option value="no">Mapped</option>
+                <option value="yes">Un-Map</option>
+              </select>
+              {% elif row.is_mapped %}
+              <select name="map[{{ row.column }}]" style="background-color: #00703c; color: #ffffff; font-weight: 700; font-size: 0.875rem; padding: 2px 8px; border: none; border-radius: 0; cursor: pointer; appearance: auto;">
+                <option value="">Mapped</option>
+                <option value="IGNORE">Un-Map</option>
+              </select>
               {% else %}
               <strong class="govuk-tag govuk-tag--red">Unmapped</strong>
               {% endif %}

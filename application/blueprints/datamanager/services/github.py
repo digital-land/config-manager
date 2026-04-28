@@ -119,9 +119,10 @@ def trigger_add_data_async_workflow(
     request_id: str,
     triggered_by: str = "config-manager",
     github_branch: str = None,
+    endpoints_to_retire: list = None,
 ) -> dict:
     """
-    Trigger the 'add-data-async' workflow in the digital-land/config repository.
+    Trigger the 'add-data-async-script' workflow in the digital-land/config repository.
 
     Instead of sending CSV data in the payload (which can exceed GitHub's 10KB limit),
     this sends only a request_id. The workflow fetches the full data from the async API.
@@ -130,11 +131,15 @@ def trigger_add_data_async_workflow(
         access_token = _get_access_token()
 
         payload = {
-            "event_type": "add-data-async",
+            "event_type": "add-data-async-script",
             "client_payload": {
                 "request_id": request_id,
                 "triggered_by": triggered_by,
                 "branch": github_branch,
+                "retire_endpoints": (
+                    ",".join(endpoints_to_retire or []) if endpoints_to_retire else ""
+                ),
+                "environment": current_app.config.get("ENVIRONMENT"),
             },
         }
 
