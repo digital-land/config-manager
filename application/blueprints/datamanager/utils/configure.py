@@ -1,4 +1,6 @@
-def build_column_mapping_rows(column_field_log, unmapped_columns, user_column_mapping=None):
+def build_column_mapping_rows(
+    column_field_log, unmapped_columns, user_column_mapping=None
+):
     """Build rows for the inline column mapping UI.
 
     Returns a list of dicts, each with:

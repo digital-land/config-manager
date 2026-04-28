@@ -98,8 +98,12 @@ def handle_entities_preview(request_id, req):
 
     # Retire endpoint details
     request_meta = db.session.get(RequestMeta, request_id)
-    endpoints_to_retire = json.loads(request_meta.endpoints_to_retire or "[]") if request_meta else []
-    existing_endpoints = source_summary_data.get("existing_endpoint_for_organisation_dataset") or []
+    endpoints_to_retire = (
+        json.loads(request_meta.endpoints_to_retire or "[]") if request_meta else []
+    )
+    existing_endpoints = (
+        source_summary_data.get("existing_endpoint_for_organisation_dataset") or []
+    )
     if isinstance(existing_endpoints, str):
         existing_endpoints = [existing_endpoints] if existing_endpoints else []
     organisation_code = params.get("organisationName") or params.get("organisation", "")
@@ -111,12 +115,14 @@ def handle_entities_preview(request_id, req):
             ep_hash = ep.get("endpoint") if isinstance(ep, dict) else ep
             ep_url = ep.get("endpoint-url", ep_hash) if isinstance(ep, dict) else ep
             if ep_hash in endpoints_to_retire:
-                retire_summary.append({
-                    "endpoint": ep_hash,
-                    "endpoint-url": ep_url,
-                    "dataset": dataset_display,
-                    "organisation": org_display,
-                })
+                retire_summary.append(
+                    {
+                        "endpoint": ep_hash,
+                        "endpoint-url": ep_url,
+                        "dataset": dataset_display,
+                        "organisation": org_display,
+                    }
+                )
 
     # Build entity-organisation CSV preview (only for authoritative data)
     authoritative = params.get("authoritative", False)
@@ -169,7 +175,9 @@ def handle_entities_preview(request_id, req):
 
 def handle_add_data_confirm(request_id, github_branch: str | None = None):
     request_meta = db.session.get(RequestMeta, request_id)
-    endpoints_to_retire = json.loads(request_meta.endpoints_to_retire or "[]") if request_meta else []
+    endpoints_to_retire = (
+        json.loads(request_meta.endpoints_to_retire or "[]") if request_meta else []
+    )
     try:
         result = trigger_add_data_async_workflow(
             request_id=request_id,

@@ -167,10 +167,14 @@ def handle_check_results(request_id, result):
     # Build column mapping rows for inline configure UI
     unmapped_columns = converted_table.get("unmapped_columns", set())
     user_column_mapping = result.get("params", {}).get("column_mapping") or {}
-    mapping_rows = build_column_mapping_rows(column_field_log, unmapped_columns, user_column_mapping)
+    mapping_rows = build_column_mapping_rows(
+        column_field_log, unmapped_columns, user_column_mapping
+    )
     # Merge spec fields with all dataset fields so the mapping dropdown includes
     # fields that aren't present in this check's column-field-log
-    spec_fields = (spec_fields | set(get_field_names_for_dataset(dataset_id))) - {"IGNORE"}
+    spec_fields = (spec_fields | set(get_field_names_for_dataset(dataset_id))) - {
+        "IGNORE"
+    }
 
     # Checks: must_fix is missing columns in column_field_log, passed_checks is columns that exist
     # (even if missing values exist still passes), fixable is everything in error_summary (issue_logs combined)

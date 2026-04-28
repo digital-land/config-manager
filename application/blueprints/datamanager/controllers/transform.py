@@ -61,7 +61,9 @@ def build_entities_data(resp_details: list, platform_entities: list) -> dict:
         if entity_id and field:
             pivoted[entity_id][field] = value
 
-    platform_entity_ids = {_normalise_entity_id(e.get("entity", "")) for e in platform_entities}
+    platform_entity_ids = {
+        _normalise_entity_id(e.get("entity", "")) for e in platform_entities
+    }
     new_entity_ids = set(pivoted.keys()) - platform_entity_ids
     in_both_ids = set(pivoted.keys()) & platform_entity_ids
 
@@ -75,18 +77,25 @@ def build_entities_data(resp_details: list, platform_entities: list) -> dict:
 
     rows = []
     for entity_id, fields in pivoted.items():
-        rows.append({
-            "fields": {col: (entity_id if col == "entity" else str(fields.get(col, ""))) for col in columns},
-            "is_new": entity_id in new_entity_ids,
-            "is_in_both": entity_id in in_both_ids,
-        })
+        rows.append(
+            {
+                "fields": {
+                    col: (entity_id if col == "entity" else str(fields.get(col, "")))
+                    for col in columns
+                },
+                "is_new": entity_id in new_entity_ids,
+                "is_in_both": entity_id in in_both_ids,
+            }
+        )
     for e in platform_entities:
         if str(e.get("entity", "")) not in pivoted:
-            rows.append({
-                "fields": {col: str(e.get(col, "")) for col in columns},
-                "is_new": False,
-                "is_in_both": False,
-            })
+            rows.append(
+                {
+                    "fields": {col: str(e.get(col, "")) for col in columns},
+                    "is_new": False,
+                    "is_in_both": False,
+                }
+            )
 
     return {"columns": columns, "rows": rows}
 
@@ -127,7 +136,9 @@ def handle_check_transform(request_id, req):
     response_payload = req.get("response") or {}
     response_data = response_payload.get("data") or {}
     source_summary = response_data.get("source-summary") or {}
-    existing_endpoints = source_summary.get("existing_endpoint_for_organisation_dataset") or []
+    existing_endpoints = (
+        source_summary.get("existing_endpoint_for_organisation_dataset") or []
+    )
     if isinstance(existing_endpoints, str):
         existing_endpoints = [existing_endpoints] if existing_endpoints else []
     if existing_endpoints:
@@ -141,7 +152,7 @@ def handle_check_transform(request_id, req):
     new_count = int(pipeline_summary.get("new-in-resource") or 0)
 
     # Query Planning Data to get count of existing entities for this org/dataset, to check growth percentage against new count
-    
+
     org_entity = get_org_entity(organisation_code)
     platform_entities = (
         get_entities_for_organisation_and_dataset(org_entity, dataset_id)
@@ -197,7 +208,10 @@ def handle_check_transform(request_id, req):
             for col in _ISSUE_COLS:
                 val = str(issue.get(col, ""))
                 if col == "severity" and val.lower() == "error":
-                    cols[col] = {"value": val, "html": '<span style="background-color:#d4351c;color:white;padding:2px 8px;border-radius:3px;">error</span>'}
+                    cols[col] = {
+                        "value": val,
+                        "html": '<span style="background-color:#d4351c;color:white;padding:2px 8px;border-radius:3px;">error</span>',
+                    }
                 else:
                     cols[col] = {"value": val}
             issue_rows.append({"columns": cols})

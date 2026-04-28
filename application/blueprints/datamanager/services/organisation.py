@@ -125,10 +125,7 @@ def get_org_entity_lookup() -> dict:
     Cached for 10 minutes.
     """
     now = time.monotonic()
-    if (
-        _org_entity_cache["data"] is not None
-        and now < _org_entity_cache["expires_at"]
-    ):
+    if _org_entity_cache["data"] is not None and now < _org_entity_cache["expires_at"]:
         return _org_entity_cache["data"]
 
     entity_mapping = {}
@@ -153,7 +150,9 @@ def get_org_entity_lookup() -> dict:
     except Exception as e:
         logger.error(f"Failed to fetch organisation entity mapping: {e}", exc_info=True)
         if _org_entity_cache["data"] is not None:
-            logger.warning("Returning stale organisation entity mapping after fetch failure")
+            logger.warning(
+                "Returning stale organisation entity mapping after fetch failure"
+            )
             return _org_entity_cache["data"]
 
     return entity_mapping

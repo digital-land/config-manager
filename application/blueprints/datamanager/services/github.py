@@ -136,7 +136,9 @@ def trigger_add_data_async_workflow(
                 "request_id": request_id,
                 "triggered_by": triggered_by,
                 "branch": github_branch,
-                "retire_endpoints": ','.join(endpoints_to_retire or []) if endpoints_to_retire else "",
+                "retire_endpoints": (
+                    ",".join(endpoints_to_retire or []) if endpoints_to_retire else ""
+                ),
                 "environment": current_app.config.get("ENVIRONMENT"),
             },
         }

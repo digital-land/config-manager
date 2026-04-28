@@ -166,7 +166,9 @@ def check_transform_post(request_id):
     hashes = request.form.getlist("retire_endpoints")
     meta = db.session.get(RequestMeta, request_id)
     if meta is None:
-        meta = RequestMeta(request_id=request_id, endpoints_to_retire=json.dumps(hashes))
+        meta = RequestMeta(
+            request_id=request_id, endpoints_to_retire=json.dumps(hashes)
+        )
         db.session.add(meta)
     else:
         meta.endpoints_to_retire = json.dumps(hashes)
