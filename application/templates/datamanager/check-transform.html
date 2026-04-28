@@ -9,7 +9,7 @@
     <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 10px 0 10px;">
     <h1 class="govuk-heading-xl" style="margin-bottom: 10px;">Data Submission Assessment</h1>
     <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 0 0 20px;">
-    <p id="tab-desc-entities" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4">All entities for this dataset and organisation, with new additions highlighted in green.</p>
+    <p id="tab-desc-entities" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4">All entities for this dataset and organisation, with new additions highlighted in <span style="color: #00703c; font-weight: bold;">green</span> and existing entities also present in this resource highlighted in <span style="color: #d4692a; font-weight: bold;">orange</span>.</p>
     <p id="tab-desc-transformed" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4" style="display:none;">The individual facts extracted from the submitted data by the pipeline <b>with entity lookup enabled</b>.</p>
     <p id="tab-desc-issue-log" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4" style="display:none;">Any issues the pipeline raised while processing the data.</p>
 
@@ -41,7 +41,7 @@
             </thead>
             <tbody class="govuk-table__body">
               {% for row in entities_data.rows %}
-              <tr class="govuk-table__row" {% if row.is_new %}style="background-color: #d4edda;"{% endif %}>
+              <tr class="govuk-table__row" {% if row.is_in_both %}style="background-color: #ffd8b0;"{% elif row.is_new %}style="background-color: #d4edda;"{% endif %}>
                 {% for col in entities_data.columns %}
                 <td class="govuk-table__cell app-wrap">
                   {% set val = row.fields[col] %}
@@ -138,8 +138,8 @@
             <div class="govuk-checkboxes__item">
               <input class="govuk-checkboxes__input" id="retire-endpoint-{{ loop.index }}" name="retire_endpoints" type="checkbox" value="{{ ep_hash }}">
               <label class="govuk-label govuk-checkboxes__label" for="retire-endpoint-{{ loop.index }}">
-                <code>{{ ep_url }}</code>
-                <span class="govuk-hint govuk-!-margin-bottom-0" style="font-size: 0.8rem;">{{ ep_hash }}</span>
+                <code style="word-break: break-all;">{{ ep_url }}</code>
+                <span class="govuk-hint govuk-!-margin-bottom-0" style="font-size: 0.8rem; word-break: break-all;">{{ ep_hash }}</span>
               </label>
             </div>
             {% endfor %}

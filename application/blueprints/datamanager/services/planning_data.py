@@ -22,6 +22,7 @@ def get_entities_for_organisation_and_dataset(
         f"?organisation_entity={organisation_entity}"
         f"&dataset={dataset}"
         f"&quality=authoritative"
+        f"&limit=100"
     )
 
     entities = []
@@ -42,7 +43,7 @@ def get_entities_for_organisation_and_dataset(
 
         entities.extend(data.get("entities", []))
 
-        next_url = data.get("next")
+        next_url = (data.get("links") or {}).get("next")
         if next_url:
             if next_url.startswith("/"):
                 url = f"{planning_url.rstrip('/')}{next_url}"

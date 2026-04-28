@@ -37,6 +37,15 @@ _ENTITY_COL_EXCLUDE = {"geometry", "point", "typology", "prefix"}
 _ENTITY_COL_PRIORITY = ["entity", "reference", "name"]
 
 
+def _normalise_entity_id(raw) -> str:
+    if raw is None or raw == "":
+        return ""
+    try:
+        return str(int(float(str(raw))))
+    except (ValueError, TypeError):
+        return str(raw)
+
+
 def build_entities_data(resp_details: list, platform_entities: list) -> dict:
     """
     Pivot transformed facts from resp_details by entity and combine with
@@ -46,14 +55,15 @@ def build_entities_data(resp_details: list, platform_entities: list) -> dict:
     pivoted = defaultdict(dict)
     for item in resp_details:
         tr = item.get("transformed_row") or {}
-        entity_id = str(tr.get("entity", ""))
+        entity_id = _normalise_entity_id(tr.get("entity", ""))
         field = tr.get("field", "")
         value = tr.get("value", "")
         if entity_id and field:
             pivoted[entity_id][field] = value
 
-    platform_entity_ids = {str(e.get("entity", "")) for e in platform_entities}
+    platform_entity_ids = {_normalise_entity_id(e.get("entity", "")) for e in platform_entities}
     new_entity_ids = set(pivoted.keys()) - platform_entity_ids
+    in_both_ids = set(pivoted.keys()) & platform_entity_ids
 
     all_col_keys = set(_ENTITY_COL_PRIORITY)
     for fields in pivoted.values():
@@ -68,12 +78,14 @@ def build_entities_data(resp_details: list, platform_entities: list) -> dict:
         rows.append({
             "fields": {col: (entity_id if col == "entity" else str(fields.get(col, ""))) for col in columns},
             "is_new": entity_id in new_entity_ids,
+            "is_in_both": entity_id in in_both_ids,
         })
     for e in platform_entities:
         if str(e.get("entity", "")) not in pivoted:
             rows.append({
                 "fields": {col: str(e.get(col, "")) for col in columns},
                 "is_new": False,
+                "is_in_both": False,
             })
 
     return {"columns": columns, "rows": rows}
