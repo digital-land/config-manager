@@ -136,7 +136,8 @@ def trigger_add_data_async_workflow(
                 "request_id": request_id,
                 "triggered_by": triggered_by,
                 "branch": github_branch,
-                "endpoints_to_retire": endpoints_to_retire or [],
+                "retire_endpoints": endpoints_to_retire or [],
+                "api_base_url": current_app.config.get("ENVIRONMENT"),
             },
         }
 
