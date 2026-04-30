@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 
-from flask import render_template
+from flask import render_template, request as flask_request
 
 from . import ControllerError
 from ..services.async_api import fetch_response_details
@@ -35,6 +35,7 @@ _ISSUE_COLS = [
 
 _ENTITY_COL_EXCLUDE = {"geometry", "point", "typology", "prefix"}
 _ENTITY_COL_PRIORITY = ["entity", "reference", "name"]
+_ENTITY_ROWS_PER_PAGE = 5000
 
 
 def _normalise_entity_id(raw) -> str:
@@ -131,7 +132,12 @@ def handle_check_transform(request_id, req):
             dataset_display=dataset_display,
         )
 
-    resp_details = fetch_response_details(request_id)
+    entity_page = max(1, int(flask_request.args.get("entity_page", 1)))
+    start_offset = (entity_page - 1) * _ENTITY_ROWS_PER_PAGE
+    resp_details = fetch_response_details(
+        request_id, start_offset=start_offset, max_rows=_ENTITY_ROWS_PER_PAGE
+    )
+    has_next_entity_page = len(resp_details) >= _ENTITY_ROWS_PER_PAGE
 
     response_payload = req.get("response") or {}
     response_data = response_payload.get("data") or {}
@@ -239,4 +245,6 @@ def handle_check_transform(request_id, req):
         existing_endpoints=existing_endpoints,
         entity_growth_check=entity_growth_check,
         entities_data=entities_data,
+        entity_page=entity_page,
+        has_next_entity_page=has_next_entity_page,
     )

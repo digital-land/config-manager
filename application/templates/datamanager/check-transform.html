@@ -53,6 +53,17 @@
             </tbody>
           </table>
         </div>
+        <nav class="govuk-!-margin-top-4" aria-label="Entity pages">
+          {% if entity_page > 1 %}
+          <a href="{{ url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page - 1) }}"
+             class="govuk-button govuk-button--secondary govuk-!-margin-right-2">Previous page</a>
+          {% endif %}
+          {% if has_next_entity_page %}
+          <a href="{{ url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page + 1) }}"
+             class="govuk-button govuk-button--secondary">Next page</a>
+          {% endif %}
+          <p class="govuk-body govuk-!-margin-top-2">Page {{ entity_page }}{% if has_next_entity_page %} — more entities on the next page{% endif %}</p>
+        </nav>
         {% else %}
         <p class="govuk-body">No entities to display.</p>
         {% endif %}
@@ -63,6 +74,17 @@
         <div class="app-scrollable-container app-scrollable">
           {{ table(transformed_table) }}
         </div>
+        <nav class="govuk-!-margin-top-4" aria-label="Transformed rows pages">
+          {% if entity_page > 1 %}
+          <a href="{{ url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page - 1) }}#transformed-table"
+             class="govuk-button govuk-button--secondary govuk-!-margin-right-2">Previous page</a>
+          {% endif %}
+          {% if has_next_entity_page %}
+          <a href="{{ url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page + 1) }}#transformed-table"
+             class="govuk-button govuk-button--secondary">Next page</a>
+          {% endif %}
+          <p class="govuk-body govuk-!-margin-top-2">Page {{ entity_page }}{% if has_next_entity_page %} — more rows on the next page{% endif %}</p>
+        </nav>
         {% else %}
         <p class="govuk-body">No transformed rows to display.</p>
         {% endif %}

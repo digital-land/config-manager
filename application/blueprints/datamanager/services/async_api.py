@@ -79,21 +79,36 @@ def fetch_request(request_id: str) -> dict:
     return response.json() or {}
 
 
-def fetch_response_details(request_id: str, limit: int = 1000) -> list:
+def fetch_response_details(
+    request_id: str,
+    limit: int = 100,
+    start_offset: int = 0,
+    max_rows: int = None,
+) -> list:
     """
-    Fetch all response details for a request, handling pagination.
+    Fetch response details for a request, handling pagination.
 
-    Makes repeated GET requests with offset/limit until all pages are fetched.
-    Returns the aggregated list of response detail items.
+    start_offset / max_rows allow fetching a bounded slice of rows so that
+    large datasets can be paged server-side without timing out.
     """
     all_details = []
-    offset = 0
-    logger.info(f"Fetching response details for request_id: {request_id}")
+    offset = start_offset
+    logger.info(
+        f"Fetching response details for request_id: {request_id}, "
+        f"start_offset={start_offset}, max_rows={max_rows}"
+    )
 
     while True:
+        if max_rows is not None and len(all_details) >= max_rows:
+            break
+        fetch_limit = (
+            min(limit, max_rows - len(all_details))
+            if max_rows is not None
+            else limit
+        )
         try:
             url = get_async_response_details_url(request_id)
-            params = {"offset": offset, "limit": limit}
+            params = {"offset": offset, "limit": fetch_limit}
             logger.debug(f"Fetching batch - URL: {url}, Params: {params}")
 
             response = requests.get(url, params=params, timeout=REQUESTS_TIMEOUT)
@@ -129,11 +144,11 @@ def fetch_response_details(request_id: str, limit: int = 1000) -> list:
 
             all_details.extend(batch)
 
-            if len(batch) < limit:
+            if len(batch) < fetch_limit:
                 logger.info(f"Last batch received - Total items: {len(all_details)}")
                 break
 
-            offset += limit
+            offset += fetch_limit
 
         except Exception as e:
             logger.error(f"Failed to fetch batch at offset {offset}: {e}")
