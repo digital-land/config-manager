@@ -79,7 +79,7 @@ def fetch_request(request_id: str) -> dict:
     return response.json() or {}
 
 
-def fetch_response_details(request_id: str, limit: int = 50) -> list:
+def fetch_response_details(request_id: str, limit: int = 1000) -> list:
     """
     Fetch all response details for a request, handling pagination.
 
