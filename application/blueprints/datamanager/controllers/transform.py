@@ -1,5 +1,4 @@
 import logging
-from collections import defaultdict
 
 from flask import render_template, request as flask_request
 
@@ -35,7 +34,7 @@ _ISSUE_COLS = [
 
 _ENTITY_COL_EXCLUDE = {"geometry", "point", "typology", "prefix"}
 _ENTITY_COL_PRIORITY = ["entity", "reference", "name"]
-_ENTITY_ROWS_PER_PAGE = 5000
+_ROWS_PER_PAGE = 500
 
 
 def _normalise_entity_id(raw) -> str:
@@ -53,14 +52,19 @@ def build_entities_data(resp_details: list, platform_entities: list) -> dict:
     platform entities. Returns a dict with 'columns' and 'rows', where each
     row has 'fields' (dict) and 'is_new' (bool).
     """
-    pivoted = defaultdict(dict)
+    pivoted = {}
     for item in resp_details:
-        tr = item.get("transformed_row") or {}
-        entity_id = _normalise_entity_id(tr.get("entity", ""))
-        field = tr.get("field", "")
-        value = tr.get("value", "")
-        if entity_id and field:
-            pivoted[entity_id][field] = value
+        facts = item.get("transformed_row") or []
+        if not isinstance(facts, list) or not facts:
+            continue
+        entity_id = _normalise_entity_id(facts[0].get("entity", ""))
+        if not entity_id:
+            continue
+        pivoted[entity_id] = {
+            fact.get("field", ""): fact.get("value", "")
+            for fact in facts
+            if fact.get("field")
+        }
 
     platform_entity_ids = {
         _normalise_entity_id(e.get("entity", "")) for e in platform_entities
@@ -132,12 +136,13 @@ def handle_check_transform(request_id, req):
             dataset_display=dataset_display,
         )
 
-    entity_page = max(1, int(flask_request.args.get("entity_page", 1)))
-    start_offset = (entity_page - 1) * _ENTITY_ROWS_PER_PAGE
+    page_number = max(1, int(flask_request.args.get("page_number", 1)))
+    start_offset = (page_number - 1) * _ROWS_PER_PAGE
     resp_details = fetch_response_details(
-        request_id, start_offset=start_offset, max_rows=_ENTITY_ROWS_PER_PAGE
+        request_id, start_offset=start_offset, max_rows=_ROWS_PER_PAGE
     )
-    has_next_entity_page = len(resp_details) >= _ENTITY_ROWS_PER_PAGE
+    has_next_page = len(resp_details) >= _ROWS_PER_PAGE
+
 
     response_payload = req.get("response") or {}
     response_data = response_payload.get("data") or {}
@@ -189,19 +194,22 @@ def handle_check_transform(request_id, req):
 
     transform_rows = []
     for item in resp_details:
-        tr = item.get("transformed_row") or {}
-        row = {
-            "entry_number": str(item.get("entry_number", "")),
-            "entity": str(tr.get("entity", "")),
-            "field": str(tr.get("field", "")),
-            "value": str(tr.get("value", "")),
-            "start-date": str(tr.get("start-date", "")),
-            "end-date": str(tr.get("end-date", "")),
-            "reference-entity": str(tr.get("reference-entity", "")),
-        }
-        transform_rows.append(
-            {"columns": {c: {"value": row[c]} for c in _TRANSFORM_COLS}}
-        )
+        entry_number = str(item.get("entry_number", ""))
+        for fact in item.get("transformed_row") or []:
+            if not isinstance(fact, dict):
+                continue
+            row = {
+                "entry_number": entry_number,
+                "entity": str(fact.get("entity", "")),
+                "field": str(fact.get("field", "")),
+                "value": str(fact.get("value", "")),
+                "start-date": str(fact.get("start-date", "")),
+                "end-date": str(fact.get("end-date", "")),
+                "reference-entity": str(fact.get("reference-entity", "")),
+            }
+            transform_rows.append(
+                {"columns": {c: {"value": row[c]} for c in _TRANSFORM_COLS}}
+            )
 
     transformed_table = {
         "columns": _TRANSFORM_COLS,
@@ -245,6 +253,6 @@ def handle_check_transform(request_id, req):
         existing_endpoints=existing_endpoints,
         entity_growth_check=entity_growth_check,
         entities_data=entities_data,
-        entity_page=entity_page,
-        has_next_entity_page=has_next_entity_page,
+        page_number=page_number,
+        has_next_page=has_next_page,
     )

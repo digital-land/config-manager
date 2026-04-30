@@ -21,11 +21,9 @@
         <li class="govuk-tabs__list-item">
           <a class="govuk-tabs__tab" href="#transformed-table">Transformed</a>
         </li>
-        {% if issue_log_table and issue_log_table.rows %}
         <li class="govuk-tabs__list-item">
           <a class="govuk-tabs__tab" href="#issue-log-table">Issue logs</a>
         </li>
-        {% endif %}
       </ul>
 
       <div class="govuk-tabs__panel" id="entities-table">
@@ -53,17 +51,6 @@
             </tbody>
           </table>
         </div>
-        <nav class="govuk-!-margin-top-4" aria-label="Entity pages">
-          {% if entity_page > 1 %}
-          <a href="{{ url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page - 1) }}"
-             class="govuk-button govuk-button--secondary govuk-!-margin-right-2">Previous page</a>
-          {% endif %}
-          {% if has_next_entity_page %}
-          <a href="{{ url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page + 1) }}"
-             class="govuk-button govuk-button--secondary">Next page</a>
-          {% endif %}
-          <p class="govuk-body govuk-!-margin-top-2">Page {{ entity_page }}{% if has_next_entity_page %} — more entities on the next page{% endif %}</p>
-        </nav>
         {% else %}
         <p class="govuk-body">No entities to display.</p>
         {% endif %}
@@ -74,30 +61,33 @@
         <div class="app-scrollable-container app-scrollable">
           {{ table(transformed_table) }}
         </div>
-        <nav class="govuk-!-margin-top-4" aria-label="Transformed rows pages">
-          {% if entity_page > 1 %}
-          <a href="{{ url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page - 1) }}#transformed-table"
-             class="govuk-button govuk-button--secondary govuk-!-margin-right-2">Previous page</a>
-          {% endif %}
-          {% if has_next_entity_page %}
-          <a href="{{ url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page + 1) }}#transformed-table"
-             class="govuk-button govuk-button--secondary">Next page</a>
-          {% endif %}
-          <p class="govuk-body govuk-!-margin-top-2">Page {{ entity_page }}{% if has_next_entity_page %} — more rows on the next page{% endif %}</p>
-        </nav>
         {% else %}
         <p class="govuk-body">No transformed rows to display.</p>
         {% endif %}
       </div>
 
-      {% if issue_log_table and issue_log_table.rows %}
       <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="issue-log-table">
+        {% if issue_log_table and issue_log_table.rows %}
         <div class="app-scrollable-container app-scrollable">
           {{ table(issue_log_table) }}
         </div>
+        {% else %}
+        <p class="govuk-body">No issues on this page.</p>
+        {% endif %}
       </div>
-      {% endif %}
     </div>
+
+    <nav class="govuk-!-margin-top-4" style="display: flex; align-items: center; gap: 12px;" aria-label="Data pages">
+      {% if page_number > 1 %}
+      <a href="{{ url_for('datamanager.check_transform', request_id=request_id, page_number=page_number - 1) }}"
+         class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0">Previous page</a>
+      {% endif %}
+      {% if has_next_page %}
+      <a href="{{ url_for('datamanager.check_transform', request_id=request_id, page_number=page_number + 1) }}"
+         class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0">Next page</a>
+      {% endif %}
+      <span class="govuk-body govuk-!-margin-bottom-0">Page {{ page_number }}</span>
+    </nav>
 
     {% set _is_error = entity_growth_check.error %}
     <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid {{ '#d4351c' if _is_error else '#00703c' }};">
