@@ -52,6 +52,11 @@ class Config:
         "https://raw.githubusercontent.com/digital-land/specification/refs/heads/main/specification/dataset-field.csv",
     )
 
+    # Dataset and collection specification
+    DATASET_CSV_URL = os.getenv(
+        "DATASET_CSV_URL",
+        "https://raw.githubusercontent.com/digital-land/specification/refs/heads/main/specification/dataset.csv",
+    )
 
 class DevelopmentConfig(Config):
     DEBUG = True
