@@ -145,7 +145,10 @@ def handle_check_transform(request_id, req):
     resp_details = all_resp_details[start_offset : start_offset + _ROWS_PER_PAGE]
     page_start = start_offset + 1
     page_end = start_offset + len(resp_details)
+    has_next_page = len(all_resp_details) > start_offset + _ROWS_PER_PAGE
 
+    entity_page = max(1, int(flask_request.args.get("entity_page", 1)))
+    entity_start_offset = (entity_page - 1) * _ROWS_PER_PAGE
 
     response_payload = req.get("response") or {}
     response_data = response_payload.get("data") or {}
@@ -182,7 +185,6 @@ def handle_check_transform(request_id, req):
         if org_entity is not None and not platform_too_large
         else []
     )
-    has_next_page = len(all_resp_details) > start_offset + _ROWS_PER_PAGE
 
     if existing_count > 0:
         growth_pct = round((new_count / existing_count) * 100, 1)
@@ -197,10 +199,16 @@ def handle_check_transform(request_id, req):
         "error": growth_error,
     }
 
+    # Build combined transformed entity data with platform entities and resp details entities, and paginate
+
     entities_data_full = build_entities_data(all_resp_details, platform_entities)
+    has_next_entity_page = len(entities_data_full["rows"]) > entity_start_offset + _ROWS_PER_PAGE
+    entity_page_rows = entities_data_full["rows"][entity_start_offset : entity_start_offset + _ROWS_PER_PAGE]
+    entity_page_start = entity_page_rows[0]["fields"].get("entity", "") if entity_page_rows else ""
+    entity_page_end = entity_page_rows[-1]["fields"].get("entity", "") if entity_page_rows else ""
     entities_data = {
         "columns": entities_data_full["columns"],
-        "rows": entities_data_full["rows"][start_offset : start_offset + _ROWS_PER_PAGE],
+        "rows": entity_page_rows,
     }
 
     # Create tables for transformed data and issue logs, with empty string defaults
@@ -274,4 +282,8 @@ def handle_check_transform(request_id, req):
         has_next_page=has_next_page,
         page_start=page_start,
         page_end=page_end,
+        entity_page=entity_page,
+        has_next_entity_page=has_next_entity_page,
+        entity_page_start=entity_page_start,
+        entity_page_end=entity_page_end,
     )

@@ -34,6 +34,26 @@
       "items": pagination_items
     } %}
 
+    {% set entity_window_start = [entity_page - 2, 1] | max %}
+    {% set entity_pagination_items = [] %}
+    {% if entity_window_start > 1 %}
+      {% set _ = entity_pagination_items.append({"number": 1, "href": url_for('datamanager.check_transform', request_id=request_id, entity_page=1)}) %}
+      {% if entity_window_start > 2 %}
+        {% set _ = entity_pagination_items.append({"ellipsis": true}) %}
+      {% endif %}
+    {% endif %}
+    {% for p in range(entity_window_start, entity_page + 1) %}
+      {% set _ = entity_pagination_items.append({"number": p, "current": p == entity_page, "href": url_for('datamanager.check_transform', request_id=request_id, entity_page=p)}) %}
+    {% endfor %}
+    {% if has_next_entity_page %}
+      {% set _ = entity_pagination_items.append({"number": entity_page + 1, "href": url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page + 1)}) %}
+    {% endif %}
+    {% set entity_pagination_params = {
+      "previous": {"href": url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page - 1)} if entity_page > 1 else none,
+      "next": {"href": url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page + 1)} if has_next_entity_page else none,
+      "items": entity_pagination_items
+    } %}
+
     <div class="govuk-tabs" data-module="govuk-tabs">
       <ul class="govuk-tabs__list">
         <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
@@ -80,8 +100,8 @@
         <p class="govuk-body">No entities to display.</p>
         {% endif %}
         {% if not platform_too_large %}
-        <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
-        {{ govukPagination(pagination_params) }}
+        <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entities {{ entity_page_start }} to {{ entity_page_end }}</p>
+        {{ govukPagination(entity_pagination_params) }}
         {% endif %}
       </div>
 
