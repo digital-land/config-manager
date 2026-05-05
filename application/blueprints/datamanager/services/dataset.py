@@ -6,7 +6,6 @@ from io import StringIO
 import requests
 from flask import current_app
 
-from ..config import get_datasets_url
 from ..utils import REQUESTS_TIMEOUT
 
 logger = logging.getLogger(__name__)
@@ -19,6 +18,12 @@ CACHE_TTL_SECONDS = 300  # 5 minutes
 
 
 def _get_datasets():
+    """Internal: fetch and cache dataset maps.
+
+    Dataset list is sourced from the provision CSV (ground truth for supported
+    datasets). Display name and collection are enriched from the specification CSV.
+    """
+
     now = time.monotonic()
     if _cache["data"] is not None and now < _cache["expires_at"]:
         return _cache["data"]
@@ -58,9 +63,7 @@ def _get_datasets():
         dataset_id_to_name = {}
         for dataset_id in provision_dataset_ids:
             spec_entry = spec_lookup.get(dataset_id)
-            name = (
-                spec_entry.get("name") if spec_entry else None
-            ) or dataset_id
+            name = (spec_entry.get("name") if spec_entry else None) or dataset_id
             collection = (
                 spec_entry.get("collection") if spec_entry else None
             ) or dataset_id
@@ -85,8 +88,9 @@ def _get_datasets():
     )
     _cache["data"] = result
     _cache["expires_at"] = now + CACHE_TTL_SECONDS
-    
+
     return result
+
 
 def get_dataset_options() -> list:
     """Return sorted list of dataset names for autocomplete."""

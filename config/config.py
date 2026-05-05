@@ -58,6 +58,7 @@ class Config:
         "https://raw.githubusercontent.com/digital-land/specification/refs/heads/main/specification/dataset.csv",
     )
 
+
 class DevelopmentConfig(Config):
     DEBUG = True
     ENV = "development"
