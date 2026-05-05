@@ -26,12 +26,12 @@ COMPLETED_TRANSFORM_REQUEST = {
 RESPONSE_DETAILS = [
     {
         "entry_number": 1,
-        "transformed_row": {"entity": 100, "field": "name", "value": "Area A"},
+        "transformed_row": [{"entity": 100, "field": "name", "value": "Area A"}],
         "issue_logs": [],
     },
     {
         "entry_number": 2,
-        "transformed_row": {"entity": 101, "field": "name", "value": "Area B"},
+        "transformed_row": [{"entity": 101, "field": "name", "value": "Area B"}],
         "issue_logs": [],
     },
 ]
@@ -350,7 +350,7 @@ class TestBuildEntitiesData:
     def _make_detail(self, entity, field, value):
         return {
             "entry_number": 1,
-            "transformed_row": {"entity": entity, "field": field, "value": value},
+            "transformed_row": [{"entity": entity, "field": field, "value": value}],
             "issue_logs": [],
         }
 

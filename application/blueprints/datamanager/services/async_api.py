@@ -105,9 +105,7 @@ def fetch_response_details(
         if max_rows is not None and len(all_details) >= max_rows:
             break
         fetch_limit = (
-            min(limit, max_rows - len(all_details))
-            if max_rows is not None
-            else limit
+            min(limit, max_rows - len(all_details)) if max_rows is not None else limit
         )
         try:
             url = get_async_response_details_url(request_id)

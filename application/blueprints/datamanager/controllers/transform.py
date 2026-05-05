@@ -202,10 +202,18 @@ def handle_check_transform(request_id, req):
     # Build combined transformed entity data with platform entities and resp details entities, and paginate
 
     entities_data_full = build_entities_data(all_resp_details, platform_entities)
-    has_next_entity_page = len(entities_data_full["rows"]) > entity_start_offset + _ROWS_PER_PAGE
-    entity_page_rows = entities_data_full["rows"][entity_start_offset : entity_start_offset + _ROWS_PER_PAGE]
-    entity_page_start = entity_page_rows[0]["fields"].get("entity", "") if entity_page_rows else ""
-    entity_page_end = entity_page_rows[-1]["fields"].get("entity", "") if entity_page_rows else ""
+    has_next_entity_page = (
+        len(entities_data_full["rows"]) > entity_start_offset + _ROWS_PER_PAGE
+    )
+    entity_page_rows = entities_data_full["rows"][
+        entity_start_offset : entity_start_offset + _ROWS_PER_PAGE
+    ]
+    entity_page_start = (
+        entity_page_rows[0]["fields"].get("entity", "") if entity_page_rows else ""
+    )
+    entity_page_end = (
+        entity_page_rows[-1]["fields"].get("entity", "") if entity_page_rows else ""
+    )
     entities_data = {
         "columns": entities_data_full["columns"],
         "rows": entity_page_rows,
