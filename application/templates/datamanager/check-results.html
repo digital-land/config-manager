@@ -32,19 +32,26 @@
     {% endif %}
 
     <!-- Converted / Transformed data tables -->
-    {{ dataTables(converted_table, transformed_table, issue_log_table) }}
-
-    <nav class="govuk-!-margin-top-4" style="display: flex; align-items: center; gap: 12px;" aria-label="Data pages">
-      {% if page_number > 1 %}
-      <a href="{{ url_for('datamanager.check_results', request_id=request_id, page_number=page_number - 1) }}"
-         class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0">Previous page</a>
+    {% set window_start = [page_number - 2, 1] | max %}
+    {% set pagination_items = [] %}
+    {% if window_start > 1 %}
+      {% set _ = pagination_items.append({"number": 1, "href": url_for('datamanager.check_results', request_id=request_id, page_number=1)}) %}
+      {% if window_start > 2 %}
+        {% set _ = pagination_items.append({"ellipsis": true}) %}
       {% endif %}
-      {% if has_next_page %}
-      <a href="{{ url_for('datamanager.check_results', request_id=request_id, page_number=page_number + 1) }}"
-         class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0">Next page</a>
-      {% endif %}
-      <span class="govuk-body govuk-!-margin-bottom-0">Page {{ page_number }}</span>
-    </nav>
+    {% endif %}
+    {% for p in range(window_start, page_number + 1) %}
+      {% set _ = pagination_items.append({"number": p, "current": p == page_number, "href": url_for('datamanager.check_results', request_id=request_id, page_number=p)}) %}
+    {% endfor %}
+    {% if has_next_page %}
+      {% set _ = pagination_items.append({"number": page_number + 1, "href": url_for('datamanager.check_results', request_id=request_id, page_number=page_number + 1)}) %}
+    {% endif %}
+    {% set pagination_params = {
+      "previous": {"href": url_for('datamanager.check_results', request_id=request_id, page_number=page_number - 1)} if page_number > 1 else none,
+      "next": {"href": url_for('datamanager.check_results', request_id=request_id, page_number=page_number + 1)} if has_next_page else none,
+      "items": pagination_items
+    } %}
+    {{ dataTables(converted_table, transformed_table, issue_log_table, pagination_params=pagination_params, page_start=page_start, page_end=page_end) }}
 
     <!-- Metadata & Results -->
     <div class="govuk-grid-row govuk-!-margin-top-6">

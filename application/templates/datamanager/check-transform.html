@@ -1,5 +1,6 @@
 {% extends 'layouts/base.html' %}
 {% from "components/table.html" import table %}
+{% from "govuk_frontend_jinja/components/pagination/macro.html" import govukPagination %}
 
 {% block content %}
 <div class="govuk-grid-row">
@@ -12,6 +13,26 @@
     <p id="tab-desc-entities" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4">All entities for this dataset and organisation, with new additions highlighted in <span style="color: #00703c; font-weight: bold;">green</span> and existing entities also present in this resource highlighted in <span style="color: #d4692a; font-weight: bold;">orange</span>.</p>
     <p id="tab-desc-transformed" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4" style="display:none;">The individual facts extracted from the submitted data by the pipeline <b>with entity lookup enabled</b>.</p>
     <p id="tab-desc-issue-log" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4" style="display:none;">Any issues the pipeline raised while processing the data.</p>
+
+    {% set window_start = [page_number - 2, 1] | max %}
+    {% set pagination_items = [] %}
+    {% if window_start > 1 %}
+      {% set _ = pagination_items.append({"number": 1, "href": url_for('datamanager.check_transform', request_id=request_id, page_number=1)}) %}
+      {% if window_start > 2 %}
+        {% set _ = pagination_items.append({"ellipsis": true}) %}
+      {% endif %}
+    {% endif %}
+    {% for p in range(window_start, page_number + 1) %}
+      {% set _ = pagination_items.append({"number": p, "current": p == page_number, "href": url_for('datamanager.check_transform', request_id=request_id, page_number=p)}) %}
+    {% endfor %}
+    {% if has_next_page %}
+      {% set _ = pagination_items.append({"number": page_number + 1, "href": url_for('datamanager.check_transform', request_id=request_id, page_number=page_number + 1)}) %}
+    {% endif %}
+    {% set pagination_params = {
+      "previous": {"href": url_for('datamanager.check_transform', request_id=request_id, page_number=page_number - 1)} if page_number > 1 else none,
+      "next": {"href": url_for('datamanager.check_transform', request_id=request_id, page_number=page_number + 1)} if has_next_page else none,
+      "items": pagination_items
+    } %}
 
     <div class="govuk-tabs" data-module="govuk-tabs">
       <ul class="govuk-tabs__list">
@@ -27,7 +48,11 @@
       </ul>
 
       <div class="govuk-tabs__panel" id="entities-table">
-        {% if entities_data and entities_data.rows %}
+        {% if platform_too_large %}
+        <div class="govuk-inset-text">
+          <p class="govuk-body">There are {{ existing_count | commanum }} existing entities on the platform for this dataset. Comparison between the resource and platform is disabled for datasets this large.</p>
+        </div>
+        {% elif entities_data and entities_data.rows %}
         <div class="app-scrollable-container app-scrollable">
           <table class="govuk-table dl-table app-table">
             <thead class="govuk-table__head">
@@ -54,6 +79,10 @@
         {% else %}
         <p class="govuk-body">No entities to display.</p>
         {% endif %}
+        {% if not platform_too_large %}
+        <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
+        {{ govukPagination(pagination_params) }}
+        {% endif %}
       </div>
 
       <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="transformed-table">
@@ -64,6 +93,8 @@
         {% else %}
         <p class="govuk-body">No transformed rows to display.</p>
         {% endif %}
+        <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
+        {{ govukPagination(pagination_params) }}
       </div>
 
       <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="issue-log-table">
@@ -74,20 +105,10 @@
         {% else %}
         <p class="govuk-body">No issues on this page.</p>
         {% endif %}
+        <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
+        {{ govukPagination(pagination_params) }}
       </div>
     </div>
-
-    <nav class="govuk-!-margin-top-4" style="display: flex; align-items: center; gap: 12px;" aria-label="Data pages">
-      {% if page_number > 1 %}
-      <a href="{{ url_for('datamanager.check_transform', request_id=request_id, page_number=page_number - 1) }}"
-         class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0">Previous page</a>
-      {% endif %}
-      {% if has_next_page %}
-      <a href="{{ url_for('datamanager.check_transform', request_id=request_id, page_number=page_number + 1) }}"
-         class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0">Next page</a>
-      {% endif %}
-      <span class="govuk-body govuk-!-margin-bottom-0">Page {{ page_number }}</span>
-    </nav>
 
     {% set _is_error = entity_growth_check.error %}
     <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid {{ '#d4351c' if _is_error else '#00703c' }};">

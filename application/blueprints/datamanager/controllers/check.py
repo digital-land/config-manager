@@ -80,6 +80,8 @@ def handle_check_results(request_id, result):
         request_id, start_offset=start_offset, max_rows=_ROWS_PER_PAGE
     )
     has_next_page = len(resp_details) >= _ROWS_PER_PAGE
+    page_start = start_offset + 1
+    page_end = start_offset + len(resp_details)
 
     # Geometry mapping creation
     geometries = []
@@ -218,6 +220,8 @@ def handle_check_results(request_id, result):
         spec_fields=sorted(spec_fields),
         page_number=page_number,
         has_next_page=has_next_page,
+        page_start=page_start,
+        page_end=page_end,
     )
 
 

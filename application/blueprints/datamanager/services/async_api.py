@@ -3,6 +3,8 @@ import logging
 
 import requests
 
+from application.extensions import cache
+
 from ..config import (
     get_async_request_url,
     get_async_requests_url,
@@ -79,6 +81,7 @@ def fetch_request(request_id: str) -> dict:
     return response.json() or {}
 
 
+@cache.memoize(timeout=3600)
 def fetch_response_details(
     request_id: str,
     limit: int = 100,

@@ -32,6 +32,9 @@ class Config:
     CONFIG_REPO_BRANCH = os.getenv("CONFIG_REPO_BRANCH", "config-manager-update")
     ENVIRONMENT = os.getenv("ENVIRONMENT", "local").lower()
 
+    CACHE_TYPE = "SimpleCache"
+    CACHE_DEFAULT_TIMEOUT = 300
+
     # Planning Data base URL
     PLANNING_BASE_URL = os.getenv("PLANNING_URL", "https://www.planning.data.gov.uk")
 

@@ -154,7 +154,9 @@ def register_extensions(app):
     """
     Import and register flask extensions and initialize with app object
     """
-    from application.extensions import db, migrate, oauth, talisman
+    from application.extensions import cache, db, migrate, oauth, talisman
+
+    cache.init_app(app)
 
     db.init_app(app)
     migrate.init_app(app)
