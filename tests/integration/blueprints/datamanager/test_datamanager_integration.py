@@ -407,7 +407,11 @@ class TestEntityPagination:
             {
                 "entry_number": i,
                 "transformed_row": [
-                    {"entity": start_entity + i, "field": "name", "value": f"Area {start_entity + i}"}
+                    {
+                        "entity": start_entity + i,
+                        "field": "name",
+                        "value": f"Area {start_entity + i}",
+                    }
                 ],
                 "issue_logs": [],
             }
@@ -418,14 +422,31 @@ class TestEntityPagination:
     def test_entity_colours_new_both_and_platform_only(self, client):
         """Entity 123 (resource only) = green, 125 (both) = orange, 124 (platform only) = no highlight."""
         details = [
-            {"entry_number": 1, "transformed_row": [{"entity": 123, "field": "name", "value": "New Area"}], "issue_logs": []},
-            {"entry_number": 2, "transformed_row": [{"entity": 125, "field": "name", "value": "Shared Area"}], "issue_logs": []},
+            {
+                "entry_number": 1,
+                "transformed_row": [
+                    {"entity": 123, "field": "name", "value": "New Area"}
+                ],
+                "issue_logs": [],
+            },
+            {
+                "entry_number": 2,
+                "transformed_row": [
+                    {"entity": 125, "field": "name", "value": "Shared Area"}
+                ],
+                "issue_logs": [],
+            },
         ]
         platform_entities = [
             {"entity": 124, "name": "Platform Only Area"},
             {"entity": 125, "name": "Shared Area"},
         ]
-        rsps.add(rsps.GET, f"{ASYNC_BASE}/test-id", json=COMPLETED_TRANSFORM_REQUEST, status=200)
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/test-id",
+            json=COMPLETED_TRANSFORM_REQUEST,
+            status=200,
+        )
         with patch(
             "application.blueprints.datamanager.controllers.transform.fetch_response_details",
             return_value=details,
@@ -443,14 +464,18 @@ class TestEntityPagination:
                         return_value=400,
                     ):
                         with patch(
-                            "application.blueprints.datamanager.controllers.transform.get_entity_count_for_organisation_and_dataset",
+                            "application.blueprints.datamanager.controllers"
+                            ".transform.get_entity_count_for_organisation_and_dataset",
                             return_value=2,
                         ):
                             with patch(
-                                "application.blueprints.datamanager.controllers.transform.get_entities_for_organisation_and_dataset",
+                                "application.blueprints.datamanager.controllers"
+                                ".transform.get_entities_for_organisation_and_dataset",
                                 return_value=platform_entities,
                             ):
-                                response = client.get("/datamanager/check-transform/test-id")
+                                response = client.get(
+                                    "/datamanager/check-transform/test-id"
+                                )
         html = response.data.decode()
         # Entity 123 (resource only) row should be green
         assert "#d4edda" in html
@@ -458,13 +483,20 @@ class TestEntityPagination:
         assert "#ffd8b0" in html
         # Entity 124 (platform only) appears but with no highlight colour
         assert "Platform Only Area" in html
-        rows_with_colour = [line for line in html.splitlines() if "#d4edda" in line or "#ffd8b0" in line]
+        rows_with_colour = [
+            line for line in html.splitlines() if "#d4edda" in line or "#ffd8b0" in line
+        ]
         assert not any("Platform Only Area" in line for line in rows_with_colour)
 
     @rsps.activate
     def test_entity_page_2_shows_later_entities_not_on_page_1(self, client):
         details = self._make_details(600)
-        rsps.add(rsps.GET, f"{ASYNC_BASE}/test-id", json=COMPLETED_TRANSFORM_REQUEST, status=200)
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/test-id",
+            json=COMPLETED_TRANSFORM_REQUEST,
+            status=200,
+        )
         with patch(
             "application.blueprints.datamanager.controllers.transform.fetch_response_details",
             return_value=details,
@@ -481,8 +513,12 @@ class TestEntityPagination:
                         "application.blueprints.datamanager.controllers.transform.get_org_entity",
                         return_value=None,
                     ):
-                        resp1 = client.get("/datamanager/check-transform/test-id?entity_page=1")
-                        resp2 = client.get("/datamanager/check-transform/test-id?entity_page=2")
+                        resp1 = client.get(
+                            "/datamanager/check-transform/test-id?entity_page=1"
+                        )
+                        resp2 = client.get(
+                            "/datamanager/check-transform/test-id?entity_page=2"
+                        )
         # "Showing entities X to Y" text is specific to the entities tab
         assert b"Showing entities 7010000001" in resp1.data
         assert b"Showing entities 7010000501" in resp2.data
@@ -497,7 +533,12 @@ class TestEntityPagination:
             {"entity": 8000000000 + i, "name": f"Platform {8000000000 + i}"}
             for i in range(600)
         ]
-        rsps.add(rsps.GET, f"{ASYNC_BASE}/test-id", json=COMPLETED_TRANSFORM_REQUEST, status=200)
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/test-id",
+            json=COMPLETED_TRANSFORM_REQUEST,
+            status=200,
+        )
         with patch(
             "application.blueprints.datamanager.controllers.transform.fetch_response_details",
             return_value=details,
@@ -515,15 +556,21 @@ class TestEntityPagination:
                         return_value=400,
                     ):
                         with patch(
-                            "application.blueprints.datamanager.controllers.transform.get_entity_count_for_organisation_and_dataset",
+                            "application.blueprints.datamanager.controllers"
+                            ".transform.get_entity_count_for_organisation_and_dataset",
                             return_value=600,
                         ):
                             with patch(
-                                "application.blueprints.datamanager.controllers.transform.get_entities_for_organisation_and_dataset",
+                                "application.blueprints.datamanager.controllers"
+                                ".transform.get_entities_for_organisation_and_dataset",
                                 return_value=platform_entities,
                             ):
-                                resp1 = client.get("/datamanager/check-transform/test-id?entity_page=1")
-                                resp2 = client.get("/datamanager/check-transform/test-id?entity_page=2")
+                                resp1 = client.get(
+                                    "/datamanager/check-transform/test-id?entity_page=1"
+                                )
+                                resp2 = client.get(
+                                    "/datamanager/check-transform/test-id?entity_page=2"
+                                )
         # page 1: 10 resource + 490 platform-only (8000000000–8000000489); page 2: remaining 110
         assert b"Showing entities 7010000001 to 8000000489" in resp1.data
         assert b"Showing entities 8000000490" in resp2.data
@@ -534,7 +581,12 @@ class TestEntityPagination:
     @rsps.activate
     def test_entity_showing_text_uses_entity_ids(self, client):
         details = self._make_details(10, start_entity=7010000100)
-        rsps.add(rsps.GET, f"{ASYNC_BASE}/test-id", json=COMPLETED_TRANSFORM_REQUEST, status=200)
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/test-id",
+            json=COMPLETED_TRANSFORM_REQUEST,
+            status=200,
+        )
         with patch(
             "application.blueprints.datamanager.controllers.transform.fetch_response_details",
             return_value=details,
