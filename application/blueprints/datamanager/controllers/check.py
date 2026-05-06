@@ -36,6 +36,8 @@ from ..utils.configure import (
 
 logger = logging.getLogger(__name__)
 
+_ROWS_PER_PAGE = 500
+
 
 def handle_check_results(request_id, result):
     # Extract org code, TODO bit hacky as submit and manage use this param for code / value
@@ -72,8 +74,14 @@ def handle_check_results(request_id, result):
             error_msg = response_data.get("error").get("errMsg", error_msg)
         raise ControllerError(error_msg)
 
-    # Fetch all response details using multiple calls
-    resp_details = fetch_response_details(request_id)
+    page_number = max(1, int(request.args.get("page_number", 1)))
+    start_offset = (page_number - 1) * _ROWS_PER_PAGE
+    resp_details = fetch_response_details(
+        request_id, start_offset=start_offset, max_rows=_ROWS_PER_PAGE
+    )
+    has_next_page = len(resp_details) >= _ROWS_PER_PAGE
+    page_start = start_offset + 1
+    page_end = start_offset + len(resp_details)
 
     # Geometry mapping creation
     geometries = []
@@ -210,6 +218,10 @@ def handle_check_results(request_id, result):
         request_id=request_id,
         mapping_rows=mapping_rows,
         spec_fields=sorted(spec_fields),
+        page_number=page_number,
+        has_next_page=has_next_page,
+        page_start=page_start,
+        page_end=page_end,
     )
 
 

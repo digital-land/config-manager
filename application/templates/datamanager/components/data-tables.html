@@ -1,5 +1,6 @@
-{% macro dataTables(converted_table, transformed_table, issue_log_table) %}
+{% macro dataTables(converted_table, transformed_table, issue_log_table, pagination_params=none, page_start=none, page_end=none) %}
 {% from "components/table.html" import table %}
+{% from "govuk_frontend_jinja/components/pagination/macro.html" import govukPagination %}
 <div class="govuk-tabs" data-module="govuk-tabs">
   <ul class="govuk-tabs__list">
     <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
@@ -8,11 +9,9 @@
     <li class="govuk-tabs__list-item">
       <a class="govuk-tabs__tab" href="#transformed-table">Transformed</a>
     </li>
-    {% if issue_log_table and issue_log_table.rows %}
     <li class="govuk-tabs__list-item">
       <a class="govuk-tabs__tab" href="#issue-log-table">Issue logs</a>
     </li>
-    {% endif %}
   </ul>
   <div class="govuk-tabs__panel" id="converted-table">
     {% if converted_table.rows %}
@@ -21,6 +20,10 @@
       </div>
     {% else %}
       <p class="govuk-body">No rows to display</p>
+    {% endif %}
+    {% if pagination_params %}
+    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
+    {{ govukPagination(pagination_params) }}
     {% endif %}
   </div>
   <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="transformed-table">
@@ -31,13 +34,23 @@
     {% else %}
       <p class="govuk-body">No rows to display</p>
     {% endif %}
+    {% if pagination_params %}
+    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
+    {{ govukPagination(pagination_params) }}
+    {% endif %}
   </div>
-  {% if issue_log_table and issue_log_table.rows %}
   <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="issue-log-table">
-    <div class="app-scrollable-container app-scrollable">
-      {{ table(issue_log_table) }}
-    </div>
+    {% if issue_log_table and issue_log_table.rows %}
+      <div class="app-scrollable-container app-scrollable">
+        {{ table(issue_log_table) }}
+      </div>
+    {% else %}
+      <p class="govuk-body">No issues on this page.</p>
+    {% endif %}
+    {% if pagination_params %}
+    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
+    {{ govukPagination(pagination_params) }}
+    {% endif %}
   </div>
-  {% endif %}
 </div>
 {% endmacro %}

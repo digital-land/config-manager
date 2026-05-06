@@ -3,11 +3,39 @@ import logging
 import requests
 from flask import current_app
 
+from application.extensions import cache
+
 from ..utils import REQUESTS_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
 
+def get_entity_count_for_organisation_and_dataset(
+    organisation_entity: int | str, dataset: str
+) -> int:
+    """Return the total count of authoritative entities using a single API request."""
+    planning_url = current_app.config.get("PLANNING_BASE_URL")
+    url = (
+        f"{planning_url}/entity.json"
+        f"?organisation_entity={organisation_entity}"
+        f"&dataset={dataset}"
+        f"&quality=authoritative"
+        f"&limit=1"
+    )
+    try:
+        response = requests.get(url, timeout=REQUESTS_TIMEOUT)
+        response.raise_for_status()
+        return response.json().get("count", 0)
+    except Exception as e:
+        logger.error(
+            f"Failed to fetch entity count for organisation_entity="
+            f"{organisation_entity} dataset={dataset}: {e}",
+            exc_info=True,
+        )
+        return 0
+
+
+@cache.memoize(timeout=300)
 def get_entities_for_organisation_and_dataset(
     organisation_entity: int | str, dataset: str
 ) -> list:
@@ -22,7 +50,7 @@ def get_entities_for_organisation_and_dataset(
         f"?organisation_entity={organisation_entity}"
         f"&dataset={dataset}"
         f"&quality=authoritative"
-        f"&limit=100"
+        f"&limit=500"
     )
 
     entities = []

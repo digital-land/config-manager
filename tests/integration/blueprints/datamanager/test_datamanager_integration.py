@@ -26,12 +26,12 @@ COMPLETED_TRANSFORM_REQUEST = {
 RESPONSE_DETAILS = [
     {
         "entry_number": 1,
-        "transformed_row": {"entity": 100, "field": "name", "value": "Area A"},
+        "transformed_row": [{"entity": 100, "field": "name", "value": "Area A"}],
         "issue_logs": [],
     },
     {
         "entry_number": 2,
-        "transformed_row": {"entity": 101, "field": "name", "value": "Area B"},
+        "transformed_row": [{"entity": 101, "field": "name", "value": "Area B"}],
         "issue_logs": [],
     },
 ]
@@ -350,7 +350,7 @@ class TestBuildEntitiesData:
     def _make_detail(self, entity, field, value):
         return {
             "entry_number": 1,
-            "transformed_row": {"entity": entity, "field": field, "value": value},
+            "transformed_row": [{"entity": entity, "field": field, "value": value}],
             "issue_logs": [],
         }
 
@@ -383,3 +383,225 @@ class TestBuildEntitiesData:
     def test_platform_only_entity_appended_to_rows(self):
         result = build_entities_data([], [{"entity": 999, "name": "Only Platform"}])
         assert any(r["fields"]["entity"] == "999" for r in result["rows"])
+
+    def test_platform_only_rows_appended_after_resource_rows(self):
+        details = [self._make_detail(200, "name", "Resource Entity")]
+        platform = [{"entity": 999, "name": "Platform Only"}]
+        result = build_entities_data(details, platform)
+        entities = [r["fields"]["entity"] for r in result["rows"]]
+        assert entities.index("200") < entities.index("999")
+
+    def test_total_row_count_includes_resource_and_platform_only(self):
+        details = [self._make_detail(i, "name", f"Area {i}") for i in range(10)]
+        platform = [{"entity": 100 + i, "name": f"Platform {i}"} for i in range(5)]
+        result = build_entities_data(details, platform)
+        assert len(result["rows"]) == 15
+
+
+class TestEntityPagination:
+    """Entity table paginates over the full combined set (resource + platform-only)
+    independently of the transform/issue log page_number param."""
+
+    def _make_details(self, count, start_entity=7010000001):
+        return [
+            {
+                "entry_number": i,
+                "transformed_row": [
+                    {
+                        "entity": start_entity + i,
+                        "field": "name",
+                        "value": f"Area {start_entity + i}",
+                    }
+                ],
+                "issue_logs": [],
+            }
+            for i in range(count)
+        ]
+
+    @rsps.activate
+    def test_entity_colours_new_both_and_platform_only(self, client):
+        """Entity 123 (resource only) = green, 125 (both) = orange, 124 (platform only) = no highlight."""
+        details = [
+            {
+                "entry_number": 1,
+                "transformed_row": [
+                    {"entity": 123, "field": "name", "value": "New Area"}
+                ],
+                "issue_logs": [],
+            },
+            {
+                "entry_number": 2,
+                "transformed_row": [
+                    {"entity": 125, "field": "name", "value": "Shared Area"}
+                ],
+                "issue_logs": [],
+            },
+        ]
+        platform_entities = [
+            {"entity": 124, "name": "Platform Only Area"},
+            {"entity": 125, "name": "Shared Area"},
+        ]
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/test-id",
+            json=COMPLETED_TRANSFORM_REQUEST,
+            status=200,
+        )
+        with patch(
+            "application.blueprints.datamanager.controllers.transform.fetch_response_details",
+            return_value=details,
+        ):
+            with patch(
+                "application.blueprints.datamanager.controllers.transform.get_organisation_name",
+                return_value="Test Org",
+            ):
+                with patch(
+                    "application.blueprints.datamanager.controllers.transform.get_dataset_name",
+                    return_value="Conservation Area",
+                ):
+                    with patch(
+                        "application.blueprints.datamanager.controllers.transform.get_org_entity",
+                        return_value=400,
+                    ):
+                        with patch(
+                            "application.blueprints.datamanager.controllers"
+                            ".transform.get_entity_count_for_organisation_and_dataset",
+                            return_value=2,
+                        ):
+                            with patch(
+                                "application.blueprints.datamanager.controllers"
+                                ".transform.get_entities_for_organisation_and_dataset",
+                                return_value=platform_entities,
+                            ):
+                                response = client.get(
+                                    "/datamanager/check-transform/test-id"
+                                )
+        html = response.data.decode()
+        # Entity 123 (resource only) row should be green
+        assert "#d4edda" in html
+        # Entity 125 (in both) row should be orange
+        assert "#ffd8b0" in html
+        # Entity 124 (platform only) appears but with no highlight colour
+        assert "Platform Only Area" in html
+        rows_with_colour = [
+            line for line in html.splitlines() if "#d4edda" in line or "#ffd8b0" in line
+        ]
+        assert not any("Platform Only Area" in line for line in rows_with_colour)
+
+    @rsps.activate
+    def test_entity_page_2_shows_later_entities_not_on_page_1(self, client):
+        details = self._make_details(600)
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/test-id",
+            json=COMPLETED_TRANSFORM_REQUEST,
+            status=200,
+        )
+        with patch(
+            "application.blueprints.datamanager.controllers.transform.fetch_response_details",
+            return_value=details,
+        ):
+            with patch(
+                "application.blueprints.datamanager.controllers.transform.get_organisation_name",
+                return_value="Test Org",
+            ):
+                with patch(
+                    "application.blueprints.datamanager.controllers.transform.get_dataset_name",
+                    return_value="Conservation Area",
+                ):
+                    with patch(
+                        "application.blueprints.datamanager.controllers.transform.get_org_entity",
+                        return_value=None,
+                    ):
+                        resp1 = client.get(
+                            "/datamanager/check-transform/test-id?entity_page=1"
+                        )
+                        resp2 = client.get(
+                            "/datamanager/check-transform/test-id?entity_page=2"
+                        )
+        # "Showing entities X to Y" text is specific to the entities tab
+        assert b"Showing entities 7010000001" in resp1.data
+        assert b"Showing entities 7010000501" in resp2.data
+        assert b"Showing entities 7010000501" not in resp1.data
+
+    @rsps.activate
+    def test_platform_only_entities_reachable_beyond_resp_details_count(self, client):
+        """Platform-only entities push total entity rows past _ROWS_PER_PAGE so they are
+        reachable via entity_page even though resp_details is small."""
+        details = self._make_details(10, start_entity=7010000001)
+        platform_entities = [
+            {"entity": 8000000000 + i, "name": f"Platform {8000000000 + i}"}
+            for i in range(600)
+        ]
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/test-id",
+            json=COMPLETED_TRANSFORM_REQUEST,
+            status=200,
+        )
+        with patch(
+            "application.blueprints.datamanager.controllers.transform.fetch_response_details",
+            return_value=details,
+        ):
+            with patch(
+                "application.blueprints.datamanager.controllers.transform.get_organisation_name",
+                return_value="Test Org",
+            ):
+                with patch(
+                    "application.blueprints.datamanager.controllers.transform.get_dataset_name",
+                    return_value="Conservation Area",
+                ):
+                    with patch(
+                        "application.blueprints.datamanager.controllers.transform.get_org_entity",
+                        return_value=400,
+                    ):
+                        with patch(
+                            "application.blueprints.datamanager.controllers"
+                            ".transform.get_entity_count_for_organisation_and_dataset",
+                            return_value=600,
+                        ):
+                            with patch(
+                                "application.blueprints.datamanager.controllers"
+                                ".transform.get_entities_for_organisation_and_dataset",
+                                return_value=platform_entities,
+                            ):
+                                resp1 = client.get(
+                                    "/datamanager/check-transform/test-id?entity_page=1"
+                                )
+                                resp2 = client.get(
+                                    "/datamanager/check-transform/test-id?entity_page=2"
+                                )
+        # page 1: 10 resource + 490 platform-only (8000000000–8000000489); page 2: remaining 110
+        assert b"Showing entities 7010000001 to 8000000489" in resp1.data
+        assert b"Showing entities 8000000490" in resp2.data
+        assert b"Showing entities 8000000490" not in resp1.data
+        # page 1 must have a next link pointing to entity_page=2
+        assert b"entity_page=2" in resp1.data
+
+    @rsps.activate
+    def test_entity_showing_text_uses_entity_ids(self, client):
+        details = self._make_details(10, start_entity=7010000100)
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/test-id",
+            json=COMPLETED_TRANSFORM_REQUEST,
+            status=200,
+        )
+        with patch(
+            "application.blueprints.datamanager.controllers.transform.fetch_response_details",
+            return_value=details,
+        ):
+            with patch(
+                "application.blueprints.datamanager.controllers.transform.get_organisation_name",
+                return_value="Test Org",
+            ):
+                with patch(
+                    "application.blueprints.datamanager.controllers.transform.get_dataset_name",
+                    return_value="Conservation Area",
+                ):
+                    with patch(
+                        "application.blueprints.datamanager.controllers.transform.get_org_entity",
+                        return_value=None,
+                    ):
+                        response = client.get("/datamanager/check-transform/test-id")
+        assert b"Showing entities 7010000100 to 7010000109" in response.data

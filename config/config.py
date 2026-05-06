@@ -32,6 +32,9 @@ class Config:
     CONFIG_REPO_BRANCH = os.getenv("CONFIG_REPO_BRANCH", "config-manager-update")
     ENVIRONMENT = os.getenv("ENVIRONMENT", "local").lower()
 
+    CACHE_TYPE = "SimpleCache"
+    CACHE_DEFAULT_TIMEOUT = 300
+
     # Planning Data base URL
     PLANNING_BASE_URL = os.getenv("PLANNING_URL", "https://www.planning.data.gov.uk")
 
@@ -50,6 +53,12 @@ class Config:
     DATASET_FIELD_CSV_URL = os.getenv(
         "DATASET_FIELD_CSV_URL",
         "https://raw.githubusercontent.com/digital-land/specification/refs/heads/main/specification/dataset-field.csv",
+    )
+
+    # Dataset and collection specification
+    DATASET_CSV_URL = os.getenv(
+        "DATASET_CSV_URL",
+        "https://raw.githubusercontent.com/digital-land/specification/refs/heads/main/specification/dataset.csv",
     )
 
 

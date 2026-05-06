@@ -1,14 +1,16 @@
 import logging
-from collections import defaultdict
 
-from flask import render_template
+from flask import render_template, request as flask_request
 
 from . import ControllerError
 from ..services.async_api import fetch_response_details
 from ..services.dataset import get_dataset_name
 from ..services.organisation import get_org_entity, get_organisation_name
 from ..services.endpoint import get_endpoint_urls_for_hashes
-from ..services.planning_data import get_entities_for_organisation_and_dataset
+from ..services.planning_data import (
+    get_entities_for_organisation_and_dataset,
+    get_entity_count_for_organisation_and_dataset,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,7 @@ _ISSUE_COLS = [
 
 _ENTITY_COL_EXCLUDE = {"geometry", "point", "typology", "prefix"}
 _ENTITY_COL_PRIORITY = ["entity", "reference", "name"]
+_ROWS_PER_PAGE = 500
 
 
 def _normalise_entity_id(raw) -> str:
@@ -52,14 +55,19 @@ def build_entities_data(resp_details: list, platform_entities: list) -> dict:
     platform entities. Returns a dict with 'columns' and 'rows', where each
     row has 'fields' (dict) and 'is_new' (bool).
     """
-    pivoted = defaultdict(dict)
+    pivoted = {}
     for item in resp_details:
-        tr = item.get("transformed_row") or {}
-        entity_id = _normalise_entity_id(tr.get("entity", ""))
-        field = tr.get("field", "")
-        value = tr.get("value", "")
-        if entity_id and field:
-            pivoted[entity_id][field] = value
+        facts = item.get("transformed_row") or []
+        if not isinstance(facts, list) or not facts:
+            continue
+        entity_id = _normalise_entity_id(facts[0].get("entity", ""))
+        if not entity_id:
+            continue
+        pivoted[entity_id] = {
+            fact.get("field", ""): fact.get("value", "")
+            for fact in facts
+            if fact.get("field")
+        }
 
     platform_entity_ids = {
         _normalise_entity_id(e.get("entity", "")) for e in platform_entities
@@ -131,7 +139,16 @@ def handle_check_transform(request_id, req):
             dataset_display=dataset_display,
         )
 
-    resp_details = fetch_response_details(request_id)
+    all_resp_details = fetch_response_details(request_id)
+    page_number = max(1, int(flask_request.args.get("page_number", 1)))
+    start_offset = (page_number - 1) * _ROWS_PER_PAGE
+    resp_details = all_resp_details[start_offset : start_offset + _ROWS_PER_PAGE]
+    page_start = start_offset + 1
+    page_end = start_offset + len(resp_details)
+    has_next_page = len(all_resp_details) > start_offset + _ROWS_PER_PAGE
+
+    entity_page = max(1, int(flask_request.args.get("entity_page", 1)))
+    entity_start_offset = (entity_page - 1) * _ROWS_PER_PAGE
 
     response_payload = req.get("response") or {}
     response_data = response_payload.get("data") or {}
@@ -155,12 +172,19 @@ def handle_check_transform(request_id, req):
     # to check growth percentage against new count
 
     org_entity = get_org_entity(organisation_code)
+
+    _PLATFORM_ENTITY_LIMIT = 10000
+    existing_count = (
+        get_entity_count_for_organisation_and_dataset(org_entity, dataset_id)
+        if org_entity is not None
+        else 0
+    )
+    platform_too_large = existing_count > _PLATFORM_ENTITY_LIMIT
     platform_entities = (
         get_entities_for_organisation_and_dataset(org_entity, dataset_id)
-        if org_entity is not None
+        if org_entity is not None and not platform_too_large
         else []
     )
-    existing_count = len(platform_entities)
 
     if existing_count > 0:
         growth_pct = round((new_count / existing_count) * 100, 1)
@@ -175,7 +199,25 @@ def handle_check_transform(request_id, req):
         "error": growth_error,
     }
 
-    entities_data = build_entities_data(resp_details, platform_entities)
+    # Build combined transformed entity data with platform entities and resp details entities, and paginate
+
+    entities_data_full = build_entities_data(all_resp_details, platform_entities)
+    has_next_entity_page = (
+        len(entities_data_full["rows"]) > entity_start_offset + _ROWS_PER_PAGE
+    )
+    entity_page_rows = entities_data_full["rows"][
+        entity_start_offset : entity_start_offset + _ROWS_PER_PAGE
+    ]
+    entity_page_start = (
+        entity_page_rows[0]["fields"].get("entity", "") if entity_page_rows else ""
+    )
+    entity_page_end = (
+        entity_page_rows[-1]["fields"].get("entity", "") if entity_page_rows else ""
+    )
+    entities_data = {
+        "columns": entities_data_full["columns"],
+        "rows": entity_page_rows,
+    }
 
     # Create tables for transformed data and issue logs, with empty string defaults
     # to avoid rendering issues with None values. The tables expect all columns to
@@ -183,19 +225,22 @@ def handle_check_transform(request_id, req):
 
     transform_rows = []
     for item in resp_details:
-        tr = item.get("transformed_row") or {}
-        row = {
-            "entry_number": str(item.get("entry_number", "")),
-            "entity": str(tr.get("entity", "")),
-            "field": str(tr.get("field", "")),
-            "value": str(tr.get("value", "")),
-            "start-date": str(tr.get("start-date", "")),
-            "end-date": str(tr.get("end-date", "")),
-            "reference-entity": str(tr.get("reference-entity", "")),
-        }
-        transform_rows.append(
-            {"columns": {c: {"value": row[c]} for c in _TRANSFORM_COLS}}
-        )
+        entry_number = str(item.get("entry_number", ""))
+        for fact in item.get("transformed_row") or []:
+            if not isinstance(fact, dict):
+                continue
+            row = {
+                "entry_number": entry_number,
+                "entity": str(fact.get("entity", "")),
+                "field": str(fact.get("field", "")),
+                "value": str(fact.get("value", "")),
+                "start-date": str(fact.get("start-date", "")),
+                "end-date": str(fact.get("end-date", "")),
+                "reference-entity": str(fact.get("reference-entity", "")),
+            }
+            transform_rows.append(
+                {"columns": {c: {"value": row[c]} for c in _TRANSFORM_COLS}}
+            )
 
     transformed_table = {
         "columns": _TRANSFORM_COLS,
@@ -239,4 +284,14 @@ def handle_check_transform(request_id, req):
         existing_endpoints=existing_endpoints,
         entity_growth_check=entity_growth_check,
         entities_data=entities_data,
+        platform_too_large=platform_too_large,
+        existing_count=existing_count,
+        page_number=page_number,
+        has_next_page=has_next_page,
+        page_start=page_start,
+        page_end=page_end,
+        entity_page=entity_page,
+        has_next_entity_page=has_next_entity_page,
+        entity_page_start=entity_page_start,
+        entity_page_end=entity_page_end,
     )
