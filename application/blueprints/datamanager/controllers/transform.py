@@ -165,6 +165,8 @@ def handle_check_transform(request_id, req):
             for h in existing_endpoints
         ]
 
+    pipelines_append_required = source_summary.get("pipelines_append_required")
+
     pipeline_summary = response_data.get("pipeline-summary") or {}
     new_count = int(pipeline_summary.get("new-in-resource") or 0)
 
@@ -282,6 +284,7 @@ def handle_check_transform(request_id, req):
         transformed_table=transformed_table,
         issue_log_table=issue_log_table,
         existing_endpoints=existing_endpoints,
+        pipelines_append_required=pipelines_append_required,
         entity_growth_check=entity_growth_check,
         entities_data=entities_data,
         platform_too_large=platform_too_large,

@@ -174,6 +174,39 @@
       </details>
     </div>
 
+    {% if pipelines_append_required %}
+    <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid #f47738;">
+      <details data-module="govuk-details" style="margin: 0;">
+        <summary style="cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+          <span class="govuk-heading-m" style="display: inline; margin: 0; color: #f47738;">
+            Source CSV Pipelines Field Update Required
+            <strong class="govuk-tag govuk-tag--orange" style="margin-left: 10px; vertical-align: middle;">Warning</strong>
+          </span>
+          <span class="govuk-body" style="margin: 0; font-size: 1.2em; color: #f47738;">&#9660;</span>
+        </summary>
+        <div class="govuk-!-margin-top-4">
+          <dl class="govuk-summary-list">
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Current pipelines value</dt>
+              <dd class="govuk-summary-list__value"><code>{{ pipelines_append_required.current }}</code></dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Updated pipelines value</dt>
+              <dd class="govuk-summary-list__value"><code>{{ pipelines_append_required.updated }}</code></dd>
+            </div>
+          </dl>
+          <div class="govuk-warning-text govuk-!-margin-bottom-0">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-visually-hidden">Warning</span>
+              This source and endpoint already exist but are being assigned to another dataset. If you confirm and add to GitHub, the pipelines value will be updated to reflect this.
+            </strong>
+          </div>
+        </div>
+      </details>
+    </div>
+    {% endif %}
+
     {% if existing_endpoints %}
     <form method="post" action="{{ url_for('datamanager.check_transform', request_id=request_id) }}">
     <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid #1d70b8;">
