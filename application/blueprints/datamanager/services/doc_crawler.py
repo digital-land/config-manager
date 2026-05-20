@@ -6,8 +6,6 @@ import requests
 
 from application.extensions import cache
 
-from ..utils import REQUESTS_TIMEOUT
-
 logger = logging.getLogger(__name__)
 
 _DOC_CRAWLER_TIMEOUT = 10
