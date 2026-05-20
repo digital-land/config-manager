@@ -31,9 +31,11 @@ def get_endpoint_urls_for_hashes(hashes: list) -> dict:
         data = response.json()
         for row in data.get("rows", []):
             h = row.get("endpoint")
-            ep_url = row.get("endpoint_url", "")
             if h:
-                result[h] = ep_url
+                result[h] = {
+                    "endpoint_url": row.get("endpoint_url", ""),
+                    "end_date": row.get("end_date") or "",
+                }
     except Exception as e:
         logger.error(f"Failed to fetch endpoint URLs for hashes: {e}", exc_info=True)
 

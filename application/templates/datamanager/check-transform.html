@@ -174,6 +174,74 @@
       </details>
     </div>
 
+    {% if endpoint_url and documentation_url %}
+    {% set _doc_found = endpoint_in_doc.found %}
+    {% set _doc_error = endpoint_in_doc.error %}
+    {% set _has_issue = not _doc_found or not doc_is_gov_uk %}
+    <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid {{ '#d4351c' if _has_issue else '#00703c' }};">
+      <details data-module="govuk-details" style="margin: 0;">
+        <summary style="cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+          <span class="govuk-heading-m" style="display: inline; margin: 0; color: {{ '#d4351c' if _has_issue else '#00703c' }};">
+            Endpoint URL in Doc URL
+            {% if not doc_is_gov_uk %}
+            <strong class="govuk-tag govuk-tag--red" style="margin-left: 10px; vertical-align: middle;">Non-gov.uk domain</strong>
+            {% endif %}
+            <strong class="govuk-tag {{ 'govuk-tag--green' if _doc_found else 'govuk-tag--red' }}" style="margin-left: 6px; vertical-align: middle;">
+              {{ 'Found' if _doc_found else 'Not found' }}
+            </strong>
+          </span>
+          <span class="govuk-body" style="margin: 0; font-size: 1.2em; color: {{ '#d4351c' if _has_issue else '#00703c' }};">&#9660;</span>
+        </summary>
+        <div class="govuk-!-margin-top-4">
+          {% if not doc_is_gov_uk %}
+          <div class="govuk-warning-text govuk-!-margin-bottom-4">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-visually-hidden">Warning</span>
+              The documentation URL is not on a gov.uk domain. Please confirm this is the correct page for this dataset.
+            </strong>
+          </div>
+          {% endif %}
+          <dl class="govuk-summary-list">
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Documentation URL</dt>
+              <dd class="govuk-summary-list__value"><a class="govuk-link" href="{{ documentation_url }}" target="_blank" rel="noopener noreferrer">{{ documentation_url }}</a></dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Endpoint URL</dt>
+              <dd class="govuk-summary-list__value"><code style="word-break: break-all;">{{ endpoint_url }}</code></dd>
+            </div>
+            {% if _doc_found %}
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Matched link</dt>
+              <dd class="govuk-summary-list__value"><code style="word-break: break-all;">{{ endpoint_in_doc.matched_href }}</code></dd>
+            </div>
+            {% endif %}
+          </dl>
+          {% if _doc_error %}
+          <div class="govuk-warning-text govuk-!-margin-bottom-0">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-visually-hidden">Warning</span>
+              Could not check the documentation URL: {{ _doc_error }}
+            </strong>
+          </div>
+          {% elif _doc_found %}
+          <p class="govuk-body govuk-!-margin-bottom-0">The endpoint URL was found as a link on the documentation page.</p>
+          {% else %}
+          <div class="govuk-warning-text govuk-!-margin-bottom-0">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-visually-hidden">Warning</span>
+              The endpoint URL could not be found as a link on the documentation page. Please verify the documentation URL is correct and links to the endpoint.
+            </strong>
+          </div>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+    {% endif %}
+
     {% if pipelines_append_required %}
     <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid #f47738;">
       <details data-module="govuk-details" style="margin: 0;">
@@ -221,11 +289,15 @@
             {% for ep in existing_endpoints %}
             {% set ep_hash = ep.endpoint if ep is mapping else ep %}
             {% set ep_url = ep['endpoint-url'] if ep is mapping else ep %}
+            {% set ep_end_date = ep['end-date'] if ep is mapping else "" %}
             <div class="govuk-checkboxes__item">
-              <input class="govuk-checkboxes__input" id="retire-endpoint-{{ loop.index }}" name="retire_endpoints" type="checkbox" value="{{ ep_hash }}">
+              <input class="govuk-checkboxes__input" id="retire-endpoint-{{ loop.index }}" name="retire_endpoints" type="checkbox" value="{{ ep_hash }}" {% if ep_end_date %}disabled{% endif %}>
               <label class="govuk-label govuk-checkboxes__label" for="retire-endpoint-{{ loop.index }}">
                 <code style="word-break: break-all;">{{ ep_url }}</code>
                 <span class="govuk-hint govuk-!-margin-bottom-0" style="font-size: 0.8rem; word-break: break-all;">{{ ep_hash }}</span>
+                {% if ep_end_date %}
+                <span class="govuk-tag govuk-tag--grey" style="margin-top: 4px;">Already retired {{ ep_end_date }}</span>
+                {% endif %}
               </label>
             </div>
             {% endfor %}
