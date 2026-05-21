@@ -289,6 +289,7 @@ def handle_check_transform(request_id, req):
 
     endpoint_in_doc = check_endpoint_in_doc(documentation_url, endpoint_url)
     doc_is_gov_uk = is_gov_uk_url(documentation_url)
+    endpoint_is_gov_uk = is_gov_uk_url(endpoint_url)
 
     return render_template(
         "datamanager/check-transform.html",
@@ -313,6 +314,7 @@ def handle_check_transform(request_id, req):
         entity_page_end=entity_page_end,
         endpoint_in_doc=endpoint_in_doc,
         doc_is_gov_uk=doc_is_gov_uk,
+        endpoint_is_gov_uk=endpoint_is_gov_uk,
         endpoint_url=endpoint_url,
         documentation_url=documentation_url,
     )

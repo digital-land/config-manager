@@ -199,7 +199,7 @@ def handle_check_results(request_id, result):
         if item.get("task-source") != "column-field" and item.get("summary")
     ]
     passed_checks = [
-        f"All rows have {entry['field']} present"
+        f"Column mapped: {entry['field']}"
         for entry in column_mapping
         if entry.get("field")
     ]
