@@ -130,6 +130,13 @@
       </div>
     </div>
 
+    <ul class="govuk-list govuk-body-s govuk-!-margin-top-4 govuk-!-margin-bottom-2" style="color: #505a5f;">
+      <li><strong style="color: #00703c;">&#9679;</strong> <strong>Green</strong> — No action needed</li>
+      <li><strong style="color: #f47738;">&#9679;</strong> <strong>Orange</strong> — Manual check needed</li>
+      <li><strong style="color: #d4351c;">&#9679;</strong> <strong>Red</strong> — Sign off needed</li>
+      <li><strong style="color: #1d70b8;">&#9679;</strong> <strong>Blue</strong> — Optional action</li>
+    </ul>
+
     {% set _is_error = entity_growth_check.error %}
     <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid {{ '#d4351c' if _is_error else '#00703c' }};">
       <details data-module="govuk-details" style="margin: 0;">
@@ -201,6 +208,9 @@
             <strong class="govuk-tag govuk-tag--green" style="margin-left: 6px; vertical-align: middle;">Found</strong>
             {% elif _access_error or endpoint_is_gov_uk %}
             <strong class="govuk-tag govuk-tag--orange" style="margin-left: 6px; vertical-align: middle;">{{ 'Unable to access' if _access_error else 'Not found' }}</strong>
+            {% if not _access_error and endpoint_is_gov_uk %}
+            <strong class="govuk-tag govuk-tag--green" style="margin-left: 6px; vertical-align: middle;">gov.uk domain</strong>
+            {% endif %}
             {% else %}
             <strong class="govuk-tag govuk-tag--red" style="margin-left: 6px; vertical-align: middle;">Not found</strong>
             {% endif %}

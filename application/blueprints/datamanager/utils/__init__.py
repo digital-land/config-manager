@@ -175,10 +175,20 @@ def build_check_tables(column_field_log, resp_details):
         "unmapped_columns": unmapped_columns,
     }
 
-    # Transformed table: entry_number + columns from column_field_log "field" key
+    # Transformed table: entry_number + columns from column_field_log "field" key,
+    # plus any extra fields present in the data but not in column_mapping
     transformed_headers = ["entry_number"] + [
         entry["field"] for entry in column_field_log if entry.get("field")
     ]
+    known_transformed = set(transformed_headers)
+    for row in resp_details:
+        for item in row.get("transformed_row") or []:
+            if isinstance(item, dict):
+                field = item.get("field")
+                if field and field not in known_transformed:
+                    transformed_headers.append(field)
+                    known_transformed.add(field)
+
     transformed_rows = []
     for row in resp_details:
         transformed = row.get("transformed_row") or []
