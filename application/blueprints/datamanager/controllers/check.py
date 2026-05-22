@@ -40,7 +40,7 @@ _ROWS_PER_PAGE = 500
 
 
 def handle_check_results(request_id, result):
-    # Extract org code, TODO bit hacky as submit and manage use this param for code / value
+    # Extract org code
     organisation_code = result.get("params", {}).get("organisationName")
     dataset_id = result.get("params", {}).get("dataset")
     if not organisation_code:
@@ -161,39 +161,48 @@ def handle_check_results(request_id, result):
 
     # Error summary parsing from overall response
     data = (result.get("response") or {}).get("data") or {}
-    error_summary = data.get("error-summary", []) or []
-    column_field_log = data.get("column-field-log", []) or []
+    task_log = data.get("task-log", []) or []
+    column_mapping = data.get("column-mapping", []) or []
 
-    # Build converted, transformed and issue log tables
+    # Build converted, transformed and issue log tables.
+    # column-mapping has the same {field, column} shape that build_check_tables needs.
     (
         converted_table,
         transformed_table,
         issue_log_table,
         spec_fields,
-    ) = build_check_tables(column_field_log, resp_details)
+    ) = build_check_tables(column_mapping, resp_details)
 
     # Build column mapping rows for inline configure UI
     unmapped_columns = converted_table.get("unmapped_columns", set())
     user_column_mapping = result.get("params", {}).get("column_mapping") or {}
     mapping_rows = build_column_mapping_rows(
-        column_field_log, unmapped_columns, user_column_mapping
+        column_mapping, unmapped_columns, user_column_mapping
     )
     # Merge spec fields with all dataset fields so the mapping dropdown includes
-    # fields that aren't present in this check's column-field-log
+    # fields that aren't present in this check's column-mapping
     spec_fields = (spec_fields | set(get_field_names_for_dataset(dataset_id))) - {
         "IGNORE"
     }
 
-    # Checks: must_fix is missing columns in column_field_log, passed_checks is columns that exist
-    # (even if missing values exist still passes), fixable is everything in error_summary (issue_logs combined)
-    must_fix, fixable, passed_checks = [], [], []
-    for err in error_summary:
-        fixable.append(err)
-    for col in column_field_log:
-        if not col.get("missing"):
-            passed_checks.append(f"All rows have {col.get('field')} present")
-        else:
-            must_fix.append(f"Missing required field: {col.get('field')}")
+    # must_fix: task-log entries flagged as missing columns (task-source == "column-field")
+    # fixable: all other task-log issues (value errors, etc.)
+    # passed_checks: every field that column-mapping confirms is present
+    must_fix = [
+        item["summary"]
+        for item in task_log
+        if item.get("task-source") == "column-field" and item.get("summary")
+    ]
+    fixable = [
+        item["summary"]
+        for item in task_log
+        if item.get("task-source") != "column-field" and item.get("summary")
+    ]
+    passed_checks = [
+        f"Column mapped: {entry['field']}"
+        for entry in column_mapping
+        if entry.get("field")
+    ]
     allow_add_data = len(must_fix) == 0
 
     can_override = False

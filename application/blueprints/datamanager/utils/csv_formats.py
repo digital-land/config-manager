@@ -124,9 +124,18 @@ def build_source_csv_preview(
     source_present = source_summary_data.get("documentation_url_in_source_csv")
     will_create_source_text = "No" if source_present else "Yes"
 
+    pipelines_append_required = source_summary_data.get("pipelines_append_required")
+
     source_csv_text = ""
     if not source_present:
         src_source = source_summary_data.get("new_source_entry", {})
+        if pipelines_append_required:
+            src_source = {
+                **src_source,
+                "pipelines": pipelines_append_required.get(
+                    "updated", src_source.get("pipelines", "")
+                ),
+            }
         src_row = [str(src_source.get(col, "") or "") for col in src_cols]
         source_csv_table_params = {
             "columns": src_cols,
@@ -140,6 +149,13 @@ def build_source_csv_preview(
             source_csv_text = _row_to_csv(src_row)
     else:
         src_source = source_summary_data.get("existing_source_entry", {})
+        if pipelines_append_required:
+            src_source = {
+                **src_source,
+                "pipelines": pipelines_append_required.get(
+                    "updated", src_source.get("pipelines", "")
+                ),
+            }
         src_row = [str(src_source.get(col, "") or "") for col in src_cols]
         source_csv_table_params = {
             "columns": src_cols,

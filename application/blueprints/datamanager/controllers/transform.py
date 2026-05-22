@@ -6,6 +6,7 @@ from . import ControllerError
 from ..services.async_api import fetch_response_details
 from ..services.dataset import get_dataset_name
 from ..services.organisation import get_org_entity, get_organisation_name
+from ..services.doc_crawler import check_endpoint_in_doc, is_gov_uk_url
 from ..services.endpoint import get_endpoint_urls_for_hashes
 from ..services.planning_data import (
     get_entities_for_organisation_and_dataset,
@@ -120,6 +121,9 @@ def handle_check_transform(request_id, req):
     organisation_display = get_organisation_name(organisation_code)
     dataset_display = get_dataset_name(dataset_id, default=dataset_id)
 
+    endpoint_url = params.get("url", "")
+    documentation_url = params.get("documentation_url", "")
+
     status = req.get("status")
 
     if status == "FAILED":
@@ -132,6 +136,9 @@ def handle_check_transform(request_id, req):
         )
 
     if status in {"PENDING", "PROCESSING", "QUEUED"} or req.get("response") is None:
+        # Pre-warm the cache so the result is ready when the job completes.
+        if endpoint_url and documentation_url:
+            check_endpoint_in_doc(documentation_url, endpoint_url)
         return render_template(
             "datamanager/check-transform-loading.html",
             request_id=request_id,
@@ -159,9 +166,13 @@ def handle_check_transform(request_id, req):
     if isinstance(existing_endpoints, str):
         existing_endpoints = [existing_endpoints] if existing_endpoints else []
     if existing_endpoints:
-        endpoint_urls = get_endpoint_urls_for_hashes(existing_endpoints)
+        endpoint_data = get_endpoint_urls_for_hashes(existing_endpoints)
         existing_endpoints = [
-            {"endpoint": h, "endpoint-url": endpoint_urls.get(h, "")}
+            {
+                "endpoint": h,
+                "endpoint-url": endpoint_data.get(h, {}).get("endpoint_url", ""),
+                "end-date": endpoint_data.get(h, {}).get("end_date", ""),
+            }
             for h in existing_endpoints
         ]
 
@@ -276,6 +287,10 @@ def handle_check_transform(request_id, req):
         "columnNameProcessing": "none",
     }
 
+    endpoint_in_doc = check_endpoint_in_doc(documentation_url, endpoint_url)
+    doc_is_gov_uk = is_gov_uk_url(documentation_url)
+    endpoint_is_gov_uk = is_gov_uk_url(endpoint_url)
+
     return render_template(
         "datamanager/check-transform.html",
         request_id=request_id,
@@ -297,4 +312,9 @@ def handle_check_transform(request_id, req):
         has_next_entity_page=has_next_entity_page,
         entity_page_start=entity_page_start,
         entity_page_end=entity_page_end,
+        endpoint_in_doc=endpoint_in_doc,
+        doc_is_gov_uk=doc_is_gov_uk,
+        endpoint_is_gov_uk=endpoint_is_gov_uk,
+        endpoint_url=endpoint_url,
+        documentation_url=documentation_url,
     )
