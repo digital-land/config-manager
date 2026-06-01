@@ -10,15 +10,27 @@
 endblock %}
 
 {% block content %}
+{% set magic_link_hint = 'This value has been prefilled from the magic link and cannot be changed here.' %}
+{% set prefilled_dataset = prefilled_values.get('dataset') if prefilled_values else '' %}
+{% set prefilled_organisation = prefilled_values.get('organisation') if prefilled_values else '' %}
+{% set prefilled_endpoint_url = prefilled_values.get('endpoint_url') if prefilled_values else '' %}
+{% set prefilled_documentation_url = prefilled_values.get('documentation_url') if prefilled_values else '' %}
+{% set prefilled_geom_type = prefilled_values.get('geom_type') if prefilled_values else '' %}
+{% set is_magic_link_prefilled = prefilled_values %}
+
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
     <h1 class="govuk-heading-xl">Check and Add Planning data</h1>
     <div style="display:flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+      {% if is_magic_link_prefilled %}
+      <a class="govuk-button govuk-button--disabled govuk-!-margin-bottom-0" role="link" aria-disabled="true" tabindex="-1" data-module="govuk-button">Import from CSV</a>
+      {% else %}
       <a href="{{ url_for('datamanager.dashboard_add_import') }}" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">Import from CSV</a>
+      {% endif %}
       <form method="post" action="{{ url_for('datamanager.dashboard_add_import') }}" enctype="multipart/form-data" style="margin:0;">
         <input type="hidden" name="mode" value="parse">
-        <input type="file" name="csv_file" id="csv-file-upload" accept=".csv" style="display:none;">
-        <button type="button" class="govuk-button govuk-!-margin-bottom-0" onclick="document.getElementById('csv-file-upload').click()">Upload CSV file</button>
+        <input type="file" name="csv_file" id="csv-file-upload" accept=".csv" style="display:none;" {% if is_magic_link_prefilled %}disabled{% endif %}>
+        <button type="button" class="govuk-button govuk-!-margin-bottom-0" onclick="document.getElementById('csv-file-upload').click()" {% if is_magic_link_prefilled %}disabled aria-disabled="true"{% endif %}>Upload CSV file</button>
       </form>
     </div>
   </div>
@@ -53,32 +65,72 @@ endblock %}
 
       <!-- Dataset autocomplete -->
       <div class="govuk-form-group {% if dataset_error %}govuk-form-group--error{% endif %}">
-        <label class="govuk-label" for="dataset-autocomplete">Dataset name <span class="govuk-required">*</span></label>
+        <label class="govuk-label" for="{% if prefilled_dataset %}dataset-display{% else %}dataset-autocomplete{% endif %}">Dataset name <span class="govuk-required">*</span></label>
         {% if dataset_error %}
         <p class="govuk-error-message">
           <span class="govuk-visually-hidden">Error:</span> Select a dataset
         </p>
         {% endif %}
+        {% if prefilled_dataset %}
+        <div id="dataset-display-hint" class="govuk-hint">{{ magic_link_hint }}</div>
+        <input class="govuk-input app-text-input__readonly" id="dataset-display" name="dataset_display" type="text" value="{{ prefilled_dataset }}" readonly aria-describedby="dataset-display-hint">
+        {% else %}
         <div id="autocomplete-container"></div>
+        {% endif %}
         <input type="hidden" name="dataset" id="dataset" value="{{ form.dataset or dataset_input }}">
       </div>
 
       <!-- Organisation autocomplete -->
       <div class="govuk-form-group {% if organisation_error %}govuk-form-group--error{% endif %}">
-        <label class="govuk-label" for="organisation">Organisation <span class="govuk-required">*</span></label>
+        <label class="govuk-label" for="{% if prefilled_organisation %}organisation-display{% else %}organisation{% endif %}">Organisation <span class="govuk-required">*</span></label>
         {% if organisation_error %}
         <p class="govuk-error-message">
           <span class="govuk-visually-hidden">Error:</span> Enter a valid organisation
         </p>
         {% endif %}
+        {% if prefilled_organisation %}
+        <div id="organisation-display-hint" class="govuk-hint">{{ magic_link_hint }}</div>
+        <input class="govuk-input app-text-input__readonly" id="organisation-display" name="organisation_display" type="text" value="{{ prefilled_organisation }}" readonly aria-describedby="organisation-display-hint">
+        {% else %}
         <div id="org-autocomplete-container">
           <div id="org-autocomplete-wrapper"></div>
         </div>
+        {% endif %}
         <input type="hidden" name="organisation" id="organisation" value="{{ form.organisation or '' }}">
         <input type="hidden" name="org_warning" id="org-warning" value="false">
       </div>
 
+      <!-- Original prefilled values (for change detection) -->
+      {% if prefilled_values %}
+      <input type="hidden" name="original_request_id" value="{{ prefilled_values.get('request_id', '') }}">
+      <input type="hidden" name="original_dataset" value="{{ prefilled_values.get('dataset', '') }}">
+      <input type="hidden" name="original_organisation" value="{{ prefilled_values.get('organisation', '') }}">
+      <input type="hidden" name="original_endpoint_url" value="{{ prefilled_values.get('endpoint_url', '') }}">
+      <input type="hidden" name="original_documentation_url" value="{{ prefilled_values.get('documentation_url', '') }}">
+      <input type="hidden" name="original_jira_issue_id" value="{{ prefilled_values.get('jira_issue_id', '') }}">
+      <input type="hidden" name="original_geom_type" value="{{ prefilled_values.get('geom_type', '') }}">
+      {% endif %}
+
       <!-- Geometry type (tree dataset only) -->
+      {% if prefilled_geom_type %}
+      <div class="govuk-form-group">
+        <fieldset class="govuk-fieldset" aria-describedby="geom-type-hint">
+          <legend class="govuk-fieldset__legend">Geometry type</legend>
+          <div id="geom-type-hint" class="govuk-hint">{{ magic_link_hint }}</div>
+          <div class="govuk-radios govuk-radios--inline">
+            <div class="govuk-radios__item">
+              <input class="govuk-radios__input" id="geom-type-point" name="geom_type_display" type="radio" value="point" {% if prefilled_geom_type != 'polygon' %}checked{% endif %} disabled>
+              <label class="govuk-label govuk-radios__label" for="geom-type-point">Point</label>
+            </div>
+            <div class="govuk-radios__item">
+              <input class="govuk-radios__input" id="geom-type-polygon" name="geom_type_display" type="radio" value="polygon" {% if prefilled_geom_type == 'polygon' %}checked{% endif %} disabled>
+              <label class="govuk-label govuk-radios__label" for="geom-type-polygon">Polygon</label>
+            </div>
+          </div>
+        </fieldset>
+        <input type="hidden" name="geom_type" value="{{ prefilled_geom_type }}">
+      </div>
+      {% else %}
       <div class="govuk-form-group" id="geom-type-group" style="display:none;">
         <fieldset class="govuk-fieldset">
           <legend class="govuk-fieldset__legend">Are the geometries points or polygons?</legend>
@@ -94,9 +146,21 @@ endblock %}
           </div>
         </fieldset>
       </div>
+      {% endif %}
 
       <!-- Endpoint URL -->
       <div class="govuk-form-group {% if environment_error %}govuk-form-group--error{% endif %}">
+        {% if prefilled_endpoint_url %}
+        {{ govukInput({
+        'label': { 'html': 'Endpoint URL <span class="govuk-required">*</span>' },
+        'id': 'endpoint-url',
+        'name': 'endpoint_url',
+        'value': form.get('endpoint_url', ''),
+        'classes': 'app-text-input__readonly',
+        'hint': { 'text': magic_link_hint },
+        'attributes': { 'required': 'required', 'type': 'url', 'readonly': 'readonly' }
+        }) }}
+        {% else %}
         {{ govukInput({
         'label': { 'html': 'Endpoint URL <span class="govuk-required">*</span>' },
         'id': 'endpoint-url',
@@ -104,10 +168,28 @@ endblock %}
         'value': form.get('endpoint_url', ''),
         'attributes': { 'required': 'required', 'type': 'url' }
         }) }}
+        {% endif %}
       </div>
 
       <!-- Documentation URL -->
       <div class="govuk-form-group {% if documentation_error %}govuk-form-group--error{% endif %}">
+        {% if prefilled_documentation_url %}
+        {{ govukInput({
+        'label': { 'text': 'Documentation URL' },
+        'id': 'documentation-url',
+        'name': 'documentation_url',
+        'value': form.get('documentation_url', ''),
+        'classes': 'app-text-input__readonly',
+        'hint': { 'text': magic_link_hint },
+        'attributes': {
+        'pattern': '(^$)|https?://.*\\.(gov\\.uk|org\\.uk)(/.*)?',
+        'title': 'Must be a valid URL ending in .gov.uk or .org.uk if provided',
+        'readonly': 'readonly'
+        },
+        'errorMessage': ( { 'text': 'Enter a valid documentation URL ending in .gov.uk or .org.uk' } if
+        documentation_error else None )
+        }) }}
+        {% else %}
         {{ govukInput({
         'label': { 'text': 'Documentation URL' },
         'id': 'documentation-url',
@@ -120,6 +202,7 @@ endblock %}
         'errorMessage': ( { 'text': 'Enter a valid documentation URL ending in .gov.uk or .org.uk' } if
         documentation_error else None )
         }) }}
+        {% endif %}
       </div>
 
       <div class="govuk-form-group govuk-!-margin-top-6">
@@ -200,9 +283,12 @@ endblock %}
     const orgWrapper = document.getElementById("org-autocomplete-wrapper");
     const hiddenOrgInput = document.getElementById("organisation");
     const orgWarningInput = document.getElementById("org-warning");
+    const geomTypeGroup = document.getElementById("geom-type-group");
     const datasetValue = datasetHidden.value || "";
     const orgValue = hiddenOrgInput.value && hiddenOrgInput.value !== "undefined" ? hiddenOrgInput.value : "";
     const orgList = JSON.parse(`{{ org_values | default([]) | tojson | safe }}`);
+    const datasetLocked = {{ 'true' if prefilled_dataset else 'false' }};
+    const geometryLocked = {{ 'true' if prefilled_geom_type else 'false' }};
 
     // Build lookup from display label to org code
     function buildOrgLookup(orgs) {
@@ -255,41 +341,45 @@ endblock %}
         }
       });
     }
-    // Dataset autocomplete
-    accessibleAutocomplete({
-      element: datasetContainer,
-      id: "dataset-autocomplete",
-      name: "dataset-autocomplete-visible",
-      defaultValue: datasetValue,
-      minLength: 2,
-      confirmOnBlur: false,
-      autoselect: true,
-      displayMenu: "overlay",
-      placeholder: "Type dataset name…",
-      source: function(query, populateResults) {
-        fetch(`{{ url_for('datamanager.dashboard_get') }}?autocomplete=${encodeURIComponent(query)}`)
-          .then((response) => response.json())
-          .then((data) => populateResults(data));
-      },
-      onConfirm: function(val) {
-        datasetHidden.value = val;
-        hiddenOrgInput.value = "";
-        document.getElementById('geom-type-group').style.display = (val.toLowerCase() === 'tree') ? 'block' : 'none';
-        fetch(`{{ url_for('datamanager.dashboard_get') }}?get_orgs_for=${encodeURIComponent(val)}`)
-          .then(res => res.json())
-          .then(orgs => {
-            updateOrgAutocomplete(orgs, "", "Type organisation name...");
-          });
+    if (!datasetLocked) {
+      // Dataset autocomplete
+      accessibleAutocomplete({
+        element: datasetContainer,
+        id: "dataset-autocomplete",
+        name: "dataset-autocomplete-visible",
+        defaultValue: datasetValue,
+        minLength: 2,
+        confirmOnBlur: false,
+        autoselect: true,
+        displayMenu: "overlay",
+        placeholder: "Type dataset name…",
+        source: function(query, populateResults) {
+          fetch(`{{ url_for('datamanager.dashboard_get') }}?autocomplete=${encodeURIComponent(query)}`)
+            .then((response) => response.json())
+            .then((data) => populateResults(data));
+        },
+        onConfirm: function(val) {
+          datasetHidden.value = val;
+          hiddenOrgInput.value = "";
+          if (geomTypeGroup) {
+            geomTypeGroup.style.display = (val.toLowerCase() === 'tree') ? 'block' : 'none';
+          }
+          fetch(`{{ url_for('datamanager.dashboard_get') }}?get_orgs_for=${encodeURIComponent(val)}`)
+            .then(res => res.json())
+            .then(orgs => {
+              updateOrgAutocomplete(orgs, "", "Type organisation name...");
+            });
+        }
+      });
+      if (datasetValue && orgList.length > 0) {
+        updateOrgAutocomplete(orgList, orgCodeToLabel(orgList, orgValue), "Type organisation name...");
+      } else {
+        updateOrgAutocomplete([], "", "Select a dataset first...");
       }
-    });
-    if (datasetValue && orgList.length > 0) {
-      updateOrgAutocomplete(orgList, orgCodeToLabel(orgList, orgValue), "Type organisation name...");
-    } else {
-      updateOrgAutocomplete([], "", "Select a dataset first...");
     }
 
-    if (datasetValue.toLowerCase() === 'tree') {
-      document.getElementById('geom-type-group').style.display = 'block';
+    if (geomTypeGroup && !geometryLocked && datasetValue.toLowerCase() === 'tree') {
+      geomTypeGroup.style.display = 'block';
     }
 
     document.getElementById('csv-file-upload').addEventListener('change', function() {
