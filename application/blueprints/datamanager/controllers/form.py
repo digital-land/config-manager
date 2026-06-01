@@ -80,7 +80,9 @@ def handle_dashboard_get():
         endpoint_url = request.args.get("endpointUrl", "")
         doc_url = request.args.get("documentationUrl", "")
         jira_issue_id = request.args.get("jiraIssueId", "")
-        geom_type = request.args.get("geometryType", request.args.get("geom_type", "")).strip()
+        geom_type = request.args.get(
+            "geometryType", request.args.get("geom_type", "")
+        ).strip()
 
         if dataset_id:
             org_codes = get_provision_orgs_for_dataset(dataset_id)
@@ -266,7 +268,9 @@ def handle_dashboard_add():
             )
 
             if params_unchanged:
-                logger.info(f"Reusing request ID: {original_request_id} (params unchanged)")
+                logger.info(
+                    f"Reusing request ID: {original_request_id} (params unchanged)"
+                )
                 request_id = original_request_id
             else:
                 request_id = submit_request(payload["params"])
