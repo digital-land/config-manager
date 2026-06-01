@@ -64,15 +64,12 @@ def handle_dashboard_get():
         return jsonify(org_values)
 
     # Pre-fill form from request parameters.
-    if (
-        request.args.get("import_data") != "true"
-        and (
-            request.args.get("requestId")
-            or request.args.get("dataset")
-            or request.args.get("organisationId")
-            or request.args.get("geometryType")
-            or request.args.get("geom_type")
-        )
+    if request.args.get("import_data") != "true" and (
+        request.args.get("requestId")
+        or request.args.get("dataset")
+        or request.args.get("organisationId")
+        or request.args.get("geometryType")
+        or request.args.get("geom_type")
     ):
         request_id = request.args.get("requestId", "")
         dataset_param = request.args.get("dataset", "")
