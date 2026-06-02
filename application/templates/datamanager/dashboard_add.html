@@ -11,16 +11,11 @@ endblock %}
 
 {% block content %}
 {% set magic_link_hint = 'This value has been prefilled from the magic link and cannot be changed here.' %}
-{% set prefilled_dataset = prefilled_values.get('dataset') if prefilled_values else '' %}
-{% set prefilled_organisation = prefilled_values.get('organisation') if prefilled_values else '' %}
-{% set prefilled_endpoint_url = prefilled_values.get('endpoint_url') if prefilled_values else '' %}
-{% set prefilled_documentation_url = prefilled_values.get('documentation_url') if prefilled_values else '' %}
-{% set prefilled_geom_type = prefilled_values.get('geom_type') if prefilled_values else '' %}
-{% set is_magic_link_prefilled = prefilled_values %}
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
     <h1 class="govuk-heading-xl">Check and Add Planning data</h1>
+    {% if not is_magic_link_prefilled %}
     <div style="display:flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
       {% if is_magic_link_prefilled %}
       <a class="govuk-button govuk-button--disabled govuk-!-margin-bottom-0" role="link" aria-disabled="true" tabindex="-1" data-module="govuk-button">Import from CSV</a>
@@ -33,6 +28,7 @@ endblock %}
         <button type="button" class="govuk-button govuk-!-margin-bottom-0" onclick="document.getElementById('csv-file-upload').click()" {% if is_magic_link_prefilled %}disabled aria-disabled="true"{% endif %}>Upload CSV file</button>
       </form>
     </div>
+    {% endif %}
   </div>
 </div>
 
@@ -51,8 +47,8 @@ endblock %}
         <h2 class="govuk-error-summary__title">There is a problem</h2>
         <div class="govuk-error-summary__body">
           <ul class="govuk-list govuk-error-summary__list">
-            {% if dataset_error %}<li><a href="#dataset-autocomplete">Select a dataset</a></li>{% endif %}
-            {% if organisation_error %}<li><a href="#organisation">Enter your organisation</a></li>{% endif %}
+            {% if dataset_error %}<li><a href="#{% if is_magic_link_prefilled and form.dataset %}dataset-display{% else %}dataset-autocomplete{% endif %}">Select a dataset</a></li>{% endif %}
+            {% if organisation_error %}<li><a href="#{% if is_magic_link_prefilled and form.organisation %}organisation-display{% else %}organisation{% endif %}">Enter your organisation</a></li>{% endif %}
             {% if environment_error %}<li><a href="#endpoint-url">Enter a valid endpoint URL</a></li>{% endif %}
             {% if documentation_error %}<li><a href="#documentation-url">Enter a valid documentation URL</a></li>{%
             endif %}
@@ -65,15 +61,15 @@ endblock %}
 
       <!-- Dataset autocomplete -->
       <div class="govuk-form-group {% if dataset_error %}govuk-form-group--error{% endif %}">
-        <label class="govuk-label" for="{% if prefilled_dataset %}dataset-display{% else %}dataset-autocomplete{% endif %}">Dataset name <span class="govuk-required">*</span></label>
+        <label class="govuk-label" for="{% if is_magic_link_prefilled and form.dataset %}dataset-display{% else %}dataset-autocomplete{% endif %}">Dataset name <span class="govuk-required">*</span></label>
         {% if dataset_error %}
         <p class="govuk-error-message">
           <span class="govuk-visually-hidden">Error:</span> Select a dataset
         </p>
         {% endif %}
-        {% if prefilled_dataset %}
+        {% if is_magic_link_prefilled and form.dataset %}
         <div id="dataset-display-hint" class="govuk-hint">{{ magic_link_hint }}</div>
-        <input class="govuk-input app-text-input__readonly" id="dataset-display" name="dataset_display" type="text" value="{{ prefilled_dataset }}" readonly aria-describedby="dataset-display-hint">
+        <input class="govuk-input app-text-input__readonly" id="dataset-display" name="dataset_display" type="text" value="{{ form.dataset or dataset_input }}" readonly aria-describedby="dataset-display-hint">
         {% else %}
         <div id="autocomplete-container"></div>
         {% endif %}
@@ -82,15 +78,15 @@ endblock %}
 
       <!-- Organisation autocomplete -->
       <div class="govuk-form-group {% if organisation_error %}govuk-form-group--error{% endif %}">
-        <label class="govuk-label" for="{% if prefilled_organisation %}organisation-display{% else %}organisation{% endif %}">Organisation <span class="govuk-required">*</span></label>
+        <label class="govuk-label" for="{% if is_magic_link_prefilled and form.organisation %}organisation-display{% else %}organisation{% endif %}">Organisation <span class="govuk-required">*</span></label>
         {% if organisation_error %}
         <p class="govuk-error-message">
           <span class="govuk-visually-hidden">Error:</span> Enter a valid organisation
         </p>
         {% endif %}
-        {% if prefilled_organisation %}
+        {% if is_magic_link_prefilled and form.organisation %}
         <div id="organisation-display-hint" class="govuk-hint">{{ magic_link_hint }}</div>
-        <input class="govuk-input app-text-input__readonly" id="organisation-display" name="organisation_display" type="text" value="{{ prefilled_organisation }}" readonly aria-describedby="organisation-display-hint">
+        <input class="govuk-input app-text-input__readonly" id="organisation-display" name="organisation_display" type="text" value="{{ form.get('organisation_display_name', form.organisation) }}" readonly aria-describedby="organisation-display-hint">
         {% else %}
         <div id="org-autocomplete-container">
           <div id="org-autocomplete-wrapper"></div>
@@ -100,35 +96,29 @@ endblock %}
         <input type="hidden" name="org_warning" id="org-warning" value="false">
       </div>
 
-      <!-- Original prefilled values (for change detection) -->
-      {% if prefilled_values %}
-      <input type="hidden" name="original_request_id" value="{{ prefilled_values.get('request_id', '') }}">
-      <input type="hidden" name="original_dataset" value="{{ prefilled_values.get('dataset', '') }}">
-      <input type="hidden" name="original_organisation" value="{{ prefilled_values.get('organisation', '') }}">
-      <input type="hidden" name="original_endpoint_url" value="{{ prefilled_values.get('endpoint_url', '') }}">
-      <input type="hidden" name="original_documentation_url" value="{{ prefilled_values.get('documentation_url', '') }}">
-      <input type="hidden" name="original_jira_issue_id" value="{{ prefilled_values.get('jira_issue_id', '') }}">
-      <input type="hidden" name="original_geom_type" value="{{ prefilled_values.get('geom_type', '') }}">
+      <!-- Original request ID (for reusing the completed check) -->
+      {% if is_magic_link_prefilled %}
+      <input type="hidden" name="request_id" value="{{ prefilled_values.get('request_id', '') }}">
       {% endif %}
 
       <!-- Geometry type (tree dataset only) -->
-      {% if prefilled_geom_type %}
+      {% if is_magic_link_prefilled and form.get('geom_type') %}
       <div class="govuk-form-group">
         <fieldset class="govuk-fieldset" aria-describedby="geom-type-hint">
           <legend class="govuk-fieldset__legend">Geometry type</legend>
           <div id="geom-type-hint" class="govuk-hint">{{ magic_link_hint }}</div>
           <div class="govuk-radios govuk-radios--inline">
             <div class="govuk-radios__item">
-              <input class="govuk-radios__input" id="geom-type-point" name="geom_type_display" type="radio" value="point" {% if prefilled_geom_type != 'polygon' %}checked{% endif %} disabled>
+              <input class="govuk-radios__input" id="geom-type-point" name="geom_type_display" type="radio" value="point" {% if form.get('geom_type') != 'polygon' %}checked{% endif %} disabled>
               <label class="govuk-label govuk-radios__label" for="geom-type-point">Point</label>
             </div>
             <div class="govuk-radios__item">
-              <input class="govuk-radios__input" id="geom-type-polygon" name="geom_type_display" type="radio" value="polygon" {% if prefilled_geom_type == 'polygon' %}checked{% endif %} disabled>
+              <input class="govuk-radios__input" id="geom-type-polygon" name="geom_type_display" type="radio" value="polygon" {% if form.get('geom_type') == 'polygon' %}checked{% endif %} disabled>
               <label class="govuk-label govuk-radios__label" for="geom-type-polygon">Polygon</label>
             </div>
           </div>
         </fieldset>
-        <input type="hidden" name="geom_type" value="{{ prefilled_geom_type }}">
+        <input type="hidden" name="geom_type" value="{{ form.get('geom_type') }}">
       </div>
       {% else %}
       <div class="govuk-form-group" id="geom-type-group" style="display:none;">
@@ -150,7 +140,7 @@ endblock %}
 
       <!-- Endpoint URL -->
       <div class="govuk-form-group {% if environment_error %}govuk-form-group--error{% endif %}">
-        {% if prefilled_endpoint_url %}
+        {% if is_magic_link_prefilled and form.get('endpoint_url') %}
         {{ govukInput({
         'label': { 'html': 'Endpoint URL <span class="govuk-required">*</span>' },
         'id': 'endpoint-url',
@@ -173,7 +163,7 @@ endblock %}
 
       <!-- Documentation URL -->
       <div class="govuk-form-group {% if documentation_error %}govuk-form-group--error{% endif %}">
-        {% if prefilled_documentation_url %}
+        {% if is_magic_link_prefilled and form.get('documentation_url') %}
         {{ govukInput({
         'label': { 'text': 'Documentation URL' },
         'id': 'documentation-url',
@@ -253,8 +243,8 @@ endblock %}
         'name': 'authoritative',
         'label': { 'html': 'Is this the authoritative source? <span class="govuk-required">*</span>' },
         'items': [
-          { 'value': '', 'text': 'Select an option', 'selected': not form.get('authoritative') },
-          { 'value': 'yes', 'text': 'Yes', 'selected': form.get('authoritative') == 'yes' },
+          { 'value': '', 'text': 'Select an option', 'selected': False },
+          { 'value': 'yes', 'text': 'Yes', 'selected': form.get('authoritative', 'yes') != 'no' },
           { 'value': 'no', 'text': 'No', 'selected': form.get('authoritative') == 'no' }
         ],
         'errorMessage': ( { 'text': 'Select whether this is the authoritative source' } if errors.get('authoritative') else None )
@@ -287,8 +277,8 @@ endblock %}
     const datasetValue = datasetHidden.value || "";
     const orgValue = hiddenOrgInput.value && hiddenOrgInput.value !== "undefined" ? hiddenOrgInput.value : "";
     const orgList = JSON.parse(`{{ org_values | default([]) | tojson | safe }}`);
-    const datasetLocked = {{ 'true' if prefilled_dataset else 'false' }};
-    const geometryLocked = {{ 'true' if prefilled_geom_type else 'false' }};
+    const datasetLocked = {{ 'true' if is_magic_link_prefilled and form.dataset else 'false' }};
+    const geometryLocked = {{ 'true' if is_magic_link_prefilled and form.get('geom_type') else 'false' }};
 
     // Build lookup from display label to org code
     function buildOrgLookup(orgs) {

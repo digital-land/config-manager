@@ -1,6 +1,8 @@
 import io
 from unittest.mock import patch
 
+from application.blueprints.datamanager.services.async_api import AsyncAPIError
+
 from application.blueprints.datamanager.controllers.form import (
     _has_all_add_data_fields,
     _parse_start_date,
@@ -105,6 +107,79 @@ class TestDashboardGetOrgsFor:
 
         assert response.status_code == 200
         assert response.get_json() == []
+
+
+class TestDashboardGetDefaults:
+    def test_authoritative_defaults_to_yes(self, client):
+        response = client.get("/datamanager/")
+
+        assert response.status_code == 200
+        assert b'<option value="yes" selected>Yes</option>' in response.data
+
+
+class TestDashboardGetMagicLinkData:
+    def test_fetches_request_details_and_prefills_magic_link_form(self, client):
+        with patch(
+            "application.blueprints.datamanager.controllers.form.fetch_request",
+            return_value={
+                "params": {
+                    "dataset": "brownfield-land",
+                    "url": "https://example.com/data.csv",
+                    "organisationName": "local-authority:ABC",
+                    "geom_type": "polygon",
+                }
+            },
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.get_dataset_name",
+            return_value="Brownfield Land",
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.get_dataset_id",
+            return_value="brownfield-land",
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.get_provision_orgs_for_dataset",
+            return_value=["local-authority:ABC"],
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.format_org_options",
+            return_value=[
+                {
+                    "code": "local-authority:ABC",
+                    "label": "ABC Council (local-authority:ABC)",
+                }
+            ],
+        ):
+            response = client.get(
+                "/datamanager/?requestId=req-123"
+                "&documentationUrl=https://example.gov.uk/docs"
+            )
+
+        assert response.status_code == 200
+        assert b'id="dataset-display"' in response.data
+        assert b'value="Brownfield Land"' in response.data
+        assert b'id="organisation-display"' in response.data
+        assert b'value="ABC Council (local-authority:ABC)"' in response.data
+        assert b'id="organisation" value="local-authority:ABC"' in response.data
+        assert b'value="https://example.com/data.csv"' in response.data
+        assert b'value="https://example.gov.uk/docs"' in response.data
+        assert b'id="geom-type-polygon"' in response.data
+        assert b'name="geom_type" value="polygon"' in response.data
+
+    def test_request_id_fetch_failure_ignores_other_prefill_params(self, client):
+        with patch(
+            "application.blueprints.datamanager.controllers.form.fetch_request",
+            side_effect=AsyncAPIError("not found", status_code=404),
+        ):
+            response = client.get(
+                "/datamanager/?requestId=req-123"
+                "&dataset=brownfield-land"
+                "&organisationId=local-authority:ABC"
+                "&endpointUrl=https://example.com/data.csv"
+            )
+
+        assert response.status_code == 200
+        assert b'id="dataset-display"' not in response.data
+        assert b'id="organisation-display"' not in response.data
+        assert b'value="https://example.com/data.csv"' not in response.data
+        assert b'name="request_id"' not in response.data
 
 
 class TestDashboardGetImportData:
@@ -240,6 +315,50 @@ class TestDashboardAddPost:
             response = client.post("/datamanager/", data={})
 
         assert response.status_code == 200
+
+    def test_post_with_request_id_reuses_existing_check_request(self, client):
+        with patch(
+            "application.blueprints.datamanager.controllers.form.get_dataset_id",
+            return_value="brownfield-land",
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.get_collection_id",
+            return_value="brownfield",
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.get_provision_orgs_for_dataset",
+            return_value=["local-authority:ABC"],
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.format_org_options",
+            return_value=[
+                {
+                    "code": "local-authority:ABC",
+                    "label": "ABC Council (local-authority:ABC)",
+                }
+            ],
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.is_valid_organisation",
+            return_value=True,
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.submit_request",
+            return_value="new-request-id",
+        ) as submit_request:
+            response = client.post(
+                "/datamanager/",
+                data={
+                    "request_id": "existing-request-id",
+                    "dataset": "Brownfield Land",
+                    "organisation": "local-authority:ABC",
+                    "endpoint_url": "https://example.com/data.csv",
+                    "documentation_url": "https://example.gov.uk/docs",
+                    "authoritative": "yes",
+                    "start_day": "1",
+                    "start_month": "6",
+                    "start_year": "2024",
+                },
+            )
+
+        assert response.status_code == 302
+        assert "existing-request-id" in response.headers["Location"]
+        submit_request.assert_not_called()
 
 
 class TestDashboardAddImportPost:

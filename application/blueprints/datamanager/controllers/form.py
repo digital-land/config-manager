@@ -35,13 +35,21 @@ from ..services.organisation import (
 logger = logging.getLogger(__name__)
 
 
+def _organisation_display_name(org_code: str, org_values: list) -> str:
+    for org in org_values:
+        if org.get("code") == org_code:
+            return org.get("label", org_code)
+
+    return org_code
+
+
 def handle_dashboard_get():
     form = {}
     errors = {}
     org_values = []
     dataset_input = ""
     request_id = ""
-    prefilled_values = {}  # Track original prefilled values for change detection
+    prefilled_values = {}
 
     # Autocomplete dataset names for UI suggestions
     if request.args.get("autocomplete"):
@@ -63,15 +71,70 @@ def handle_dashboard_get():
             return jsonify([])
         return jsonify(org_values)
 
-    # Pre-fill form from request parameters.
-    if request.args.get("import_data") != "true" and (
-        request.args.get("requestId")
-        or request.args.get("dataset")
+    # Pre-fill form from request details when a request ID is provided.
+    if request.args.get("import_data") != "true" and request.args.get("requestId"):
+        request_id = request.args.get("requestId", "")
+        request_params = {}
+        try:
+            request_params = fetch_request(request_id).get("params", {})
+        except AsyncAPIError as e:
+            logger.warning(f"Could not fetch request details for {request_id}: {e}")
+            request_id = ""
+
+        if request_params:
+            dataset_param = request_params.get("dataset", "")
+            dataset_input = get_dataset_name(dataset_param, default=dataset_param)
+            dataset_id = get_dataset_id(dataset_input) if dataset_input else ""
+
+            org_value = (
+                request_params.get("organisationName")
+                or request_params.get("organisation")
+                or ""
+            )
+            endpoint_url = request_params.get("url", "")
+            doc_url = (
+                request_params.get("documentation_url")
+                or request_params.get("documentationUrl")
+                or request.args.get("documentationUrl", "")
+            )
+            geom_type = (
+                request_params.get("geom_type")
+                or request_params.get("geometryType")
+                or ""
+            ).strip()
+
+            if dataset_id:
+                org_codes = get_provision_orgs_for_dataset(dataset_id)
+                org_values = format_org_options(org_codes)
+
+            form = {
+                "dataset": dataset_input,
+                "organisation": org_value,
+                "organisation_display_name": _organisation_display_name(
+                    org_value, org_values
+                ),
+                "endpoint_url": endpoint_url,
+                "documentation_url": doc_url,
+                "geom_type": geom_type,
+            }
+
+            # Store original prefilled values for comparison during submission
+            prefilled_values = {
+                "request_id": request_id,
+                "dataset": dataset_input,
+                "organisation": org_value,
+                "endpoint_url": endpoint_url,
+                "documentation_url": doc_url,
+                "geom_type": geom_type,
+            }
+
+    # Pre-fill form from explicit request parameters.
+    elif request.args.get("import_data") != "true" and (
+        request.args.get("dataset")
         or request.args.get("organisationId")
         or request.args.get("geometryType")
         or request.args.get("geom_type")
     ):
-        request_id = request.args.get("requestId", "")
         dataset_param = request.args.get("dataset", "")
         dataset_input = get_dataset_name(dataset_param, default=dataset_param)
         dataset_id = get_dataset_id(dataset_input) if dataset_input else ""
@@ -79,9 +142,8 @@ def handle_dashboard_get():
         org_value = request.args.get("organisationId", "")
         endpoint_url = request.args.get("endpointUrl", "")
         doc_url = request.args.get("documentationUrl", "")
-        jira_issue_id = request.args.get("jiraIssueId", "")
-        geom_type = request.args.get(
-            "geometryType", request.args.get("geom_type", "")
+        geom_type = (
+            request.args.get("geometryType") or request.args.get("geom_type", "")
         ).strip()
 
         if dataset_id:
@@ -91,20 +153,21 @@ def handle_dashboard_get():
         form = {
             "dataset": dataset_input,
             "organisation": org_value,
+            "organisation_display_name": _organisation_display_name(
+                org_value, org_values
+            ),
             "endpoint_url": endpoint_url,
             "documentation_url": doc_url,
-            "jira_issue_id": jira_issue_id,
             "geom_type": geom_type,
         }
 
         # Store original prefilled values for comparison during submission
         prefilled_values = {
-            "request_id": request_id,
+            "request_id": "",
             "dataset": dataset_input,
             "organisation": org_value,
             "endpoint_url": endpoint_url,
             "documentation_url": doc_url,
-            "jira_issue_id": jira_issue_id,
             "geom_type": geom_type,
         }
 
@@ -156,6 +219,7 @@ def handle_dashboard_get():
         form=form,
         errors=errors,
         request_id=request_id,
+        is_magic_link_prefilled=bool(prefilled_values),
         prefilled_values=prefilled_values,
     )
 
@@ -164,14 +228,7 @@ def handle_dashboard_get():
 def handle_dashboard_add():
     form = request.form.to_dict()
     errors = {}
-
-    # Check if this is a re-submission of prefilled params
-    original_request_id = form.get("original_request_id", "").strip()
-    original_dataset = form.get("original_dataset", "").strip()
-    original_organisation = form.get("original_organisation", "").strip()
-    original_endpoint_url = form.get("original_endpoint_url", "").strip()
-    original_documentation_url = form.get("original_documentation_url", "").strip()
-    original_jira_issue_id = form.get("original_jira_issue_id", "").strip()
+    request_id = form.get("request_id", "").strip()
 
     # Set the the dataset id and collection id.
     dataset_input = form.get("dataset", "").strip()
@@ -188,7 +245,6 @@ def handle_dashboard_add():
     org_code_input = form.get("organisation", "").strip()
     endpoint_url = form.get("endpoint_url", "").strip()
     doc_url = form.get("documentation_url", "").strip()
-    jira_issue_id = form.get("jira_issue_id", "").strip()
     licence = (form.get("licence") or "ogl3").strip().lower()
     authoritative = form.get("authoritative", "").strip().lower() or None
 
@@ -242,7 +298,6 @@ def handle_dashboard_add():
                 "geom_type": geom_type,
                 "geometryType": geom_type,
                 "column_mapping": column_mapping or None,
-                "jiraIssueId": jira_issue_id or None,
             }
         }
         session["add_data_fields"] = {
@@ -252,26 +307,11 @@ def handle_dashboard_add():
             "column_mapping": {},
             "authoritative": authoritative == "yes",
             "github_new": form.get("github_new", "true").strip() != "false",
-            "jira_issue_id": jira_issue_id,
         }
 
         try:
-            # Check if prefilled params have changed
-            params_unchanged = (
-                original_request_id
-                and dataset_input == original_dataset
-                and org_code_input == original_organisation
-                and endpoint_url == original_endpoint_url
-                and doc_url == original_documentation_url
-                and jira_issue_id == original_jira_issue_id
-                and geom_type == form.get("original_geom_type", "").strip()
-            )
-
-            if params_unchanged:
-                logger.info(
-                    f"Reusing request ID: {original_request_id} (params unchanged)"
-                )
-                request_id = original_request_id
+            if request_id:
+                logger.info(f"Reusing request ID: {request_id}")
             else:
                 request_id = submit_request(payload["params"])
             return redirect(
@@ -290,6 +330,8 @@ def handle_dashboard_add():
         org_values=org_values,
         form=form,
         errors=errors,
+        is_magic_link_prefilled=False,
+        prefilled_values={},
     )
 
 
