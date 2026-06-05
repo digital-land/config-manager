@@ -401,7 +401,7 @@ class TestDashboardAddPost:
         assert b'id="dataset-display"' in response.data
         assert b'id="organisation-display"' in response.data
         assert b'value="ABC Council (local-authority:ABC)"' in response.data
-        assert b'readonly' in response.data
+        assert b"readonly" in response.data
 
 
 class TestDashboardAddImportPost:
