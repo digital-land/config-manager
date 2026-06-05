@@ -323,7 +323,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
             if not add_data_fields.get("github_new", True)
             else None
         ),
-        "endpoint_parameters": add_data_fields.get("endpoint_parameters") or None,
+        "endpoint_parameters": check_params.get("endpoint_parameters") or None,
     }
 
     preview_id = submit_request(params)
