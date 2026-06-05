@@ -49,7 +49,7 @@ class TestCheckResultsRoute:
             ):
                 response = client.post(
                     "/datamanager/check-results/test-id",
-                    data={"map[MyColumn]": "name"},
+                    data={"field_map[name]": "MyColumn"},
                 )
         assert response.status_code == 302
         assert "new-check-id" in response.headers["Location"]

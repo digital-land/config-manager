@@ -10,8 +10,8 @@
       <table class="govuk-table">
         <thead class="govuk-table__head">
           <tr class="govuk-table__row">
-            <th scope="col" class="govuk-table__header">Column</th>
             <th scope="col" class="govuk-table__header">Field</th>
+            <th scope="col" class="govuk-table__header">Column</th>
             <th scope="col" class="govuk-table__header">Status</th>
           </tr>
         </thead>
@@ -19,18 +19,20 @@
           {% for row in mapping_rows %}
           <tr class="govuk-table__row">
             <td class="govuk-table__cell">
-              <strong>{{ row.column }}</strong>
+              <strong>{{ row.field }}</strong>
             </td>
             <td class="govuk-table__cell">
               {% if row.is_mapped %}
-              {{ row.field }}
-              {% else %}
-              <select class="govuk-select" name="map[{{ row.column }}]">
-                <option value="">-- select a field --</option>
-                {% for field in spec_fields %}
-                <option value="{{ field }}">{{ field }}</option>
+              {{ row.column }}
+              {% elif row.available_columns %}
+              <select class="govuk-select" name="field_map[{{ row.field }}]">
+                <option value="">-- select a column --</option>
+                {% for column in row.available_columns %}
+                <option value="{{ column }}">{{ column }}</option>
                 {% endfor %}
               </select>
+              {% else %}
+              <span class="govuk-hint">No unmapped columns available</span>
               {% endif %}
             </td>
             <td class="govuk-table__cell">
@@ -43,9 +45,9 @@
                 <option value="yes">Un-Map</option>
               </select>
               {% elif row.is_mapped %}
-              <select name="map[{{ row.column }}]" style="background-color: #00703c; color: #ffffff; font-weight: 700; font-size: 0.875rem; padding: 2px 8px; border: none; border-radius: 0; cursor: pointer; appearance: auto;">
+              <select name="ignore[{{ row.column }}]" style="background-color: #00703c; color: #ffffff; font-weight: 700; font-size: 0.875rem; padding: 2px 8px; border: none; border-radius: 0; cursor: pointer; appearance: auto;">
                 <option value="">Mapped</option>
-                <option value="IGNORE">Un-Map</option>
+                <option value="yes">Un-Map</option>
               </select>
               {% else %}
               <strong class="govuk-tag govuk-tag--red">Unmapped</strong>

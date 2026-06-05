@@ -175,15 +175,15 @@ def handle_check_results(request_id, result):
 
     # Build column mapping rows for inline configure UI
     unmapped_columns = converted_table.get("unmapped_columns", set())
-    user_column_mapping = result.get("params", {}).get("column_mapping") or {}
-    mapping_rows = build_column_mapping_rows(
-        column_mapping, unmapped_columns, user_column_mapping
-    )
     # Merge spec fields with all dataset fields so the mapping dropdown includes
     # fields that aren't present in this check's column-mapping
     spec_fields = (spec_fields | set(get_field_names_for_dataset(dataset_id))) - {
         "IGNORE"
     }
+    user_column_mapping = result.get("params", {}).get("column_mapping") or {}
+    mapping_rows = build_column_mapping_rows(
+        column_mapping, unmapped_columns, user_column_mapping, spec_fields
+    )
 
     # must_fix: task-log entries flagged as missing columns (task-source == "column-field")
     # fixable: all other task-log issues (value errors, etc.)
@@ -202,6 +202,9 @@ def handle_check_results(request_id, result):
         f"Column mapped: {entry['field']}"
         for entry in column_mapping
         if entry.get("field")
+        and entry.get("column")
+        and entry.get("field") != "IGNORE"
+        and entry.get("column") != "IGNORE"
     ]
     allow_add_data = len(must_fix) == 0
 
@@ -256,6 +259,14 @@ def handle_check_resubmit(request_id):
     # Start from any mappings already stored on this request, then merge new ones on top
     column_mapping = dict(params.get("column_mapping") or {})
     form = request.form.to_dict()
+
+    for key, value in form.items():
+        if key.startswith("field_map[") and key.endswith("]"):
+            field_name = key[10:-1]
+            col_name = value.strip()
+            if field_name and col_name:
+                column_mapping[col_name] = field_name
+
     for key, value in form.items():
         if key.startswith("map[") and key.endswith("]"):
             col_name = key[4:-1]
@@ -268,6 +279,9 @@ def handle_check_resubmit(request_id):
         if key.startswith("unmap[") and key.endswith("]") and value == "yes":
             col_name = key[6:-1]
             column_mapping.pop(col_name, None)
+        if key.startswith("ignore[") and key.endswith("]") and value == "yes":
+            col_name = key[7:-1]
+            column_mapping[col_name] = "IGNORE"
 
     # Submit new check with updated config
     payload_params = {
