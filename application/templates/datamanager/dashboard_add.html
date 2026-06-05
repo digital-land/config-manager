@@ -98,7 +98,7 @@ endblock %}
 
       <!-- Original request ID (for reusing the completed check) -->
       {% if is_magic_link_prefilled %}
-      <input type="hidden" name="request_id" value="{{ prefilled_values.get('request_id', '') }}">
+      <input type="hidden" name="request_id" value="{{ request_id }}">
       {% endif %}
 
       <!-- Geometry type (tree dataset only) -->

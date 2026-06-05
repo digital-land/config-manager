@@ -163,22 +163,20 @@ class TestDashboardGetMagicLinkData:
         assert b'id="geom-type-polygon"' in response.data
         assert b'name="geom_type" value="polygon"' in response.data
 
-    def test_request_id_fetch_failure_ignores_other_prefill_params(self, client):
+    def test_request_id_fetch_failure_does_not_prefill_magic_link_form(self, client):
         with patch(
             "application.blueprints.datamanager.controllers.form.fetch_request",
             side_effect=AsyncAPIError("not found", status_code=404),
         ):
             response = client.get(
                 "/datamanager/?requestId=req-123"
-                "&dataset=brownfield-land"
-                "&organisationId=local-authority:ABC"
-                "&endpointUrl=https://example.com/data.csv"
+                "&documentationUrl=https://example.gov.uk/docs"
             )
 
         assert response.status_code == 200
         assert b'id="dataset-display"' not in response.data
         assert b'id="organisation-display"' not in response.data
-        assert b'value="https://example.com/data.csv"' not in response.data
+        assert b'value="https://example.gov.uk/docs"' not in response.data
         assert b'name="request_id"' not in response.data
 
 

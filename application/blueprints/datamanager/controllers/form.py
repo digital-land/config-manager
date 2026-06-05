@@ -49,7 +49,6 @@ def handle_dashboard_get():
     org_values = []
     dataset_input = ""
     request_id = ""
-    prefilled_values = {}
 
     # Autocomplete dataset names for UI suggestions
     if request.args.get("autocomplete"):
@@ -71,7 +70,7 @@ def handle_dashboard_get():
             return jsonify([])
         return jsonify(org_values)
 
-    # Pre-fill form from request details when a request ID is provided.
+    # Pre-fill form from async request details when a request ID is provided.
     if request.args.get("import_data") != "true" and request.args.get("requestId"):
         request_id = request.args.get("requestId", "")
         request_params = {}
@@ -86,22 +85,10 @@ def handle_dashboard_get():
             dataset_input = get_dataset_name(dataset_param, default=dataset_param)
             dataset_id = get_dataset_id(dataset_input) if dataset_input else ""
 
-            org_value = (
-                request_params.get("organisationName")
-                or request_params.get("organisation")
-                or ""
-            )
+            org_value = request_params.get("organisationName", "")
             endpoint_url = request_params.get("url", "")
-            doc_url = (
-                request_params.get("documentation_url")
-                or request_params.get("documentationUrl")
-                or request.args.get("documentationUrl", "")
-            )
-            geom_type = (
-                request_params.get("geom_type")
-                or request_params.get("geometryType")
-                or ""
-            ).strip()
+            doc_url = request.args.get("documentationUrl", "")
+            geom_type = (request_params.get("geom_type") or "").strip()
 
             if dataset_id:
                 org_codes = get_provision_orgs_for_dataset(dataset_id)
@@ -117,59 +104,6 @@ def handle_dashboard_get():
                 "documentation_url": doc_url,
                 "geom_type": geom_type,
             }
-
-            # Store original prefilled values for comparison during submission
-            prefilled_values = {
-                "request_id": request_id,
-                "dataset": dataset_input,
-                "organisation": org_value,
-                "endpoint_url": endpoint_url,
-                "documentation_url": doc_url,
-                "geom_type": geom_type,
-            }
-
-    # Pre-fill form from explicit request parameters.
-    elif request.args.get("import_data") != "true" and (
-        request.args.get("dataset")
-        or request.args.get("organisationId")
-        or request.args.get("geometryType")
-        or request.args.get("geom_type")
-    ):
-        dataset_param = request.args.get("dataset", "")
-        dataset_input = get_dataset_name(dataset_param, default=dataset_param)
-        dataset_id = get_dataset_id(dataset_input) if dataset_input else ""
-
-        org_value = request.args.get("organisationId", "")
-        endpoint_url = request.args.get("endpointUrl", "")
-        doc_url = request.args.get("documentationUrl", "")
-        geom_type = (
-            request.args.get("geometryType") or request.args.get("geom_type", "")
-        ).strip()
-
-        if dataset_id:
-            org_codes = get_provision_orgs_for_dataset(dataset_id)
-            org_values = format_org_options(org_codes)
-
-        form = {
-            "dataset": dataset_input,
-            "organisation": org_value,
-            "organisation_display_name": _organisation_display_name(
-                org_value, org_values
-            ),
-            "endpoint_url": endpoint_url,
-            "documentation_url": doc_url,
-            "geom_type": geom_type,
-        }
-
-        # Store original prefilled values for comparison during submission
-        prefilled_values = {
-            "request_id": "",
-            "dataset": dataset_input,
-            "organisation": org_value,
-            "endpoint_url": endpoint_url,
-            "documentation_url": doc_url,
-            "geom_type": geom_type,
-        }
 
     # Pre-fill form from imported CSV data if available
     elif request.args.get("import_data") == "true":
@@ -219,8 +153,7 @@ def handle_dashboard_get():
         form=form,
         errors=errors,
         request_id=request_id,
-        is_magic_link_prefilled=bool(prefilled_values),
-        prefilled_values=prefilled_values,
+        is_magic_link_prefilled=bool(request_id),
     )
 
 
@@ -331,7 +264,7 @@ def handle_dashboard_add():
         form=form,
         errors=errors,
         is_magic_link_prefilled=False,
-        prefilled_values={},
+        request_id="",
     )
 
 
