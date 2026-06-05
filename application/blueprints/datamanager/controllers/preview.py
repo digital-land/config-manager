@@ -72,12 +72,16 @@ def handle_entities_preview(request_id, req):
     }
 
     # Build endpoint CSV preview
+    params = req.get("params", {}) or {}
+    endpoint_parameters = params.get("endpoint_parameters") or None
     (
         endpoint_already_exists,
         endpoint_url,
         endpoint_csv_table_params,
         endpoint_csv_text,
-    ) = build_endpoint_csv_preview(endpoint_summary)
+    ) = build_endpoint_csv_preview(
+        endpoint_summary, endpoint_parameters=endpoint_parameters
+    )
 
     # Build source CSV preview
     source_summary, source_csv_table_params, source_csv_text = build_source_csv_preview(
@@ -85,7 +89,6 @@ def handle_entities_preview(request_id, req):
     )
 
     # Build column CSV preview
-    params = req.get("params", {}) or {}
     dataset_id = params.get("dataset", "")
     column_mapping = params.get("column_mapping", {})
     (

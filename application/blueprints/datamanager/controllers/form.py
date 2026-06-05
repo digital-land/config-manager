@@ -26,6 +26,7 @@ from ..services.dataset import (
     get_dataset_name,
     search_datasets,
 )
+from ..utils import get_allowed_override_users
 from ..services.organisation import (
     format_org_options,
     get_provision_orgs_for_dataset,
@@ -33,6 +34,13 @@ from ..services.organisation import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _is_admin():
+    if not current_app.config.get("AUTHENTICATION_ON", True):
+        return True
+    current_user = (session.get("user") or {}).get("login", "")
+    return current_user.lower() in get_allowed_override_users()
 
 
 def handle_dashboard_get():
@@ -108,6 +116,7 @@ def handle_dashboard_get():
         org_values=org_values,
         form=form,
         errors=errors,
+        is_admin=_is_admin(),
     )
 
 
@@ -133,6 +142,13 @@ def handle_dashboard_add():
     doc_url = form.get("documentation_url", "").strip()
     licence = (form.get("licence") or "ogl3").strip().lower()
     authoritative = form.get("authoritative", "").strip().lower() or None
+    endpoint_parameters = {}
+    max_page_size_raw = form.get("max_page_size", "").strip()
+    page_size_raw = form.get("page_size", "").strip()
+    if max_page_size_raw.isdigit():
+        endpoint_parameters["max_page_size"] = int(max_page_size_raw)
+    if page_size_raw.isdigit():
+        endpoint_parameters["page_size"] = int(page_size_raw)
 
     day = (form.get("start_day") or "").strip()
     month = (form.get("start_month") or "").strip()
@@ -183,6 +199,7 @@ def handle_dashboard_add():
                 "organisationName": org_code_input,
                 "geom_type": geom_type,
                 "column_mapping": column_mapping or None,
+                "endpoint_parameters": endpoint_parameters or None,
             }
         }
         session["add_data_fields"] = {
@@ -192,6 +209,7 @@ def handle_dashboard_add():
             "column_mapping": {},
             "authoritative": authoritative == "yes",
             "github_new": form.get("github_new", "true").strip() != "false",
+            "endpoint_parameters": endpoint_parameters,
         }
 
         try:
@@ -212,6 +230,7 @@ def handle_dashboard_add():
         org_values=org_values,
         form=form,
         errors=errors,
+        is_admin=_is_admin(),
     )
 
 
@@ -291,9 +310,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
         "collection": check_params.get("collection"),
         "dataset": check_params.get("dataset"),
         "url": check_params.get("url"),
-        "organisationName": check_params.get(
-            "organisationName"
-        ),  # TODO: Fix inconsistent org naming in async API params
+        "organisationName": check_params.get("organisationName"),
         "organisation": check_params.get("organisationName"),
         "column_mapping": check_params.get("column_mapping", {}),
         "documentation_url": add_data_fields["documentation_url"],
@@ -306,6 +323,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
             if not add_data_fields.get("github_new", True)
             else None
         ),
+        "endpoint_parameters": check_params.get("endpoint_parameters") or None,
     }
 
     preview_id = submit_request(params)

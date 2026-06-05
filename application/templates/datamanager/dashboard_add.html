@@ -170,8 +170,7 @@ endblock %}
         'name': 'authoritative',
         'label': { 'html': 'Is this the authoritative source? <span class="govuk-required">*</span>' },
         'items': [
-          { 'value': '', 'text': 'Select an option', 'selected': not form.get('authoritative') },
-          { 'value': 'yes', 'text': 'Yes', 'selected': form.get('authoritative') == 'yes' },
+          { 'value': 'yes', 'text': 'Yes', 'selected': form.get('authoritative', 'yes') == 'yes' },
           { 'value': 'no', 'text': 'No', 'selected': form.get('authoritative') == 'no' }
         ],
         'errorMessage': ( { 'text': 'Select whether this is the authoritative source' } if errors.get('authoritative') else None )
@@ -180,6 +179,34 @@ endblock %}
 
       {# GitHub branch selection #}
       {{ githubBranch(form, config) }}
+
+      {% if is_admin %}
+      <details class="govuk-details govuk-!-margin-top-4">
+        <summary class="govuk-details__summary">
+          <span class="govuk-details__summary-text">Admin settings</span>
+        </summary>
+        <div class="govuk-details__text">
+          {{ govukInput({
+          'label': { 'text': 'Max page size (ArcGIS)' },
+          'hint': { 'text': 'Leave blank to use the default. Only applies to ArcGIS data sources.' },
+          'id': 'max-page-size',
+          'name': 'max_page_size',
+          'value': form.get('max_page_size', ''),
+          'classes': 'govuk-input--width-5',
+          'inputmode': 'numeric'
+          }) }}
+          {{ govukInput({
+          'label': { 'text': 'Page size (WFS)' },
+          'hint': { 'text': 'Leave blank to use the default. Only applies to WFS data sources.' },
+          'id': 'page-size',
+          'name': 'page_size',
+          'value': form.get('page_size', ''),
+          'classes': 'govuk-input--width-5',
+          'inputmode': 'numeric'
+          }) }}
+        </div>
+      </details>
+      {% endif %}
 
       <div class="govuk-form-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
         {{ govukButton({
