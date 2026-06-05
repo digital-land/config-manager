@@ -139,60 +139,41 @@ endblock %}
       {% endif %}
 
       <!-- Endpoint URL -->
+      {% set is_endpoint_readonly = is_magic_link_prefilled and form.get('endpoint_url') %}
       <div class="govuk-form-group {% if environment_error %}govuk-form-group--error{% endif %}">
-        {% if is_magic_link_prefilled and form.get('endpoint_url') %}
         {{ govukInput({
         'label': { 'html': 'Endpoint URL <span class="govuk-required">*</span>' },
         'id': 'endpoint-url',
         'name': 'endpoint_url',
         'value': form.get('endpoint_url', ''),
-        'classes': 'app-text-input__readonly',
-        'hint': { 'text': magic_link_hint },
+        'classes': 'app-text-input__readonly' if is_endpoint_readonly else '',
+        'hint': { 'text': magic_link_hint } if is_endpoint_readonly else None,
         'attributes': { 'required': 'required', 'type': 'url', 'readonly': 'readonly' }
+        if is_endpoint_readonly else { 'required': 'required', 'type': 'url' }
         }) }}
-        {% else %}
-        {{ govukInput({
-        'label': { 'html': 'Endpoint URL <span class="govuk-required">*</span>' },
-        'id': 'endpoint-url',
-        'name': 'endpoint_url',
-        'value': form.get('endpoint_url', ''),
-        'attributes': { 'required': 'required', 'type': 'url' }
-        }) }}
-        {% endif %}
       </div>
 
       <!-- Documentation URL -->
+      {% set is_documentation_readonly = is_magic_link_prefilled and form.get('documentation_url') %}
       <div class="govuk-form-group {% if documentation_error %}govuk-form-group--error{% endif %}">
-        {% if is_magic_link_prefilled and form.get('documentation_url') %}
         {{ govukInput({
         'label': { 'text': 'Documentation URL' },
         'id': 'documentation-url',
         'name': 'documentation_url',
         'value': form.get('documentation_url', ''),
-        'classes': 'app-text-input__readonly',
-        'hint': { 'text': magic_link_hint },
+        'classes': 'app-text-input__readonly' if is_documentation_readonly else '',
+        'hint': { 'text': magic_link_hint } if is_documentation_readonly else None,
         'attributes': {
         'pattern': '(^$)|https?://.*\\.(gov\\.uk|org\\.uk)(/.*)?',
         'title': 'Must be a valid URL ending in .gov.uk or .org.uk if provided',
         'readonly': 'readonly'
-        },
-        'errorMessage': ( { 'text': 'Enter a valid documentation URL ending in .gov.uk or .org.uk' } if
-        documentation_error else None )
-        }) }}
-        {% else %}
-        {{ govukInput({
-        'label': { 'text': 'Documentation URL' },
-        'id': 'documentation-url',
-        'name': 'documentation_url',
-        'value': form.get('documentation_url', ''),
-        'attributes': {
+        } if is_documentation_readonly else {
         'pattern': '(^$)|https?://.*\\.(gov\\.uk|org\\.uk)(/.*)?',
         'title': 'Must be a valid URL ending in .gov.uk or .org.uk if provided'
         },
         'errorMessage': ( { 'text': 'Enter a valid documentation URL ending in .gov.uk or .org.uk' } if
         documentation_error else None )
         }) }}
-        {% endif %}
       </div>
 
       <div class="govuk-form-group govuk-!-margin-top-6">
