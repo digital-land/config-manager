@@ -353,11 +353,14 @@ endblock %}
       geomTypeGroup.style.display = 'block';
     }
 
-    document.getElementById('csv-file-upload').addEventListener('change', function() {
-      if (this.files.length > 0) {
-        this.closest('form').submit();
-      }
-    });
+    const upload = document.getElementById('csv-file-upload');
+    if (upload) {
+      upload.addEventListener('change', function() {
+        if (this.files.length > 0) {
+          this.closest('form').submit();
+        }
+      });
+    }
   });
 </script>
 {% endblock %}

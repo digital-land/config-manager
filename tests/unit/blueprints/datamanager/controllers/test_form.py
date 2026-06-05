@@ -358,6 +358,51 @@ class TestDashboardAddPost:
         assert "existing-request-id" in response.headers["Location"]
         submit_request.assert_not_called()
 
+    def test_post_with_request_id_validation_error_preserves_magic_link_state(
+        self, client
+    ):
+        with patch(
+            "application.blueprints.datamanager.controllers.form.get_dataset_id",
+            return_value="brownfield-land",
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.get_collection_id",
+            return_value="brownfield",
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.get_provision_orgs_for_dataset",
+            return_value=["local-authority:ABC"],
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.format_org_options",
+            return_value=[
+                {
+                    "code": "local-authority:ABC",
+                    "label": "ABC Council (local-authority:ABC)",
+                }
+            ],
+        ), patch(
+            "application.blueprints.datamanager.controllers.form.is_valid_organisation",
+            return_value=True,
+        ):
+            response = client.post(
+                "/datamanager/",
+                data={
+                    "request_id": "existing-request-id",
+                    "dataset": "Brownfield Land",
+                    "organisation": "local-authority:ABC",
+                    "endpoint_url": "https://example.com/data.csv",
+                    "documentation_url": "https://example.gov.uk/docs",
+                    "start_day": "1",
+                    "start_month": "6",
+                    "start_year": "2024",
+                },
+            )
+
+        assert response.status_code == 200
+        assert b'name="request_id" value="existing-request-id"' in response.data
+        assert b'id="dataset-display"' in response.data
+        assert b'id="organisation-display"' in response.data
+        assert b'value="ABC Council (local-authority:ABC)"' in response.data
+        assert b'readonly' in response.data
+
 
 class TestDashboardAddImportPost:
     def test_file_upload_with_valid_single_row_csv_redirects(self, client):

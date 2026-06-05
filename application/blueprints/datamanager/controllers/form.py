@@ -43,6 +43,15 @@ def _organisation_display_name(org_code: str, org_values: list) -> str:
     return org_code
 
 
+def _get_org_values_for_dataset(dataset_id: str) -> list:
+    try:
+        org_codes = get_provision_orgs_for_dataset(dataset_id)
+        return format_org_options(org_codes)
+    except Exception as e:
+        logger.warning(f"Failed to fetch organisations for {dataset_id}: {e}")
+        return []
+
+
 def handle_dashboard_get():
     form = {}
     errors = {}
@@ -91,8 +100,7 @@ def handle_dashboard_get():
             geom_type = (request_params.get("geom_type") or "").strip()
 
             if dataset_id:
-                org_codes = get_provision_orgs_for_dataset(dataset_id)
-                org_values = format_org_options(org_codes)
+                org_values = _get_org_values_for_dataset(dataset_id)
 
             form = {
                 "dataset": dataset_input,
@@ -113,8 +121,7 @@ def handle_dashboard_get():
 
         org_value = request.args.get("organisation", "")
         if dataset_id:
-            org_codes = get_provision_orgs_for_dataset(dataset_id)
-            org_values = format_org_options(org_codes)
+            org_values = _get_org_values_for_dataset(dataset_id)
 
         form = {
             "dataset": dataset_input,
@@ -169,13 +176,12 @@ def handle_dashboard_add():
     collection_id = get_collection_id(dataset_input)
 
     # Get list of orgs provisioned for this dataset in both code and display format.
-    org_codes = []
     org_values = []
     if dataset_id:
-        org_codes = get_provision_orgs_for_dataset(dataset_id)
-        org_values = format_org_options(org_codes)
+        org_values = _get_org_values_for_dataset(dataset_id)
 
-    org_code_input = form.get("organisation", "").strip()
+    submitted_org_code = form.get("organisation", "").strip()
+    org_code_input = submitted_org_code
     endpoint_url = form.get("endpoint_url", "").strip()
     doc_url = form.get("documentation_url", "").strip()
     licence = (form.get("licence") or "ogl3").strip().lower()
@@ -229,7 +235,6 @@ def handle_dashboard_add():
                 "url": endpoint_url,
                 "organisationName": org_code_input,
                 "geom_type": geom_type,
-                "geometryType": geom_type,
                 "column_mapping": column_mapping or None,
             }
         }
@@ -246,6 +251,7 @@ def handle_dashboard_add():
             if request_id:
                 logger.info(f"Reusing request ID: {request_id}")
             else:
+                logger.info("Creating a new check request")
                 request_id = submit_request(payload["params"])
             return redirect(
                 url_for(
@@ -257,14 +263,19 @@ def handle_dashboard_add():
             raise Exception(f"Check tool submission failed: {e.detail}") from e
 
     # Re-render form with errors
+    if request_id:
+        form["organisation_display_name"] = _organisation_display_name(
+            submitted_org_code, org_values
+        )
+
     return render_template(
         "datamanager/dashboard_add.html",
         dataset_input=dataset_input,
         org_values=org_values,
         form=form,
         errors=errors,
-        is_magic_link_prefilled=False,
-        request_id="",
+        is_magic_link_prefilled=bool(request_id),
+        request_id=request_id,
     )
 
 
