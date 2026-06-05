@@ -199,6 +199,7 @@ def handle_dashboard_add():
                 "organisationName": org_code_input,
                 "geom_type": geom_type,
                 "column_mapping": column_mapping or None,
+                "endpoint_parameters": endpoint_parameters or None,
             }
         }
         session["add_data_fields"] = {
