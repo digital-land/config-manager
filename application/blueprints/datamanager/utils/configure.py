@@ -14,8 +14,8 @@ def build_column_mapping_rows(
     user_column_mapping = user_column_mapping or {}
     field_names = set(spec_fields or [])
 
-    # Currently column-mapping returns IGNORE for fields that have been unmapped. This is a bug in async service that needs to be fixed.
-    # For now we need to check for IGNORE and exclude these from the field names, otherwise they will be included as unmapped fields in the UI which is confusing for users.
+    # The async service currently returns IGNORE for fields that have been unmapped.
+    # Exclude these to avoid showing IGNORE as an unmapped field in the UI.
     field_names.update(
         entry.get("field")
         for entry in column_field_log
