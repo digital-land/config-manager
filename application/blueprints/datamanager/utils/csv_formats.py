@@ -51,7 +51,9 @@ def build_lookup_csv_preview(new_entities: list) -> tuple:
     return table_params, csv_text
 
 
-def build_endpoint_csv_preview(endpoint_summary: dict, endpoint_parameters: dict | None = None) -> tuple:
+def build_endpoint_csv_preview(
+    endpoint_summary: dict, endpoint_parameters: dict | None = None
+) -> tuple:
     """
     Build endpoint CSV preview.
     Returns (endpoint_already_exists, endpoint_url, table_params, csv_text)
@@ -78,7 +80,10 @@ def build_endpoint_csv_preview(endpoint_summary: dict, endpoint_parameters: dict
         end_point_entry = endpoint_summary.get("new_endpoint_entry", {})
         endpoint_url = end_point_entry.get("endpoint-url", "")
         if endpoint_parameters:
-            end_point_entry = {**end_point_entry, "parameters": json.dumps(endpoint_parameters)}
+            end_point_entry = {
+                **end_point_entry,
+                "parameters": json.dumps(endpoint_parameters),
+            }
         endpoint_csv_text = _row_to_csv(
             [end_point_entry.get(col, "") for col in ep_cols]
         )

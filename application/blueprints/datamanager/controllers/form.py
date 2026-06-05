@@ -309,9 +309,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
         "collection": check_params.get("collection"),
         "dataset": check_params.get("dataset"),
         "url": check_params.get("url"),
-        "organisationName": check_params.get(
-            "organisationName"
-        ),
+        "organisationName": check_params.get("organisationName"),
         "organisation": check_params.get("organisationName"),
         "column_mapping": check_params.get("column_mapping", {}),
         "documentation_url": add_data_fields["documentation_url"],
