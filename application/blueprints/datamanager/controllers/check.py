@@ -39,6 +39,13 @@ logger = logging.getLogger(__name__)
 _ROWS_PER_PAGE = 500
 
 
+def _assign_column_mapping(column_mapping, col_name, field_name):
+    for existing_col, existing_field in list(column_mapping.items()):
+        if existing_col != col_name and existing_field == field_name:
+            del column_mapping[existing_col]
+    column_mapping[col_name] = field_name
+
+
 def handle_check_results(request_id, result):
     # Extract org code
     organisation_code = result.get("params", {}).get("organisationName")
@@ -265,14 +272,14 @@ def handle_check_resubmit(request_id):
             field_name = key[10:-1]
             col_name = value.strip()
             if field_name and col_name:
-                column_mapping[col_name] = field_name
+                _assign_column_mapping(column_mapping, col_name, field_name)
 
     for key, value in form.items():
         if key.startswith("map[") and key.endswith("]"):
             col_name = key[4:-1]
             field_value = value.strip()
             if field_value:
-                column_mapping[col_name] = field_value
+                _assign_column_mapping(column_mapping, col_name, field_value)
 
     # Remove any mappings the user has chosen to unmap
     for key, value in form.items():

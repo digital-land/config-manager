@@ -39,17 +39,25 @@ class TestCheckResultsRoute:
         assert b"govuk-error-summary" in response.data
 
     def test_resubmit_redirects_to_new_check(self, client):
+        result = {
+            **PENDING_RESULT,
+            "params": {
+                **PENDING_RESULT["params"],
+                "column_mapping": {"OldColumn": "name"},
+            },
+        }
         with patch(
             "application.blueprints.datamanager.controllers.check.fetch_request",
-            return_value=PENDING_RESULT,
-        ):
-            with patch(
-                "application.blueprints.datamanager.controllers.check.submit_request",
-                return_value="new-check-id",
-            ):
-                response = client.post(
-                    "/datamanager/check-results/test-id",
-                    data={"field_map[name]": "MyColumn"},
-                )
+            return_value=result,
+        ), patch(
+            "application.blueprints.datamanager.controllers.check.submit_request",
+            return_value="new-check-id",
+        ) as submit_request:
+            response = client.post(
+                "/datamanager/check-results/test-id",
+                data={"field_map[name]": "MyColumn"},
+            )
         assert response.status_code == 302
         assert "new-check-id" in response.headers["Location"]
+        submitted_params = submit_request.call_args.args[0]
+        assert submitted_params["column_mapping"] == {"MyColumn": "name"}

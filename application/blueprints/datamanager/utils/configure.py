@@ -24,6 +24,7 @@ def build_column_mapping_rows(
 
     active_mapping = {}
     ignored_columns = set()
+    ignored_fields = set()
 
     for entry in column_field_log:
         col = entry.get("column")
@@ -32,6 +33,7 @@ def build_column_mapping_rows(
             continue
         if user_column_mapping.get(col) == "IGNORE":
             ignored_columns.add(col)
+            ignored_fields.add(field)
             continue
         if field == "IGNORE":
             continue
@@ -65,7 +67,7 @@ def build_column_mapping_rows(
                 "is_mapped": bool(column),
                 "user_defined": bool(column)
                 and user_column_mapping.get(column) == field,
-                "user_ignored": False,
+                "user_ignored": field in ignored_fields,
                 "available_columns": available_columns,
             }
         )
