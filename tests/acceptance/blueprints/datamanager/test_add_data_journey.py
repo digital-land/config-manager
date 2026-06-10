@@ -256,12 +256,14 @@ class TestAddDataJourney:
             ):
                 with patch(
                     "application.blueprints.datamanager.controllers.check.get_field_names_for_dataset",
-                    return_value=[],
+                    return_value=["geometry"],
                 ):
                     response = client.get("/datamanager/check-results/check-id-1")
         assert response.status_code == 200
         assert b"geom" in response.data
-        assert b"map[geom]" in response.data  # column mapping select input name
+        assert b"field_map[geometry]" in response.data
+        assert b'<option value="geom">geom</option>' in response.data
+        assert b"field_map[reference]" not in response.data
 
     # --- Step 4: Resubmit with column mapping geom → geometry ---
 
@@ -273,7 +275,7 @@ class TestAddDataJourney:
         rsps.add(rsps.POST, ASYNC_BASE, json={"id": "check-id-2"}, status=202)
         response = client.post(
             "/datamanager/check-results/check-id-1",
-            data={"map[geom]": "geometry"},
+            data={"field_map[geometry]": "geom"},
         )
         assert response.status_code == 302
         assert "check-results/check-id-2" in response.headers["Location"]

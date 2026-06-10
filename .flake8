@@ -9,5 +9,6 @@ exclude =
     node_modules
 		.venv
 		migrations
+		.history
 
 ; vim: ft=dosini
