@@ -137,17 +137,7 @@ def build_source_csv_preview(source_summary_data: dict) -> tuple:
 
     source_summary = {
         "already_exists": source_already_exists_text,
-        "source": src_source.get("source", ""),
-        "collection": src_source.get("collection", ""),
-        "organisation": src_source.get("organisation", ""),
-        "endpoint": src_source.get("endpoint", ""),
-        "licence": src_source.get("licence", ""),
-        "pipelines": src_source.get("pipelines", ""),
-        "entry_date": src_source.get("entry-date", ""),
-        "start_date": src_source.get("start-date", ""),
-        "end_date": src_source.get("end-date", ""),
         "documentation_url": src_source.get("documentation-url", ""),
-        "attribution": src_source.get("attribution", ""),
     }
 
     return source_summary, source_csv_table_params
