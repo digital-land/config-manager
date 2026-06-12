@@ -56,7 +56,7 @@ def handle_entities_preview(request_id, req):
     new_entities = pipeline_summary.get("new-entities") or []
 
     # Build lookup CSV preview
-    table_params, lookup_csv_text = build_lookup_csv_preview(new_entities)
+    table_params = build_lookup_csv_preview(new_entities)
 
     # Existing entities table
     ex_cols = ["reference", "entity"]
@@ -78,13 +78,12 @@ def handle_entities_preview(request_id, req):
         endpoint_already_exists,
         endpoint_url,
         endpoint_csv_table_params,
-        endpoint_csv_text,
     ) = build_endpoint_csv_preview(
         endpoint_summary, endpoint_parameters=endpoint_parameters
     )
 
     # Build source CSV preview
-    source_summary, source_csv_table_params, source_csv_text = build_source_csv_preview(
+    source_summary, source_csv_table_params = build_source_csv_preview(
         source_summary_data
     )
 
@@ -93,7 +92,6 @@ def handle_entities_preview(request_id, req):
     column_mapping = params.get("column_mapping", {})
     (
         column_csv_table_params,
-        column_csv_text,
         has_column_mapping,
     ) = build_column_csv_preview(column_mapping, dataset_id, endpoint_summary)
 
@@ -130,7 +128,6 @@ def handle_entities_preview(request_id, req):
     # Build entity-organisation CSV preview (only for authoritative data)
     authoritative = params.get("authoritative", False)
     entity_org_table_params = None
-    entity_org_csv_text = ""
     has_entity_org = False
     entity_org_warning = None
 
@@ -139,7 +136,6 @@ def handle_entities_preview(request_id, req):
         if entity_organisation_data:
             (
                 entity_org_table_params,
-                entity_org_csv_text,
                 has_entity_org,
             ) = build_entity_organisation_csv(entity_organisation_data)
         else:
@@ -159,18 +155,13 @@ def handle_entities_preview(request_id, req):
         endpoint_already_exists=endpoint_already_exists,
         endpoint_url=endpoint_url,
         table_params=table_params,
-        lookup_csv_text=lookup_csv_text,
         existing_table_params=existing_table_params,
         endpoint_csv_table_params=endpoint_csv_table_params,
-        endpoint_csv_text=endpoint_csv_text,
         source_csv_table_params=source_csv_table_params,
-        source_csv_text=source_csv_text,
         source_summary=source_summary,
         column_csv_table_params=column_csv_table_params,
-        column_csv_text=column_csv_text,
         has_column_mapping=has_column_mapping,
         entity_org_table_params=entity_org_table_params,
-        entity_org_csv_text=entity_org_csv_text,
         has_entity_org=has_entity_org,
         entity_org_warning=entity_org_warning,
     )
