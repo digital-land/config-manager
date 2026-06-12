@@ -96,7 +96,7 @@ def build_source_csv_preview(source_summary_data: dict) -> tuple:
     ]
 
     source_present = source_summary_data.get("documentation_url_in_source_csv")
-    will_create_source_text = "No" if source_present else "Yes"
+    source_already_exists_text = "Yes" if source_present else "No"
 
     pipelines_append_required = source_summary_data.get("pipelines_append_required")
 
@@ -133,10 +133,10 @@ def build_source_csv_preview(source_summary_data: dict) -> tuple:
             "columnNameProcessing": "none",
         }
 
-    logger.info(f"Will create source: {will_create_source_text}")
+    logger.info(f"Source already exists: {source_already_exists_text}")
 
     source_summary = {
-        "will_create": will_create_source_text,
+        "already_exists": source_already_exists_text,
         "source": src_source.get("source", ""),
         "collection": src_source.get("collection", ""),
         "organisation": src_source.get("organisation", ""),
