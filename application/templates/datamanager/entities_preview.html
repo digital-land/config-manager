@@ -36,19 +36,6 @@
           {% if table_params and table_params.rows %}
           <div class="app-scrollable-container app-scrollable">{{ table(table_params) }}</div>
           {% endif %}
-          <details class="govuk-details govuk-!-margin-bottom-0" data-module="govuk-details">
-            <summary class="govuk-details__summary">
-              <span class="govuk-details__summary-text">Copy CSV for <code>lookup.csv</code></span>
-            </summary>
-            <div class="govuk-details__text">
-              {% set _ep_lines = (lookup_csv_text or '').splitlines() %}
-              <textarea class="govuk-textarea" rows="6" readonly>
-{{ _ep_lines[0:] | join('\n') }}</textarea>
-              <p class="govuk-hint govuk-!-margin-top-2">
-                Copy this line into your local <code>lookup.csv</code>.
-              </p>
-            </div>
-          </details>
         </section>
         {% endif %}
 
@@ -95,21 +82,6 @@
         <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
           {{ table(endpoint_csv_table_params) }}
         </div>
-        {% if endpoint_csv_text != '' %}
-        <details class="govuk-details govuk-!-margin-bottom-0" data-module="govuk-details">
-          <summary class="govuk-details__summary">
-            <span class="govuk-details__summary-text">Copy CSV for <code>endpoint.csv</code></span>
-          </summary>
-          <div class="govuk-details__text">
-            {% set _ep_lines = (endpoint_csv_text or '').splitlines() %}
-            <textarea class="govuk-textarea" rows="2" readonly>
-{{ _ep_lines[0:] | join('\n') }}</textarea>
-            <p class="govuk-hint govuk-!-margin-top-2">
-              Copy this line into your local <code>endpoint.csv</code>.
-            </p>
-          </div>
-        </details>
-        {% endif %}
         {% endif %}
       </div>
     </div>
@@ -122,77 +94,15 @@
         <div style="background-color: #f3f2f1; padding: 10px 15px; margin-bottom: 30px;">
         <dl class="govuk-summary-list govuk-!-margin-bottom-0">
           <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">Will create new source row</dt>
+            <dt class="govuk-summary-list__key">Source already in system</dt>
             <dd class="govuk-summary-list__value">
-              {{source_summary.will_create}}
+              {{source_summary.already_exists}}
             </dd>
           </div>
           <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">source</dt>
-            <dd class="govuk-summary-list__value">
-              <code>{{ source_summary.source }}</code>
-            </dd>
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">collection</dt>
-            <dd class="govuk-summary-list__value">
-              {{ source_summary.collection }}
-            </dd>
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">organisation</dt>
-            <dd class="govuk-summary-list__value">
-              {{ source_summary.organisation }}
-            </dd>
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">endpoint</dt>
-            <dd class="govuk-summary-list__value">
-              <code>{{ source_summary.endpoint }}</code>
-            </dd>
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">licence</dt>
-            <dd class="govuk-summary-list__value">
-              {{ source_summary.licence }}
-            </dd>
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">pipelines</dt>
-            <dd class="govuk-summary-list__value">
-              {{ source_summary.pipelines }}
-            </dd>
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">documentation-url</dt>
+            <dt class="govuk-summary-list__key">Documentation URL</dt>
             <dd class="govuk-summary-list__value" style="word-break: break-all">
               {{ source_summary.documentation_url }}
-            </dd>
-          </div>
-          {% if source_summary.attribution %}
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">attribution</dt>
-            <dd class="govuk-summary-list__value">
-              {{ source_summary.attribution }}
-            </dd>
-          </div>
-          {% endif %}
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">entry-date</dt>
-            <dd class="govuk-summary-list__value">
-              {{ source_summary.entry_date }}
-            </dd>
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">start-date</dt>
-            <dd class="govuk-summary-list__value">
-              {{ source_summary.start_date }}
-            </dd>
-          </div>
-          <div class="govuk-summary-list__row">
-            <dt class="govuk-summary-list__key">end-date</dt>
-            <dd class="govuk-summary-list__value">
-              {{ source_summary.end_date }}
             </dd>
           </div>
         </dl>
@@ -203,19 +113,6 @@
         <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
           {{ table(source_csv_table_params) }}
         </div>
-        {% if source_csv_text != '' %}
-        <details class="govuk-details govuk-!-margin-bottom-0" data-module="govuk-details">
-          <summary class="govuk-details__summary">
-            <span class="govuk-details__summary-text">Copy CSV for <code>source.csv</code></span>
-          </summary>
-          <div class="govuk-details__text">
-            {# show CSV body only (drop header) #}
-            {% set _src_lines = (source_csv_text or '').splitlines() %}
-            <textarea class="govuk-textarea" rows="2" readonly>{{ _src_lines[1:] | join('\n') }}</textarea>
-            <p class="govuk-hint govuk-!-margin-top-2">Copy this line into your local <code>source.csv</code>.</p>
-          </div>
-        </details>
-        {% endif %}
         {% endif %}
       </div>
     </div>
@@ -230,19 +127,6 @@
         <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
           {{ table(column_csv_table_params) }}
         </div>
-        {% if column_csv_text != '' %}
-        <details class="govuk-details govuk-!-margin-bottom-0" data-module="govuk-details">
-          <summary class="govuk-details__summary">
-            <span class="govuk-details__summary-text">Copy CSV for <code>column.csv</code></span>
-          </summary>
-          <div class="govuk-details__text">
-            {# show CSV body only (drop header) #}
-            {% set _col_lines = (column_csv_text or '').splitlines() %}
-            <textarea class="govuk-textarea" rows="{{ _col_lines[1:] | length }}" readonly>{{ _col_lines[1:] | join('\n') }}</textarea>
-            <p class="govuk-hint govuk-!-margin-top-2">Copy these lines into your local <code>column.csv</code>.</p>
-          </div>
-        </details>
-        {% endif %}
       </div>
     </div>
     {% endif %}
@@ -264,18 +148,6 @@
         <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
           {{ table(entity_org_table_params) }}
         </div>
-        {% if entity_org_csv_text != '' %}
-        <details class="govuk-details govuk-!-margin-bottom-0" data-module="govuk-details">
-          <summary class="govuk-details__summary">
-            <span class="govuk-details__summary-text">Copy CSV for <code>entity-organisation.csv</code></span>
-          </summary>
-          <div class="govuk-details__text">
-            {% set _eo_lines = (entity_org_csv_text or '').splitlines() %}
-            <textarea class="govuk-textarea" rows="{{ [_eo_lines[1:] | length, 2] | max }}" readonly>{{ _eo_lines[1:] | join('\n') }}</textarea>
-            <p class="govuk-hint govuk-!-margin-top-2">Copy these lines into your local <code>entity-organisation.csv</code>.</p>
-          </div>
-        </details>
-        {% endif %}
         {% else %}
         <p class="govuk-body govuk-!-margin-bottom-0">No entity-organisation data found.</p>
         {% endif %}
