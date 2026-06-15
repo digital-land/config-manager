@@ -17,11 +17,7 @@ endblock %}
     <h1 class="govuk-heading-xl">Check and Add Planning data</h1>
     {% if not is_magic_link_prefilled %}
     <div style="display:flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
-      {% if is_magic_link_prefilled %}
-      <a class="govuk-button govuk-button--disabled govuk-!-margin-bottom-0" role="link" aria-disabled="true" tabindex="-1" data-module="govuk-button">Import from CSV</a>
-      {% else %}
       <a href="{{ url_for('datamanager.dashboard_add_import') }}" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">Import from CSV</a>
-      {% endif %}
       <form method="post" action="{{ url_for('datamanager.dashboard_add_import') }}" enctype="multipart/form-data" style="margin:0;">
         <input type="hidden" name="mode" value="parse">
         <input type="file" name="csv_file" id="csv-file-upload" accept=".csv" style="display:none;" {% if is_magic_link_prefilled %}disabled{% endif %}>
