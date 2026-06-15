@@ -42,6 +42,7 @@ def _is_admin():
     current_user = (session.get("user") or {}).get("login", "")
     return current_user.lower() in get_allowed_override_users()
 
+
 def _organisation_display_name(org_code: str, org_values: list) -> str:
     for org in org_values:
         if org.get("code") == org_code:
