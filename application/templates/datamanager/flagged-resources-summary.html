@@ -1,0 +1,81 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <span class="govuk-caption-xl">Assign entities</span>
+    <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 10px 0 10px;">
+    <h1 class="govuk-heading-xl" style="margin-bottom: 10px;">Flagged resources</h1>
+    <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 0 0 20px;">
+
+    <p class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4">
+      Select a resource to run the assign entities check for that resource.
+      Only resources with errors are shown.
+    </p>
+
+    <div class="govuk-!-margin-top-4 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid #1d70b8;">
+      <p class="govuk-body govuk-!-margin-bottom-0">
+        <strong>{{ resource_count }}</strong> resource{{ '' if resource_count == 1 else 's' }} require review.
+      </p>
+    </div>
+
+    <div class="app-scrollable-container app-scrollable">
+      <table class="govuk-table dl-table app-table">
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th scope="col" class="govuk-table__header">No.</th>
+            <th scope="col" class="govuk-table__header">Resource</th>
+            <th scope="col" class="govuk-table__header">Dataset</th>
+            <th scope="col" class="govuk-table__header">Organisation</th>
+            <th scope="col" class="govuk-table__header">Errors</th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for resource in resources %}
+          <tr class="govuk-table__row" {% if resource.row_colour == 'orange' %}style="background-color: #ffd8b0;"{% elif resource.row_colour == 'red' %}style="background-color: #f6d7d2;"{% endif %}>
+            <td class="govuk-table__cell">{{ loop.index }}</td>
+            <td class="govuk-table__cell">
+              <a class="govuk-link" href="{{ url_for('assign_entities.flagged_resource_submit', dataset=resource.dataset, resource=resource.resource) }}">{{ resource.resource }}</a>
+            </td>
+            <td class="govuk-table__cell">{{ resource.dataset }}</td>
+            <td class="govuk-table__cell">{{ resource.organisation }}</td>
+            <td class="govuk-table__cell">
+              {% if resource.errors %}
+                {% for error in resource.errors %}
+                <strong class="govuk-tag {% if resource.row_colour == 'orange' %}govuk-tag--orange{% elif resource.row_colour == 'red' %}govuk-tag--red{% else %}govuk-tag--grey{% endif %} govuk-!-margin-right-1 govuk-!-margin-bottom-1">{{ error.abbreviation }}</strong>
+                {% endfor %}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <ul class="govuk-list govuk-body-s govuk-!-margin-top-4 govuk-!-margin-bottom-6" style="color: #505a5f;">
+      <li><span style="display: inline-block; width: 0.35em; height: 0.35em; border: 1px solid #0b0c0c; border-radius: 50%; background-color: #ffffff; vertical-align: 0; margin-left: 0.15em;"></span> <strong>White</strong> — Entity growth is above threshold</li>
+      <li><strong style="color: #f47738;">&#9679;</strong> <strong>Orange</strong> — Entity growth is above threshold (needs careful review)</li>
+      <li><strong style="color: #d4351c;">&#9679;</strong> <strong>Red</strong> — Other errors</li>
+    </ul>
+
+    {% if error_key %}
+    <h2 class="govuk-heading-m govuk-!-margin-top-6">Error key</h2>
+    <dl class="govuk-summary-list">
+      {% for error in error_key %}
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">
+          <strong class="govuk-tag govuk-tag--grey">{{ error.abbreviation }}</strong>
+        </dt>
+        <dd class="govuk-summary-list__value">
+          {{ error.message }}
+        </dd>
+      </div>
+      {% endfor %}
+    </dl>
+    {% endif %}
+    <br>
+    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-6">
+      <a class="govuk-link" href="{{ url_for('assign_entities.flagged_resources_start') }}">Upload another CSV</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -5,6 +5,7 @@
 {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
+    {% set _transform_endpoint = transform_endpoint or 'datamanager.check_transform' %}
     <span class="govuk-caption-xl">{{ organisation_display }}</span>
     <span class="govuk-body-l" style="display: block; color: #505a5f; margin-bottom: 10px;">{{ dataset_display }}</span>
     <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 10px 0 10px;">
@@ -17,40 +18,40 @@
     {% set window_start = [page_number - 2, 1] | max %}
     {% set pagination_items = [] %}
     {% if window_start > 1 %}
-      {% set _ = pagination_items.append({"number": 1, "href": url_for('datamanager.check_transform', request_id=request_id, page_number=1)}) %}
+      {% set _ = pagination_items.append({"number": 1, "href": url_for(_transform_endpoint, request_id=request_id, page_number=1)}) %}
       {% if window_start > 2 %}
         {% set _ = pagination_items.append({"ellipsis": true}) %}
       {% endif %}
     {% endif %}
     {% for p in range(window_start, page_number + 1) %}
-      {% set _ = pagination_items.append({"number": p, "current": p == page_number, "href": url_for('datamanager.check_transform', request_id=request_id, page_number=p)}) %}
+      {% set _ = pagination_items.append({"number": p, "current": p == page_number, "href": url_for(_transform_endpoint, request_id=request_id, page_number=p)}) %}
     {% endfor %}
     {% if has_next_page %}
-      {% set _ = pagination_items.append({"number": page_number + 1, "href": url_for('datamanager.check_transform', request_id=request_id, page_number=page_number + 1)}) %}
+      {% set _ = pagination_items.append({"number": page_number + 1, "href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number + 1)}) %}
     {% endif %}
     {% set pagination_params = {
-      "previous": {"href": url_for('datamanager.check_transform', request_id=request_id, page_number=page_number - 1)} if page_number > 1 else none,
-      "next": {"href": url_for('datamanager.check_transform', request_id=request_id, page_number=page_number + 1)} if has_next_page else none,
+      "previous": {"href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number - 1)} if page_number > 1 else none,
+      "next": {"href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number + 1)} if has_next_page else none,
       "items": pagination_items
     } %}
 
     {% set entity_window_start = [entity_page - 2, 1] | max %}
     {% set entity_pagination_items = [] %}
     {% if entity_window_start > 1 %}
-      {% set _ = entity_pagination_items.append({"number": 1, "href": url_for('datamanager.check_transform', request_id=request_id, entity_page=1)}) %}
+      {% set _ = entity_pagination_items.append({"number": 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=1)}) %}
       {% if entity_window_start > 2 %}
         {% set _ = entity_pagination_items.append({"ellipsis": true}) %}
       {% endif %}
     {% endif %}
     {% for p in range(entity_window_start, entity_page + 1) %}
-      {% set _ = entity_pagination_items.append({"number": p, "current": p == entity_page, "href": url_for('datamanager.check_transform', request_id=request_id, entity_page=p)}) %}
+      {% set _ = entity_pagination_items.append({"number": p, "current": p == entity_page, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=p)}) %}
     {% endfor %}
     {% if has_next_entity_page %}
-      {% set _ = entity_pagination_items.append({"number": entity_page + 1, "href": url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page + 1)}) %}
+      {% set _ = entity_pagination_items.append({"number": entity_page + 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1)}) %}
     {% endif %}
     {% set entity_pagination_params = {
-      "previous": {"href": url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page - 1)} if entity_page > 1 else none,
-      "next": {"href": url_for('datamanager.check_transform', request_id=request_id, entity_page=entity_page + 1)} if has_next_entity_page else none,
+      "previous": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page - 1)} if entity_page > 1 else none,
+      "next": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1)} if has_next_entity_page else none,
       "items": entity_pagination_items
     } %}
 
@@ -301,7 +302,7 @@
     {% endif %}
 
     {% if existing_endpoints %}
-    <form method="post" action="{{ url_for('datamanager.check_transform', request_id=request_id) }}">
+    <form method="post" action="{{ url_for(_transform_endpoint, request_id=request_id) }}">
     <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid #1d70b8;">
       <details data-module="govuk-details" style="margin: 0;">
         <summary style="cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">

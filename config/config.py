@@ -94,7 +94,7 @@ def get_request_api_endpoint():
     env = os.getenv("ENVIRONMENT", "local").lower()
 
     mapping = {
-        "local": "http://localhost:8000",
+        "local": "http://host.docker.internal:8000",
         "development": "http://development-pub-async-api-lb-69142969.eu-west-2.elb.amazonaws.com",
         "staging": "http://staging-pub-async-api-lb-12493311.eu-west-2.elb.amazonaws.com",
         "production": "http://production-pub-async-api-lb-636110663.eu-west-2.elb.amazonaws.com",

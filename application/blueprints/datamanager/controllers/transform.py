@@ -109,7 +109,11 @@ def build_entities_data(resp_details: list, platform_entities: list) -> dict:
     return {"columns": columns, "rows": rows}
 
 
-def handle_check_transform(request_id, req):
+def handle_check_transform(
+    request_id,
+    req,
+    transform_endpoint="datamanager.check_transform",
+):
     """Display transformed facts and issue logs from response-details for a request.
 
     Shows a loading page while the async job is still running, and the full
@@ -144,6 +148,7 @@ def handle_check_transform(request_id, req):
             request_id=request_id,
             organisation_display=organisation_display,
             dataset_display=dataset_display,
+            transform_endpoint=transform_endpoint,
         )
 
     all_resp_details = fetch_response_details(request_id)
@@ -294,6 +299,7 @@ def handle_check_transform(request_id, req):
     return render_template(
         "datamanager/check-transform.html",
         request_id=request_id,
+        transform_endpoint=transform_endpoint,
         organisation_display=organisation_display,
         dataset_display=dataset_display,
         transformed_table=transformed_table,
