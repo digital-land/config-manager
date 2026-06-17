@@ -7,8 +7,8 @@ ignore = W291, E203, W503
 exclude =
     __pycache__
     node_modules
-		.venv
-		migrations
-		.history
+    .venv
+    migrations
+    .history
 
 ; vim: ft=dosini

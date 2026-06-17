@@ -43,11 +43,29 @@ def _is_admin():
     return current_user.lower() in get_allowed_override_users()
 
 
+def _organisation_display_name(org_code: str, org_values: list) -> str:
+    for org in org_values:
+        if org.get("code") == org_code:
+            return org.get("label", org_code)
+
+    return org_code
+
+
+def _get_org_values_for_dataset(dataset_id: str) -> list:
+    try:
+        org_codes = get_provision_orgs_for_dataset(dataset_id)
+        return format_org_options(org_codes)
+    except Exception as e:
+        logger.warning(f"Failed to fetch organisations for {dataset_id}: {e}")
+        return []
+
+
 def handle_dashboard_get():
     form = {}
     errors = {}
     org_values = []
     dataset_input = ""
+    request_id = ""
 
     # Autocomplete dataset names for UI suggestions
     if request.args.get("autocomplete"):
@@ -69,16 +87,49 @@ def handle_dashboard_get():
             return jsonify([])
         return jsonify(org_values)
 
+    # Pre-fill form from async request details when a request ID is provided.
+    if request.args.get("import_data") != "true" and request.args.get("requestId"):
+        request_id = request.args.get("requestId", "")
+        request_params = {}
+        try:
+            request_params = fetch_request(request_id).get("params", {})
+        except AsyncAPIError as e:
+            logger.warning(f"Could not fetch request details for {request_id}: {e}")
+            request_id = ""
+
+        if request_params:
+            dataset_param = request_params.get("dataset", "")
+            dataset_input = get_dataset_name(dataset_param, default=dataset_param)
+            dataset_id = get_dataset_id(dataset_input) if dataset_input else ""
+
+            org_value = request_params.get("organisationName", "")
+            endpoint_url = request_params.get("url", "")
+            doc_url = request.args.get("documentationUrl", "")
+            geom_type = (request_params.get("geom_type") or "").strip()
+
+            if dataset_id:
+                org_values = _get_org_values_for_dataset(dataset_id)
+
+            form = {
+                "dataset": dataset_input,
+                "organisation": org_value,
+                "organisation_display_name": _organisation_display_name(
+                    org_value, org_values
+                ),
+                "endpoint_url": endpoint_url,
+                "documentation_url": doc_url,
+                "geom_type": geom_type,
+            }
+
     # Pre-fill form from imported CSV data if available
-    if request.args.get("import_data") == "true":
+    elif request.args.get("import_data") == "true":
         csv_dataset_id = request.args.get("dataset", "")
         dataset_input = get_dataset_name(csv_dataset_id, default=csv_dataset_id)
         dataset_id = csv_dataset_id
 
         org_value = request.args.get("organisation", "")
         if dataset_id:
-            org_codes = get_provision_orgs_for_dataset(dataset_id)
-            org_values = format_org_options(org_codes)
+            org_values = _get_org_values_for_dataset(dataset_id)
 
         form = {
             "dataset": dataset_input,
@@ -117,6 +168,8 @@ def handle_dashboard_get():
         form=form,
         errors=errors,
         is_admin=_is_admin(),
+        request_id=request_id,
+        is_magic_link_prefilled=bool(request_id),
     )
 
 
@@ -124,6 +177,7 @@ def handle_dashboard_get():
 def handle_dashboard_add():
     form = request.form.to_dict()
     errors = {}
+    request_id = form.get("request_id", "").strip()
 
     # Set the the dataset id and collection id.
     dataset_input = form.get("dataset", "").strip()
@@ -131,13 +185,12 @@ def handle_dashboard_add():
     collection_id = get_collection_id(dataset_input)
 
     # Get list of orgs provisioned for this dataset in both code and display format.
-    org_codes = []
     org_values = []
     if dataset_id:
-        org_codes = get_provision_orgs_for_dataset(dataset_id)
-        org_values = format_org_options(org_codes)
+        org_values = _get_org_values_for_dataset(dataset_id)
 
-    org_code_input = form.get("organisation", "").strip()
+    submitted_org_code = form.get("organisation", "").strip()
+    org_code_input = submitted_org_code
     endpoint_url = form.get("endpoint_url", "").strip()
     doc_url = form.get("documentation_url", "").strip()
     licence = (form.get("licence") or "ogl3").strip().lower()
@@ -213,7 +266,11 @@ def handle_dashboard_add():
         }
 
         try:
-            request_id = submit_request(payload["params"])
+            if request_id:
+                logger.info(f"Reusing request ID: {request_id}")
+            else:
+                logger.info("Creating a new check request")
+                request_id = submit_request(payload["params"])
             return redirect(
                 url_for(
                     "datamanager.check_results",
@@ -224,6 +281,11 @@ def handle_dashboard_add():
             raise Exception(f"Check tool submission failed: {e.detail}") from e
 
     # Re-render form with errors
+    if request_id:
+        form["organisation_display_name"] = _organisation_display_name(
+            submitted_org_code, org_values
+        )
+
     return render_template(
         "datamanager/dashboard_add.html",
         dataset_input=dataset_input,
@@ -231,6 +293,8 @@ def handle_dashboard_add():
         form=form,
         errors=errors,
         is_admin=_is_admin(),
+        is_magic_link_prefilled=bool(request_id),
+        request_id=request_id,
     )
 
 
