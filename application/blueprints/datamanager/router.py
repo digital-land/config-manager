@@ -238,19 +238,6 @@ def flagged_resource_submit():
 
 
 def flagged_resource_detail(request_id):
-    if request.method == "POST":
-        hashes = request.form.getlist("retire_endpoints")
-        meta = db.session.get(RequestMeta, request_id)
-        if meta is None:
-            meta = RequestMeta(
-                request_id=request_id, endpoints_to_retire=json.dumps(hashes)
-            )
-            db.session.add(meta)
-        else:
-            meta.endpoints_to_retire = json.dumps(hashes)
-        db.session.commit()
-        return redirect(url_for("datamanager.entities_preview", request_id=request_id))
-
     try:
         return handle_flagged_resource_detail(request_id)
     except AsyncAPIError:
@@ -319,5 +306,5 @@ assign_entities_bp.add_url_rule(
 assign_entities_bp.add_url_rule(
     "/check-results/<request_id>",
     view_func=flagged_resource_detail,
-    methods=["GET", "POST"],
+    methods=["GET"],
 )

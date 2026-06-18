@@ -1,0 +1,325 @@
+{% extends 'layouts/base.html' %}
+{% from "components/table.html" import table %}
+{% from "govuk_frontend_jinja/components/pagination/macro.html" import govukPagination %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    {% set _transform_endpoint = transform_endpoint or 'datamanager.check_transform' %}
+    <span class="govuk-caption-xl">{{ organisation_display }}</span>
+    <span class="govuk-body-l" style="display: block; color: #505a5f; margin-bottom: 10px;">{{ dataset_display }}</span>
+    <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 10px 0 10px;">
+    <h1 class="govuk-heading-xl" style="margin-bottom: 10px;">Data Submission Assessment</h1>
+    <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 0 0 20px;">
+    <p id="tab-desc-entities" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4">All entities for this dataset and organisation, with new additions highlighted in <span style="color: #00703c; font-weight: bold;">green</span> and existing entities also present in this resource highlighted in <span style="color: #d4692a; font-weight: bold;">orange</span>.</p>
+    <p id="tab-desc-transformed" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4" style="display:none;">The individual facts extracted from the submitted data by the pipeline <b>with entity lookup enabled</b>.</p>
+    <p id="tab-desc-issue-log" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4" style="display:none;">Any issues the pipeline raised while processing the data.</p>
+
+    {% set window_start = [page_number - 2, 1] | max %}
+    {% set pagination_items = [] %}
+    {% if window_start > 1 %}
+      {% set _ = pagination_items.append({"number": 1, "href": url_for(_transform_endpoint, request_id=request_id, page_number=1)}) %}
+      {% if window_start > 2 %}
+        {% set _ = pagination_items.append({"ellipsis": true}) %}
+      {% endif %}
+    {% endif %}
+    {% for p in range(window_start, page_number + 1) %}
+      {% set _ = pagination_items.append({"number": p, "current": p == page_number, "href": url_for(_transform_endpoint, request_id=request_id, page_number=p)}) %}
+    {% endfor %}
+    {% if has_next_page %}
+      {% set _ = pagination_items.append({"number": page_number + 1, "href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number + 1)}) %}
+    {% endif %}
+    {% set pagination_params = {
+      "previous": {"href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number - 1)} if page_number > 1 else none,
+      "next": {"href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number + 1)} if has_next_page else none,
+      "items": pagination_items
+    } %}
+
+    {% set entity_window_start = [entity_page - 2, 1] | max %}
+    {% set entity_pagination_items = [] %}
+    {% if entity_window_start > 1 %}
+      {% set _ = entity_pagination_items.append({"number": 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=1)}) %}
+      {% if entity_window_start > 2 %}
+        {% set _ = entity_pagination_items.append({"ellipsis": true}) %}
+      {% endif %}
+    {% endif %}
+    {% for p in range(entity_window_start, entity_page + 1) %}
+      {% set _ = entity_pagination_items.append({"number": p, "current": p == entity_page, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=p)}) %}
+    {% endfor %}
+    {% if has_next_entity_page %}
+      {% set _ = entity_pagination_items.append({"number": entity_page + 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1)}) %}
+    {% endif %}
+    {% set entity_pagination_params = {
+      "previous": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page - 1)} if entity_page > 1 else none,
+      "next": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1)} if has_next_entity_page else none,
+      "items": entity_pagination_items
+    } %}
+
+    <div class="govuk-tabs" data-module="govuk-tabs">
+      <ul class="govuk-tabs__list">
+        <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
+          <a class="govuk-tabs__tab" href="#entities-table">Entities</a>
+        </li>
+        <li class="govuk-tabs__list-item">
+          <a class="govuk-tabs__tab" href="#transformed-table">Transformed</a>
+        </li>
+        <li class="govuk-tabs__list-item">
+          <a class="govuk-tabs__tab" href="#issue-log-table">Issue logs</a>
+        </li>
+      </ul>
+
+      <div class="govuk-tabs__panel" id="entities-table">
+        {% if platform_too_large %}
+        <div class="govuk-inset-text">
+          <p class="govuk-body">There are {{ existing_count | commanum }} existing entities on the platform for this dataset. Comparison between the resource and platform is disabled for datasets this large.</p>
+        </div>
+        {% elif entities_data and entities_data.rows %}
+        <div class="app-scrollable-container app-scrollable">
+          <table class="govuk-table dl-table app-table">
+            <thead class="govuk-table__head">
+              <tr class="govuk-table__row">
+                {% for col in entities_data.columns %}
+                <th scope="col" class="govuk-table__header">{{ col }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody class="govuk-table__body">
+              {% for row in entities_data.rows %}
+              <tr class="govuk-table__row" {% if row.is_in_both %}style="background-color: #ffd8b0;"{% elif row.is_new %}style="background-color: #d4edda;"{% endif %}>
+                {% for col in entities_data.columns %}
+                <td class="govuk-table__cell app-wrap">
+                  {% set val = row.fields[col] %}
+                  {% if val | length > 50 %}{{ val[:50] }}...{% else %}{{ val }}{% endif %}
+                </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="govuk-body">No entities to display.</p>
+        {% endif %}
+        {% if not platform_too_large %}
+        <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entities {{ entity_page_start }} to {{ entity_page_end }}</p>
+        {{ govukPagination(entity_pagination_params) }}
+        {% endif %}
+      </div>
+
+      <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="transformed-table">
+        {% if transformed_table.rows %}
+        <div class="app-scrollable-container app-scrollable">
+          {{ table(transformed_table) }}
+        </div>
+        {% else %}
+        <p class="govuk-body">No transformed rows to display.</p>
+        {% endif %}
+        <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
+        {{ govukPagination(pagination_params) }}
+      </div>
+
+      <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="issue-log-table">
+        {% if issue_log_table and issue_log_table.rows %}
+        <div class="app-scrollable-container app-scrollable">
+          {{ table(issue_log_table) }}
+        </div>
+        {% else %}
+        <p class="govuk-body">No issues on this page.</p>
+        {% endif %}
+        <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
+        {{ govukPagination(pagination_params) }}
+      </div>
+    </div>
+
+    <ul class="govuk-list govuk-body-s govuk-!-margin-top-4 govuk-!-margin-bottom-2" style="color: #505a5f;">
+      <li><strong style="color: #00703c;">&#9679;</strong> <strong>Green</strong> — No action needed</li>
+      <li><strong style="color: #f47738;">&#9679;</strong> <strong>Orange</strong> — Manual check needed</li>
+      <li><strong style="color: #d4351c;">&#9679;</strong> <strong>Red</strong> — Sign off needed</li>
+      <li><strong style="color: #1d70b8;">&#9679;</strong> <strong>Blue</strong> — Optional action</li>
+    </ul>
+
+    {% set _is_error = entity_growth_check.error %}
+    <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid {{ '#d4351c' if _is_error else '#00703c' }};">
+      <details data-module="govuk-details" style="margin: 0;">
+        <summary style="cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+          <span class="govuk-heading-m" style="display: inline; margin: 0; color: {{ '#d4351c' if _is_error else '#00703c' }};">
+            Entity Growth Detection
+            <strong class="govuk-tag {{ 'govuk-tag--red' if _is_error else 'govuk-tag--green' }}" style="margin-left: 10px; vertical-align: middle;">
+              {{ 'Warning' if _is_error else 'Passed' }}
+            </strong>
+          </span>
+          <span class="govuk-body" style="margin: 0; font-size: 1.2em; color: {{ '#d4351c' if _is_error else '#00703c' }};">&#9660;</span>
+        </summary>
+        <div class="govuk-!-margin-top-4">
+          <dl class="govuk-summary-list">
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Existing entities</dt>
+              <dd class="govuk-summary-list__value">{{ entity_growth_check.existing_count }}</dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">New entities</dt>
+              <dd class="govuk-summary-list__value">{{ entity_growth_check.new_count }}</dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Growth</dt>
+              <dd class="govuk-summary-list__value">
+                {% if entity_growth_check.growth_pct is not none %}{{ entity_growth_check.growth_pct }}%{% else %}N/A (no existing entities){% endif %}
+              </dd>
+            </div>
+          </dl>
+          {% if _is_error %}
+          <div class="govuk-warning-text govuk-!-margin-bottom-0">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-visually-hidden">Warning</span>
+              New entities exceed 10% of existing entities. Please review before continuing.
+            </strong>
+          </div>
+          {% else %}
+          <p class="govuk-body govuk-!-margin-bottom-0">New entity count is within the expected threshold.</p>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+
+    {% if endpoint_url and documentation_url %}
+    {% set _doc_found = endpoint_in_doc.found %}
+    {% set _access_error = endpoint_in_doc.error %}
+    {# Red: doc URL not gov.uk (always). Green: doc gov.uk + found. Orange: doc gov.uk + (access error or endpoint gov.uk but not found). Red: doc gov.uk + not found + endpoint not gov.uk. #}
+    {% if not doc_is_gov_uk %}
+      {% set _border_colour = '#d4351c' %}
+    {% elif _doc_found %}
+      {% set _border_colour = '#00703c' %}
+    {% elif _access_error or endpoint_is_gov_uk %}
+      {% set _border_colour = '#f47738' %}
+    {% else %}
+      {% set _border_colour = '#d4351c' %}
+    {% endif %}
+    <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid {{ _border_colour }};">
+      <details data-module="govuk-details" style="margin: 0;">
+        <summary style="cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+          <span class="govuk-heading-m" style="display: inline; margin: 0; color: {{ _border_colour }};">
+            Endpoint URL in Source URL (documentation-url) Check
+            {% if not doc_is_gov_uk %}
+            <strong class="govuk-tag govuk-tag--red" style="margin-left: 10px; vertical-align: middle;">Non-gov.uk domain</strong>
+            {% endif %}
+            {% if not doc_is_gov_uk %}
+            <strong class="govuk-tag govuk-tag--red" style="margin-left: 6px; vertical-align: middle;">{{ 'Found' if _doc_found else ('Unable to access' if _access_error else 'Not found') }}</strong>
+            {% elif _doc_found %}
+            <strong class="govuk-tag govuk-tag--green" style="margin-left: 6px; vertical-align: middle;">Found</strong>
+            {% elif _access_error or endpoint_is_gov_uk %}
+            <strong class="govuk-tag govuk-tag--orange" style="margin-left: 6px; vertical-align: middle;">{{ 'Unable to access' if _access_error else 'Not found' }}</strong>
+            {% if not _access_error and endpoint_is_gov_uk %}
+            <strong class="govuk-tag govuk-tag--green" style="margin-left: 6px; vertical-align: middle;">gov.uk domain</strong>
+            {% endif %}
+            {% else %}
+            <strong class="govuk-tag govuk-tag--red" style="margin-left: 6px; vertical-align: middle;">Not found</strong>
+            {% endif %}
+          </span>
+          <span class="govuk-body" style="margin: 0; font-size: 1.2em; color: {{ _border_colour }};">&#9660;</span>
+        </summary>
+        <div class="govuk-!-margin-top-4">
+          {% if not doc_is_gov_uk %}
+          <div class="govuk-warning-text govuk-!-margin-bottom-4">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-visually-hidden">Warning</span>
+              The documentation URL is not on a gov.uk domain. Please confirm this is the correct page for this dataset.
+            </strong>
+          </div>
+          {% endif %}
+          <dl class="govuk-summary-list">
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Documentation URL</dt>
+              <dd class="govuk-summary-list__value">
+                <a class="govuk-link" href="{{ documentation_url }}" target="_blank" rel="noopener noreferrer" style="word-break: break-all;">{{ documentation_url }}</a>
+                <strong class="govuk-tag {{ 'govuk-tag--green' if doc_is_gov_uk else 'govuk-tag--red' }}" style="margin-left: 6px; vertical-align: middle; font-size: 0.75rem;">{{ 'gov.uk' if doc_is_gov_uk else 'non-gov.uk' }}</strong>
+              </dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Endpoint URL</dt>
+              <dd class="govuk-summary-list__value">
+                <code style="word-break: break-all;">{{ endpoint_url }}</code>
+                <strong class="govuk-tag {{ 'govuk-tag--green' if endpoint_is_gov_uk else 'govuk-tag--grey' }}" style="margin-left: 6px; vertical-align: middle; font-size: 0.75rem;">{{ 'gov.uk' if endpoint_is_gov_uk else 'non-gov.uk' }}</strong>
+              </dd>
+            </div>
+            {% if _doc_found %}
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Matched link</dt>
+              <dd class="govuk-summary-list__value"><code style="word-break: break-all;">{{ endpoint_in_doc.matched_href }}</code></dd>
+            </div>
+            {% endif %}
+          </dl>
+          {% if _doc_found %}
+          <p class="govuk-body govuk-!-margin-bottom-0">The endpoint URL was found as a link on the documentation page.</p>
+          {% elif _access_error %}
+          <p class="govuk-body govuk-!-margin-bottom-1"><strong>The documentation URL could not be accessed.</strong></p>
+          <p class="govuk-body govuk-!-margin-bottom-1">Reason: {{ _access_error }}</p>
+          <p class="govuk-body govuk-!-margin-bottom-0">The page may require authentication or be temporarily unavailable. Please open the documentation URL manually to verify it is correct and publicly accessible.</p>
+          {% elif endpoint_is_gov_uk %}
+          <p class="govuk-body govuk-!-margin-bottom-1"><strong>The endpoint URL was not found as a direct link on this page.</strong></p>
+          <p class="govuk-body govuk-!-margin-bottom-0">The endpoint URL is on a gov.uk domain so this may be expected — some endpoint types such as ArcGIS or other map service URLs do not appear as clickable links even on the correct documentation page. Please open the documentation URL and confirm it refers to this dataset and endpoint.</p>
+          {% else %}
+          <p class="govuk-body govuk-!-margin-bottom-1"><strong>The endpoint URL was not found as a link on the documentation page and is not on a gov.uk domain.</strong></p>
+          <p class="govuk-body govuk-!-margin-bottom-0">This needs a manual check — please verify the documentation URL is the correct page for this dataset and that the endpoint URL is accurate. If the endpoint is an ArcGIS or other external map service, confirm it is still accessible and correctly referenced.</p>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+    {% endif %}
+
+    {% if pipelines_append_required %}
+    <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="background-color: #f3f2f1; padding: 15px 20px; border-left: 4px solid #f47738;">
+      <details data-module="govuk-details" style="margin: 0;">
+        <summary style="cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+          <span class="govuk-heading-m" style="display: inline; margin: 0; color: #f47738;">
+            Source CSV pipelines field update required
+            <strong class="govuk-tag govuk-tag--orange" style="margin-left: 10px; vertical-align: middle;">Warning</strong>
+          </span>
+          <span class="govuk-body" style="margin: 0; font-size: 1.2em; color: #f47738;">&#9660;</span>
+        </summary>
+        <div class="govuk-!-margin-top-4">
+          <dl class="govuk-summary-list">
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Current pipelines value</dt>
+              <dd class="govuk-summary-list__value"><code>{{ pipelines_append_required.current }}</code></dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Updated pipelines value</dt>
+              <dd class="govuk-summary-list__value"><code>{{ pipelines_append_required.updated }}</code></dd>
+            </div>
+          </dl>
+          <div class="govuk-warning-text govuk-!-margin-bottom-0">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-visually-hidden">Warning</span>
+              This source and endpoint already exist but are being assigned to another dataset. If you confirm and add to GitHub, the pipelines value will be updated to reflect this.
+            </strong>
+          </div>
+        </div>
+      </details>
+    </div>
+    {% endif %}
+
+    <div class="govuk-button-group govuk-!-margin-top-6">
+      <a href="{{ url_for('datamanager.entities_preview', request_id=request_id) }}" class="govuk-button">
+        Continue to preview
+      </a>
+      <a href="{{ url_for('datamanager.dashboard_get') }}" class="govuk-link">
+        Cancel
+      </a>
+    </div>
+  </div>
+</div>
+<script>
+  document.querySelectorAll('.govuk-tabs__tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var target = this.getAttribute('href').replace('#', '').replace('-table', '');
+      document.querySelectorAll('[id^="tab-desc-"]').forEach(function(el) { el.style.display = 'none'; });
+      var desc = document.getElementById('tab-desc-' + target);
+      if (desc) desc.style.display = '';
+    });
+  });
+</script>
+
+{% endblock %}

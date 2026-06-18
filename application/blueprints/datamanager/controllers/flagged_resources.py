@@ -466,4 +466,5 @@ def handle_flagged_resource_detail(request_id):
         request_id,
         req,
         transform_endpoint="assign_entities.flagged_resource_detail",
+        template_name="datamanager/assign-entities-check-results.html",
     )

@@ -273,14 +273,77 @@ def test_uploaded_csv_groups_resource_dataset_combinations(client):
     assert b"resource-b" in response.data
 
 
-def test_flagged_resource_detail_post_redirects_to_preview(client):
-    response = client.post(
-        "/asign-entities/check-results/assign-id-1",
-        data={"retire_endpoints": ["endpoint-a"]},
+@rsps.activate
+def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
+    rsps.add(
+        rsps.GET,
+        f"{ASYNC_BASE}/assign-id-1",
+        json={
+            "status": "COMPLETE",
+            "params": {
+                "dataset": "tree",
+                "organisation": "local-authority:ABC",
+            },
+            "response": {
+                "data": {
+                    "source-summary": {
+                        "existing_endpoint_for_organisation_dataset": ["endpoint-a"]
+                    },
+                    "pipeline-summary": {"new-in-resource": 1},
+                }
+            },
+        },
+        status=200,
+    )
+    rsps.add(
+        rsps.GET,
+        f"{ASYNC_BASE}/assign-id-1/response-details",
+        json=[
+            {
+                "entry_number": 1,
+                "transformed_row": [
+                    {"entity": "1", "field": "reference", "value": "ref-1"},
+                    {"entity": "1", "field": "name", "value": "Name 1"},
+                ],
+                "issue_logs": [],
+            }
+        ],
+        status=200,
     )
 
-    assert response.status_code == 302
-    assert "/datamanager/add-data/assign-id-1/entities" in response.headers["Location"]
+    transform_controller = "application.blueprints.datamanager.controllers.transform"
+
+    with patch(
+        f"{transform_controller}.get_endpoint_urls_for_hashes",
+        return_value={
+            "endpoint-a": {
+                "endpoint_url": "https://example.com/data.csv",
+                "end_date": "",
+            }
+        },
+    ):
+        with patch(f"{transform_controller}.get_org_entity", return_value=90):
+            with patch(f"{transform_controller}.get_organisation_name"):
+                with patch(
+                    f"{transform_controller}.get_dataset_name", return_value="Tree"
+                ):
+                    with patch(
+                        f"{transform_controller}.get_entity_count_for_organisation_and_dataset",
+                        return_value=1,
+                    ):
+                        with patch(
+                            f"{transform_controller}.get_entities_for_organisation_and_dataset",
+                            return_value=[],
+                        ):
+                            response = client.get(
+                                "/asign-entities/check-results/assign-id-1"
+                            )
+
+    assert response.status_code == 200
+    assert b"Data Submission Assessment" in response.data
+    assert b"Retire endpoints" not in response.data
+    assert b"retire_endpoints" not in response.data
+    assert b"/datamanager/add-data/assign-id-1/entities" in response.data
 
 
 @rsps.activate

@@ -113,6 +113,7 @@ def handle_check_transform(
     request_id,
     req,
     transform_endpoint="datamanager.check_transform",
+    template_name="datamanager/check-transform.html",
 ):
     """Display transformed facts and issue logs from response-details for a request.
 
@@ -297,7 +298,7 @@ def handle_check_transform(
     endpoint_is_gov_uk = is_gov_uk_url(endpoint_url)
 
     return render_template(
-        "datamanager/check-transform.html",
+        template_name,
         request_id=request_id,
         transform_endpoint=transform_endpoint,
         organisation_display=organisation_display,
