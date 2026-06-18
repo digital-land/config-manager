@@ -61,6 +61,10 @@ def test_flagged_resources_import_page_loads(client):
     assert b"Import simple assign CSV" in response.data
     assert b"CSV format example" in response.data
     assert b"CSV data" in response.data
+    assert (
+        b"Use the CSV file upload option if your CSV is larger than 10MB."
+        in response.data
+    )
 
 
 def test_assign_entities_tile_links_to_start_page(client):
@@ -254,6 +258,22 @@ def test_csv_import_preserves_na_error_code(client):
     assert response.status_code == 200
     assert b">NA</strong>" in response.data
     assert b"No code" not in response.data
+
+
+def test_pasted_csv_import_handles_request_entity_too_large(client, app):
+    previous_limit = app.config.get("MAX_CONTENT_LENGTH")
+    app.config["MAX_CONTENT_LENGTH"] = 10
+
+    try:
+        response = client.post(
+            "/asign-entities/import",
+            data={"mode": "parse", "csv_data": CSV_INPUT},
+        )
+    finally:
+        app.config["MAX_CONTENT_LENGTH"] = previous_limit
+
+    assert response.status_code == 413
+    assert b"The pasted CSV is too large. Upload the CSV file instead." in response.data
 
 
 def test_uploaded_csv_groups_resource_dataset_combinations(client):

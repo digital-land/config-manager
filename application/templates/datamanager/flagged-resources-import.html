@@ -64,12 +64,15 @@ developer-agreement-transaction,8156bc2cbb89cf5586af5cd84f9bc37369875e37eaf3a453
         </p>
         {% endif %}
         <textarea
-          class="govuk-textarea {% if errors.get('csv_data') %}govuk-textarea--error{% endif %}"
+          class="govuk-textarea govuk-!-margin-bottom-0 {% if errors.get('csv_data') %}govuk-textarea--error{% endif %}"
           id="csv-data"
           name="csv_data"
           rows="8"
           aria-describedby="csv-data-hint{% if errors.get('csv_data') %} csv-data-error{% endif %}"
         >{{ csv_data }}</textarea>
+        <div class="govuk-hint govuk-!-margin-bottom-2">
+          Use the CSV file upload option if your CSV is larger than 10MB.
+        </div>
       </div>
 
       {{ govukButton({

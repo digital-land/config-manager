@@ -10,6 +10,7 @@ from flask import (
     url_for,
     session,
 )
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from application.db.models import RequestMeta, ServiceLock
 from application.extensions import db
@@ -21,6 +22,7 @@ from .controllers.form import (
     handle_add_data,
 )
 from .controllers.flagged_resources import (
+    REQUIRED_COLUMNS,
     handle_flagged_resource_detail,
     handle_flagged_resource_submit,
     handle_flagged_resources_import,
@@ -56,6 +58,26 @@ datamanager_bp.errorhandler(Exception)(handle_error)
 datamanager_bp.context_processor(inject_now)
 assign_entities_bp.errorhandler(Exception)(handle_error)
 assign_entities_bp.context_processor(inject_now)
+
+
+@assign_entities_bp.errorhandler(RequestEntityTooLarge)
+def handle_assign_entities_request_entity_too_large(e):
+    if request.endpoint == "assign_entities.flagged_resources_import":
+        return (
+            render_template(
+                "datamanager/flagged-resources-import.html",
+                csv_data="",
+                errors={
+                    "csv_data": (
+                        "The pasted CSV is too large. Upload the CSV file instead."
+                    )
+                },
+                required_columns=REQUIRED_COLUMNS,
+            ),
+            413,
+        )
+
+    return render_template("datamanager/error.html", message=str(e)), 413
 
 
 def _require_login():
