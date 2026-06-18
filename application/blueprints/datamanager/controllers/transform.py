@@ -109,6 +109,15 @@ def build_entities_data(resp_details: list, platform_entities: list) -> dict:
     return {"columns": columns, "rows": rows}
 
 
+def _entity_row_matches_search(row: dict, search_query: str) -> bool:
+    if not search_query:
+        return True
+
+    fields = row.get("fields") or {}
+    row_text = " ".join(str(value) for value in fields.values()).lower()
+    return search_query.lower() in row_text
+
+
 def handle_check_transform(
     request_id,
     req,
@@ -161,6 +170,7 @@ def handle_check_transform(
     has_next_page = len(all_resp_details) > start_offset + _ROWS_PER_PAGE
 
     entity_page = max(1, int(flask_request.args.get("entity_page", 1)))
+    entity_search = flask_request.args.get("entity_search", "").strip()
     entity_start_offset = (entity_page - 1) * _ROWS_PER_PAGE
 
     response_payload = req.get("response") or {}
@@ -221,6 +231,12 @@ def handle_check_transform(
     # Build combined transformed entity data with platform entities and resp details entities, and paginate
 
     entities_data_full = build_entities_data(all_resp_details, platform_entities)
+    if entity_search:
+        entities_data_full["rows"] = [
+            row
+            for row in entities_data_full["rows"]
+            if _entity_row_matches_search(row, entity_search)
+        ]
     has_next_entity_page = (
         len(entities_data_full["rows"]) > entity_start_offset + _ROWS_PER_PAGE
     )
@@ -316,6 +332,7 @@ def handle_check_transform(
         page_start=page_start,
         page_end=page_end,
         entity_page=entity_page,
+        entity_search=entity_search,
         has_next_entity_page=has_next_entity_page,
         entity_page_start=entity_page_start,
         entity_page_end=entity_page_end,

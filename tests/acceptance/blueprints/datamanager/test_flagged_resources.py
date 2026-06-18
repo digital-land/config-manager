@@ -306,7 +306,15 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
                     {"entity": "1", "field": "name", "value": "Name 1"},
                 ],
                 "issue_logs": [],
-            }
+            },
+            {
+                "entry_number": 2,
+                "transformed_row": [
+                    {"entity": "2", "field": "reference", "value": "ref-2"},
+                    {"entity": "2", "field": "name", "value": "Name 2"},
+                ],
+                "issue_logs": [],
+            },
         ],
         status=200,
     )
@@ -337,10 +345,21 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
                         ):
                             response = client.get(
                                 "/asign-entities/check-results/assign-id-1"
+                                "?entity_search=Name+2"
                             )
 
     assert response.status_code == 200
     assert b"Data Submission Assessment" in response.data
+    assert b"Search entities" in response.data
+    assert b'name="entity_search"' in response.data
+    assert b'value="Name 2"' in response.data
+    entities_panel = response.data[
+        response.data.index(b'id="entities-table"') : response.data.index(
+            b'id="transformed-table"'
+        )
+    ]
+    assert b"Name 2" in entities_panel
+    assert b"Name 1" not in entities_panel
     assert b"Retire endpoints" not in response.data
     assert b"retire_endpoints" not in response.data
     assert b"/datamanager/add-data/assign-id-1/entities" in response.data

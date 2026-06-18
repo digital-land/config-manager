@@ -38,20 +38,20 @@
     {% set entity_window_start = [entity_page - 2, 1] | max %}
     {% set entity_pagination_items = [] %}
     {% if entity_window_start > 1 %}
-      {% set _ = entity_pagination_items.append({"number": 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=1)}) %}
+      {% set _ = entity_pagination_items.append({"number": 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=1, entity_search=entity_search)}) %}
       {% if entity_window_start > 2 %}
         {% set _ = entity_pagination_items.append({"ellipsis": true}) %}
       {% endif %}
     {% endif %}
     {% for p in range(entity_window_start, entity_page + 1) %}
-      {% set _ = entity_pagination_items.append({"number": p, "current": p == entity_page, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=p)}) %}
+      {% set _ = entity_pagination_items.append({"number": p, "current": p == entity_page, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=p, entity_search=entity_search)}) %}
     {% endfor %}
     {% if has_next_entity_page %}
-      {% set _ = entity_pagination_items.append({"number": entity_page + 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1)}) %}
+      {% set _ = entity_pagination_items.append({"number": entity_page + 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1, entity_search=entity_search)}) %}
     {% endif %}
     {% set entity_pagination_params = {
-      "previous": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page - 1)} if entity_page > 1 else none,
-      "next": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1)} if has_next_entity_page else none,
+      "previous": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page - 1, entity_search=entity_search)} if entity_page > 1 else none,
+      "next": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1, entity_search=entity_search)} if has_next_entity_page else none,
       "items": entity_pagination_items
     } %}
 
@@ -73,7 +73,20 @@
         <div class="govuk-inset-text">
           <p class="govuk-body">There are {{ existing_count | commanum }} existing entities on the platform for this dataset. Comparison between the resource and platform is disabled for datasets this large.</p>
         </div>
-        {% elif entities_data and entities_data.rows %}
+        {% elif entities_data %}
+        <form method="get" action="{{ url_for(_transform_endpoint, request_id=request_id) }}" class="govuk-!-margin-bottom-4">
+          <div class="govuk-form-group govuk-!-margin-bottom-2">
+            <label class="govuk-label" for="entity-search">
+              Search entities
+            </label>
+            <input class="govuk-input govuk-input--width-20" id="entity-search" name="entity_search" type="search" autocomplete="off" value="{{ entity_search }}">
+          </div>
+          <button type="submit" class="govuk-button govuk-!-margin-bottom-0">Search</button>
+          {% if entity_search %}
+          <a class="govuk-link govuk-!-margin-left-2" href="{{ url_for(_transform_endpoint, request_id=request_id) }}">Clear search</a>
+          {% endif %}
+        </form>
+        {% if entities_data.rows %}
         <div class="app-scrollable-container app-scrollable">
           <table class="govuk-table dl-table app-table">
             <thead class="govuk-table__head">
@@ -97,6 +110,11 @@
             </tbody>
           </table>
         </div>
+        {% elif entity_search %}
+        <p class="govuk-body">No entities match your search.</p>
+        {% else %}
+        <p class="govuk-body">No entities to display.</p>
+        {% endif %}
         {% else %}
         <p class="govuk-body">No entities to display.</p>
         {% endif %}
