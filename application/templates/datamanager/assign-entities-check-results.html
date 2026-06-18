@@ -118,7 +118,7 @@
         {% else %}
         <p class="govuk-body">No entities to display.</p>
         {% endif %}
-        {% if not platform_too_large %}
+        {% if not platform_too_large and entities_data and entities_data.rows %}
         <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entities {{ entity_page_start }} to {{ entity_page_end }}</p>
         {{ govukPagination(entity_pagination_params) }}
         {% endif %}

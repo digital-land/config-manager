@@ -50,7 +50,7 @@ from .utils import (
 
 datamanager_bp = Blueprint("datamanager", __name__, url_prefix="/datamanager")
 assign_entities_bp = Blueprint(
-    "assign_entities", __name__, url_prefix="/asign-entities"
+    "assign_entities", __name__, url_prefix="/assign-entities"
 )
 logger = logging.getLogger(__name__)
 

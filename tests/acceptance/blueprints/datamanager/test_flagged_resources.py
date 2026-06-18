@@ -42,7 +42,7 @@ CSV_INPUT = (
 
 
 def test_flagged_resources_start_page_loads(client):
-    response = client.get("/asign-entities")
+    response = client.get("/assign-entities")
 
     assert response.status_code == 200
     assert b"Assign entities" in response.data
@@ -55,7 +55,7 @@ def test_flagged_resources_start_page_loads(client):
 
 
 def test_flagged_resources_import_page_loads(client):
-    response = client.get("/asign-entities/import")
+    response = client.get("/assign-entities/import")
 
     assert response.status_code == 200
     assert b"Import simple assign CSV" in response.data
@@ -75,7 +75,7 @@ def test_assign_entities_tile_links_to_start_page(client):
 
     assert response.status_code == 200
     assert b"Assign entities" in response.data
-    assert b"/asign-entities" in response.data
+    assert b"/assign-entities" in response.data
     assert response.data.count(b"Lock this process") == 2
 
 
@@ -91,7 +91,7 @@ def test_assign_entities_uses_add_data_process_lock(client):
     db.session.commit()
 
     try:
-        response = client.get("/asign-entities")
+        response = client.get("/assign-entities")
     finally:
         db.session.query(ServiceLock).filter_by(name="add_data").delete()
         db.session.commit()
@@ -124,17 +124,17 @@ def test_assign_entities_card_can_unlock_shared_process(client):
 
 def test_csv_upload_groups_resource_dataset_combinations(client):
     redirect_response = client.post(
-        "/asign-entities/import",
+        "/assign-entities/import",
         data={"mode": "parse", "csv_data": CSV_INPUT},
     )
 
     assert redirect_response.status_code == 302
-    assert "/asign-entities/resources" in redirect_response.headers["Location"]
+    assert "/assign-entities/resources" in redirect_response.headers["Location"]
     with client.session_transaction() as sess:
         assert sess.get("flagged_resource_cache_key")
 
     response = client.post(
-        "/asign-entities/import",
+        "/assign-entities/import",
         data={"mode": "parse", "csv_data": CSV_INPUT},
         follow_redirects=True,
     )
@@ -233,7 +233,7 @@ def test_csv_import_rejects_error_rows_without_error_code(client):
     )
 
     response = client.post(
-        "/asign-entities/import",
+        "/assign-entities/import",
         data={"mode": "parse", "csv_data": csv_input},
     )
 
@@ -250,7 +250,7 @@ def test_csv_import_preserves_na_error_code(client):
     )
 
     response = client.post(
-        "/asign-entities/import",
+        "/assign-entities/import",
         data={"mode": "parse", "csv_data": csv_input},
         follow_redirects=True,
     )
@@ -266,7 +266,7 @@ def test_pasted_csv_import_handles_request_entity_too_large(client, app):
 
     try:
         response = client.post(
-            "/asign-entities/import",
+            "/assign-entities/import",
             data={"mode": "parse", "csv_data": CSV_INPUT},
         )
     finally:
@@ -278,7 +278,7 @@ def test_pasted_csv_import_handles_request_entity_too_large(client, app):
 
 def test_uploaded_csv_groups_resource_dataset_combinations(client):
     response = client.post(
-        "/asign-entities/import",
+        "/assign-entities/import",
         data={
             "mode": "parse",
             "csv_file": (BytesIO(CSV_INPUT.encode("utf-8")), "flagged.csv"),
@@ -364,7 +364,7 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
                             return_value=[],
                         ):
                             response = client.get(
-                                "/asign-entities/check-results/assign-id-1"
+                                "/assign-entities/check-results/assign-id-1"
                                 "?entity_search=Name+2"
                             )
 
@@ -386,9 +386,63 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
 
 
 @rsps.activate
+def test_assign_entities_check_results_hides_entity_pagination_when_empty(client):
+    rsps.add(
+        rsps.GET,
+        f"{ASYNC_BASE}/assign-empty-id",
+        json={
+            "status": "COMPLETE",
+            "params": {
+                "dataset": "tree",
+                "organisation": "local-authority:ABC",
+            },
+            "response": {
+                "data": {
+                    "source-summary": {},
+                    "pipeline-summary": {"new-in-resource": 0},
+                }
+            },
+        },
+        status=200,
+    )
+    rsps.add(
+        rsps.GET,
+        f"{ASYNC_BASE}/assign-empty-id/response-details",
+        json=[],
+        status=200,
+    )
+
+    transform_controller = "application.blueprints.datamanager.controllers.transform"
+
+    with patch(f"{transform_controller}.get_org_entity", return_value=90):
+        with patch(f"{transform_controller}.get_organisation_name"):
+            with patch(f"{transform_controller}.get_dataset_name", return_value="Tree"):
+                with patch(
+                    f"{transform_controller}.get_entity_count_for_organisation_and_dataset",
+                    return_value=0,
+                ):
+                    with patch(
+                        f"{transform_controller}.get_entities_for_organisation_and_dataset",
+                        return_value=[],
+                    ):
+                        response = client.get(
+                            "/assign-entities/check-results/assign-empty-id"
+                        )
+
+    assert response.status_code == 200
+    entities_panel = response.data[
+        response.data.index(b'id="entities-table"') : response.data.index(
+            b'id="transformed-table"'
+        )
+    ]
+    assert b"Showing entities" not in entities_panel
+    assert b'aria-label="Pagination"' not in entities_panel
+
+
+@rsps.activate
 def test_resource_link_submits_assign_entities_request(client):
     import_response = client.post(
-        "/asign-entities/import",
+        "/assign-entities/import",
         data={"csv_data": CSV_INPUT},
     )
     assert import_response.status_code == 302
@@ -416,7 +470,7 @@ def test_resource_link_submits_assign_entities_request(client):
                     ],
                 ):
                     response = client.post(
-                        "/asign-entities/resource",
+                        "/assign-entities/resource",
                         data={
                             "dataset": "tree",
                             "resource": "resource-a",
@@ -425,7 +479,7 @@ def test_resource_link_submits_assign_entities_request(client):
                     )
 
     assert response.status_code == 302
-    assert "/asign-entities/check-results/assign-id-1" in response.headers["Location"]
+    assert "/assign-entities/check-results/assign-id-1" in response.headers["Location"]
     assert len(rsps.calls) == 1
     assert rsps.calls[0].request.url == ASYNC_BASE
     assert rsps.calls[0].request.headers["Content-Type"] == "application/json"
@@ -468,12 +522,12 @@ def test_direct_dataset_resource_skips_summary_page(client):
                     ],
                 ):
                     response = client.post(
-                        "/asign-entities",
+                        "/assign-entities",
                         data={"dataset": "Tree", "resource": "resource-a"},
                     )
 
     assert response.status_code == 302
-    assert "/asign-entities/check-results/assign-id-1" in response.headers["Location"]
+    assert "/assign-entities/check-results/assign-id-1" in response.headers["Location"]
 
 
 @rsps.activate
@@ -496,7 +550,7 @@ def test_resource_submit_uses_selected_organisation(client):
                     "application.blueprints.datamanager.controllers.flagged_resources.get_resource"
                 ) as get_resource:
                     response = client.post(
-                        "/asign-entities/resource",
+                        "/assign-entities/resource",
                         data={
                             "dataset": "tree",
                             "resource": "resource-a",
