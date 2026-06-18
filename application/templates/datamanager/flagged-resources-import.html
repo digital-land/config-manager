@@ -59,7 +59,7 @@ developer-agreement-transaction,8156bc2cbb89cf5586af5cd84f9bc37369875e37eaf3a453
           Include the header row. The CSV must include: {{ required_columns | join(', ') }}.
         </div>
         {% if errors.get('csv_data') %}
-        <p class="govuk-error-message">
+        <p class="govuk-error-message" id="csv-data-error">
           <span class="govuk-visually-hidden">Error:</span> {{ errors.csv_data }}
         </p>
         {% endif %}
@@ -68,7 +68,7 @@ developer-agreement-transaction,8156bc2cbb89cf5586af5cd84f9bc37369875e37eaf3a453
           id="csv-data"
           name="csv_data"
           rows="8"
-          aria-describedby="csv-data-hint"
+          aria-describedby="csv-data-hint{% if errors.get('csv_data') %} csv-data-error{% endif %}"
         >{{ csv_data }}</textarea>
       </div>
 

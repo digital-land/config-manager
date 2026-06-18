@@ -49,7 +49,7 @@
     </div>
     {% endif %}
 
-    <form method="post" action="{{ url_for('assign_entities.flagged_resources_start') }}" novalidate>
+    <form method="post" action="{{ url_for('assign_entities.flagged_resources_start') }}" id="assign-entities-manual-form" novalidate>
 
       <div class="govuk-form-group {% if errors.dataset %}govuk-form-group--error{% endif %}">
         <label class="govuk-label" for="dataset-autocomplete">Dataset <span class="govuk-required">*</span></label>
@@ -113,6 +113,13 @@
     document.getElementById("csv-file-upload").addEventListener("change", function() {
       if (this.files.length > 0) {
         this.closest("form").submit();
+      }
+    });
+
+    document.getElementById("assign-entities-manual-form").addEventListener("submit", function() {
+      const datasetVisible = document.getElementById("dataset-autocomplete");
+      if (datasetVisible) {
+        datasetHidden.value = datasetVisible.value;
       }
     });
   });

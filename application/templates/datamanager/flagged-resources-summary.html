@@ -35,7 +35,12 @@
           <tr class="govuk-table__row" {% if resource.row_colour == 'orange' %}style="background-color: #ffd8b0;"{% elif resource.row_colour == 'red' %}style="background-color: #f6d7d2;"{% endif %}>
             <td class="govuk-table__cell">{{ loop.index }}</td>
             <td class="govuk-table__cell">
-              <a class="govuk-link" href="{{ url_for('assign_entities.flagged_resource_submit', dataset=resource.dataset, resource=resource.resource) }}">{{ resource.resource }}</a>
+              <form method="post" action="{{ url_for('assign_entities.flagged_resource_submit') }}" class="govuk-!-margin-bottom-0">
+                <input type="hidden" name="dataset" value="{{ resource.dataset }}">
+                <input type="hidden" name="resource" value="{{ resource.resource }}">
+                <input type="hidden" name="organisation" value="{{ resource.organisation }}">
+                <button type="submit" class="govuk-link" style="background: none; border: 0; padding: 0; color: #1d70b8; text-decoration: underline; cursor: pointer; font: inherit;">{{ resource.resource }}</button>
+              </form>
             </td>
             <td class="govuk-table__cell">{{ resource.dataset }}</td>
             <td class="govuk-table__cell">{{ resource.organisation }}</td>

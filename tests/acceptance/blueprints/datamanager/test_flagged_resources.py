@@ -9,7 +9,6 @@ from application.db.models import ServiceLock
 from application.extensions import db
 from config.config import get_request_api_endpoint
 
-
 ASYNC_BASE = f"{get_request_api_endpoint()}/requests"
 
 
@@ -126,13 +125,9 @@ def test_csv_upload_groups_resource_dataset_combinations(client):
     )
 
     assert redirect_response.status_code == 302
-    assert (
-        "/asign-entities/resources"
-        in redirect_response.headers["Location"]
-    )
+    assert "/asign-entities/resources" in redirect_response.headers["Location"]
     with client.session_transaction() as sess:
         assert sess.get("flagged_resource_cache_key")
-        assert "flagged_resource_rows" not in sess
 
     response = client.post(
         "/asign-entities/import",
@@ -144,11 +139,17 @@ def test_csv_upload_groups_resource_dataset_combinations(client):
     assert b"Flagged resources" in response.data
     assert b"CSV import results" not in response.data
     assert b"resources require review" in response.data
-    assert response.data.count(b">resource-a</a>") == 1
+    assert response.data.count(b">resource-a</button>") == 1
     assert b"resource-b" in response.data
-    assert response.data.index(b">resource-a</a>") < response.data.index(b"resource-b")
-    assert response.data.index(b">resource-a</a>") < response.data.index(b">resource-d</a>")
-    assert response.data.index(b">resource-d</a>") < response.data.index(b"resource-b")
+    assert response.data.index(b">resource-a</button>") < response.data.index(
+        b"resource-b"
+    )
+    assert response.data.index(b">resource-a</button>") < response.data.index(
+        b">resource-d</button>"
+    )
+    assert response.data.index(b">resource-d</button>") < response.data.index(
+        b"resource-b"
+    )
     assert b"resource-c" not in response.data
     assert b"Tree" not in response.data
     assert b"Organisation ABC" not in response.data
@@ -175,7 +176,10 @@ def test_csv_upload_groups_resource_dataset_combinations(client):
     assert b"Entity growth is above threshold" in response.data
     assert b"Resource empty" in response.data
     assert b"No new entities" in response.data
-    assert b"Resource contains duplicates with existing entities (all fields)" in response.data
+    assert (
+        b"Resource contains duplicates with existing entities (all fields)"
+        in response.data
+    )
     assert (
         b"Resource contains duplicate entities (organisation and reference)"
         in response.data
@@ -190,8 +194,10 @@ def test_csv_upload_groups_resource_dataset_combinations(client):
     assert b"Previous resource is empty" in response.data
     assert b"Previous resource not found" in response.data
     assert b"Error key" in response.data
-    error_key_html = response.data[response.data.index(b"Error key"):]
-    assert error_key_html.index(b">EG</strong>") < error_key_html.index(b">CRE</strong>")
+    error_key_html = response.data[response.data.index(b"Error key") :]
+    assert error_key_html.index(b">EG</strong>") < error_key_html.index(
+        b">CRE</strong>"
+    )
     assert b"background-color: #ffd8b0" in response.data
     assert b"background-color: #f6d7d2" in response.data
     assert b"background-color: #d4edda" not in response.data
@@ -228,7 +234,9 @@ def test_csv_import_rejects_error_rows_without_error_code(client):
     )
 
     assert response.status_code == 200
-    assert b"Rows with status &#39;error&#39; must include an error_code" in response.data
+    assert (
+        b"Rows with status &#39;error&#39; must include an error_code" in response.data
+    )
 
 
 def test_csv_import_preserves_na_error_code(client):
@@ -261,7 +269,7 @@ def test_uploaded_csv_groups_resource_dataset_combinations(client):
 
     assert response.status_code == 200
     assert b"Select a resource" in response.data
-    assert response.data.count(b">resource-a</a>") == 1
+    assert response.data.count(b">resource-a</button>") == 1
     assert b"resource-b" in response.data
 
 
@@ -272,18 +280,16 @@ def test_flagged_resource_detail_post_redirects_to_preview(client):
     )
 
     assert response.status_code == 302
-    assert (
-        "/datamanager/add-data/assign-id-1/entities"
-        in response.headers["Location"]
-    )
+    assert "/datamanager/add-data/assign-id-1/entities" in response.headers["Location"]
 
 
 @rsps.activate
 def test_resource_link_submits_assign_entities_request(client):
-    client.post(
+    import_response = client.post(
         "/asign-entities/import",
         data={"csv_data": CSV_INPUT},
     )
+    assert import_response.status_code == 302
     rsps.add(rsps.POST, ASYNC_BASE, json={"id": "assign-id-1"}, status=202)
 
     with patch(
@@ -307,15 +313,17 @@ def test_resource_link_submits_assign_entities_request(client):
                         }
                     ],
                 ):
-                    response = client.get(
-                        "/asign-entities/resource?dataset=tree&resource=resource-a"
+                    response = client.post(
+                        "/asign-entities/resource",
+                        data={
+                            "dataset": "tree",
+                            "resource": "resource-a",
+                            "organisation": "local-authority:ABC",
+                        },
                     )
 
     assert response.status_code == 302
-    assert (
-        "/asign-entities/check-results/assign-id-1"
-        in response.headers["Location"]
-    )
+    assert "/asign-entities/check-results/assign-id-1" in response.headers["Location"]
     assert len(rsps.calls) == 1
     assert rsps.calls[0].request.url == ASYNC_BASE
     assert rsps.calls[0].request.headers["Content-Type"] == "application/json"
@@ -363,7 +371,39 @@ def test_direct_dataset_resource_skips_summary_page(client):
                     )
 
     assert response.status_code == 302
-    assert (
-        "/asign-entities/check-results/assign-id-1"
-        in response.headers["Location"]
+    assert "/asign-entities/check-results/assign-id-1" in response.headers["Location"]
+
+
+@rsps.activate
+def test_resource_submit_uses_selected_organisation(client):
+    rsps.add(rsps.POST, ASYNC_BASE, json={"id": "assign-id-1"}, status=202)
+
+    with patch(
+        "application.blueprints.datamanager.controllers.flagged_resources.get_dataset_id",
+        return_value=None,
+    ):
+        with patch(
+            "application.blueprints.datamanager.controllers.flagged_resources.get_dataset_name",
+            return_value="Tree",
+        ):
+            with patch(
+                "application.blueprints.datamanager.controllers.flagged_resources.get_collection_id",
+                return_value="tree",
+            ):
+                with patch(
+                    "application.blueprints.datamanager.controllers.flagged_resources.get_resource"
+                ) as get_resource:
+                    response = client.post(
+                        "/asign-entities/resource",
+                        data={
+                            "dataset": "tree",
+                            "resource": "resource-a",
+                            "organisation": "local-authority:XYZ",
+                        },
+                    )
+
+    assert response.status_code == 302
+    get_resource.assert_not_called()
+    assert json.loads(rsps.calls[0].request.body)["params"]["organisation"] == (
+        "local-authority:XYZ"
     )

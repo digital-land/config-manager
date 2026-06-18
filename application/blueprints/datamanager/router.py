@@ -314,7 +314,7 @@ assign_entities_bp.add_url_rule(
 assign_entities_bp.add_url_rule(
     "/resource",
     view_func=flagged_resource_submit,
-    methods=["GET"],
+    methods=["POST"],
 )
 assign_entities_bp.add_url_rule(
     "/check-results/<request_id>",

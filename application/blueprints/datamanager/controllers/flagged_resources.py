@@ -15,7 +15,6 @@ from .transform import handle_check_transform
 from ..services.async_api import AsyncAPIError, fetch_request, submit_request
 from ..services.dataset import get_collection_id, get_dataset_id, get_dataset_name
 
-
 REQUIRED_COLUMNS = [
     "dataset",
     "resource",
@@ -58,9 +57,7 @@ ERROR_ABBREVIATIONS = {
     },
     "missing_organisation": {
         "abbreviation": "MO",
-        "description": (
-            "Resource contain entities with missing organisation value"
-        ),
+        "description": ("Resource contain entities with missing organisation value"),
     },
     "missing_reference": {
         "abbreviation": "MR",
@@ -155,11 +152,16 @@ def _serialise_rows(df):
 
 def _store_rows(df):
     _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    previous_cache_key = session.get("flagged_resource_cache_key")
+    if previous_cache_key:
+        previous_cache_path = _CACHE_DIR / f"{previous_cache_key}.json"
+        if previous_cache_path.exists():
+            previous_cache_path.unlink()
+
     cache_key = uuid.uuid4().hex
     cache_path = _CACHE_DIR / f"{cache_key}.json"
     cache_path.write_text(json.dumps(_serialise_rows(df)), encoding="utf-8")
     session["flagged_resource_cache_key"] = cache_key
-    session.pop("flagged_resource_rows", None)
 
 
 def _frame_from_session():
@@ -172,8 +174,6 @@ def _frame_from_session():
                 rows = json.loads(cache_path.read_text(encoding="utf-8"))
             except json.JSONDecodeError:
                 rows = []
-    if not rows:
-        rows = session.get("flagged_resource_rows") or []
     if not rows:
         return pd.DataFrame(columns=REQUIRED_COLUMNS)
     return _normalise_frame(pd.DataFrame(rows, columns=REQUIRED_COLUMNS))
@@ -210,9 +210,7 @@ def _summarise_errors(rows):
                 {
                     "code": error_code,
                     "abbreviation": _error_abbreviation(error_code),
-                    "message": _error_description(
-                        error_code, row.get("message", "")
-                    ),
+                    "message": _error_description(error_code, row.get("message", "")),
                 }
             )
             seen.add(error_code)
@@ -247,9 +245,7 @@ def _resource_error_sort_key(resource):
         ),
         default=99,
     )
-    row_order = {"entity_growth": 0, "orange": 1, "red": 2}.get(
-        resource["row_type"], 3
-    )
+    row_order = {"entity_growth": 0, "orange": 1, "red": 2}.get(resource["row_type"], 3)
     return (
         row_order,
         error_order,
@@ -350,15 +346,15 @@ def _get_resource_organisation(resource, dataset_id):
     return _organisation_from_cached_rows(resource, dataset_id)
 
 
-def _submit_assign_entities_request(dataset_input, resource):
+def _submit_assign_entities_request(dataset_input, resource, organisation=None):
     dataset_id, collection_id = _resolve_dataset_and_collection(dataset_input)
-    organisation = _get_resource_organisation(resource, dataset_id)
+    organisation = organisation or _get_resource_organisation(resource, dataset_id)
     params = {
-        "type": 'add_data',
+        "type": "add_data",
         "resource": resource,
         "dataset": dataset_id,
         "collection": collection_id,
-        "authoritative": True
+        "authoritative": True,
     }
     if organisation:
         params["organisationName"] = organisation
@@ -387,11 +383,13 @@ def handle_flagged_resources_start():
                         form["dataset"], form["resource"]
                     )
                 except AsyncAPIError as e:
-                    raise Exception(
+                    raise ControllerError(
                         f"Assign entities submission failed: {e.detail}"
                     ) from e
                 return redirect(
-                    url_for("assign_entities.flagged_resource_detail", request_id=request_id)
+                    url_for(
+                        "assign_entities.flagged_resource_detail", request_id=request_id
+                    )
                 )
         else:
             errors["form"] = "Enter a dataset and resource"
@@ -446,15 +444,16 @@ def handle_flagged_resources_summary():
 
 
 def handle_flagged_resource_submit():
-    dataset = request.args.get("dataset", "").strip()
-    resource = request.args.get("resource", "").strip()
+    dataset = request.form.get("dataset", "").strip()
+    resource = request.form.get("resource", "").strip()
+    organisation = request.form.get("organisation", "").strip() or None
     if not dataset or not resource:
         raise ControllerError("Dataset and resource are required")
 
     try:
-        request_id = _submit_assign_entities_request(dataset, resource)
+        request_id = _submit_assign_entities_request(dataset, resource, organisation)
     except AsyncAPIError as e:
-        raise Exception(f"Assign entities submission failed: {e.detail}") from e
+        raise ControllerError(f"Assign entities submission failed: {e.detail}") from e
 
     return redirect(
         url_for("assign_entities.flagged_resource_detail", request_id=request_id)
