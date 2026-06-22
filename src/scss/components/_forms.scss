@@ -8,4 +8,6 @@
 .app-text-input__readonly {
   border-color:  $govuk-border-colour;
   color: $govuk-secondary-text-colour;
+  background-color: govuk-colour("light-grey");
+  cursor: not-allowed;
 }
