@@ -1,30 +1,24 @@
 {% extends 'layouts/base.html' %}
 
-{% from "govuk_frontend_jinja/components/button/macro.html" import govukButton %}
-{% from "govuk_frontend_jinja/components/input/macro.html" import govukInput %}
-
-{% block pageStylesheets %}
-<link rel="stylesheet" href="{{ url_for('static', filename='stylesheets/accessible-autocomplete.min.css') }}">
-{% endblock %}
+{% block pageTitle %}Assign Entities{% endblock %}
 
 {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
     <h1 class="govuk-heading-xl">Assign entities</h1>
     <p class="govuk-body-l">
-      Review resources flagged by the simple assign process before assigning new entities.
+      Review resources flagged by the simple batch assign process before assigning new entities.
     </p>
     <p class="govuk-body">
-      Import or upload the CSV output to see grouped resources that need attention. You can also enter a dataset and resource directly to check a single resource.
+      Upload the CSV output to see grouped resources that need attention.
     </p>
     <ul class="govuk-list govuk-list--bullet">
-      <li>Use CSV import when you have a simple assign output file.</li>
-      <li>Use the input fields when you already know the dataset and resource hash.</li>
+      <li>Use CSV upload when you have a simple batch assign output file.</li>
       <li>Select a resource on the next page to review the entity comparison.</li>
     </ul>
     <br>
     <div style="display:flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
-      <a href="{{ url_for('assign_entities.flagged_resources_import') }}" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">Import from CSV</a>
+      {# <a href="{{ url_for('assign_entities.flagged_resources_import') }}" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">Import from CSV</a> #}
       <form method="post" action="{{ url_for('assign_entities.flagged_resources_import') }}" enctype="multipart/form-data" style="margin:0;">
         <input type="hidden" name="mode" value="parse">
         <input type="file" name="csv_file" id="csv-file-upload" accept=".csv" style="display:none;">
@@ -33,93 +27,14 @@
     </div>
   </div>
 </div>
-
-<div class="govuk-grid-row govuk-!-margin-top-6">
-  <div class="govuk-grid-column-one-half">
-    {% if errors %}
-    <div class="govuk-error-summary" role="alert" data-module="govuk-error-summary">
-      <h2 class="govuk-error-summary__title">There is a problem</h2>
-      <div class="govuk-error-summary__body">
-        <ul class="govuk-list govuk-error-summary__list">
-          {% if errors.form %}<li><a href="#dataset-autocomplete">{{ errors.form }}</a></li>{% endif %}
-          {% if errors.dataset %}<li><a href="#dataset-autocomplete">{{ errors.dataset }}</a></li>{% endif %}
-          {% if errors.resource %}<li><a href="#resource">{{ errors.resource }}</a></li>{% endif %}
-        </ul>
-      </div>
-    </div>
-    {% endif %}
-
-    <form method="post" action="{{ url_for('assign_entities.flagged_resources_start') }}" id="assign-entities-manual-form" novalidate>
-
-      <div class="govuk-form-group {% if errors.dataset %}govuk-form-group--error{% endif %}">
-        <label class="govuk-label" for="dataset-autocomplete">Dataset <span class="govuk-required">*</span></label>
-        {% if errors.dataset %}
-        <p class="govuk-error-message">
-          <span class="govuk-visually-hidden">Error:</span> {{ errors.dataset }}
-        </p>
-        {% endif %}
-        <div id="autocomplete-container"></div>
-        <input type="hidden" name="dataset" id="dataset" value="{{ form.dataset }}">
-      </div>
-
-      <div class="govuk-form-group {% if errors.resource %}govuk-form-group--error{% endif %}">
-        {{ govukInput({
-          'label': { 'html': 'Resource <span class="govuk-required">*</span>' },
-          'id': 'resource',
-          'name': 'resource',
-          'value': form.resource,
-          'errorMessage': ({ 'text': errors.resource } if errors.resource else None)
-        }) }}
-      </div>
-
-      <div class="govuk-form-group govuk-!-margin-top-6" style="display: flex; justify-content: flex-end;">
-        {{ govukButton({
-          'text': 'Continue'
-        }) }}
-      </div>
-    </form>
-  </div>
-</div>
 {% endblock %}
 
 {% block pageScripts %}
-<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %} src="{{ url_for('static', filename='javascripts/accessible-autocomplete.min.js') }}"></script>
 <script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
   document.addEventListener("DOMContentLoaded", function() {
-    const datasetHidden = document.getElementById("dataset");
-    const datasetContainer = document.getElementById("autocomplete-container");
-    const datasetValue = datasetHidden.value || "";
-
-    accessibleAutocomplete({
-      element: datasetContainer,
-      id: "dataset-autocomplete",
-      name: "dataset-autocomplete-visible",
-      defaultValue: datasetValue,
-      minLength: 2,
-      confirmOnBlur: false,
-      autoselect: true,
-      displayMenu: "overlay",
-      placeholder: "Type dataset name...",
-      source: function(query, populateResults) {
-        fetch(`{{ url_for('datamanager.dashboard_get') }}?autocomplete=${encodeURIComponent(query)}`)
-          .then((response) => response.json())
-          .then((data) => populateResults(data));
-      },
-      onConfirm: function(val) {
-        datasetHidden.value = val;
-      }
-    });
-
     document.getElementById("csv-file-upload").addEventListener("change", function() {
       if (this.files.length > 0) {
         this.closest("form").submit();
-      }
-    });
-
-    document.getElementById("assign-entities-manual-form").addEventListener("submit", function() {
-      const datasetVisible = document.getElementById("dataset-autocomplete");
-      if (datasetVisible) {
-        datasetHidden.value = datasetVisible.value;
       }
     });
   });

@@ -2,6 +2,8 @@
 {% from "components/table.html" import table %}
 {% from "govuk_frontend_jinja/components/pagination/macro.html" import govukPagination %}
 
+{% block pageTitle %}Data Submission Assessment - {{ organisation_display }} - {{ dataset_display }}{% endblock %}
+
 {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">

@@ -123,6 +123,9 @@ def handle_check_transform(
     req,
     transform_endpoint="datamanager.check_transform",
     template_name="datamanager/check-transform.html",
+    flagged_errors=None,
+    flagged_error_abbreviations=None,
+    flagged_error_messages=None,
 ):
     """Display transformed facts and issue logs from response-details for a request.
 
@@ -132,6 +135,7 @@ def handle_check_transform(
     params = req.get("params") or {}
     organisation_code = params.get("organisationName") or params.get("organisation", "")
     dataset_id = params.get("dataset", "")
+    resource_hash = params.get("resource", "")
     organisation_display = get_organisation_name(organisation_code)
     dataset_display = get_dataset_name(dataset_id, default=dataset_id)
 
@@ -341,4 +345,8 @@ def handle_check_transform(
         endpoint_is_gov_uk=endpoint_is_gov_uk,
         endpoint_url=endpoint_url,
         documentation_url=documentation_url,
+        resource_hash=resource_hash,
+        flagged_errors=flagged_errors or [],
+        flagged_error_abbreviations=flagged_error_abbreviations or [],
+        flagged_error_messages=flagged_error_messages or [],
     )

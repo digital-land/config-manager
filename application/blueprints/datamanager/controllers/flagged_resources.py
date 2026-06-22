@@ -447,6 +447,9 @@ def handle_flagged_resource_submit():
     dataset = request.form.get("dataset", "").strip()
     resource = request.form.get("resource", "").strip()
     organisation = request.form.get("organisation", "").strip() or None
+    errors = [
+        error for error in request.form.get("errors", "").strip().split(",") if error
+    ]
     if not dataset or not resource:
         raise ControllerError("Dataset and resource are required")
 
@@ -456,15 +459,25 @@ def handle_flagged_resource_submit():
         raise ControllerError(f"Assign entities submission failed: {e.detail}") from e
 
     return redirect(
-        url_for("assign_entities.flagged_resource_detail", request_id=request_id)
+        url_for(
+            "assign_entities.flagged_resource_detail",
+            request_id=request_id,
+            errors=",".join(errors),
+        )
     )
 
 
 def handle_flagged_resource_detail(request_id):
     req = fetch_request(request_id)
+    flagged_errors = [
+        error for error in request.args.get("errors", "").strip().split(",") if error
+    ]
+    flagged_error_messages = [_error_description(error, "") for error in flagged_errors]
     return handle_check_transform(
         request_id,
         req,
         transform_endpoint="assign_entities.flagged_resource_detail",
         template_name="datamanager/assign-entities-check-results.html",
+        flagged_errors=flagged_errors,
+        flagged_error_messages=flagged_error_messages,
     )

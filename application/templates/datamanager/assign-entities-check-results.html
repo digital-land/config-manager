@@ -2,15 +2,59 @@
 {% from "components/table.html" import table %}
 {% from "govuk_frontend_jinja/components/pagination/macro.html" import govukPagination %}
 
+{% block pageTitle %}Assign Entities - Resource Details: {{ organisation_display }} - {{ dataset_display }}{% endblock %}
+
 {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
     {% set _transform_endpoint = transform_endpoint or 'datamanager.check_transform' %}
+    {% set _flagged_errors_query = flagged_errors | join(',') %}
     <span class="govuk-caption-xl">{{ organisation_display }}</span>
     <span class="govuk-body-l" style="display: block; color: #505a5f; margin-bottom: 10px;">{{ dataset_display }}</span>
     <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 10px 0 10px;">
-    <h1 class="govuk-heading-xl" style="margin-bottom: 10px;">Data Submission Assessment</h1>
+    <h1 class="govuk-heading-xl" style="margin-bottom: 10px;">Assign Entities - Resource Details</h1>
     <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 0 0 20px;">
+
+    <dl class="govuk-summary-list govuk-!-margin-bottom-6">
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Resource hash</dt>
+        <dd class="govuk-summary-list__value">
+          {% if resource_hash %}
+          <span style="word-break: break-all;">{{ resource_hash }}</span>
+          {% else %}
+          Not available
+          {% endif %}
+        </dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Endpoints</dt>
+        <dd class="govuk-summary-list__value">
+          {% if existing_endpoints %}
+            {% for endpoint in existing_endpoints %}
+              {% if endpoint["endpoint-url"] %}
+              <div><a href="{{ endpoint["endpoint-url"] }}" target="_blank" style="word-break: break-all;">{{ endpoint["endpoint-url"] }}</a></div>
+              {% endif %}
+              {% if endpoint["endpoint"] %}
+              <div class="govuk-hint govuk-!-margin-bottom-2" style="font-size: 0.8rem; word-break: break-all;">{{ endpoint["endpoint"] }}</div>
+              {% endif %}
+            {% endfor %}
+          {% else %}
+          None
+          {% endif %}
+        </dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Errors</dt>
+        <dd class="govuk-summary-list__value">
+          {% if flagged_error_messages %}
+          <span style="word-break: break-all;">{{ flagged_error_messages | join(', ') }}</span>
+          {% else %}
+          None
+          {% endif %}
+        </dd>
+      </div>
+    </dl>
+
     <p id="tab-desc-entities" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4">All entities for this dataset and organisation, with new additions highlighted in <span style="color: #00703c; font-weight: bold;">green</span> and existing entities also present in this resource highlighted in <span style="color: #d4692a; font-weight: bold;">orange</span>.</p>
     <p id="tab-desc-transformed" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4" style="display:none;">The individual facts extracted from the submitted data by the pipeline <b>with entity lookup enabled</b>.</p>
     <p id="tab-desc-issue-log" class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4" style="display:none;">Any issues the pipeline raised while processing the data.</p>
@@ -18,40 +62,40 @@
     {% set window_start = [page_number - 2, 1] | max %}
     {% set pagination_items = [] %}
     {% if window_start > 1 %}
-      {% set _ = pagination_items.append({"number": 1, "href": url_for(_transform_endpoint, request_id=request_id, page_number=1)}) %}
+      {% set _ = pagination_items.append({"number": 1, "href": url_for(_transform_endpoint, request_id=request_id, page_number=1, errors=_flagged_errors_query)}) %}
       {% if window_start > 2 %}
         {% set _ = pagination_items.append({"ellipsis": true}) %}
       {% endif %}
     {% endif %}
     {% for p in range(window_start, page_number + 1) %}
-      {% set _ = pagination_items.append({"number": p, "current": p == page_number, "href": url_for(_transform_endpoint, request_id=request_id, page_number=p)}) %}
+      {% set _ = pagination_items.append({"number": p, "current": p == page_number, "href": url_for(_transform_endpoint, request_id=request_id, page_number=p, errors=_flagged_errors_query)}) %}
     {% endfor %}
     {% if has_next_page %}
-      {% set _ = pagination_items.append({"number": page_number + 1, "href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number + 1)}) %}
+      {% set _ = pagination_items.append({"number": page_number + 1, "href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number + 1, errors=_flagged_errors_query)}) %}
     {% endif %}
     {% set pagination_params = {
-      "previous": {"href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number - 1)} if page_number > 1 else none,
-      "next": {"href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number + 1)} if has_next_page else none,
+      "previous": {"href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number - 1, errors=_flagged_errors_query)} if page_number > 1 else none,
+      "next": {"href": url_for(_transform_endpoint, request_id=request_id, page_number=page_number + 1, errors=_flagged_errors_query)} if has_next_page else none,
       "items": pagination_items
     } %}
 
     {% set entity_window_start = [entity_page - 2, 1] | max %}
     {% set entity_pagination_items = [] %}
     {% if entity_window_start > 1 %}
-      {% set _ = entity_pagination_items.append({"number": 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=1, entity_search=entity_search)}) %}
+      {% set _ = entity_pagination_items.append({"number": 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=1, entity_search=entity_search, errors=_flagged_errors_query)}) %}
       {% if entity_window_start > 2 %}
         {% set _ = entity_pagination_items.append({"ellipsis": true}) %}
       {% endif %}
     {% endif %}
     {% for p in range(entity_window_start, entity_page + 1) %}
-      {% set _ = entity_pagination_items.append({"number": p, "current": p == entity_page, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=p, entity_search=entity_search)}) %}
+      {% set _ = entity_pagination_items.append({"number": p, "current": p == entity_page, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=p, entity_search=entity_search, errors=_flagged_errors_query)}) %}
     {% endfor %}
     {% if has_next_entity_page %}
-      {% set _ = entity_pagination_items.append({"number": entity_page + 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1, entity_search=entity_search)}) %}
+      {% set _ = entity_pagination_items.append({"number": entity_page + 1, "href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1, entity_search=entity_search, errors=_flagged_errors_query)}) %}
     {% endif %}
     {% set entity_pagination_params = {
-      "previous": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page - 1, entity_search=entity_search)} if entity_page > 1 else none,
-      "next": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1, entity_search=entity_search)} if has_next_entity_page else none,
+      "previous": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page - 1, entity_search=entity_search, errors=_flagged_errors_query)} if entity_page > 1 else none,
+      "next": {"href": url_for(_transform_endpoint, request_id=request_id, entity_page=entity_page + 1, entity_search=entity_search, errors=_flagged_errors_query)} if has_next_entity_page else none,
       "items": entity_pagination_items
     } %}
 
@@ -75,6 +119,7 @@
         </div>
         {% elif entities_data %}
         <form method="get" action="{{ url_for(_transform_endpoint, request_id=request_id) }}" class="govuk-!-margin-bottom-4">
+          <input type="hidden" name="errors" value="{{ _flagged_errors_query }}">
           <div class="govuk-form-group govuk-!-margin-bottom-2">
             <label class="govuk-label" for="entity-search">
               Search entities
@@ -83,7 +128,7 @@
           </div>
           <button type="submit" class="govuk-button govuk-!-margin-bottom-0">Search</button>
           {% if entity_search %}
-          <a class="govuk-link govuk-!-margin-left-2" href="{{ url_for(_transform_endpoint, request_id=request_id) }}">Clear search</a>
+          <a class="govuk-link govuk-!-margin-left-2" href="{{ url_for(_transform_endpoint, request_id=request_id, errors=_flagged_errors_query) }}">Clear search</a>
           {% endif %}
         </form>
         {% if entities_data.rows %}

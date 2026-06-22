@@ -46,12 +46,15 @@ def test_flagged_resources_start_page_loads(client):
 
     assert response.status_code == 200
     assert b"Assign entities" in response.data
-    assert b"Review resources flagged by the simple assign process" in response.data
-    assert b"Use CSV import when you have a simple assign output file" in response.data
-    assert b"autocomplete-container" in response.data
-    assert b"accessible-autocomplete.min.js" in response.data
-    assert b"Import from CSV" in response.data
+    assert b"Upload the CSV output to see grouped resources" in response.data
+    assert (
+        b"Use CSV upload when you have a simple batch assign output file"
+        in response.data
+    )
     assert b"Upload CSV file" in response.data
+    assert b"Import from CSV" not in response.data
+    assert b"autocomplete-container" not in response.data
+    assert b"accessible-autocomplete.min.js" not in response.data
 
 
 def test_flagged_resources_import_page_loads(client):
@@ -140,7 +143,7 @@ def test_csv_upload_groups_resource_dataset_combinations(client):
     )
 
     assert response.status_code == 200
-    assert b"Flagged resources" in response.data
+    assert b"Assign Entities - Flagged Resources" in response.data
     assert b"CSV import results" not in response.data
     assert b"resources require review" in response.data
     assert response.data.count(b">resource-a</button>") == 1
@@ -166,6 +169,7 @@ def test_csv_upload_groups_resource_dataset_combinations(client):
     assert b"govuk-tag--red" in response.data
     assert b"govuk-tag--orange" in response.data
     assert b"govuk-tag--grey" in response.data
+    assert b'name="errors" value="LARGE_NUMBER_OF_NEW_ENTITIES"' in response.data
     assert b">EG</strong>" in response.data
     assert b">CRE</strong>" in response.data
     assert b">NNE</strong>" in response.data
@@ -212,17 +216,6 @@ def test_csv_upload_groups_resource_dataset_combinations(client):
     assert b"Red" in response.data
     assert b"Other errors" in response.data
     assert b"Multiple errors" not in response.data
-    assert b"LARGE_NUMBER_OF_NEW_ENTITIES" not in response.data
-    assert b"CURRENT_RESOURCE_EMPTY" not in response.data
-    assert b"CURRENT_RESOURCE_NO_NEW_ENTITIES" not in response.data
-    assert b"DUPLICATE_ENTITY_ALL_FIELDS" not in response.data
-    assert b"DUPLICATE_REFERENCE_ORGANISATION_IN_NEW_RESOURCE" not in response.data
-    assert b"DUPLICATE_REFERENCE_ORGANISATION" not in response.data
-    assert b"MISSING_ORGANISATION" not in response.data
-    assert b"MISSING_REFERENCE" not in response.data
-    assert b"INVALID_URI_ISSUE" not in response.data
-    assert b"PREVIOUS_RESOURCE_EMPTY" not in response.data
-    assert b"PREVIOUS_RESOURCE_NOT_FOUND" not in response.data
     assert b"No code" not in response.data
 
 
@@ -303,6 +296,7 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
             "params": {
                 "dataset": "tree",
                 "organisation": "local-authority:ABC",
+                "resource": "resource-a",
             },
             "response": {
                 "data": {
@@ -366,10 +360,12 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
                             response = client.get(
                                 "/assign-entities/check-results/assign-id-1"
                                 "?entity_search=Name+2"
+                                "&errors=large_number_of_new_entities,"
+                                "current_resource_empty"
                             )
 
     assert response.status_code == 200
-    assert b"Data Submission Assessment" in response.data
+    assert b"Assign Entities - Resource Details" in response.data
     assert b"Search entities" in response.data
     assert b'name="entity_search"' in response.data
     assert b'value="Name 2"' in response.data
@@ -380,6 +376,13 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
     ]
     assert b"Name 2" in entities_panel
     assert b"Name 1" not in entities_panel
+    assert b"Resource hash" in response.data
+    assert b"resource-a" in response.data
+    assert b"Endpoints" in response.data
+    assert b"https://example.com/data.csv" in response.data
+    assert b"endpoint-a" in response.data
+    assert b"Errors" in response.data
+    assert b"Entity growth is above threshold, Resource empty" in response.data
     assert b"Retire endpoints" not in response.data
     assert b"retire_endpoints" not in response.data
     assert b"/datamanager/add-data/assign-id-1/entities" in response.data
@@ -475,11 +478,14 @@ def test_resource_link_submits_assign_entities_request(client):
                             "dataset": "tree",
                             "resource": "resource-a",
                             "organisation": "local-authority:ABC",
+                            "errors": "large_number_of_new_entities,current_resource_empty",
                         },
                     )
 
     assert response.status_code == 302
-    assert "/assign-entities/check-results/assign-id-1" in response.headers["Location"]
+    location = response.headers["Location"]
+    assert "/assign-entities/check-results/assign-id-1" in location
+    assert "errors=large_number_of_new_entities,current_resource_empty" in location
     assert len(rsps.calls) == 1
     assert rsps.calls[0].request.url == ASYNC_BASE
     assert rsps.calls[0].request.headers["Content-Type"] == "application/json"

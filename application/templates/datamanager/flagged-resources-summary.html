@@ -1,11 +1,15 @@
 {% extends 'layouts/base.html' %}
 
+
+{% block pageTitle %}Assign Entities - Flagged Resources{% endblock %}
+
+
 {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
     <span class="govuk-caption-xl">Assign entities</span>
     <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 10px 0 10px;">
-    <h1 class="govuk-heading-xl" style="margin-bottom: 10px;">Flagged resources</h1>
+    <h1 class="govuk-heading-xl" style="margin-bottom: 10px;">Assign Entities - Flagged Resources</h1>
     <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 0 0 20px;">
 
     <p class="govuk-hint govuk-!-margin-top-8 govuk-!-margin-bottom-4">
@@ -39,6 +43,7 @@
                 <input type="hidden" name="dataset" value="{{ resource.dataset }}">
                 <input type="hidden" name="resource" value="{{ resource.resource }}">
                 <input type="hidden" name="organisation" value="{{ resource.organisation }}">
+                <input type="hidden" name="errors" value="{{ resource.errors | map(attribute='code') | join(',') }}">
                 <button type="submit" class="govuk-link" style="background: none; border: 0; padding: 0; color: #1d70b8; text-decoration: underline; cursor: pointer; font: inherit;">{{ resource.resource }}</button>
               </form>
             </td>
