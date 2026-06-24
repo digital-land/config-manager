@@ -496,6 +496,7 @@ def test_resource_link_submits_assign_entities_request(client):
             "dataset": "tree",
             "collection": "tree",
             "authoritative": True,
+            "github_branch": "config-manager-update",
             "organisationName": "local-authority:ABC",
             "organisation": "local-authority:ABC",
         }
@@ -534,6 +535,9 @@ def test_direct_dataset_resource_skips_summary_page(client):
 
     assert response.status_code == 302
     assert "/assign-entities/check-results/assign-id-1" in response.headers["Location"]
+    assert json.loads(rsps.calls[0].request.body)["params"]["github_branch"] == (
+        "config-manager-update"
+    )
 
 
 @rsps.activate
@@ -566,6 +570,9 @@ def test_resource_submit_uses_selected_organisation(client):
 
     assert response.status_code == 302
     get_resource.assert_not_called()
+    assert json.loads(rsps.calls[0].request.body)["params"]["github_branch"] == (
+        "config-manager-update"
+    )
     assert json.loads(rsps.calls[0].request.body)["params"]["organisation"] == (
         "local-authority:XYZ"
     )

@@ -6,7 +6,7 @@ from io import BytesIO, StringIO
 from pathlib import Path
 
 import pandas as pd
-from flask import redirect, render_template, request, session, url_for
+from flask import current_app, redirect, render_template, request, session, url_for
 
 from application.data_access.overview.digital_land_queries import get_resource
 
@@ -355,6 +355,7 @@ def _submit_assign_entities_request(dataset_input, resource, organisation=None):
         "dataset": dataset_id,
         "collection": collection_id,
         "authoritative": True,
+        "github_branch": current_app.config.get("CONFIG_REPO_BRANCH") or None,
     }
     if organisation:
         params["organisationName"] = organisation

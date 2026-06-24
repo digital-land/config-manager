@@ -187,6 +187,7 @@
     <div class="govuk-button-group">
       <form method="post" action="{{ url_for('datamanager.add_data_confirm_async', request_id=request_id) }}">
         <input type="hidden" name="github_branch" value="{{ github_branch or '' }}">
+        <input type="hidden" name="source_flow" value="{{ source_flow or 'add_data' }}">
         <button type="submit" class="govuk-button" data-module="govuk-button">
           {% if github_branch %}Add to existing branch on GitHub{% else %}Create new branch and Add to GitHub{% endif %}
         </button>

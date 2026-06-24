@@ -96,6 +96,11 @@ def handle_entities_preview(request_id, req):
     ) = build_column_csv_preview(column_mapping, dataset_id, endpoint_summary)
 
     github_branch = params.get("github_branch") or None
+    source_flow = (
+        "assign_entities"
+        if params.get("resource") and not params.get("url")
+        else "add_data"
+    )
 
     # Retire endpoint details
     request_meta = db.session.get(RequestMeta, request_id)
@@ -149,6 +154,7 @@ def handle_entities_preview(request_id, req):
         "datamanager/entities_preview.html",
         request_id=request_id,
         github_branch=github_branch,
+        source_flow=source_flow,
         retire_summary=retire_summary,
         new_count=int(pipeline_summary.get("new-in-resource") or 0),
         existing_count=int(pipeline_summary.get("existing-in-resource") or 0),
@@ -167,7 +173,9 @@ def handle_entities_preview(request_id, req):
     )
 
 
-def handle_add_data_confirm(request_id, github_branch: str | None = None):
+def handle_add_data_confirm(
+    request_id, github_branch: str | None = None, source_flow: str = "add_data"
+):
     request_meta = db.session.get(RequestMeta, request_id)
     endpoints_to_retire = (
         json.loads(request_meta.endpoints_to_retire or "[]") if request_meta else []
@@ -192,4 +200,5 @@ def handle_add_data_confirm(request_id, github_branch: str | None = None):
         "datamanager/add-data-success.html",
         message=result["message"],
         github_branch=github_branch,
+        source_flow=source_flow,
     )
