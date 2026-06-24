@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 def _admin_team_slugs():
-    configured_slugs = current_app.config.get("GITHUB_ADMIN_TEAM_SLUGS", "manage-service-admins")
+    configured_slugs = current_app.config.get(
+        "GITHUB_ADMIN_TEAM_SLUGS", "manage-service-admins"
+    )
     return [
         slug.strip() for slug in configured_slugs.split(",") if slug and slug.strip()
     ]
