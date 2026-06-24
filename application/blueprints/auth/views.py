@@ -1,4 +1,5 @@
 from http import HTTPStatus
+import logging
 
 import requests
 from flask import Blueprint, current_app, flash, redirect, request, session, url_for
@@ -7,6 +8,41 @@ from is_safe_url import is_safe_url
 from application.extensions import oauth
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+logger = logging.getLogger(__name__)
+
+
+def _admin_team_slugs():
+    configured_slugs = current_app.config.get("GITHUB_ADMIN_TEAM_SLUGS", "manage-service-admins")
+    return [
+        slug.strip() for slug in configured_slugs.split(",") if slug and slug.strip()
+    ]
+
+
+def _is_member_of_admin_team(username, headers):
+    org = current_app.config.get("GITHUB_ORG", "digital-land")
+    for team_slug in _admin_team_slugs():
+        url = f"https://api.github.com/orgs/{org}/teams/{team_slug}/memberships/{username}"
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+        except requests.RequestException as e:
+            logger.warning(
+                "Could not check GitHub team membership for %s/%s: %s",
+                org,
+                team_slug,
+                e,
+            )
+            continue
+
+        if resp.status_code == HTTPStatus.OK:
+            return (resp.json() or {}).get("state") == "active"
+        if resp.status_code not in (HTTPStatus.NOT_FOUND, HTTPStatus.FORBIDDEN):
+            logger.warning(
+                "Unexpected GitHub team membership response for %s/%s: %s",
+                org,
+                team_slug,
+                resp.status_code,
+            )
+    return False
 
 
 @auth_bp.get("/login")
@@ -37,6 +73,9 @@ def authorize():
         )
         resp = requests.get(url, headers=headers)
         if resp.status_code == HTTPStatus.NO_CONTENT:
+            user_profile["is_admin"] = _is_member_of_admin_team(
+                user_profile["login"], headers
+            )
             session["user"] = user_profile
             next_url = _make_next_url_safe(next_url)
             return redirect(next_url)
