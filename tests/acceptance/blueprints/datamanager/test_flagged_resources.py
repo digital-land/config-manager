@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import responses as rsps
 
+from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK
 from application.db.models import ServiceLock
 from application.extensions import db
 from config.config import get_request_api_endpoint
@@ -71,8 +72,8 @@ def test_flagged_resources_import_page_loads(client):
 
 
 def test_assign_entities_tile_links_to_start_page(client):
-    db.session.query(ServiceLock).filter_by(name="add-data").delete()
-    db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
+    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+    db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
     db.session.commit()
 
     response = client.get("/")
@@ -84,11 +85,11 @@ def test_assign_entities_tile_links_to_start_page(client):
 
 
 def test_add_data_lock_does_not_block_assign_entities(client):
-    db.session.query(ServiceLock).filter_by(name="add-data").delete()
-    db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
+    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+    db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
     db.session.add(
         ServiceLock(
-            name="add-data",
+            name=ADD_DATA_LOCK,
             locked_by="someone",
             locked_at=datetime.utcnow(),
         )
@@ -98,19 +99,19 @@ def test_add_data_lock_does_not_block_assign_entities(client):
     try:
         response = client.get("/assign-entities")
     finally:
-        db.session.query(ServiceLock).filter_by(name="add-data").delete()
-        db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
+        db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+        db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
         db.session.commit()
 
     assert response.status_code == 200
 
 
 def test_assign_entities_uses_assign_entities_process_lock(client):
-    db.session.query(ServiceLock).filter_by(name="add-data").delete()
-    db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
+    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+    db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
     db.session.add(
         ServiceLock(
-            name="assign-entities",
+            name=ASSIGN_ENTITIES_LOCK,
             locked_by="someone",
             locked_at=datetime.utcnow(),
         )
@@ -120,8 +121,8 @@ def test_assign_entities_uses_assign_entities_process_lock(client):
     try:
         response = client.get("/assign-entities")
     finally:
-        db.session.query(ServiceLock).filter_by(name="add-data").delete()
-        db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
+        db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+        db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
         db.session.commit()
 
     assert response.status_code == 302
@@ -129,11 +130,11 @@ def test_assign_entities_uses_assign_entities_process_lock(client):
 
 
 def test_assign_entities_card_can_unlock_assign_entities_process(client):
-    db.session.query(ServiceLock).filter_by(name="add-data").delete()
-    db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
+    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+    db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
     db.session.add(
         ServiceLock(
-            name="assign-entities",
+            name=ASSIGN_ENTITIES_LOCK,
             locked_by="someone",
             locked_at=datetime.utcnow(),
         )
@@ -143,8 +144,8 @@ def test_assign_entities_card_can_unlock_assign_entities_process(client):
     try:
         response = client.get("/")
     finally:
-        db.session.query(ServiceLock).filter_by(name="add-data").delete()
-        db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
+        db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+        db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
         db.session.commit()
 
     assert response.status_code == 200

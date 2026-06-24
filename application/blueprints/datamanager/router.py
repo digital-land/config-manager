@@ -12,6 +12,7 @@ from flask import (
 )
 from werkzeug.exceptions import RequestEntityTooLarge
 
+from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK
 from application.db.models import RequestMeta, ServiceLock
 from application.extensions import db
 
@@ -88,7 +89,7 @@ def _require_login():
 
 def _require_add_data_unlocked():
     try:
-        lock = db.session.get(ServiceLock, "add-data")
+        lock = db.session.get(ServiceLock, ADD_DATA_LOCK)
     except Exception:
         lock = None
     if lock:
@@ -97,7 +98,7 @@ def _require_add_data_unlocked():
 
 def _require_assign_entities_unlocked():
     try:
-        lock = db.session.get(ServiceLock, "assign-entities")
+        lock = db.session.get(ServiceLock, ASSIGN_ENTITIES_LOCK)
     except Exception:
         lock = None
     if lock:
