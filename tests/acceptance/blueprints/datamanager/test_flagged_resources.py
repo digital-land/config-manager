@@ -71,7 +71,8 @@ def test_flagged_resources_import_page_loads(client):
 
 
 def test_assign_entities_tile_links_to_start_page(client):
-    db.session.query(ServiceLock).filter_by(name="add_data").delete()
+    db.session.query(ServiceLock).filter_by(name="add-data").delete()
+    db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
     db.session.commit()
 
     response = client.get("/")
@@ -82,11 +83,12 @@ def test_assign_entities_tile_links_to_start_page(client):
     assert response.data.count(b"Lock this process") == 2
 
 
-def test_assign_entities_uses_add_data_process_lock(client):
-    db.session.query(ServiceLock).filter_by(name="add_data").delete()
+def test_add_data_lock_does_not_block_assign_entities(client):
+    db.session.query(ServiceLock).filter_by(name="add-data").delete()
+    db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
     db.session.add(
         ServiceLock(
-            name="add_data",
+            name="add-data",
             locked_by="someone",
             locked_at=datetime.utcnow(),
         )
@@ -96,18 +98,42 @@ def test_assign_entities_uses_add_data_process_lock(client):
     try:
         response = client.get("/assign-entities")
     finally:
-        db.session.query(ServiceLock).filter_by(name="add_data").delete()
+        db.session.query(ServiceLock).filter_by(name="add-data").delete()
+        db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
+        db.session.commit()
+
+    assert response.status_code == 200
+
+
+def test_assign_entities_uses_assign_entities_process_lock(client):
+    db.session.query(ServiceLock).filter_by(name="add-data").delete()
+    db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
+    db.session.add(
+        ServiceLock(
+            name="assign-entities",
+            locked_by="someone",
+            locked_at=datetime.utcnow(),
+        )
+    )
+    db.session.commit()
+
+    try:
+        response = client.get("/assign-entities")
+    finally:
+        db.session.query(ServiceLock).filter_by(name="add-data").delete()
+        db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
         db.session.commit()
 
     assert response.status_code == 302
-    assert "add_data_blocked_by=someone" in response.headers["Location"]
+    assert "assign_entities_blocked_by=someone" in response.headers["Location"]
 
 
-def test_assign_entities_card_can_unlock_shared_process(client):
-    db.session.query(ServiceLock).filter_by(name="add_data").delete()
+def test_assign_entities_card_can_unlock_assign_entities_process(client):
+    db.session.query(ServiceLock).filter_by(name="add-data").delete()
+    db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
     db.session.add(
         ServiceLock(
-            name="add_data",
+            name="assign-entities",
             locked_by="someone",
             locked_at=datetime.utcnow(),
         )
@@ -117,12 +143,22 @@ def test_assign_entities_card_can_unlock_shared_process(client):
     try:
         response = client.get("/")
     finally:
-        db.session.query(ServiceLock).filter_by(name="add_data").delete()
+        db.session.query(ServiceLock).filter_by(name="add-data").delete()
+        db.session.query(ServiceLock).filter_by(name="assign-entities").delete()
         db.session.commit()
 
     assert response.status_code == 200
-    assert response.data.count(b"Unlock this process") == 2
+    assert response.data.count(b"Unlock this process") == 1
+    assert response.data.count(b"Lock this process") == 1
     assert b"Locked by <strong>someone</strong>" in response.data
+    assert b"/process-lock/assign-entities/toggle" in response.data
+
+
+def test_unknown_process_lock_redirects_home(client):
+    response = client.post("/process-lock/unknown/toggle")
+
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/index"
 
 
 def test_csv_upload_groups_resource_dataset_combinations(client):

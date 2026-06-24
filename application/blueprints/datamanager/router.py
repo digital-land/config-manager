@@ -88,11 +88,22 @@ def _require_login():
 
 def _require_add_data_unlocked():
     try:
-        lock = db.session.get(ServiceLock, "add_data")
+        lock = db.session.get(ServiceLock, "add-data")
     except Exception:
         lock = None
     if lock:
         return redirect(url_for("base.index", add_data_blocked_by=lock.locked_by))
+
+
+def _require_assign_entities_unlocked():
+    try:
+        lock = db.session.get(ServiceLock, "assign-entities")
+    except Exception:
+        lock = None
+    if lock:
+        return redirect(
+            url_for("base.index", assign_entities_blocked_by=lock.locked_by)
+        )
 
 
 @datamanager_bp.before_request
@@ -112,7 +123,7 @@ def assign_entities_require_login():
     if login_response:
         return login_response
 
-    return _require_add_data_unlocked()
+    return _require_assign_entities_unlocked()
 
 
 # TODO: remove these view functions and move logic entirely into controllers
