@@ -16,3 +16,4 @@ sentry-sdk[flask]
 PyGithub
 pydantic
 flask-sslify
+pandas

@@ -1,0 +1,100 @@
+{% extends 'layouts/base.html' %}
+
+{% from "govuk_frontend_jinja/components/button/macro.html" import govukButton %}
+{% from "govuk_frontend_jinja/components/back-link/macro.html" import govukBackLink %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {{ govukBackLink({
+      'text': 'Back',
+      'href': url_for('assign_entities.flagged_resources_start')
+    }) }}
+
+    <h1 class="govuk-heading-xl">Import simple assign CSV</h1>
+
+    <p class="govuk-body">
+      Paste your simple assign CSV output below. The CSV should include headers and can include multiple rows for the same resource and dataset.
+    </p>
+
+    <details class="govuk-details" data-module="govuk-details">
+      <summary class="govuk-details__summary">
+        <span class="govuk-details__summary-text">
+          CSV format example
+        </span>
+      </summary>
+      <div class="govuk-details__text">
+        <pre class="app-code-block">
+dataset,resource,organisation,reference,status,entities_created,error_code,message
+developer-agreement,7ad0c6cea336219db05f6d5054c6ee4e599c158f5104f4aee59df21d9ac390ca,local-authority:ARU,1684-da,error,,duplicate_entity_all_fields,"Matches existing entity(s) 4606914, 4607168, 4607177 developer-agreement-type::community-infrastructure-levy|end-date::|organisation::local-authority:aru|prefix::developer-agreement."
+developer-agreement-contribution,c17188a968a2f715e0d6db1a6e285c57a5980a86af9998ee1c07c6f726e11439,local-authority:ARU,784-da-1-S106NF,error,,duplicate_entity_all_fields,Matches existing entity(s) 4317330 contribution-purpose::affordable-housing|developer-agreement::784-da|end-date::|organisation::local-authority:aru|prefix::developer-agreement-contribution|start-date::2018-09-03|units::90.
+developer-agreement-contribution,c17188a968a2f715e0d6db1a6e285c57a5980a86af9998ee1c07c6f726e11439,local-authority:ARU,790-da-10-S106NF,error,,duplicate_entity_all_fields,Matches existing entity(s) 4317378 contribution-purpose::open-space-and-leisure|developer-agreement::790-da|end-date::|organisation::local-authority:aru|prefix::developer-agreement-contribution|start-date::2019-03-07|units::1.
+developer-agreement-contribution,c17188a968a2f715e0d6db1a6e285c57a5980a86af9998ee1c07c6f726e11439,local-authority:ARU,1013-da-8-S106NF,error,,duplicate_entity_all_fields,"Matches existing entity(s) 4302968, 4302968 contribution-purpose::open-space-and-leisure|developer-agreement::1013-da|end-date::|organisation::local-authority:aru|prefix::developer-agreement-contribution|start-date::2021-02-05|units::1."
+developer-agreement-contribution,c17188a968a2f715e0d6db1a6e285c57a5980a86af9998ee1c07c6f726e11439,local-authority:ARU,1138-da-10-CIL,error,,duplicate_entity_all_fields,"Matches existing entity(s) 4317493, 4317495 amount::1000|contribution-purpose::community-infrastructure-levy|developer-agreement::1138-da|end-date::|organisation::local-authority:aru|prefix::developer-agreement-contribution|start-date::2022-01-06."
+developer-agreement-contribution,c17188a968a2f715e0d6db1a6e285c57a5980a86af9998ee1c07c6f726e11439,local-authority:ARU,1144-da-20-S106F,error,,duplicate_entity_all_fields,Matches existing entity(s) 4317504 amount::2349.79|contribution-purpose::community-facilities|developer-agreement::1144-da|end-date::|organisation::local-authority:aru|prefix::developer-agreement-contribution|start-date::2021-10-12.
+developer-agreement-transaction,8156bc2cbb89cf5586af5cd84f9bc37369875e37eaf3a4532569672c12dda9a2,local-authority:ARU,,error,,large_number_of_new_entities,Resource contains a large number of new entities (256) compared to the previous version (1258). Old resource hash: 35557bf4bb0329afabcbc664731a3f398c992124743a6cb9547e671fcad44d56.</pre>
+      </div>
+    </details>
+
+    {% if errors.get('csv_data') %}
+    <div class="govuk-error-summary" role="alert" data-module="govuk-error-summary">
+      <h2 class="govuk-error-summary__title">There is a problem</h2>
+      <div class="govuk-error-summary__body">
+        <ul class="govuk-list govuk-error-summary__list">
+          <li><a href="#csv-data">{{ errors.csv_data }}</a></li>
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('assign_entities.flagged_resources_import') }}">
+      <input type="hidden" name="mode" value="parse">
+
+      <div class="govuk-form-group {% if errors.get('csv_data') %}govuk-form-group--error{% endif %}">
+        <label class="govuk-label govuk-label--m" for="csv-data">
+          CSV data
+        </label>
+        <div id="csv-data-hint" class="govuk-hint">
+          Include the header row. The CSV must include: {{ required_columns | join(', ') }}.
+        </div>
+        {% if errors.get('csv_data') %}
+        <p class="govuk-error-message" id="csv-data-error">
+          <span class="govuk-visually-hidden">Error:</span> {{ errors.csv_data }}
+        </p>
+        {% endif %}
+        <textarea
+          class="govuk-textarea govuk-!-margin-bottom-0 {% if errors.get('csv_data') %}govuk-textarea--error{% endif %}"
+          id="csv-data"
+          name="csv_data"
+          rows="8"
+          aria-describedby="csv-data-hint{% if errors.get('csv_data') %} csv-data-error{% endif %}"
+        >{{ csv_data }}</textarea>
+        <div class="govuk-hint govuk-!-margin-bottom-2">
+          Use the CSV file upload option if your CSV is larger than 10MB.
+        </div>
+      </div>
+
+      {{ govukButton({
+        'text': 'Parse CSV',
+        'attributes': { 'id': 'parse-button' }
+      }) }}
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block pageScripts %}
+<style>
+  .app-code-block {
+    background-color: #f3f2f1;
+    border: 1px solid #b1b4b6;
+    padding: 15px;
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+</style>
+{% endblock %}

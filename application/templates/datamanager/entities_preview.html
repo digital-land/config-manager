@@ -1,6 +1,9 @@
 {% extends 'layouts/base.html' %}
 {% from "components/table.html" import table %}
 
+
+{% block pageTitle %}Add Data - Preview {% endblock %}
+
 {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
@@ -184,6 +187,8 @@
     <div class="govuk-button-group">
       <form method="post" action="{{ url_for('datamanager.add_data_confirm_async', request_id=request_id) }}">
         <input type="hidden" name="github_branch" value="{{ github_branch or '' }}">
+        <input type="hidden" name="source_flow" value="{{ source_flow or 'add_data' }}">
+        <input type="hidden" name="return_url" value="{{ return_url or url_for('datamanager.dashboard_get') }}">
         <button type="submit" class="govuk-button" data-module="govuk-button">
           {% if github_branch %}Add to existing branch on GitHub{% else %}Create new branch and Add to GitHub{% endif %}
         </button>
