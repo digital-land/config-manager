@@ -1,0 +1,42 @@
+{% extends 'layouts/base.html' %}
+
+{% block pageTitle %}Assign Entities{% endblock %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <h1 class="govuk-heading-xl">Assign entities</h1>
+    <p class="govuk-body-l">
+      Review resources flagged by the simple batch assign process before assigning new entities.
+    </p>
+    <p class="govuk-body">
+      Upload the CSV output to see grouped resources that need attention.
+    </p>
+    <ul class="govuk-list govuk-list--bullet">
+      <li>Use CSV upload when you have a simple batch assign output file.</li>
+      <li>Select a resource on the next page to review the entity comparison.</li>
+    </ul>
+    <br>
+    <div style="display:flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+      {# <a href="{{ url_for('assign_entities.flagged_resources_import') }}" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">Import from CSV</a> #}
+      <form method="post" action="{{ url_for('assign_entities.flagged_resources_import') }}" enctype="multipart/form-data" style="margin:0;">
+        <input type="hidden" name="mode" value="parse">
+        <input type="file" name="csv_file" id="csv-file-upload" accept=".csv" style="display:none;">
+        <button type="button" class="govuk-button govuk-!-margin-bottom-0" onclick="document.getElementById('csv-file-upload').click()">Upload CSV file</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block pageScripts %}
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
+  document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("csv-file-upload").addEventListener("change", function() {
+      if (this.files.length > 0) {
+        this.closest("form").submit();
+      }
+    });
+  });
+</script>
+{% endblock %}

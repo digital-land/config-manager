@@ -4,6 +4,7 @@ import logging
 from flask import (
     render_template,
     session,
+    url_for,
 )
 
 from application.db.models import RequestMeta
@@ -96,6 +97,18 @@ def handle_entities_preview(request_id, req):
     ) = build_column_csv_preview(column_mapping, dataset_id, endpoint_summary)
 
     github_branch = params.get("github_branch") or None
+    source_flow = (
+        "assign_entities"
+        if params.get("resource") and not params.get("url")
+        else "add_data"
+    )
+    return_endpoint = params.get("return_endpoint")
+    if return_endpoint:
+        return_url = url_for(return_endpoint)
+    elif source_flow == "assign_entities":
+        return_url = url_for("assign_entities.flagged_resources_start")
+    else:
+        return_url = url_for("datamanager.dashboard_get")
 
     # Retire endpoint details
     request_meta = db.session.get(RequestMeta, request_id)
@@ -149,6 +162,8 @@ def handle_entities_preview(request_id, req):
         "datamanager/entities_preview.html",
         request_id=request_id,
         github_branch=github_branch,
+        source_flow=source_flow,
+        return_url=return_url,
         retire_summary=retire_summary,
         new_count=int(pipeline_summary.get("new-in-resource") or 0),
         existing_count=int(pipeline_summary.get("existing-in-resource") or 0),
@@ -167,7 +182,12 @@ def handle_entities_preview(request_id, req):
     )
 
 
-def handle_add_data_confirm(request_id, github_branch: str | None = None):
+def handle_add_data_confirm(
+    request_id,
+    github_branch: str | None = None,
+    source_flow: str = "add_data",
+    return_url: str | None = None,
+):
     request_meta = db.session.get(RequestMeta, request_id)
     endpoints_to_retire = (
         json.loads(request_meta.endpoints_to_retire or "[]") if request_meta else []
@@ -187,9 +207,16 @@ def handle_add_data_confirm(request_id, github_branch: str | None = None):
         logger.error(f"Failed to trigger async workflow: {result['message']}")
         raise ControllerError(f"Failed to trigger async workflow: {result['message']}")
 
+    fallback_return_url = (
+        url_for("assign_entities.flagged_resources_start")
+        if source_flow == "assign_entities"
+        else url_for("datamanager.dashboard_get")
+    )
     logger.info(f"Successfully triggered async workflow for request_id: {request_id}")
     return render_template(
         "datamanager/add-data-success.html",
         message=result["message"],
         github_branch=github_branch,
+        source_flow=source_flow,
+        return_url=return_url or fallback_return_url,
     )

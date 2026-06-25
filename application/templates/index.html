@@ -80,7 +80,7 @@
           <p class="govuk-body-s govuk-!-margin-bottom-0">Locked by <strong>{{ add_data_lock.locked_by }}</strong><br>{{ add_data_lock.locked_at.strftime('%-d %B %Y at %H:%M') }}</p>
           {% endif %}
           <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
-          <form method="post" action="{{ url_for('base.toggle_add_data_lock') }}" style="flex:0 0 auto; width:100%;">
+          <form method="post" action="{{ url_for('base.toggle_process_lock', process='add-data') }}" style="flex:0 0 auto; width:100%;">
             {% if add_data_lock %}
             <button type="submit" class="app-process-action-btn">Unlock this process</button>
             {% else %}
@@ -90,16 +90,30 @@
         </div>
       </div>
 
-      {# Assign entities card (UI only) #}
+      {# Assign entities card #}
       <div class="govuk-grid-column-one-third">
-        <div class="app-tools-list__item">
+        <div class="app-tools-list__item" {% if assign_entities_lock %}data-blocked="true"{% endif %}>
           <div style="display:flex; justify-content:space-between; align-items:flex-start; flex:0 0 auto;">
-            <h3 class="govuk-heading-s govuk-!-margin-bottom-0" style="color:#505a5f;">Assign entities</h3>
-            <strong class="govuk-tag app-tag--inactive">INACTIVE</strong>
+            {% if assign_entities_lock %}
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-0"><a href="{{ url_for('assign_entities.flagged_resources_start') }}" class="govuk-link govuk-link--no-visited-state app-tools-list__card-link" style="text-decoration:none; color:inherit;">Assign entities</a></h3>
+            <strong class="govuk-tag app-tag--locked">LOCKED</strong>
+            {% else %}
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-0"><a href="{{ url_for('assign_entities.flagged_resources_start') }}" class="govuk-link govuk-link--no-visited-state app-tools-list__card-link" style="text-decoration:none; color:inherit;">Assign entities</a></h3>
+            <strong class="govuk-tag app-tag--unlocked">UNLOCKED</strong>
+            {% endif %}
           </div>
           <p class="govuk-body-s govuk-!-margin-top-2" style="flex:1;">Assign entity numbers to new data entries</p>
+          {% if assign_entities_lock %}
+          <p class="govuk-body-s govuk-!-margin-bottom-0">Locked by <strong>{{ assign_entities_lock.locked_by }}</strong><br>{{ assign_entities_lock.locked_at.strftime('%-d %B %Y at %H:%M') }}</p>
+          {% endif %}
           <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
-          <button type="button" class="app-process-action-btn" disabled style="opacity:0.4; cursor:not-allowed;">Lock this process</button>
+          <form method="post" action="{{ url_for('base.toggle_process_lock', process='assign-entities') }}" style="flex:0 0 auto; width:100%;">
+            {% if assign_entities_lock %}
+            <button type="submit" class="app-process-action-btn">Unlock this process</button>
+            {% else %}
+            <button type="submit" class="app-process-action-btn">Lock this process</button>
+            {% endif %}
+          </form>
         </div>
       </div>
 
@@ -112,7 +126,23 @@
         <p class="govuk-body"><strong>{{ add_data_blocked_by }}</strong> has locked the Add Data process.</p>
         <p class="govuk-body">Would you like to unlock it?</p>
         <div style="display:flex;gap:1rem;align-items:center;">
-          <form method="post" action="{{ url_for('base.toggle_add_data_lock') }}">
+          <form method="post" action="{{ url_for('base.toggle_process_lock', process='add-data') }}">
+            <button type="submit" class="govuk-button govuk-!-margin-bottom-0">Yes, unlock it</button>
+          </form>
+          <a href="{{ url_for('base.index') }}" class="govuk-link">No, go back</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if assign_entities_blocked_by %}
+    <div id="assign-entities-blocked-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;">
+      <div style="background:#fff;padding:2rem;max-width:480px;width:90%;">
+        <h2 class="govuk-heading-m">Assign Entities is currently locked</h2>
+        <p class="govuk-body"><strong>{{ assign_entities_blocked_by }}</strong> has locked the Assign Entities process.</p>
+        <p class="govuk-body">Would you like to unlock it?</p>
+        <div style="display:flex;gap:1rem;align-items:center;">
+          <form method="post" action="{{ url_for('base.toggle_process_lock', process='assign-entities') }}">
             <button type="submit" class="govuk-button govuk-!-margin-bottom-0">Yes, unlock it</button>
           </form>
           <a href="{{ url_for('base.index') }}" class="govuk-link">No, go back</a>

@@ -9,7 +9,7 @@
     <p class="govuk-body">We're running the pipeline transform for your request. This should only take a moment.</p>
     <p class="govuk-body">This page will refresh automatically.</p>
     <p class="govuk-body">
-      If nothing happens, you can <a class="govuk-link" href="{{ url_for('datamanager.check_transform', request_id=request_id) }}">refresh manually</a>.
+      If nothing happens, you can <a class="govuk-link" href="{{ url_for(transform_endpoint or 'datamanager.check_transform', request_id=request_id) }}">refresh manually</a>.
     </p>
   </div>
 </div>

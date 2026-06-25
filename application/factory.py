@@ -97,9 +97,13 @@ def register_blueprints(app):
 
     app.register_blueprint(dataset_bp)
 
-    from application.blueprints.datamanager.router import datamanager_bp
+    from application.blueprints.datamanager.router import (
+        assign_entities_bp,
+        datamanager_bp,
+    )
 
     app.register_blueprint(datamanager_bp)
+    app.register_blueprint(assign_entities_bp)
 
     from application.blueprints.schema.views import schema_bp
 
