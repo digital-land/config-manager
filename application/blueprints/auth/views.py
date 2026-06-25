@@ -73,12 +73,13 @@ def authorize():
             "Authorization": f"Bearer {token['access_token']}",
             "X-GitHub-Api-Version": "2022-11-28",
         }
-        # check if user is a member of digitial-land org - if they are the members endpoint
+        org = current_app.config.get("GITHUB_ORG", "digital-land")
+        # check if user is a member of the configured GitHub org - if they are the members endpoint
         # will return status code 204
         # https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#check-organization-membership-for-a-user
         github_api_base_url = current_app.config["GITHUB_API_BASE_URL"]
-        url = f"{github_api_base_url}/orgs/digital-land/members/{user_profile['login']}"
-        resp = requests.get(url, headers=headers)
+        url = f"{github_api_base_url}/orgs/{org}/members/{user_profile['login']}"
+        resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code == HTTPStatus.NO_CONTENT:
             user_profile["is_admin"] = _is_member_of_admin_team(
                 user_profile["login"], headers
@@ -96,6 +97,7 @@ def authorize():
                 headers=headers,
                 params=params,
                 auth=(client_id, client_secret),
+                timeout=10,
             )
             flash(
                 "You must be a member of the digital-land organisation to be logged in"
