@@ -10,6 +10,7 @@ from flask import (
     url_for,
     session,
 )
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK
@@ -64,15 +65,17 @@ assign_entities_bp.context_processor(inject_now)
 @assign_entities_bp.errorhandler(RequestEntityTooLarge)
 def handle_assign_entities_request_entity_too_large(e):
     if request.endpoint == "assign_entities.flagged_resources_import":
+        is_upload = (request.content_type or "").startswith("multipart/form-data")
+        message = (
+            "The uploaded CSV is too large. Upload a file smaller than 10MB."
+            if is_upload
+            else "The pasted CSV is too large. Upload the CSV file instead."
+        )
         return (
             render_template(
                 "datamanager/flagged-resources-import.html",
                 csv_data="",
-                errors={
-                    "csv_data": (
-                        "The pasted CSV is too large. Upload the CSV file instead."
-                    )
-                },
+                errors={"csv_data": message},
                 required_columns=REQUIRED_COLUMNS,
             ),
             413,
@@ -90,8 +93,14 @@ def _require_login():
 def _require_add_data_unlocked():
     try:
         lock = db.session.get(ServiceLock, ADD_DATA_LOCK)
-    except Exception:
-        lock = None
+    except SQLAlchemyError:
+        return (
+            render_template(
+                "datamanager/error.html",
+                message="The Add Data lock state is unavailable. Try again later.",
+            ),
+            503,
+        )
     if lock:
         return redirect(url_for("base.index", add_data_blocked_by=lock.locked_by))
 
@@ -99,8 +108,16 @@ def _require_add_data_unlocked():
 def _require_assign_entities_unlocked():
     try:
         lock = db.session.get(ServiceLock, ASSIGN_ENTITIES_LOCK)
-    except Exception:
-        lock = None
+    except SQLAlchemyError:
+        return (
+            render_template(
+                "datamanager/error.html",
+                message=(
+                    "The Assign Entities lock state is unavailable. Try again later."
+                ),
+            ),
+            503,
+        )
     if lock:
         return redirect(
             url_for("base.index", assign_entities_blocked_by=lock.locked_by)
@@ -246,10 +263,14 @@ def add_data_confirm_async(request_id):
     logger.info(f"Triggering async GitHub workflow for request_id: {request_id}")
     github_branch = request.form.get("github_branch") or None
     source_flow = request.form.get("source_flow") or "add_data"
+    return_url = request.form.get("return_url") or None
 
     try:
         return handle_add_data_confirm(
-            request_id, github_branch=github_branch, source_flow=source_flow
+            request_id,
+            github_branch=github_branch,
+            source_flow=source_flow,
+            return_url=return_url,
         )
     except ControllerError as e:
         return render_template("datamanager/error.html", message=e.message)

@@ -50,7 +50,12 @@ def toggle_process_lock(process):
         return redirect(url_for("base.index"))
 
     user = session.get("user", {})
-    username = user.get("login", "unknown")
+    if current_app.config.get("AUTHENTICATION_ON", True):
+        if not user:
+            return redirect(url_for("auth.login", next=request.url))
+        username = user["login"]
+    else:
+        username = user.get("login", "development")
 
     lock = db.session.get(ServiceLock, process)
     if lock:

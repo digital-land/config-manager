@@ -346,7 +346,9 @@ def _get_resource_organisation(resource, dataset_id):
     return _organisation_from_cached_rows(resource, dataset_id)
 
 
-def _submit_assign_entities_request(dataset_input, resource, organisation=None):
+def _submit_assign_entities_request(
+    dataset_input, resource, organisation=None, return_endpoint=None
+):
     dataset_id, collection_id = _resolve_dataset_and_collection(dataset_input)
     organisation = organisation or _get_resource_organisation(resource, dataset_id)
     params = {
@@ -360,6 +362,8 @@ def _submit_assign_entities_request(dataset_input, resource, organisation=None):
     if organisation:
         params["organisationName"] = organisation
         params["organisation"] = organisation
+    if return_endpoint:
+        params["return_endpoint"] = return_endpoint
     return submit_request(params)
 
 
@@ -381,7 +385,9 @@ def handle_flagged_resources_start():
             if not errors:
                 try:
                     request_id = _submit_assign_entities_request(
-                        form["dataset"], form["resource"]
+                        form["dataset"],
+                        form["resource"],
+                        return_endpoint="assign_entities.flagged_resources_start",
                     )
                 except AsyncAPIError as e:
                     raise ControllerError(
@@ -455,7 +461,12 @@ def handle_flagged_resource_submit():
         raise ControllerError("Dataset and resource are required")
 
     try:
-        request_id = _submit_assign_entities_request(dataset, resource, organisation)
+        request_id = _submit_assign_entities_request(
+            dataset,
+            resource,
+            organisation,
+            return_endpoint="assign_entities.flagged_resources_summary",
+        )
     except AsyncAPIError as e:
         raise ControllerError(f"Assign entities submission failed: {e.detail}") from e
 

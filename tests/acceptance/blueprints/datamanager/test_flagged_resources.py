@@ -162,6 +162,26 @@ def test_unknown_process_lock_redirects_home(client):
     assert response.headers["Location"] == "/index"
 
 
+def test_process_lock_toggle_allows_authenticated_non_admin(client, app):
+    previous_authentication_on = app.config["AUTHENTICATION_ON"]
+    app.config["AUTHENTICATION_ON"] = True
+    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+    db.session.commit()
+
+    try:
+        with client.session_transaction() as sess:
+            sess["user"] = {"login": "test-user", "is_admin": False}
+
+        response = client.post("/process-lock/add-data/toggle")
+        assert response.status_code == 302
+        assert response.headers["Location"] == "/index"
+        assert db.session.get(ServiceLock, ADD_DATA_LOCK).locked_by == "test-user"
+    finally:
+        app.config["AUTHENTICATION_ON"] = previous_authentication_on
+        db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+        db.session.commit()
+
+
 def test_csv_upload_groups_resource_dataset_combinations(client):
     redirect_response = client.post(
         "/assign-entities/import",
@@ -304,6 +324,28 @@ def test_pasted_csv_import_handles_request_entity_too_large(client, app):
 
     assert response.status_code == 413
     assert b"The pasted CSV is too large. Upload the CSV file instead." in response.data
+
+
+def test_uploaded_csv_import_handles_request_entity_too_large(client, app):
+    previous_limit = app.config.get("MAX_CONTENT_LENGTH")
+    app.config["MAX_CONTENT_LENGTH"] = 10
+
+    try:
+        response = client.post(
+            "/assign-entities/import",
+            data={
+                "mode": "parse",
+                "csv_file": (BytesIO(CSV_INPUT.encode("utf-8")), "flagged.csv"),
+            },
+            content_type="multipart/form-data",
+        )
+    finally:
+        app.config["MAX_CONTENT_LENGTH"] = previous_limit
+
+    assert response.status_code == 413
+    assert b"The uploaded CSV is too large. Upload a file smaller than 10MB." in (
+        response.data
+    )
 
 
 def test_uploaded_csv_groups_resource_dataset_combinations(client):
@@ -536,6 +578,7 @@ def test_resource_link_submits_assign_entities_request(client):
             "github_branch": "config-manager-update",
             "organisationName": "local-authority:ABC",
             "organisation": "local-authority:ABC",
+            "return_endpoint": "assign_entities.flagged_resources_summary",
         }
     }
 
@@ -572,9 +615,9 @@ def test_direct_dataset_resource_skips_summary_page(client):
 
     assert response.status_code == 302
     assert "/assign-entities/check-results/assign-id-1" in response.headers["Location"]
-    assert json.loads(rsps.calls[0].request.body)["params"]["github_branch"] == (
-        "config-manager-update"
-    )
+    params = json.loads(rsps.calls[0].request.body)["params"]
+    assert params["github_branch"] == "config-manager-update"
+    assert params["return_endpoint"] == "assign_entities.flagged_resources_start"
 
 
 @rsps.activate
@@ -612,4 +655,7 @@ def test_resource_submit_uses_selected_organisation(client):
     )
     assert json.loads(rsps.calls[0].request.body)["params"]["organisation"] == (
         "local-authority:XYZ"
+    )
+    assert json.loads(rsps.calls[0].request.body)["params"]["return_endpoint"] == (
+        "assign_entities.flagged_resources_summary"
     )
