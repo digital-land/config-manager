@@ -334,7 +334,7 @@ def test_uploaded_csv_import_handles_request_entity_too_large(client, app):
         response = client.post(
             "/assign-entities/import",
             data={
-                "mode": "parse",
+                "mode": "upload",
                 "csv_file": (BytesIO(CSV_INPUT.encode("utf-8")), "flagged.csv"),
             },
             content_type="multipart/form-data",
