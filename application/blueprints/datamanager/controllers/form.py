@@ -26,7 +26,6 @@ from ..services.dataset import (
     get_dataset_name,
     search_datasets,
 )
-from ..utils import get_allowed_override_users
 from ..services.organisation import (
     format_org_options,
     get_provision_orgs_for_dataset,
@@ -39,8 +38,7 @@ logger = logging.getLogger(__name__)
 def _is_admin():
     if not current_app.config.get("AUTHENTICATION_ON", True):
         return True
-    current_user = (session.get("user") or {}).get("login", "")
-    return current_user.lower() in get_allowed_override_users()
+    return bool((session.get("user") or {}).get("is_admin"))
 
 
 def _organisation_display_name(org_code: str, org_values: list) -> str:

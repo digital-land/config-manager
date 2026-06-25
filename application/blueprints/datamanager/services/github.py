@@ -93,7 +93,8 @@ def get_installation_token(jwt_token: str, installation_id: str) -> str:
     Raises:
         GitHubAppAuthError: If token exchange fails
     """
-    url = f"https://api.github.com/app/installations/{installation_id}/access_tokens"
+    github_api_base_url = current_app.config["GITHUB_API_BASE_URL"]
+    url = f"{github_api_base_url}/app/installations/{installation_id}/access_tokens"
     headers = {
         "Accept": "application/vnd.github+json",
         "Authorization": f"Bearer {jwt_token}",
@@ -146,7 +147,8 @@ def trigger_add_data_async_workflow(
         logger.info(f"Triggering async workflow for request_id: {request_id}")
         logger.info(f"Payload: {payload}")
 
-        url = "https://api.github.com/repos/digital-land/config/dispatches"
+        github_api_base_url = current_app.config["GITHUB_API_BASE_URL"]
+        url = f"{github_api_base_url}/repos/digital-land/config/dispatches"
         response = requests.post(
             url, headers=_github_headers(access_token), json=payload, timeout=10
         )

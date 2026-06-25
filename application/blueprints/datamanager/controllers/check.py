@@ -28,7 +28,6 @@ from ..services.organisation import (
 )
 from ..utils import (
     build_check_tables,
-    get_allowed_override_users,
 )
 from ..utils.configure import (
     build_column_mapping_rows,
@@ -217,9 +216,7 @@ def handle_check_results(request_id, result):
 
     can_override = False
     if not allow_add_data:
-        current_user = (session.get("user") or {}).get("login", "")
-        allowed = get_allowed_override_users()
-        can_override = current_user.lower() in allowed
+        can_override = bool((session.get("user") or {}).get("is_admin"))
 
     return render_template(
         "datamanager/check-results.html",
