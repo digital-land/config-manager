@@ -36,7 +36,9 @@ def _is_member_of_admin_team(username, headers):
             continue
 
         if resp.status_code == HTTPStatus.OK:
-            return (resp.json() or {}).get("state") == "active"
+            if (resp.json() or {}).get("state") == "active":
+                return True
+            continue
         if resp.status_code not in (HTTPStatus.NOT_FOUND, HTTPStatus.FORBIDDEN):
             logger.warning(
                 "Unexpected GitHub team membership response for %s/%s: %s",

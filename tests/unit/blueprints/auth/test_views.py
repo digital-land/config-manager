@@ -34,3 +34,27 @@ def test_is_member_of_admin_team_returns_false_when_not_a_member(app):
         is_admin = _is_member_of_admin_team("someone", {})
 
     assert is_admin is False
+
+
+def test_is_member_of_admin_team_checks_later_team_after_pending_membership(app):
+    app.config["GITHUB_ORG"] = "digital-land"
+    app.config["GITHUB_ADMIN_TEAM_SLUGS"] = "team-one,team-two"
+    pending_response = Mock(status_code=HTTPStatus.OK)
+    pending_response.json.return_value = {"state": "pending"}
+    active_response = Mock(status_code=HTTPStatus.OK)
+    active_response.json.return_value = {"state": "active"}
+
+    with app.app_context(), patch(
+        "application.blueprints.auth.views.requests.get",
+        side_effect=[pending_response, active_response],
+    ) as get:
+        is_admin = _is_member_of_admin_team("gibahjoe", {"Authorization": "Bearer t"})
+
+    assert is_admin is True
+    assert get.call_count == 2
+    assert get.call_args_list[0].args[0] == (
+        "https://api.github.com/orgs/digital-land/teams/team-one/memberships/gibahjoe"
+    )
+    assert get.call_args_list[1].args[0] == (
+        "https://api.github.com/orgs/digital-land/teams/team-two/memberships/gibahjoe"
+    )
