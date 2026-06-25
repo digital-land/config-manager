@@ -22,6 +22,7 @@ class Config:
     GITHUB_APP_PRIVATE_KEY = base64.b64decode(
         os.getenv("GITHUB_APP_PRIVATE_KEY", "")
     ).decode("utf-8")
+    GITHUB_API_BASE_URL = os.getenv("GITHUB_API_BASE_URL", "https://api.github.com")
     GITHUB_ORG = os.getenv("GITHUB_ORG", "digital-land")
     GITHUB_ADMIN_TEAM_SLUGS = os.getenv(
         "GITHUB_ADMIN_TEAM_SLUGS", "manage-service-admins"

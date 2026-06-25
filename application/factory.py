@@ -178,7 +178,7 @@ def register_extensions(app):
         access_token_params=None,
         authorize_url="https://github.com/login/oauth/authorize",
         authorize_params=None,
-        api_base_url="https://api.github.com/",
+        api_base_url=f"{app.config['GITHUB_API_BASE_URL']}/",
         client_kwargs={"scope": "user:email read:org"},
     )
 

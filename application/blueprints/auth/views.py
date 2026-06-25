@@ -22,8 +22,12 @@ def _admin_team_slugs():
 
 def _is_member_of_admin_team(username, headers):
     org = current_app.config.get("GITHUB_ORG", "digital-land")
+    github_api_base_url = current_app.config["GITHUB_API_BASE_URL"]
     for team_slug in _admin_team_slugs():
-        url = f"https://api.github.com/orgs/{org}/teams/{team_slug}/memberships/{username}"
+        url = (
+            f"{github_api_base_url}/orgs/{org}/teams/{team_slug}"
+            f"/memberships/{username}"
+        )
         try:
             resp = requests.get(url, headers=headers, timeout=10)
         except requests.RequestException as e:
@@ -72,9 +76,8 @@ def authorize():
         # check if user is a member of digitial-land org - if they are the members endpoint
         # will return status code 204
         # https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#check-organization-membership-for-a-user
-        url = (
-            f"https://api.github.com/orgs/digital-land/members/{user_profile['login']}"
-        )
+        github_api_base_url = current_app.config["GITHUB_API_BASE_URL"]
+        url = f"{github_api_base_url}/orgs/digital-land/members/{user_profile['login']}"
         resp = requests.get(url, headers=headers)
         if resp.status_code == HTTPStatus.NO_CONTENT:
             user_profile["is_admin"] = _is_member_of_admin_team(
@@ -89,7 +92,7 @@ def authorize():
             params = {"access_token": token["access_token"]}
             headers = {"X-GitHub-Api-Version": "2022-11-28"}
             resp = requests.delete(
-                f"https://api.github.com/applications/{client_id}/grant",
+                f"{github_api_base_url}/applications/{client_id}/grant",
                 headers=headers,
                 params=params,
                 auth=(client_id, client_secret),

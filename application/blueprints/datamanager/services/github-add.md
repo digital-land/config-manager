@@ -13,7 +13,7 @@ This workflow adds data to collection and pipeline CSV files by fetching a compl
 
 ## Triggering the Workflow
 
-**Endpoint:** `POST https://api.github.com/repos/digital-land/config/dispatches`
+**Endpoint:** `POST {GITHUB_API_BASE_URL}/repos/digital-land/config/dispatches`
 
 **Required headers:**
 - `Accept: application/vnd.github+json`
