@@ -79,6 +79,82 @@ async function addGeoJsonUrlsToMap(map, geoJsonUrls) {
   });
 }
 
+function getFeatureCentroid(feature) {
+  const geom = feature.geometry;
+  if (geom.type === "Point") {
+    return geom.coordinates;
+  }
+  const ring =
+    geom.type === "Polygon"
+      ? geom.coordinates[0]
+      : geom.type === "MultiPolygon"
+      ? geom.coordinates[0][0]
+      : null;
+  if (!ring || ring.length === 0) return null;
+  const lng = ring.reduce((s, c) => s + c[0], 0) / ring.length;
+  const lat = ring.reduce((s, c) => s + c[1], 0) / ring.length;
+  return [lng, lat];
+}
+
+const LAYER_KEY = [
+  { id: "new", label: "New", colour: "#00703c" },
+  { id: "in_both", label: "In both", colour: "#b59b00" },
+  { id: "changed", label: "Changed", colour: "#f47738" },
+  { id: "existing", label: "Existing", colour: "#1d70b8" },
+];
+
+// Checkbox key rendered as a map control so it stays visible in fullscreen.
+class LayerToggleControl {
+  constructor() {
+    this.enabled = new Set(LAYER_KEY.map((l) => l.id));
+  }
+
+  onAdd(map) {
+    this._map = map;
+    this._container = document.createElement("div");
+    this._container.className = "maplibregl-ctrl maplibregl-ctrl-group app-map-key";
+    LAYER_KEY.forEach((layer) => {
+      const label = document.createElement("label");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = true;
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          this.enabled.add(layer.id);
+        } else {
+          this.enabled.delete(layer.id);
+        }
+        this.apply();
+      });
+      const swatch = document.createElement("span");
+      swatch.className = "app-map-key__swatch";
+      swatch.style.borderColor = layer.colour;
+      swatch.style.backgroundColor = layer.colour + "66";
+      label.appendChild(checkbox);
+      label.appendChild(swatch);
+      label.appendChild(document.createTextNode(layer.label));
+      this._container.appendChild(label);
+    });
+    return this._container;
+  }
+
+  onRemove() {
+    this._container.remove();
+    this._map = undefined;
+  }
+
+  apply() {
+    const statuses = LAYER_KEY.map((l) => l.id).filter((s) => this.enabled.has(s));
+    const statusFilter = ["in", ["get", "status"], ["literal", statuses]];
+    this._map.setFilter("dataset-fill", ["all", ["==", ["geometry-type"], "Polygon"], statusFilter]);
+    this._map.setFilter("dataset-border", ["all", ["==", ["geometry-type"], "Polygon"], statusFilter]);
+    this._map.setFilter("dataset-points", ["all", ["==", ["geometry-type"], "Point"], statusFilter]);
+    if (this._map.getLayer("entity-pointers")) {
+      this._map.setFilter("entity-pointers", statusFilter);
+    }
+  }
+}
+
 function addBoundaryGeoJsonToMap(map, geoJsonUrl) {
   console.log("Adding boundary from:", geoJsonUrl);
 
@@ -128,6 +204,11 @@ function initMap() {
   map.on("load", async () => {
     console.log("Adding geometries to map:", geometries.length);
 
+    // The transform page tags each feature with a status (new/both/platform)
+    // to drive per-status colours and the layer toggle. The check-results page
+    // has no status — render a single colour and skip the toggle there.
+    const hasStatus = geometries.some((f) => f.properties && f.properties.status);
+
     map.addSource("dataset", {
       type: "geojson",
       data: {
@@ -135,6 +216,15 @@ function initMap() {
         features: geometries,
       },
     });
+``
+    const statusColour = hasStatus
+      ? ["case",
+          ["==", ["get", "status"], "new"],     "#00703c",
+          ["==", ["get", "status"], "in_both"], "#b59b00",
+          ["==", ["get", "status"], "changed"], "#f47738",
+          "#1d70b8"
+        ]
+      : "#1d70b8";
 
     map.addLayer({
       id: "dataset-fill",
@@ -142,7 +232,7 @@ function initMap() {
       source: "dataset",
       filter: ["==", ["geometry-type"], "Polygon"],
       paint: {
-        "fill-color": "#008",
+        "fill-color": statusColour,
         "fill-opacity": 0.4,
       },
     });
@@ -164,12 +254,49 @@ function initMap() {
       source: "dataset",
       filter: ["==", ["geometry-type"], "Point"],
       paint: {
-        "circle-color": "#008",
+        "circle-color": statusColour,
         "circle-radius": 6,
         "circle-stroke-color": "#000000",
         "circle-stroke-width": 1,
       },
     });
+
+    // Zoom-dependent pointer markers for new/updated entities — visible when
+    // zoomed out, fade out as you zoom in. Gone by ~zoom 13 (roughly the 500m
+    // scale mark at UK latitudes) so they don't obscure the real geometry.
+    const centroids = hasStatus
+      ? {
+          type: "FeatureCollection",
+          features: geometries
+            .filter((f) => f.properties.status === "new" || f.properties.status === "changed")
+            .map((f) => {
+              const coords = getFeatureCentroid(f);
+              return coords
+                ? { type: "Feature", geometry: { type: "Point", coordinates: coords }, properties: f.properties }
+                : null;
+            })
+            .filter(Boolean),
+        }
+      : { type: "FeatureCollection", features: [] };
+
+    if (centroids.features.length > 0) {
+      map.addSource("entity-centroids", { type: "geojson", data: centroids });
+      map.addLayer({
+        id: "entity-pointers",
+        type: "circle",
+        source: "entity-centroids",
+        paint: {
+          "circle-color": statusColour,
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 14, 10, 10, 12, 6],
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 2,
+          // Fade both the fill AND the white stroke, otherwise the ring lingers
+          // after the fill has gone. Gone by ~zoom 13 (roughly the 500m mark).
+          "circle-opacity": ["interpolate", ["linear"], ["zoom"], 10, 1, 13, 0],
+          "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 10, 1, 13, 0],
+        },
+      });
+    }
 
     // Simple bounds calculation using MapLibre's built-in method
     const bounds = new maplibregl.LngLatBounds();
@@ -219,11 +346,12 @@ function initMap() {
       map.getCanvas().style.cursor = "";
     });
 
+    if (hasStatus) {
+      map.addControl(new LayerToggleControl(), "top-left");
+    }
+
     if (boundaryGeoJsonUrl) {
-      console.log("Boundary URL provided:", boundaryGeoJsonUrl);
       addBoundaryGeoJsonToMap(map, boundaryGeoJsonUrl);
-    } else {
-      console.log("No boundary URL provided");
     }
   });
 }

@@ -120,6 +120,75 @@
   }
 }
 
+/* Wrappable table cells */
+.app-wrap {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Check/action panel (collapsible details block with a coloured left border) */
+.app-check-panel {
+  margin-bottom: 20px;
+
+  details {
+    margin: 0;
+  }
+}
+
+.app-check-panel__summary {
+  display: flex;
+  align-items: stretch;
+  background-color: #f3f2f1;
+  padding: 0;
+  cursor: pointer;
+  list-style: none;
+
+  /* Remove native disclosure triangle in all browsers */
+  &::-webkit-details-marker {
+    display: none;
+  }
+  &::marker {
+    display: none;
+  }
+}
+
+.app-check-panel__label {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #fff;
+  font-family: $govuk-font-family;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 8px 12px;
+}
+
+.app-check-panel__title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+
+  .govuk-heading-m {
+    margin-bottom: 0;
+  }
+}
+
+.app-check-panel__chevron {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 1rem;
+  padding: 12px 15px 12px 0;
+}
+
+.app-check-panel__body {
+  background-color: #fff;
+  padding: 20px 15px;
+  border-top: 1px solid #b1b4b6;
+}
+
 /* Phase banner inverse styling */
 .app-masthead__phase-banner--inverse .govuk-phase-banner__content__tag,
 .app-masthead__phase-banner--inverse .govuk-tag {
