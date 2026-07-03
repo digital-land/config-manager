@@ -18,8 +18,8 @@
     {% if not platform_too_large and category_counts %}
     {% set _categories = [
       {"id": "new",      "label": "New",               "hint": "in this resource only",         "bg": "#d4edda", "bar": "#00703c"},
-      {"id": "in_both",  "label": "Matching platform", "hint": "on the platform, unchanged",     "bg": "#fff7bf", "bar": "#b59b00"},
       {"id": "changed",  "label": "Changed",           "hint": "differs from the platform",      "bg": "#ffd8b0", "bar": "#d4692a"},
+      {"id": "in_both",  "label": "Matching platform", "hint": "on the platform, unchanged",     "bg": "#fff7bf", "bar": "#b59b00"},
       {"id": "existing", "label": "Platform only",     "hint": "not present in this resource",   "bg": "#d0e4f7", "bar": "#1d70b8"}
     ] %}
     <div class="app-stat-boxes govuk-!-margin-bottom-6">

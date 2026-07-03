@@ -82,8 +82,8 @@ async function addGeoJsonUrlsToMap(map, geoJsonUrls) {
 // `text` is the cluster-count label colour, chosen for contrast on `colour`.
 const LAYER_KEY = [
   { id: "new", label: "New", colour: "#00703c", text: "#ffffff" },
-  { id: "in_both", label: "Matching platform", colour: "#b59b00", text: "#0b0c0c" },
   { id: "changed", label: "Changed", colour: "#f47738", text: "#0b0c0c" },
+  { id: "in_both", label: "Matching platform", colour: "#b59b00", text: "#0b0c0c" },
   { id: "existing", label: "Platform only", colour: "#1d70b8", text: "#ffffff" },
 ];
 

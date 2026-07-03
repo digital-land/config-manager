@@ -151,8 +151,6 @@ def handle_entities_preview(request_id, req):
                 entity_org_table_params,
                 has_entity_org,
             ) = build_entity_organisation_csv(entity_organisation_data)
-        else:
-            entity_org_warning = "No entity-organisation data found"
     else:
         entity_org_warning = (
             "This must be manually created currently for non-authoritative data"
