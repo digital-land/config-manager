@@ -15,26 +15,23 @@
     <h1 class="govuk-heading-xl" style="margin-bottom: 10px;">{% block heading %}{% endblock %}</h1>
     <hr style="border: none; border-top: 2px solid #b1b4b6; margin: 0 0 20px;">
 
-    <p class="govuk-body govuk-!-margin-bottom-2">Showing all entities for this dataset and organisation. Each row is coloured by how it compares to what is already on the platform:</p>
-    <ul class="app-colour-key govuk-!-margin-bottom-6">
-      <li class="app-colour-key__item">
-        <span class="app-colour-key__swatch" style="background-color: #d4edda; border-color: #00703c;"></span>
-        <span><b>New</b> = in this resource only, not yet on the platform.</span>
-      </li>
-      <li class="app-colour-key__item">
-        <span class="app-colour-key__swatch" style="background-color: #fff7bf; border-color: #b59b00;"></span>
-        <span><b>In both</b> = on the platform and in this resource, with no changes detected.</span>
-      </li>
-      <li class="app-colour-key__item">
-        <span class="app-colour-key__swatch" style="background-color: #ffd8b0; border-color: #d4692a;"></span>
-        <span><b>Changed</b> = on the platform and in this resource, with at least one field that differs. The specific changed cells are highlighted
-          <span class="app-colour-key__swatch app-colour-key__swatch--inline" style="background-color: #f8b26a; border-color: #d4692a;"></span> hover a highlighted cell to see the current platform value.</span>
-      </li>
-      <li class="app-colour-key__item">
-        <span class="app-colour-key__swatch" style="background-color: #d0e4f7; border-color: #1d70b8;"></span>
-        <span><b>Existing</b> = on the platform only, not present in this resource.</span>
-      </li>
-    </ul>
+    {% if not platform_too_large and category_counts %}
+    {% set _categories = [
+      {"id": "new",      "label": "New",               "hint": "in this resource only",         "bg": "#d4edda", "bar": "#00703c"},
+      {"id": "in_both",  "label": "Matching platform", "hint": "on the platform, unchanged",     "bg": "#fff7bf", "bar": "#b59b00"},
+      {"id": "changed",  "label": "Changed",           "hint": "differs from the platform",      "bg": "#ffd8b0", "bar": "#d4692a"},
+      {"id": "existing", "label": "Platform only",     "hint": "not present in this resource",   "bg": "#d0e4f7", "bar": "#1d70b8"}
+    ] %}
+    <div class="app-stat-boxes govuk-!-margin-bottom-6">
+      {% for c in _categories %}
+      <a class="app-stat-box{% if entity_filter == c.id %} app-stat-box--active{% endif %}" style="background-color: {{ c.bg }}; border-top-color: {{ c.bar }};" href="{{ url_for(_transform_endpoint, request_id=request_id, entity_filter=c.id, entity_search=entity_search, errors=_flagged_errors_query) }}#entities-table">
+        <span class="app-stat-box__number">{{ category_counts[c.id] }}</span>
+        <span class="app-stat-box__label">{{ c.label }}</span>
+        <span class="app-stat-box__hint">{{ c.hint }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     {% if geometries %}
     <div class="app-map-container govuk-!-margin-bottom-6" id="map-container"></div>
@@ -198,53 +195,6 @@
       </div>
     </div>
 
-    {% set _is_error = entity_growth_check.error %}
-    <div class="app-check-panel" style="border-left: 4px solid {{ '#d4351c' if _is_error else '#00703c' }};">
-      <details data-module="govuk-details">
-        <summary class="app-check-panel__summary">
-          <span class="app-check-panel__label" style="background-color: {{ '#d4351c' if _is_error else '#00703c' }};">{{ 'Sign off needed' if _is_error else 'No action needed' }}</span>
-          <span class="app-check-panel__title">
-            <span class="govuk-heading-m" style="color: {{ '#d4351c' if _is_error else '#00703c' }};">
-              Entity Growth Detection (Platform vs Resource)
-              <strong class="govuk-tag {{ 'govuk-tag--red' if _is_error else 'govuk-tag--green' }}" style="margin-left: 10px; vertical-align: middle;">
-                {{ 'Warning' if _is_error else 'Passed' }}
-              </strong>
-            </span>
-          </span>
-          <span class="app-check-panel__chevron" style="color: {{ '#d4351c' if _is_error else '#00703c' }};">&#9660;</span>
-        </summary>
-        <div class="app-check-panel__body">
-          <dl class="govuk-summary-list">
-            <div class="govuk-summary-list__row">
-              <dt class="govuk-summary-list__key">Existing entities</dt>
-              <dd class="govuk-summary-list__value">{{ entity_growth_check.existing_count }}</dd>
-            </div>
-            <div class="govuk-summary-list__row">
-              <dt class="govuk-summary-list__key">New entities</dt>
-              <dd class="govuk-summary-list__value">{{ entity_growth_check.new_count }}</dd>
-            </div>
-            <div class="govuk-summary-list__row">
-              <dt class="govuk-summary-list__key">Growth</dt>
-              <dd class="govuk-summary-list__value">
-                {% if entity_growth_check.growth_pct is not none %}{{ entity_growth_check.growth_pct }}%{% else %}N/A (no existing entities){% endif %}
-              </dd>
-            </div>
-          </dl>
-          {% if _is_error %}
-          <div class="govuk-warning-text govuk-!-margin-bottom-0">
-            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
-            <strong class="govuk-warning-text__text">
-              <span class="govuk-visually-hidden">Warning</span>
-              New entities exceed 10% of existing entities. Please review before continuing.
-            </strong>
-          </div>
-          {% else %}
-          <p class="govuk-body govuk-!-margin-bottom-0">New entity count is within the expected threshold.</p>
-          {% endif %}
-        </div>
-      </details>
-    </div>
-
     {% if endpoint_url and documentation_url %}
     {% set _doc_found = endpoint_in_doc.found %}
     {% set _access_error = endpoint_in_doc.error %}
@@ -383,6 +333,7 @@
   window.serverContext = {
     containerId: "map-container",
     geometries: {{ geometries | tojson | safe }},
+    geometryPoints: {{ geometry_points | tojson | safe }},
     boundaryGeoJsonUrl: {% if boundary_geojson %}{{ boundary_geojson | tojson | safe }}{% else %}null{% endif %}
   };
 </script>

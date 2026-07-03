@@ -47,7 +47,7 @@ _ENTITY_COL_EXCLUDE = {
     "organisation-entity",
     "organisation",
     "end-date",
-    "entry-date", # This is excluded as platform entities use entry date at point of ingestion
+    "entry-date",  # This is excluded as platform entities use entry date at point of ingestion
     "dataset",
 }
 _ENTITY_COL_PRIORITY = ["entity", "reference", "name"]
@@ -56,11 +56,12 @@ _PLATFORM_ENTITY_LIMIT = 10000
 _GEO_FIELDS = {"geometry", "point"}
 _DATE_PREFIX_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})[T ]")
 _CHANGED_VALUE_MAX_LEN = 200
-# Hausdorff-distance tolerance in EPSG:4326 degrees. 5e-6 deg is roughly
-# 0.35-0.55m of perpendicular deviation at UK latitudes: large enough to absorb
-# reprocessing noise (6th-decimal precision, vertex ordering/sliding,
-# geometry-type wrapping) but small enough to detect a genuinely moved boundary.
-_GEO_TOLERANCE = 5e-6
+# Hausdorff-distance tolerance in EPSG:4326 degrees. 1e-4 deg is roughly 10m
+# of perpendicular deviation at UK latitudes: large enough to absorb
+# reprocessing noise (coordinate precision, vertex ordering/sliding,
+# geometry-type wrapping) but still small enough to detect a genuinely moved
+# boundary.
+_GEO_TOLERANCE = 1e-4
 
 
 def _normalise_entity_id(raw) -> str:
@@ -236,6 +237,15 @@ def _entity_row_matches_filter(row: dict, category_filter: str) -> bool:
     return row.get("category") == category_filter
 
 
+def _count_categories(rows: list) -> dict:
+    counts = {"new": 0, "changed": 0, "in_both": 0, "existing": 0}
+    for row in rows:
+        category = row.get("category")
+        if category in counts:
+            counts[category] += 1
+    return counts
+
+
 def _resolve_existing_endpoints(source_summary: dict) -> list:
     existing_endpoints = (
         source_summary.get("existing_endpoint_for_organisation_dataset") or []
@@ -271,22 +281,6 @@ def _fetch_platform_entities(organisation_code: str, dataset_id: str) -> tuple:
     return platform_entities, platform_too_large, existing_count
 
 
-def _build_entity_growth_check(new_count: int, existing_count: int) -> dict:
-    if existing_count > 0:
-        growth_pct = round((new_count / existing_count) * 100, 1)
-        growth_error = growth_pct > 10
-    else:
-        growth_pct = None
-        growth_error = False
-
-    return {
-        "new_count": new_count,
-        "existing_count": existing_count,
-        "growth_pct": growth_pct,
-        "error": growth_error,
-    }
-
-
 def _paginate_entity_data(
     all_resp_details: list,
     platform_entities: list,
@@ -296,6 +290,9 @@ def _paginate_entity_data(
 ) -> tuple:
     entity_start_offset = (entity_page - 1) * _ROWS_PER_PAGE
     entities_data_full = _build_entities_data(all_resp_details, platform_entities)
+    # Counts cover every entity, independent of the current search/filter, so the
+    # summary boxes always show the full picture.
+    category_counts = _count_categories(entities_data_full["rows"])
     if entity_search or entity_filter:
         entities_data_full["rows"] = [
             row
@@ -319,7 +316,13 @@ def _paginate_entity_data(
         "columns": entities_data_full["columns"],
         "rows": entity_page_rows,
     }
-    return entities_data, has_next_entity_page, entity_page_start, entity_page_end
+    return (
+        entities_data,
+        has_next_entity_page,
+        entity_page_start,
+        entity_page_end,
+        category_counts,
+    )
 
 
 def _build_transform_table(resp_details: list) -> dict:
@@ -373,9 +376,40 @@ def _build_issue_log_table(resp_details: list) -> dict:
     }
 
 
+def _representative_point(shapely_geom, point_wkt=None) -> list:
+    """Return [lon, lat] for a marker. Prefers an explicit POINT wkt; otherwise
+    uses representative_point() which is guaranteed to sit inside the shape."""
+    if point_wkt:
+        try:
+            p = wkt.loads(point_wkt)
+            return [p.x, p.y]
+        except Exception:
+            pass
+    p = shapely_geom.representative_point()
+    return [p.x, p.y]
+
+
+def _point_feature(shapely_geom, point_wkt, properties: dict) -> dict:
+    props = dict(properties)
+    props["has_polygon"] = shapely_geom.geom_type in ("Polygon", "MultiPolygon")
+    return {
+        "type": "Feature",
+        "geometry": {
+            "type": "Point",
+            "coordinates": _representative_point(shapely_geom, point_wkt),
+        },
+        "properties": props,
+    }
+
+
 def _build_geometry_features(
     platform_entities: list, all_resp_details: list, dataset_id: str
-) -> list:
+) -> tuple:
+    """Return (polygon_features, point_features).
+
+    polygon_features keep the original geometry for the boundary layers;
+    point_features carry one representative point per entity for clustering.
+    """
     platform_by_id = {
         _normalise_entity_id(str(e.get("entity", ""))): e
         for e in platform_entities
@@ -391,6 +425,7 @@ def _build_geometry_features(
                 resource_entity_ids.add(entity_id)
 
     features = []
+    points = []
 
     for entity in platform_entities:
         entity_id = _normalise_entity_id(str(entity.get("entity", "")))
@@ -400,18 +435,17 @@ def _build_geometry_features(
         if not geom_wkt:
             continue
         try:
-            geom = mapping(wkt.loads(geom_wkt))
+            shp = wkt.loads(geom_wkt)
+            properties = {
+                "entity": entity_id,
+                "reference": entity.get("reference", ""),
+                "name": entity.get("name", ""),
+                "status": "existing",
+            }
             features.append(
-                {
-                    "type": "Feature",
-                    "geometry": geom,
-                    "properties": {
-                        "reference": entity.get("reference", ""),
-                        "name": entity.get("name", ""),
-                        "status": "existing",
-                    },
-                }
+                {"type": "Feature", "geometry": mapping(shp), "properties": properties}
             )
+            points.append(_point_feature(shp, entity.get("point"), properties))
         except Exception as e:
             logger.warning(
                 "Error parsing geometry for platform entity %s: %s", entity_id, e
@@ -423,15 +457,24 @@ def _build_geometry_features(
         if not isinstance(transformed_row, list) or not transformed_row:
             continue
         entity_id = _normalise_entity_id(transformed_row[0].get("entity", ""))
-        geometry_entry = next(
+        geom_fact = next(
             (
                 f
                 for f in transformed_row
-                if isinstance(f, dict) and f.get("field") in ("geometry", "point")
+                if isinstance(f, dict) and f.get("field") == "geometry"
             ),
             None,
         )
-        if not geometry_entry or not geometry_entry.get("value"):
+        point_fact = next(
+            (
+                f
+                for f in transformed_row
+                if isinstance(f, dict) and f.get("field") == "point"
+            ),
+            None,
+        )
+        shape_wkt = (geom_fact or {}).get("value") or (point_fact or {}).get("value")
+        if not shape_wkt:
             continue
         if entity_id in platform_entity_ids:
             resource_fields = {
@@ -447,21 +490,22 @@ def _build_geometry_features(
         else:
             status = "new"
         try:
-            geom = mapping(wkt.loads(geometry_entry["value"]))
+            shp = wkt.loads(shape_wkt)
+            properties = {
+                "entity": entity_id,
+                "reference": (
+                    converted_row.get("reference")
+                    or converted_row.get("Reference")
+                    or f"Entry {item.get('entry_number')}"
+                ),
+                "name": converted_row.get("name", ""),
+                "status": status,
+            }
             features.append(
-                {
-                    "type": "Feature",
-                    "geometry": geom,
-                    "properties": {
-                        "reference": (
-                            converted_row.get("reference")
-                            or converted_row.get("Reference")
-                            or f"Entry {item.get('entry_number')}"
-                        ),
-                        "name": converted_row.get("name", ""),
-                        "status": status,
-                    },
-                }
+                {"type": "Feature", "geometry": mapping(shp), "properties": properties}
+            )
+            points.append(
+                _point_feature(shp, (point_fact or {}).get("value"), properties)
             )
         except Exception as e:
             logger.warning(
@@ -470,7 +514,7 @@ def _build_geometry_features(
                 e,
             )
 
-    return features
+    return features, points
 
 
 def _fetch_boundary_geojson(organisation_code: str) -> dict:
@@ -557,11 +601,6 @@ def handle_check_transform(
     existing_endpoints = _resolve_existing_endpoints(source_summary)
     pipelines_append_required = source_summary.get("pipelines_append_required")
 
-    pipeline_summary = response_data.get("pipeline-summary") or {}
-    new_count = int(pipeline_summary.get("new-in-resource") or 0)
-
-    entity_growth_check = _build_entity_growth_check(new_count, existing_count)
-
     # Calculate pagination for transformed facts and issue logs, and for entities.
     page_number = max(1, int(flask_request.args.get("page_number", 1)))
     start_offset = (page_number - 1) * _ROWS_PER_PAGE
@@ -576,14 +615,18 @@ def handle_check_transform(
 
     # Build three paginated tables: transformed facts, issue logs, and entities.
     # The entities table is built from the transformed facts and the platform entities.
-    entities_data, has_next_entity_page, entity_page_start, entity_page_end = (
-        _paginate_entity_data(
-            all_resp_details,
-            platform_entities,
-            entity_page,
-            entity_search,
-            entity_filter,
-        )
+    (
+        entities_data,
+        has_next_entity_page,
+        entity_page_start,
+        entity_page_end,
+        category_counts,
+    ) = _paginate_entity_data(
+        all_resp_details,
+        platform_entities,
+        entity_page,
+        entity_search,
+        entity_filter,
     )
     transformed_table = _build_transform_table(resp_details)
     issue_log_table = _build_issue_log_table(resp_details)
@@ -591,7 +634,7 @@ def handle_check_transform(
     # Build a GeoJSON feature collection for the map if needed, including any platform entities not in the resource,
     # and any new or updated resource entities with geometry.
     if get_dataset_typology(dataset_id) == "geography":
-        geometries = _build_geometry_features(
+        geometries, geometry_points = _build_geometry_features(
             platform_entities, all_resp_details, dataset_id
         )
         boundary_geojson = (
@@ -599,6 +642,7 @@ def handle_check_transform(
         )
     else:
         geometries = []
+        geometry_points = []
         boundary_geojson = None
 
     # Checks for whether endpoint is found in documentation url
@@ -616,7 +660,6 @@ def handle_check_transform(
         issue_log_table=issue_log_table,
         existing_endpoints=existing_endpoints,
         pipelines_append_required=pipelines_append_required,
-        entity_growth_check=entity_growth_check,
         entities_data=entities_data,
         platform_too_large=platform_too_large,
         existing_count=existing_count,
@@ -627,6 +670,7 @@ def handle_check_transform(
         entity_page=entity_page,
         entity_search=entity_search,
         entity_filter=entity_filter,
+        category_counts=category_counts,
         has_next_entity_page=has_next_entity_page,
         entity_page_start=entity_page_start,
         entity_page_end=entity_page_end,
@@ -637,6 +681,7 @@ def handle_check_transform(
         documentation_url=documentation_url,
         resource_hash=resource_hash,
         geometries=geometries,
+        geometry_points=geometry_points,
         boundary_geojson=boundary_geojson,
         flagged_errors=flagged_errors or [],
         flagged_error_abbreviations=flagged_error_abbreviations or [],

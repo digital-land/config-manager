@@ -7,6 +7,7 @@ from shapely import wkt
 from shapely.geometry import mapping
 
 from . import ControllerError
+from .transform import _point_feature
 from ..config import (
     get_entity_geojson_url,
     get_entity_search_url,
@@ -91,11 +92,13 @@ def handle_check_results(request_id, result):
 
     # Geometry mapping creation
     geometries = []
+    geometry_points = []
     for row in resp_details:
         converted_row = row.get("converted_row") or {}
         transformed_row = row.get("transformed_row") or []
 
         geometry_entry = None
+        point_entry = None
         if isinstance(transformed_row, list):
             geometry_entry = next(
                 (
@@ -108,21 +111,36 @@ def handle_check_results(request_id, result):
                 ),
                 None,
             )
+            point_entry = next(
+                (
+                    item
+                    for item in transformed_row
+                    if isinstance(item, dict) and item.get("field") == "point"
+                ),
+                None,
+            )
         if geometry_entry and geometry_entry.get("value"):
             try:
                 shapely_geom = wkt.loads(geometry_entry["value"])
                 geom = mapping(shapely_geom)
+                properties = {
+                    "entity": str(row.get("entity", "")),
+                    "reference": converted_row.get("reference")
+                    or converted_row.get("Reference")
+                    or f"Entry {row.get('entry_number')}",
+                    "name": converted_row.get("name", ""),
+                }
                 geometries.append(
                     {
                         "type": "Feature",
                         "geometry": geom,
-                        "properties": {
-                            "reference": converted_row.get("reference")
-                            or converted_row.get("Reference")
-                            or f"Entry {row.get('entry_number')}",
-                            "name": converted_row.get("name", ""),
-                        },
+                        "properties": properties,
                     }
+                )
+                geometry_points.append(
+                    _point_feature(
+                        shapely_geom, (point_entry or {}).get("value"), properties
+                    )
                 )
             except Exception as e:
                 logger.warning(
@@ -222,6 +240,7 @@ def handle_check_results(request_id, result):
         "datamanager/check-results.html",
         result=result,
         geometries=geometries,
+        geometry_points=geometry_points,
         must_fix=must_fix,
         fixable=fixable,
         passed_checks=passed_checks,

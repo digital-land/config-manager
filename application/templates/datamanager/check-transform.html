@@ -1,8 +1,8 @@
 {% extends 'components/check-transform-base.html' %}
 
-{% block pageTitle %}{{ dataset_display }} – {{ organisation_display }} – Data Submission Assessment{% endblock %}
+{% block pageTitle %}{{ dataset_display }} – {{ organisation_display }} – Provision Comparison{% endblock %}
 
-{% block heading %}Data Submission Assessment{% endblock %}
+{% block heading %}Provision Comparison{% endblock %}
 
 {% block pre_tabs %}
     <dl class="govuk-summary-list govuk-!-margin-bottom-6">
@@ -16,26 +16,14 @@
           {% endif %}
         </dd>
       </div>
-      <div class="govuk-summary-list__row">
-        <dt class="govuk-summary-list__key">Documentation URL</dt>
-        <dd class="govuk-summary-list__value">
-          {% if documentation_url %}
-          <a class="govuk-link" href="{{ documentation_url }}" target="_blank" rel="noopener noreferrer" style="word-break: break-all;">{{ documentation_url }}</a>
-          {% else %}
-          Not available
-          {% endif %}
-        </dd>
-      </div>
+      {% if resource_hash %}
       <div class="govuk-summary-list__row">
         <dt class="govuk-summary-list__key">Resource hash</dt>
         <dd class="govuk-summary-list__value">
-          {% if resource_hash %}
           <span style="word-break: break-all;">{{ resource_hash }}</span>
-          {% else %}
-          Not available
-          {% endif %}
         </dd>
       </div>
+      {% endif %}
     </dl>
 {% endblock %}
 

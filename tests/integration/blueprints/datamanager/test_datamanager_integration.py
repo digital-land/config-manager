@@ -351,7 +351,7 @@ class TestCheckTransformRoute:
         assert b"#ffd8b0" in response.data
 
     @rsps.activate
-    def test_completed_renders_colour_key(self, client):
+    def test_completed_renders_category_boxes(self, client):
         rsps.add(
             rsps.GET,
             f"{ASYNC_BASE}/test-id",
@@ -373,7 +373,10 @@ class TestCheckTransformRoute:
                     return_value=None,
                 ):
                     response = client.get("/datamanager/check-transform/test-id")
-        assert b"app-colour-key" in response.data
+        assert b"app-stat-box" in response.data
+        # Two resource-only entities in RESPONSE_DETAILS → New count of 2.
+        assert b"Matching platform" in response.data
+        assert b"Platform only" in response.data
 
     @rsps.activate
     def test_changed_cell_highlighted_with_platform_value(self, client):
@@ -455,6 +458,8 @@ class TestCheckTransformRoute:
                         )
         assert response.status_code == 200
         assert b"map-container" in response.data
+        # Representative points are passed to the clustered map source.
+        assert b"geometryPoints" in response.data
 
     @rsps.activate
     def test_endpoint_url_shown_at_top(self, client):
@@ -521,7 +526,7 @@ class TestCheckTransformRoute:
                 ):
                     response = client.get("/datamanager/check-transform/test-id")
         assert (
-            "Conservation Area – Test Org – Data Submission Assessment".encode("utf-8")
+            "Conservation Area – Test Org – Provision Comparison".encode("utf-8")
             in response.data
         )
 
@@ -726,7 +731,7 @@ class TestEntityFilter:
             {"entity": 300, "name": "Same"},
             {"entity": 400, "name": "Platform Only"},  # existing
         ]
-        entities_data, _, _, _ = _paginate_entity_data(
+        entities_data, _, _, _, _ = _paginate_entity_data(
             details, platform, entity_page=1, entity_search="", entity_filter="changed"
         )
         ids = [r["fields"]["entity"] for r in entities_data["rows"]]
@@ -735,10 +740,31 @@ class TestEntityFilter:
     def test_no_filter_returns_all_rows(self):
         details = [self._make_detail(100, "name", "New Area")]
         platform = [{"entity": 400, "name": "Platform Only"}]
-        entities_data, _, _, _ = _paginate_entity_data(
+        entities_data, _, _, _, _ = _paginate_entity_data(
             details, platform, entity_page=1, entity_search="", entity_filter=""
         )
         assert len(entities_data["rows"]) == 2
+
+    def test_category_counts_returned(self):
+        details = [
+            self._make_detail(100, "name", "New Area"),  # new
+            self._make_detail(200, "name", "Changed"),  # changed
+            self._make_detail(300, "name", "Same"),  # in_both
+        ]
+        platform = [
+            {"entity": 200, "name": "Original"},
+            {"entity": 300, "name": "Same"},
+            {"entity": 400, "name": "Platform Only"},  # existing
+        ]
+        *_, category_counts = _paginate_entity_data(
+            details, platform, entity_page=1, entity_search="", entity_filter=""
+        )
+        assert category_counts == {
+            "new": 1,
+            "changed": 1,
+            "in_both": 1,
+            "existing": 1,
+        }
 
 
 _GEOGRAPHY_TYPOLOGY_PATCH = patch(
@@ -759,18 +785,34 @@ class TestBuildGeometryFeatures:
             "issue_logs": [],
         }
 
+    def _polygon_detail(self, entity, wkt_value):
+        return {
+            "entry_number": 1,
+            "converted_row": {"reference": "R1", "name": "Area A"},
+            "transformed_row": [
+                {"entity": entity, "field": "name", "value": "Area A"},
+                {"entity": entity, "field": "geometry", "value": wkt_value},
+            ],
+            "issue_logs": [],
+        }
+
     def test_resource_geometry_with_no_platform_entities_is_new(self):
         details = [self._geometry_detail(100, "POINT (-2.5 54.5)")]
         with _GEOGRAPHY_TYPOLOGY_PATCH:
-            features = _build_geometry_features([], details, "article-4-direction-area")
+            features, points = _build_geometry_features(
+                [], details, "article-4-direction-area"
+            )
         assert len(features) == 1
         assert features[0]["properties"]["status"] == "new"
+        assert len(points) == 1
+        assert points[0]["geometry"]["type"] == "Point"
+        assert points[0]["properties"]["status"] == "new"
 
     def test_resource_geometry_unchanged_is_in_both(self):
         details = [self._geometry_detail(100, "POINT (-2.5 54.5)")]
         platform = [{"entity": 100, "name": "Area A", "geometry": "POINT (-2.5 54.5)"}]
         with _GEOGRAPHY_TYPOLOGY_PATCH:
-            features = _build_geometry_features(
+            features, _ = _build_geometry_features(
                 platform, details, "article-4-direction-area"
             )
         statuses = {f["properties"]["status"] for f in features}
@@ -780,7 +822,7 @@ class TestBuildGeometryFeatures:
         details = [self._geometry_detail(100, "POINT (-2.5 54.5)")]
         platform = [{"entity": 100, "name": "Area A", "geometry": "POINT (-3.0 55.0)"}]
         with _GEOGRAPHY_TYPOLOGY_PATCH:
-            features = _build_geometry_features(
+            features, _ = _build_geometry_features(
                 platform, details, "article-4-direction-area"
             )
         statuses = {f["properties"]["status"] for f in features}
@@ -796,10 +838,61 @@ class TestBuildGeometryFeatures:
             }
         ]
         with _GEOGRAPHY_TYPOLOGY_PATCH:
-            features = _build_geometry_features(
+            features, points = _build_geometry_features(
                 [{"entity": 200, "name": "B"}], details, "article-4-direction-area"
             )
         assert features == []
+        assert points == []
+
+    def test_polygon_entity_point_is_inside_and_flagged(self):
+        # A square around (0,0); representative point must fall inside it.
+        square = "POLYGON ((-1 -1, 1 -1, 1 1, -1 1, -1 -1))"
+        details = [self._polygon_detail(100, square)]
+        with _GEOGRAPHY_TYPOLOGY_PATCH:
+            _, points = _build_geometry_features(
+                [], details, "article-4-direction-area"
+            )
+        assert len(points) == 1
+        assert points[0]["properties"]["has_polygon"] is True
+        lon, lat = points[0]["geometry"]["coordinates"]
+        assert -1 <= lon <= 1 and -1 <= lat <= 1
+
+    def test_explicit_point_field_used_for_marker(self):
+        square = "POLYGON ((-1 -1, 1 -1, 1 1, -1 1, -1 -1))"
+        details = [
+            {
+                "entry_number": 1,
+                "converted_row": {"reference": "R1"},
+                "transformed_row": [
+                    {"entity": 100, "field": "geometry", "value": square},
+                    {"entity": 100, "field": "point", "value": "POINT (0.5 0.25)"},
+                ],
+                "issue_logs": [],
+            }
+        ]
+        with _GEOGRAPHY_TYPOLOGY_PATCH:
+            _, points = _build_geometry_features(
+                [], details, "article-4-direction-area"
+            )
+        assert points[0]["geometry"]["coordinates"] == [0.5, 0.25]
+        assert points[0]["properties"]["has_polygon"] is True
+
+    def test_point_only_entity_not_flagged_as_polygon(self):
+        details = [
+            {
+                "entry_number": 1,
+                "converted_row": {"reference": "R1"},
+                "transformed_row": [
+                    {"entity": 100, "field": "point", "value": "POINT (-2.5 54.5)"},
+                ],
+                "issue_logs": [],
+            }
+        ]
+        with _GEOGRAPHY_TYPOLOGY_PATCH:
+            _, points = _build_geometry_features(
+                [], details, "article-4-direction-area"
+            )
+        assert points[0]["properties"]["has_polygon"] is False
 
 
 class TestEntityPagination:
