@@ -565,21 +565,18 @@ class TestBuildEntitiesData:
         details = [self._make_detail(101, "name", "Area B")]
         result = _build_entities_data(details, [{"entity": 100, "name": "Area A"}])
         row = next(r for r in result["rows"] if r["fields"]["entity"] == "101")
-        assert row["is_new"] is True
-        assert row["is_in_both"] is False
+        assert row["category"] == "new"
 
     def test_entity_in_both_is_flagged(self):
         details = [self._make_detail(100, "name", "Area A Updated")]
         result = _build_entities_data(details, [{"entity": 100, "name": "Area A"}])
         row = next(r for r in result["rows"] if r["fields"]["entity"] == "100")
-        assert row["is_new"] is False
-        assert row["is_in_both"] is True
+        assert row["category"] == "changed"
 
     def test_entity_only_on_platform_not_new(self):
         result = _build_entities_data([], [{"entity": 100, "name": "Area A"}])
         row = next(r for r in result["rows"] if r["fields"]["entity"] == "100")
-        assert row["is_new"] is False
-        assert row["is_in_both"] is False
+        assert row["category"] == "existing"
 
     def test_float_entity_id_matches_platform_integer(self):
         details = [self._make_detail(44015862.0, "name", "Lydford Updated")]
@@ -587,7 +584,7 @@ class TestBuildEntitiesData:
             details, [{"entity": 44015862, "name": "Lydford"}]
         )
         row = next(r for r in result["rows"] if r["fields"]["entity"] == "44015862")
-        assert row["is_in_both"] is True
+        assert row["category"] == "changed"
 
     def test_platform_only_entity_appended_to_rows(self):
         result = _build_entities_data([], [{"entity": 999, "name": "Only Platform"}])
@@ -669,7 +666,7 @@ class TestBuildEntitiesData:
         )
         row = next(r for r in result["rows"] if r["fields"]["entity"] == "100")
         assert "geometry" in row["changed_fields"]
-        assert row["is_in_both"] is True
+        assert row["category"] == "changed"
 
     def test_dropped_value_flagged_with_platform_value(self):
         details = [self._make_detail(100, "name", "")]
@@ -682,15 +679,13 @@ class TestBuildEntitiesData:
         result = _build_entities_data(details, [{"entity": 100.0, "name": "Area A"}])
         matching = [r for r in result["rows"] if r["fields"]["entity"] == "100"]
         assert len(matching) == 1
-        assert matching[0]["is_in_both"] is True
+        assert matching[0]["category"] == "changed"
 
     def test_in_both_unchanged_is_in_both_category(self):
         details = [self._make_detail(100, "name", "Area A")]
         result = _build_entities_data(details, [{"entity": 100, "name": "Area A"}])
         row = next(r for r in result["rows"] if r["fields"]["entity"] == "100")
         assert row["category"] == "in_both"
-        assert row["is_in_both"] is False
-        assert row["is_new"] is False
         assert row["changed_fields"] == {}
 
     def test_row_categories_new_changed_in_both_existing(self):

@@ -147,7 +147,7 @@ def _build_entities_data(resp_details: list, platform_entities: list) -> dict:
     """
     Pivot transformed facts from resp_details by entity and combine with
     platform entities. Returns a dict with 'columns' and 'rows', where each
-    row has 'fields' (dict) and 'is_new' (bool).
+    row has 'fields' (dict), 'category' (str), and 'changed_fields' (dict).
     """
     pivoted = {}
     for item in resp_details:
@@ -201,8 +201,6 @@ def _build_entities_data(resp_details: list, platform_entities: list) -> dict:
                     col: (entity_id if col == "entity" else str(fields.get(col, "")))
                     for col in columns
                 },
-                "is_new": category == "new",
-                "is_in_both": category == "changed",
                 "category": category,
                 "changed_fields": changed_fields,
             }
@@ -212,8 +210,6 @@ def _build_entities_data(resp_details: list, platform_entities: list) -> dict:
             rows.append(
                 {
                     "fields": {col: str(e.get(col, "")) for col in columns},
-                    "is_new": False,
-                    "is_in_both": False,
                     "category": "existing",
                     "changed_fields": {},
                 }
