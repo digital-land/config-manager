@@ -216,7 +216,7 @@ function initMap() {
         features: geometries,
       },
     });
-``
+
     const statusColour = hasStatus
       ? ["case",
           ["==", ["get", "status"], "new"],     "#00703c",

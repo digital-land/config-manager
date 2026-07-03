@@ -180,6 +180,36 @@
   gap: 16px;
 }
 
+// Column-mapping table: fixed layout so a very long user-supplied column name
+// (in a <select> option or a mapped cell) can't stretch the table past the page.
+.app-mapping-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.app-mapping-table th,
+.app-mapping-table td {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.app-mapping-table__field {
+  width: 30%;
+}
+
+.app-mapping-table__column {
+  width: 50%;
+}
+
+.app-mapping-table__status {
+  width: 20%;
+}
+
+.app-mapping-table .govuk-select {
+  width: 100%;
+  max-width: 100%;
+}
+
 .app-tooltip {
   position: absolute;
   z-index: 1000;

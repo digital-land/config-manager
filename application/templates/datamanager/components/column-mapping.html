@@ -7,12 +7,12 @@
     </summary>
     <div class="govuk-!-margin-top-4">
     <form method="post" action="{{ url_for('datamanager.check_results', request_id=request_id) }}">
-      <table class="govuk-table">
+      <table class="govuk-table app-mapping-table">
         <thead class="govuk-table__head">
           <tr class="govuk-table__row">
-            <th scope="col" class="govuk-table__header">Field</th>
-            <th scope="col" class="govuk-table__header">Column</th>
-            <th scope="col" class="govuk-table__header">Status</th>
+            <th scope="col" class="govuk-table__header app-mapping-table__field">Field</th>
+            <th scope="col" class="govuk-table__header app-mapping-table__column">Column</th>
+            <th scope="col" class="govuk-table__header app-mapping-table__status">Status</th>
           </tr>
         </thead>
         <tbody class="govuk-table__body">

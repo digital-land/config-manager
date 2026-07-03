@@ -47,6 +47,7 @@ _ENTITY_COL_EXCLUDE = {
     "organisation-entity",
     "organisation",
     "end-date",
+    "entry-date", # This is excluded as platform entities use entry date at point of ingestion
     "dataset",
 }
 _ENTITY_COL_PRIORITY = ["entity", "reference", "name"]
@@ -55,10 +56,11 @@ _PLATFORM_ENTITY_LIMIT = 10000
 _GEO_FIELDS = {"geometry", "point"}
 _DATE_PREFIX_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})[T ]")
 _CHANGED_VALUE_MAX_LEN = 200
-# Hausdorff-distance tolerance in EPSG:4326 degrees (~10cm). Large enough to
-# absorb reprocessing noise (precision, vertex ordering, geometry-type wrapping)
-# but small enough to detect a genuinely moved boundary or point.
-_GEO_TOLERANCE = 1e-6
+# Hausdorff-distance tolerance in EPSG:4326 degrees. 5e-6 deg is roughly
+# 0.35-0.55m of perpendicular deviation at UK latitudes: large enough to absorb
+# reprocessing noise (6th-decimal precision, vertex ordering/sliding,
+# geometry-type wrapping) but small enough to detect a genuinely moved boundary.
+_GEO_TOLERANCE = 5e-6
 
 
 def _normalise_entity_id(raw) -> str:
