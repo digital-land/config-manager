@@ -46,13 +46,224 @@
     </dl>
 {% endblock %}
 
+{% block extra_tabs %}
+        {% if show_dedup_tab %}
+        <li class="govuk-tabs__list-item">
+          <a class="govuk-tabs__tab" href="#duplicates-table">Dedup <strong class="govuk-tag govuk-tag--red govuk-!-margin-left-1">{{ duplicate_candidates | length }}</strong></a>
+        </li>
+        {% endif %}
+{% endblock %}
+
+{% block extra_panels %}
+      {% if show_dedup_tab %}
+      <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="duplicates-table">
+        <p class="govuk-hint govuk-!-margin-bottom-4">Possible spatial duplicates between entities in this resource and existing platform entities for this dataset. <strong style="color: #00703c;">Green</strong> is the new provision entity. <strong style="color: #d4692a;">Orange</strong> is the existing platform entity.</p>
+        <form method="post" action="{{ url_for('assign_entities.flagged_resource_detail_post', request_id=request_id) }}" id="duplicate-redirect-form">
+          {% if duplicate_candidates %}
+          <div class="govuk-!-margin-bottom-2" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <span class="govuk-body-s govuk-!-margin-bottom-0" style="color: #505a5f;"><strong style="color: #00703c;">&#9679;</strong> Green: new provision entity</span>
+            <span class="govuk-body-s govuk-!-margin-bottom-0" style="color: #505a5f;"><strong style="color: #d4692a;">&#9679;</strong> Orange: existing platform entity</span>
+          </div>
+          <div class="app-scrollable-container app-scrollable">
+            <table class="govuk-table dl-table app-table app-duplicates-table">
+              <thead class="govuk-table__head">
+                <tr class="govuk-table__row">
+                  <th scope="col" class="govuk-table__header app-checkbox-header">
+                    <div class="govuk-checkboxes govuk-checkboxes--small app-checkboxes--table-header" data-module="govuk-checkboxes">
+                      <div class="govuk-checkboxes__item">
+                        <input class="govuk-checkboxes__input" id="entity-redirect-select-all" type="checkbox">
+                        <label class="govuk-label govuk-checkboxes__label" for="entity-redirect-select-all">
+                          <span class="govuk-visually-hidden">Select all redirects</span>
+                        </label>
+                      </div>
+                    </div>
+                  </th>
+                  <th scope="col" class="govuk-table__header">New Entity</th>
+                  <th scope="col" class="govuk-table__header">Old entity</th>
+                  <th scope="col" class="govuk-table__header">Reference</th>
+                  <th scope="col" class="govuk-table__header">Name</th>
+                  <th scope="col" class="govuk-table__header">Entry date</th>
+                  <th scope="col" class="govuk-table__header">End date</th>
+                  <th scope="col" class="govuk-table__header">Organisation</th>
+                  <th scope="col" class="govuk-table__header">Evidence</th>
+                </tr>
+              </thead>
+              <tbody class="govuk-table__body">
+                {% for row in duplicate_candidates %}
+                <tr class="govuk-table__row duplicate-row">
+                  <td class="govuk-table__cell">
+                    <div class="govuk-checkboxes govuk-checkboxes--small app-checkboxes--table-header" data-module="govuk-checkboxes">
+                      <div class="govuk-checkboxes__item">
+                        {% if row.auto_select %}
+                        <input type="hidden" name="entity_redirects" value="{{ row.form_value | e }}">
+                        {% endif %}
+                        <input class="govuk-checkboxes__input duplicate-checkbox" id="entity-redirect-{{ loop.index }}" name="entity_redirects" type="checkbox" value="{{ row.form_value | e }}" {% if row.auto_select %}checked disabled{% endif %}>
+                        <label class="govuk-label govuk-checkboxes__label" for="entity-redirect-{{ loop.index }}">
+                          <span class="govuk-visually-hidden">Select redirect for entity {{ row.entity }}</span>
+                        </label>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="govuk-table__cell app-wrap">
+                    <div style="color: #00703c;">
+                      {% if _flagged_errors_query %}
+                      <a class="govuk-link" style="color: #00703c;" href="{{ url_for(_transform_endpoint, request_id=request_id, entity_search=row.entity, errors=_flagged_errors_query, _anchor='entities-table') }}"><code>{{ row.entity }}</code></a>
+                      {% else %}
+                      <a class="govuk-link" style="color: #00703c;" href="{{ url_for(_transform_endpoint, request_id=request_id, entity_search=row.entity, _anchor='entities-table') }}"><code>{{ row.entity }}</code></a>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td class="govuk-table__cell app-wrap">
+                    <div style="color: #d4692a;">
+                      {% if row.old_entity %}
+                      <a class="govuk-link" style="color: #d4692a;" href="{{ planning_entity_base_url }}/{{ row.old_entity }}" target="_blank" rel="noopener noreferrer"><code>{{ row.old_entity }}</code></a>
+                      {% else %}
+                      <code></code>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td class="govuk-table__cell app-wrap">
+                    <div style="color: #00703c;">{{ row.new_reference or '' }}</div>
+                    <div style="color: #d4692a;">{{ row.old_reference or '' }}</div>
+                  </td>
+                  <td class="govuk-table__cell app-wrap">
+                    <div style="color: #00703c;">{{ row.new_name or '' }}</div>
+                    <div style="color: #d4692a;">{{ row.old_name or '' }}</div>
+                  </td>
+                  <td class="govuk-table__cell app-wrap">
+                    <div style="color: #00703c;">{{ row.get("new_entry_date") or row.get("new_entry-date") or '' }}</div>
+                    <div style="color: #d4692a;">{{ row.get("old_entry_date") or row.get("old_entry-date") or '' }}</div>
+                  </td>
+                  <td class="govuk-table__cell app-wrap">
+                    <div style="color: #00703c;">{{ row.get("new_end_date") or row.get("new_end-date") or '' }}</div>
+                    <div style="color: #d4692a;">{{ row.get("old_end_date") or row.get("old_end-date") or '' }}</div>
+                  </td>
+                  <td class="govuk-table__cell app-wrap">
+                    <div style="color: #00703c;">{{ row.new_organisation or row.new_organisation_entity or '' }}</div>
+                    <div style="color: #d4692a;">{{ row.old_organisation or row.old_organisation_entity or '' }}</div>
+                  </td>
+                  <td class="govuk-table__cell app-wrap">{{ row.evidence or 'Spatial match' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <p class="govuk-!-margin-top-2" id="duplicate-selected-count" style="white-space: nowrap;">No entities selected for redirection</p>
+          {% else %}
+          <p class="govuk-body">No possible duplicates to display.</p>
+          {% endif %}
+        </form>
+      </div>
+      {% else %}
+      <form method="post" action="{{ url_for('assign_entities.flagged_resource_detail_post', request_id=request_id) }}" id="duplicate-redirect-form"></form>
+      {% endif %}
+{% endblock %}
+
 {% block action_buttons %}
     <div class="govuk-button-group govuk-!-margin-top-6">
-      <a href="{{ url_for('datamanager.entities_preview', request_id=request_id) }}" class="govuk-button">
+      <button type="submit" form="duplicate-redirect-form" class="govuk-button" data-module="govuk-button">
         Continue to preview
-      </a>
+      </button>
       <a href="{{ url_for('datamanager.dashboard_get') }}" class="govuk-link">
         Cancel
       </a>
     </div>
+{% endblock %}
+
+{% block pageScripts %}{{ super() }}
+<style>
+  .app-duplicates-table .govuk-table__header,
+  .app-duplicates-table .govuk-table__cell {
+    vertical-align: middle;
+  }
+  .app-duplicates-table .app-checkbox-header {
+    padding-bottom: 10px;
+    padding-top: 10px;
+    text-align: center;
+    width: 24px;
+  }
+  .app-duplicates-table .app-checkboxes--table-header {
+    display: inline-block;
+    height: 24px;
+    margin: 0;
+    vertical-align: middle;
+    width: 24px;
+  }
+  .app-duplicates-table .app-checkboxes--table-header .govuk-checkboxes__item {
+    display: block;
+    height: 24px;
+    min-height: 24px;
+    position: relative;
+    width: 24px;
+  }
+  .app-duplicates-table .app-checkboxes--table-header .govuk-checkboxes__input {
+    height: 24px;
+    left: 0;
+    margin: 0;
+    position: absolute;
+    top: 0;
+    width: 24px;
+  }
+  .app-duplicates-table .app-checkboxes--table-header .govuk-checkboxes__label::before {
+    left: 0;
+    top: 0;
+  }
+  .app-duplicates-table .app-checkboxes--table-header .govuk-checkboxes__label::after {
+    left: 6px;
+    top: 7px;
+  }
+  .app-duplicates-table .app-checkboxes--table-header .govuk-checkboxes__label {
+    display: block;
+    height: 24px;
+    min-height: 0;
+    max-width: none;
+    padding: 0;
+    width: 24px;
+  }
+</style>
+<script>
+  var selectedCount = document.getElementById('duplicate-selected-count');
+  var duplicateCheckboxes = document.querySelectorAll('.duplicate-checkbox');
+  var selectAllCheckbox = document.getElementById('entity-redirect-select-all');
+  function updateDuplicateSelection() {
+    var count = 0;
+    var selectableCount = 0;
+    var selectableSelectedCount = 0;
+    duplicateCheckboxes.forEach(function(checkbox) {
+      var row = checkbox.closest('.duplicate-row');
+      if (!checkbox.disabled) {
+        selectableCount += 1;
+        if (checkbox.checked) selectableSelectedCount += 1;
+      }
+      if (checkbox.checked) {
+        count += 1;
+        if (row) row.style.backgroundColor = '#dbeafe';
+      } else if (row) {
+        row.style.backgroundColor = '';
+      }
+    });
+    if (selectAllCheckbox) {
+      selectAllCheckbox.disabled = selectableCount === 0;
+      selectAllCheckbox.checked = selectableCount > 0 && selectableSelectedCount === selectableCount;
+      selectAllCheckbox.indeterminate = selectableSelectedCount > 0 && selectableSelectedCount < selectableCount;
+    }
+    if (selectedCount) {
+      selectedCount.textContent = count === 0
+        ? 'No entities selected for redirection'
+        : count + ' ' + (count === 1 ? 'entity' : 'entities') + ' selected for redirection';
+    }
+  }
+  duplicateCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', updateDuplicateSelection);
+  });
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function() {
+      duplicateCheckboxes.forEach(function(checkbox) {
+        if (!checkbox.disabled) checkbox.checked = selectAllCheckbox.checked;
+      });
+      updateDuplicateSelection();
+    });
+  }
+  updateDuplicateSelection();
+</script>
 {% endblock %}

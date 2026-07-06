@@ -6,7 +6,7 @@ from unittest.mock import patch
 import responses as rsps
 
 from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK
-from application.db.models import ServiceLock
+from application.db.models import RequestMeta, ServiceLock
 from application.extensions import db
 from config.config import get_request_api_endpoint
 
@@ -519,6 +519,215 @@ def test_assign_entities_check_results_hides_entity_pagination_when_empty(client
     ]
     assert b"Showing entities" not in entities_panel
     assert b'aria-label="Pagination"' not in entities_panel
+
+
+@rsps.activate
+def test_assign_entities_check_results_shows_duplicate_candidates(client):
+    geometry = "POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))"
+    rsps.add(
+        rsps.GET,
+        f"{ASYNC_BASE}/assign-duplicates-id",
+        json={
+            "status": "COMPLETE",
+            "params": {
+                "dataset": "conservation-area",
+                "organisation": "local-authority:ABC",
+                "resource": "resource-a",
+            },
+            "response": {
+                "data": {
+                    "source-summary": {},
+                    "pipeline-summary": {
+                        "new-in-resource": 1,
+                        "duplicate-candidates": [
+                            {
+                                "old_entity": "100",
+                                "entity": "200",
+                                "dataset": "conservation-area",
+                                "old_reference": "old-ref",
+                                "new_reference": "new-ref",
+                                "match_type": "complete_match",
+                                "notes": (
+                                    "Redirect duplicate entity selected in "
+                                    "Assign Entities"
+                                ),
+                                "old_name": "Old Tree",
+                                "new_name": "New Tree",
+                                "old_entry_date": "2020-01-01",
+                                "new_entry_date": "2026-01-01",
+                                "old_end_date": "",
+                                "new_end_date": "",
+                                "name_similarity": 62,
+                                "evidence": "name similarity 62%",
+                            }
+                        ],
+                    },
+                }
+            },
+        },
+        status=200,
+    )
+    rsps.add(
+        rsps.GET,
+        f"{ASYNC_BASE}/assign-duplicates-id/response-details",
+        json=[
+            {
+                "entry_number": 1,
+                "transformed_row": [
+                    {"entity": "200", "field": "reference", "value": "new-ref"},
+                    {"entity": "200", "field": "name", "value": "New Tree"},
+                    {"entity": "200", "field": "geometry", "value": geometry},
+                ],
+                "issue_logs": [],
+            }
+        ],
+        status=200,
+    )
+
+    transform_controller = "application.blueprints.datamanager.controllers.transform"
+
+    with patch(f"{transform_controller}.get_org_entity", return_value=90):
+        with patch(f"{transform_controller}.get_organisation_name"):
+            with patch(f"{transform_controller}.get_dataset_name", return_value="Tree"):
+                with patch(
+                    f"{transform_controller}.get_dataset_typology",
+                    return_value="entity",
+                ):
+                    with patch(
+                        f"{transform_controller}.get_entity_count_for_organisation_and_dataset",
+                        return_value=1,
+                    ):
+                        with patch(
+                            f"{transform_controller}.get_entities_for_organisation_and_dataset",
+                            return_value=[],
+                        ):
+                            response = client.get(
+                                "/assign-entities/check-results/assign-duplicates-id"
+                            )
+
+    assert response.status_code == 200
+    assert b"Dedup" in response.data
+    assert b"Match type" not in response.data
+    assert b"Entry date" in response.data
+    assert b"End date" in response.data
+    assert b"old-ref" in response.data
+    assert b"new-ref" in response.data
+    assert b"2020-01-01" in response.data
+    assert b"2026-01-01" in response.data
+    assert (
+        b'href="/assign-entities/check-results/assign-duplicates-id?'
+        b'entity_search=200#entities-table"'
+    ) in response.data
+    assert b'type="hidden" name="entity_redirects"' in response.data
+    assert (
+        b'id="entity-redirect-1" name="entity_redirects" type="checkbox"'
+        in response.data
+    )
+    assert b"old_entity" in response.data
+    assert b"checked disabled" in response.data
+    assert b"entity-redirect-select-all" in response.data
+    assert b"entities selected for redirection" in response.data
+
+
+@rsps.activate
+def test_assign_entities_check_results_hides_dedup_for_other_datasets(client):
+    rsps.add(
+        rsps.GET,
+        f"{ASYNC_BASE}/assign-tree-id",
+        json={
+            "status": "COMPLETE",
+            "params": {
+                "dataset": "tree",
+                "organisation": "local-authority:ABC",
+                "resource": "resource-a",
+            },
+            "response": {
+                "data": {
+                    "source-summary": {},
+                    "pipeline-summary": {
+                        "new-in-resource": 1,
+                        "duplicate-candidates": [
+                            {
+                                "old_entity": "100",
+                                "entity": "200",
+                                "dataset": "tree",
+                                "form_value": "{}",
+                            }
+                        ],
+                    },
+                }
+            },
+        },
+        status=200,
+    )
+    rsps.add(
+        rsps.GET,
+        f"{ASYNC_BASE}/assign-tree-id/response-details",
+        json=[],
+        status=200,
+    )
+
+    transform_controller = "application.blueprints.datamanager.controllers.transform"
+    with patch(f"{transform_controller}.get_org_entity", return_value=90):
+        with patch(f"{transform_controller}.get_organisation_name"):
+            with patch(f"{transform_controller}.get_dataset_name", return_value="Tree"):
+                with patch(
+                    f"{transform_controller}.get_dataset_typology",
+                    return_value="entity",
+                ):
+                    with patch(
+                        f"{transform_controller}.get_entity_count_for_organisation_and_dataset",
+                        return_value=1,
+                    ):
+                        with patch(
+                            f"{transform_controller}.get_entities_for_organisation_and_dataset",
+                            return_value=[],
+                        ):
+                            response = client.get(
+                                "/assign-entities/check-results/assign-tree-id"
+                            )
+
+    assert response.status_code == 200
+    assert b"Dedup" not in response.data
+    assert b'href="#duplicates-table"' not in response.data
+    assert b'id="duplicates-table"' not in response.data
+
+
+def test_assign_entities_check_results_post_stores_redirects(client):
+    request_id = "assign-post-id"
+    response = client.post(
+        f"/assign-entities/check-results/{request_id}",
+        data={
+            "entity_redirects": json.dumps(
+                {
+                    "old_entity": "100",
+                    "entity": "200",
+                    "dataset": "tree",
+                    "old_reference": "old-ref",
+                    "new_reference": "new-ref",
+                    "match_type": "complete_match",
+                    "notes": "Redirect duplicate entity selected in Assign Entities",
+                }
+            )
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        f"/datamanager/add-data/{request_id}/entities"
+    )
+    meta = db.session.get(RequestMeta, request_id)
+    assert json.loads(meta.entity_redirects) == [
+        {
+            "old_entity": "100",
+            "entity": "200",
+            "dataset": "tree",
+            "old_reference": "old-ref",
+            "new_reference": "new-ref",
+            "match_type": "complete_match",
+            "notes": "Redirect duplicate entity selected in Assign Entities",
+        }
+    ]
 
 
 @rsps.activate

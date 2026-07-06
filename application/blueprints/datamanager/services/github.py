@@ -2,6 +2,7 @@
 GitHub App service for authenticating and triggering workflows.
 """
 
+import json
 import time
 import logging
 import requests
@@ -121,6 +122,7 @@ def trigger_add_data_async_workflow(
     triggered_by: str = "config-manager",
     github_branch: str = None,
     endpoints_to_retire: list = None,
+    entity_redirects: list = None,
 ) -> dict:
     """
     Trigger the 'add-data-async-script' workflow in the digital-land/config repository.
@@ -139,6 +141,11 @@ def trigger_add_data_async_workflow(
                 "branch": github_branch,
                 "retire_endpoints": (
                     ",".join(endpoints_to_retire or []) if endpoints_to_retire else ""
+                ),
+                "entity_redirects": (
+                    json.dumps(entity_redirects, separators=(",", ":"))
+                    if entity_redirects
+                    else ""
                 ),
                 "environment": current_app.config.get("ENVIRONMENT"),
             },

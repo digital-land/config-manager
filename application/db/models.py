@@ -448,6 +448,7 @@ class RequestMeta(db.Model):
     endpoints_to_retire = db.Column(
         db.Text, nullable=True
     )  # JSON list of endpoint hashes
+    entity_redirects = db.Column(db.Text, nullable=True)  # JSON list of old-entity rows
 
 
 class Filter(DateModel, VersionedMixin):
