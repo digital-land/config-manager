@@ -1,17 +1,12 @@
 import logging
 from datetime import datetime
 
-import requests
 from flask import redirect, render_template, request, session, url_for
 from shapely import wkt
 from shapely.geometry import mapping
 
 from . import ControllerError
-from .transform import _point_feature
-from ..config import (
-    get_entity_geojson_url,
-    get_entity_search_url,
-)
+from .transform import _point_feature, fetch_boundary_geojson
 from ..services.async_api import (
     AsyncAPIError,
     fetch_request,
@@ -148,40 +143,8 @@ def handle_check_results(request_id, result):
                 )
                 continue
 
-    # Generate boundary GeoJSON for the LPA
-    boundary_geojson_url = ""
-    try:
-        if ":" in organisation_code:
-            lpa_prefix, lpa_id = organisation_code.split(":", 1)
-            resp = requests.get(get_entity_search_url(lpa_prefix, lpa_id))
-            resp.raise_for_status()
-            d = resp.json()
-            entity = d.get("entities", [])[0] if d and d.get("entities") else None
-            if not entity:
-                boundary_geojson_url = {
-                    "type": "FeatureCollection",
-                    "features": [],
-                }
-            else:
-                reference = (
-                    entity.get("local-planning-authority")
-                    if entity.get("reference")
-                    else ""
-                )
-                if not reference:
-                    boundary_geojson_url = {
-                        "type": "FeatureCollection",
-                        "features": [],
-                    }
-                else:
-                    boundary_geojson_url = requests.get(
-                        get_entity_geojson_url(reference)
-                    ).json()
-        else:
-            boundary_geojson_url = {"type": "FeatureCollection", "features": []}
-    except Exception as e:
-        logger.warning(f"Failed to fetch boundary data: {e}")
-        boundary_geojson_url = {"type": "FeatureCollection", "features": []}
+    # Generate boundary GeoJSON for the LPA (shared, timed helper)
+    boundary_geojson_url = fetch_boundary_geojson(organisation_code)
 
     # Error summary parsing from overall response
     data = (result.get("response") or {}).get("data") or {}

@@ -17,6 +17,7 @@ from ..services.planning_data import (
     get_entities_for_organisation_and_dataset,
     get_entity_count_for_organisation_and_dataset,
 )
+from ..utils import REQUESTS_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -513,13 +514,21 @@ def _build_geometry_features(
     return features, points
 
 
-def _fetch_boundary_geojson(organisation_code: str) -> dict:
+def fetch_boundary_geojson(organisation_code: str) -> dict:
+    """Fetch the LPA boundary GeoJSON for an organisation.
+
+    Shared by the transform and check-results pages. Every upstream call is
+    given an explicit timeout so an unresponsive service can't block the request
+    thread; any failure falls back to an empty FeatureCollection with a warning.
+    """
     empty = {"type": "FeatureCollection", "features": []}
     try:
         if ":" not in organisation_code:
             return empty
         lpa_prefix, lpa_id = organisation_code.split(":", 1)
-        resp = requests.get(get_entity_search_url(lpa_prefix, lpa_id))
+        resp = requests.get(
+            get_entity_search_url(lpa_prefix, lpa_id), timeout=REQUESTS_TIMEOUT
+        )
         resp.raise_for_status()
         d = resp.json()
         entity = d.get("entities", [])[0] if d and d.get("entities") else None
@@ -530,7 +539,9 @@ def _fetch_boundary_geojson(organisation_code: str) -> dict:
         )
         if not reference:
             return empty
-        return requests.get(get_entity_geojson_url(reference)).json()
+        return requests.get(
+            get_entity_geojson_url(reference), timeout=REQUESTS_TIMEOUT
+        ).json()
     except Exception as e:
         logger.warning("Failed to fetch boundary data for %s: %s", organisation_code, e)
         return empty
@@ -634,7 +645,7 @@ def handle_check_transform(
             platform_entities, all_resp_details, dataset_id
         )
         boundary_geojson = (
-            _fetch_boundary_geojson(organisation_code) if geometries else None
+            fetch_boundary_geojson(organisation_code) if geometries else None
         )
     else:
         geometries = []
