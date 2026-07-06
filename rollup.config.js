@@ -41,4 +41,11 @@ module.exports = [
       format: "iife",
     },
   },
+  {
+    input: "src/javascripts/entity-table-tooltip.js",
+    output: {
+      file: "application/static/javascripts/entity-table-tooltip.js",
+      format: "iife",
+    },
+  },
 ];

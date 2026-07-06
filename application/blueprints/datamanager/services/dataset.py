@@ -61,16 +61,19 @@ def _get_datasets():
         name_to_dataset_id = {}
         name_to_collection_id = {}
         dataset_id_to_name = {}
+        dataset_id_to_typology = {}
         for dataset_id in provision_dataset_ids:
             spec_entry = spec_lookup.get(dataset_id)
             name = (spec_entry.get("name") if spec_entry else None) or dataset_id
             collection = (
                 spec_entry.get("collection") if spec_entry else None
             ) or dataset_id
+            typology = (spec_entry.get("typology") if spec_entry else None) or ""
 
             name_to_dataset_id[name] = dataset_id
             name_to_collection_id[name] = collection
             dataset_id_to_name[dataset_id] = name
+            dataset_id_to_typology[dataset_id] = typology
 
         dataset_options = sorted(name_to_dataset_id.keys())
     except Exception as e:
@@ -85,6 +88,7 @@ def _get_datasets():
         name_to_dataset_id,
         name_to_collection_id,
         dataset_id_to_name,
+        dataset_id_to_typology,
     )
     _cache["data"] = result
     _cache["expires_at"] = now + CACHE_TTL_SECONDS
@@ -110,6 +114,11 @@ def get_collection_id(name: str) -> str | None:
 def get_dataset_name(dataset_id: str, default: str = None) -> str | None:
     """Look up the dataset name for a given dataset ID."""
     return _get_datasets()[3].get(dataset_id, default)
+
+
+def get_dataset_typology(dataset_id: str) -> str:
+    """Return the typology for a dataset (e.g. 'geography'), or '' if unknown."""
+    return _get_datasets()[4].get(dataset_id, "")
 
 
 def search_datasets(query: str, limit: int = 10) -> list:

@@ -157,6 +157,7 @@ super() }} {% if geometries %}
   window.serverContext = {
     containerId: "map-container",
     geometries: {{ geometries | tojson | safe }},
+    geometryPoints: {{ geometry_points | tojson | safe }},
     boundaryGeoJsonUrl: {% if boundary_geojson_url %}{{ boundary_geojson_url | tojson | safe }}{% else %}null{% endif %}
   };
 </script>

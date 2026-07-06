@@ -135,6 +135,7 @@
     {% endif %}
 
     <!-- Entity Org Summary -->
+    {% if entity_org_warning or (has_entity_org and entity_org_table_params) %}
     <div class="govuk-!-margin-bottom-6">
       <h2 class="govuk-heading-m"><u>Entity Org Summary</u></h2>
       <div style="border: 1px solid #b1b4b6; padding: 20px;">
@@ -147,15 +148,14 @@
             {{ entity_org_warning }}
           </strong>
         </div>
-        {% elif has_entity_org and entity_org_table_params %}
+        {% else %}
         <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
           {{ table(entity_org_table_params) }}
         </div>
-        {% else %}
-        <p class="govuk-body govuk-!-margin-bottom-0">No entity-organisation data found.</p>
         {% endif %}
       </div>
     </div>
+    {% endif %}
 
     <!-- Retire Summary -->
     {% if retire_summary %}

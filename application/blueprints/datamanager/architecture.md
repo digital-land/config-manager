@@ -8,21 +8,27 @@ This document describes the structure of the `datamanager` blueprint and how to 
 
 ```
 application/blueprints/datamanager/
-├── architecture.md         # This file
+├── architecture.md
 ├── router.py               # Blueprint definition, URL rules, auth guard
 ├── config.py               # External API URL builders
 ├── controllers/
 │   ├── __init__.py         # ControllerError exception
-│   ├── form.py             # Dashboard GET/POST and import handlers
-│   ├── check.py            # Check results display and resubmit
-│   └── add.py              # Entities preview and async confirm
+│   ├── form.py             # Dashboard GET/POST, import, add-data form
+│   ├── check.py            # Check results (geometry, column mapping) and resubmit
+│   ├── preview.py          # Entities preview and async GitHub confirm
+│   ├── transform.py        # Transformed facts, issue logs, entity growth check
+│   └── flagged_resources.py # Assign-entities: import, summary, per-resource submit
 ├── services/
 │   ├── async_api.py        # Async request API client
 │   ├── dataset.py          # Dataset lookups and autocomplete
-│   ├── organisation.py     # Organisation lookups and formatting
-│   └── github.py           # GitHub App auth and workflow triggers
+│   ├── dataset_field.py    # Dataset-field mapping from specification CSV
+│   ├── doc_crawler.py      # Documentation page link checker
+│   ├── endpoint.py         # Endpoint URL lookups from datasette by hash
+│   ├── github.py           # GitHub App auth and workflow triggers
+│   ├── organisation.py     # Organisation lookups and entity number mapping
+│   └── planning_data.py    # Entity counts and lists from the planning data API
 └── utils/
-    ├── __init__.py         # Shared helpers: error handling, table building, CSV preview
+    ├── __init__.py         # Shared helpers: error handling, table building
     ├── configure.py        # Column mapping row builder
     └── csv_formats.py      # CSV format builders per dataset type
 ```
@@ -53,8 +59,10 @@ Controllers receive a request context and orchestrate the workflow: validate inp
 | File | Handles |
 |---|---|
 | `form.py` | Dashboard GET, dashboard POST (form submit), CSV import GET/POST, add-data form |
-| `check.py` | Check results display (GET), resubmit with updated column mappings (POST) |
-| `add.py` | Entities preview, async confirm (trigger GitHub workflow) |
+| `check.py` | Check results display with geometry rendering and inline column-mapping UI (GET), resubmit with updated column mappings (POST) |
+| `preview.py` | Entities preview loading/result page, add-data confirm (trigger GitHub workflow and show success) |
+| `transform.py` | Transformed facts and issue log display, entity comparison vs. platform entities, entity growth check; shared between add-data and assign-entities flows |
+| `flagged_resources.py` | Assign-entities flow: upload/paste flagged-resources CSV, grouped summary view, per-resource submit to async API |
 
 #### `ControllerError`
 
@@ -98,12 +106,39 @@ Lookups against the planning data datasets endpoint. Results cached for **5 minu
 | `get_dataset_name(dataset_id)` | Human name for a dataset ID |
 | `search_datasets(query, limit)` | Case-insensitive name search for autocomplete |
 
+#### `dataset_field.py`
+
+Dataset-to-field mapping fetched from the specification CSV (`DATASET_FIELD_CSV_URL`). Results cached for **5 minutes**.
+
+| Function | Description |
+|---|---|
+| `get_fields_for_dataset(dataset_id)` | All field rows (dicts) for a dataset, or `[]` if not found |
+| `get_field_names_for_dataset(dataset_id)` | Sorted list of field name strings for a dataset |
+
+#### `doc_crawler.py`
+
+Checks whether an endpoint URL is linked from a documentation page by fetching and parsing the page's `<a href>` tags. Results memoized for **1 hour** via `cache.memoize`.
+
+| Function | Description |
+|---|---|
+| `is_gov_uk_url(url)` | Returns `True` if the URL's hostname is `gov.uk` or a subdomain |
+| `check_endpoint_in_doc(documentation_url, endpoint_url)` | Returns `{found, matched_href, error}` — whether the endpoint URL appears as a link in the documentation page |
+
+#### `endpoint.py`
+
+Endpoint URL lookups from the datasette `endpoint` table.
+
+| Function | Description |
+|---|---|
+| `get_endpoint_urls_for_hashes(hashes)` | Given a list of endpoint hashes, returns `{hash: {endpoint_url, end_date}}` |
+
 #### `organisation.py`
 
-Organisation lookups from the provision CSV and datasette. Two separate caches:
+Organisation lookups from the provision CSV and datasette. Three separate caches:
 
 - Provision orgs per dataset: **5 minutes** (`_provision_cache`)
 - Full org code → name mapping: **10 minutes** (`_org_mapping_cache`)
+- Org code → entity number mapping: **10 minutes** (`_org_entity_cache`)
 
 | Function | Description |
 |---|---|
@@ -111,6 +146,8 @@ Organisation lookups from the provision CSV and datasette. Two separate caches:
 | `get_organisation_name(code)` | Display name for an org code (falls back to code) |
 | `is_valid_organisation(code)` | Whether an org code exists |
 | `format_org_options(org_codes)` | Format codes as `[{code, label}]` dicts for UI dropdowns |
+| `get_org_entity(code)` | Entity number (int) for an org code, or `None` if not found |
+| `get_org_entity_lookup()` | Full org code → entity number mapping dict (internal; used by `get_org_entity`) |
 
 #### `github.py`
 
@@ -118,6 +155,15 @@ GitHub App authentication and workflow dispatch.
 
 - `trigger_add_data_async_workflow(...)` — the primary public function; handles JWT generation, installation token fetch, and workflow dispatch internally
 - Custom exceptions: `GitHubAppError`, `GitHubAppAuthError`, `GitHubWorkflowError`
+
+#### `planning_data.py`
+
+Entity data from the planning data API (`PLANNING_BASE_URL`). Entity lists are memoized for **5 minutes** via `cache.memoize`.
+
+| Function | Description |
+|---|---|
+| `get_entity_count_for_organisation_and_dataset(organisation_entity, dataset)` | Total count of authoritative entities for an org entity number + dataset (single API call) |
+| `get_entities_for_organisation_and_dataset(organisation_entity, dataset)` | Full list of authoritative entities for an org entity number + dataset (handles pagination) |
 
 ---
 

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from application.extensions import db as _db
@@ -17,3 +19,17 @@ def client(app):
     with app.test_client() as client:
         with app.app_context():
             yield client
+
+
+@pytest.fixture(autouse=True)
+def mock_dataset_typology():
+    """Prevent get_dataset_typology from making HTTP calls in tests.
+
+    Defaults to '' (non-geography — no map). Tests that exercise geography
+    behaviour patch it explicitly to 'geography'.
+    """
+    with patch(
+        "application.blueprints.datamanager.controllers.transform.get_dataset_typology",
+        return_value="",
+    ):
+        yield
