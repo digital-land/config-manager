@@ -312,7 +312,7 @@ function addBoundaryGeoJsonToMap(map, geoJsonUrl) {
   console.log("Boundary layer added successfully");
 }
 
-function addCategoryCluster(map, category, points, showPopup) {
+function addCategoryCluster(map, category, points, showPopup, hasPolygons) {
   const sourceId = `points-${category.id}`;
   map.addSource(sourceId, {
     type: "geojson",
@@ -356,7 +356,7 @@ function addCategoryCluster(map, category, points, showPopup) {
     type: "circle",
     source: sourceId,
     filter: ["!", ["has", "point_count"]],
-    maxzoom: POLYGON_MIN_ZOOM,
+    ...(hasPolygons && { maxzoom: POLYGON_MIN_ZOOM }),
     paint: {
       "circle-color": category.colour,
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 8, 13, 12],
@@ -370,7 +370,7 @@ function addCategoryCluster(map, category, points, showPopup) {
     type: "symbol",
     source: sourceId,
     filter: ["!", ["has", "point_count"]],
-    maxzoom: POLYGON_MIN_ZOOM,
+    ...(hasPolygons && { maxzoom: POLYGON_MIN_ZOOM }),
     layout: {
       "text-field": "1",
       "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
@@ -499,15 +499,21 @@ function initMap() {
 
     const showPopup = (e) => {
       const feature = e.features[0];
+      const { reference, name, entity } = feature.properties;
+      const lines = [
+        `<strong>Ref:</strong> ${reference}`,
+        entity ? `<strong>Entity:</strong> ${entity}` : null,
+        name || null,
+      ].filter(Boolean);
       new maplibregl.Popup()
         .setLngLat(e.lngLat)
-        .setHTML(
-          `<strong>Ref:</strong> ${feature.properties.reference}<br/>${
-            feature.properties.name || ""
-          }`
-        )
+        .setHTML(lines.join("<br/>"))
         .addTo(map);
     };
+
+    const hasPolygonFeatures = geometries.some(
+      (f) => f.geometry && (f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon")
+    );
 
     // One clustered source per category so clusters never mix categories.
     categories.forEach((category) => {
@@ -515,7 +521,7 @@ function initMap() {
         ? points.filter((f) => f.properties.status === category.id)
         : points;
       if (categoryPoints.length > 0) {
-        addCategoryCluster(map, category, categoryPoints, showPopup);
+        addCategoryCluster(map, category, categoryPoints, showPopup, hasPolygonFeatures);
       }
     });
 
