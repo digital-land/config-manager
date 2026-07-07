@@ -464,7 +464,8 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
     assert b"Entity growth is above threshold, Resource empty" in response.data
     assert b"Retire endpoints" not in response.data
     assert b"retire_endpoints" not in response.data
-    assert b"/datamanager/add-data/assign-id-1/entities" in response.data
+    assert b'action="/assign-entities/check-results/assign-id-1"' in response.data
+    assert b'form="duplicate-redirect-form"' in response.data
 
 
 @rsps.activate
@@ -695,22 +696,51 @@ def test_assign_entities_check_results_hides_dedup_for_other_datasets(client):
 
 def test_assign_entities_check_results_post_stores_redirects(client):
     request_id = "assign-post-id"
-    response = client.post(
-        f"/assign-entities/check-results/{request_id}",
-        data={
-            "entity_redirects": json.dumps(
-                {
-                    "old_entity": "100",
-                    "entity": "200",
-                    "dataset": "tree",
-                    "old_reference": "old-ref",
-                    "new_reference": "new-ref",
-                    "match_type": "complete_match",
-                    "notes": "Redirect duplicate entity selected in Assign Entities",
+    with patch(
+        "application.blueprints.datamanager.router.fetch_request",
+        return_value={
+            "response": {
+                "data": {
+                    "pipeline-summary": {
+                        "duplicate-candidates": [
+                            {
+                                "old_entity": "100",
+                                "entity": "200",
+                                "dataset": "tree",
+                            }
+                        ]
+                    }
                 }
-            )
+            }
         },
-    )
+    ):
+        response = client.post(
+            f"/assign-entities/check-results/{request_id}",
+            data={
+                "entity_redirects": [
+                    json.dumps(
+                        {
+                            "old_entity": "100",
+                            "entity": "200",
+                            "dataset": "tree",
+                            "old_reference": "old-ref",
+                            "new_reference": "new-ref",
+                            "match_type": "complete_match",
+                            "notes": (
+                                "Redirect duplicate entity selected in Assign Entities"
+                            ),
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "old_entity": "999",
+                            "entity": "200",
+                            "dataset": "tree",
+                        }
+                    ),
+                ]
+            },
+        )
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith(

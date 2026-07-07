@@ -312,7 +312,13 @@ def flagged_resource_detail(request_id):
 
 
 def flagged_resource_detail_post(request_id):
-    redirects = parse_selected_redirects(request.form.getlist("entity_redirects"))
+    req = fetch_request(request_id)
+    response_data = (req.get("response") or {}).get("data") or {}
+    pipeline_summary = response_data.get("pipeline-summary") or {}
+    duplicate_candidates = pipeline_summary.get("duplicate-candidates") or []
+    redirects = parse_selected_redirects(
+        request.form.getlist("entity_redirects"), duplicate_candidates
+    )
     meta = db.session.get(RequestMeta, request_id)
     if meta is None:
         meta = RequestMeta(

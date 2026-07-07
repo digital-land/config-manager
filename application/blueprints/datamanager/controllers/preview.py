@@ -29,6 +29,16 @@ from ..utils.csv_formats import (
 logger = logging.getLogger(__name__)
 
 
+def _load_json_list(value: str | None) -> list:
+    if not value:
+        return []
+    try:
+        loaded = json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return []
+    return loaded if isinstance(loaded, list) else []
+
+
 def build_old_entity_redirect_table(entity_redirects: list[dict]) -> dict | None:
     if not entity_redirects:
         return None
@@ -152,10 +162,10 @@ def handle_entities_preview(request_id, req):
     # Retire endpoint details
     request_meta = db.session.get(RequestMeta, request_id)
     endpoints_to_retire = (
-        json.loads(request_meta.endpoints_to_retire or "[]") if request_meta else []
+        _load_json_list(request_meta.endpoints_to_retire) if request_meta else []
     )
     entity_redirects = (
-        json.loads(request_meta.entity_redirects or "[]") if request_meta else []
+        _load_json_list(request_meta.entity_redirects) if request_meta else []
     )
     old_entity_redirect_table_params = build_old_entity_redirect_table(entity_redirects)
     existing_endpoints = (
@@ -233,10 +243,10 @@ def handle_add_data_confirm(
 ):
     request_meta = db.session.get(RequestMeta, request_id)
     endpoints_to_retire = (
-        json.loads(request_meta.endpoints_to_retire or "[]") if request_meta else []
+        _load_json_list(request_meta.endpoints_to_retire) if request_meta else []
     )
     entity_redirects = (
-        json.loads(request_meta.entity_redirects or "[]") if request_meta else []
+        _load_json_list(request_meta.entity_redirects) if request_meta else []
     )
     try:
         result = trigger_add_data_async_workflow(
