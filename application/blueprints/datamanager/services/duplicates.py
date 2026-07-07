@@ -1,9 +1,6 @@
 import json
 import re
 
-REDIRECT_NOTE = "Redirect duplicate entity selected in Assign Entities"
-_WHOLE_NUMBER_RE = re.compile(r"^\s*[+-]?\d+(?:\.0+)?\s*$")
-
 
 def _normalise_entity_id(raw) -> str:
     if raw is None or raw == "":
@@ -14,7 +11,7 @@ def _normalise_entity_id(raw) -> str:
         return str(int(raw)) if raw.is_integer() else str(raw)
 
     raw_str = str(raw)
-    if not _WHOLE_NUMBER_RE.match(raw_str):
+    if not re.match(r"^\s*[+-]?\d+(?:\.0+)?\s*$", raw_str):
         return raw_str
 
     try:
@@ -69,7 +66,10 @@ def parse_selected_redirects(
                 "old_reference": str(row.get("old_reference", "") or ""),
                 "new_reference": str(row.get("new_reference", "") or ""),
                 "match_type": str(row.get("match_type", "") or ""),
-                "notes": str(row.get("notes", "") or REDIRECT_NOTE),
+                "notes": str(
+                    row.get("notes", "")
+                    or "Redirect duplicate entity selected in Assign Entities"
+                ),
             }
         )
 

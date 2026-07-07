@@ -11,7 +11,6 @@ from . import ControllerError
 from ..config import get_entity_geojson_url, get_entity_search_url
 from ..services.async_api import fetch_response_details
 from ..services.dataset import get_dataset_name, get_dataset_typology
-from ..services.duplicates import REDIRECT_NOTE
 from ..services.organisation import get_org_entity, get_organisation_name
 from ..services.doc_crawler import check_endpoint_in_doc, is_gov_uk_url
 from ..services.endpoint import get_endpoint_urls_for_hashes
@@ -267,7 +266,8 @@ def _dedup_candidate_form_value(candidate: dict) -> str:
             "old_reference": candidate.get("old_reference", ""),
             "new_reference": candidate.get("new_reference", ""),
             "match_type": candidate.get("match_type", ""),
-            "notes": candidate.get("notes") or REDIRECT_NOTE,
+            "notes": candidate.get("notes")
+            or "Redirect duplicate entity selected in Assign Entities",
         },
         separators=(",", ":"),
     )

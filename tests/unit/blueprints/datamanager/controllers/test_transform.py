@@ -4,7 +4,6 @@ from application.blueprints.datamanager.controllers.transform import (
     _dedup_candidate_form_value,
     _prepare_duplicate_candidates,
 )
-from application.blueprints.datamanager.services.duplicates import REDIRECT_NOTE
 
 
 def test_dedup_candidate_form_value_builds_redirect_payload():
@@ -26,7 +25,7 @@ def test_dedup_candidate_form_value_builds_redirect_payload():
         "old_reference": "old-ref",
         "new_reference": "new-ref",
         "match_type": "complete_match",
-        "notes": REDIRECT_NOTE,
+        "notes": "Redirect duplicate entity selected in Assign Entities",
     }
 
 
