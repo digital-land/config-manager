@@ -46,11 +46,6 @@
     </dl>
 {% endblock %}
 
-{% block pageStylesheets %}
-{{ super() }}
-<link rel="stylesheet" href="{{ url_for('static', filename='stylesheets/entity-redirect-selection.css') }}">
-{% endblock %}
-
 {% block extra_tabs %}
         {% if show_dedup_tab %}
         <li class="govuk-tabs__list-item">
@@ -153,7 +148,14 @@
               </tbody>
             </table>
           </div>
-          <p class="govuk-!-margin-top-2" id="duplicate-selected-count" style="white-space: nowrap;">No entities selected for redirection</p>
+          {% set selected_count = duplicate_candidates | selectattr('auto_select') | list | length %}
+          <p class="govuk-!-margin-top-2" id="duplicate-selected-count" style="white-space: nowrap;">
+            {% if selected_count %}
+            {{ selected_count }} {{ 'entity' if selected_count == 1 else 'entities' }} selected for redirection
+            {% else %}
+            No entities selected for redirection
+            {% endif %}
+          </p>
           {% else %}
           <p class="govuk-body">No possible duplicates to display.</p>
           {% endif %}
@@ -176,5 +178,99 @@
 {% endblock %}
 
 {% block pageScripts %}{{ super() }}
-<script src="{{ url_for('static', filename='javascripts/entity-redirect-selection.js') }}"></script>
+<style {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
+  .app-duplicates-table .govuk-table__header,
+  .app-duplicates-table .govuk-table__cell {
+    vertical-align: middle;
+  }
+  .app-duplicates-table .app-checkbox-header {
+    padding-bottom: 10px;
+    padding-top: 10px;
+    text-align: center;
+    width: 24px;
+  }
+  .app-duplicates-table .app-checkboxes--table-header {
+    display: inline-block;
+    height: 24px;
+    margin: 0;
+    vertical-align: middle;
+    width: 24px;
+  }
+  .app-duplicates-table .app-checkboxes--table-header .govuk-checkboxes__item {
+    display: block;
+    height: 24px;
+    min-height: 24px;
+    position: relative;
+    width: 24px;
+  }
+  .app-duplicates-table .app-checkboxes--table-header .govuk-checkboxes__input {
+    height: 24px;
+    left: 0;
+    margin: 0;
+    position: absolute;
+    top: 0;
+    width: 24px;
+  }
+  .app-duplicates-table .app-checkboxes--table-header .govuk-checkboxes__label::before {
+    left: 0;
+    top: 0;
+  }
+  .app-duplicates-table .app-checkboxes--table-header .govuk-checkboxes__label::after {
+    left: 6px;
+    top: 7px;
+  }
+  .app-duplicates-table .app-checkboxes--table-header .govuk-checkboxes__label {
+    display: block;
+    height: 24px;
+    min-height: 0;
+    max-width: none;
+    padding: 0;
+    width: 24px;
+  }
+</style>
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
+  var selectedCount = document.getElementById('duplicate-selected-count');
+  var duplicateCheckboxes = document.querySelectorAll('.duplicate-checkbox');
+  var selectAllCheckbox = document.getElementById('entity-redirect-select-all');
+  function updateDuplicateSelection() {
+    var count = 0;
+    var selectableCount = 0;
+    var selectableSelectedCount = 0;
+    duplicateCheckboxes.forEach(function(checkbox) {
+      var row = checkbox.closest('.duplicate-row');
+      if (!checkbox.disabled) {
+        selectableCount += 1;
+        if (checkbox.checked) selectableSelectedCount += 1;
+      }
+      if (checkbox.checked) {
+        count += 1;
+        if (row) row.style.backgroundColor = '#dbeafe';
+      } else if (row) {
+        row.style.backgroundColor = '';
+      }
+    });
+    if (selectAllCheckbox) {
+      selectAllCheckbox.disabled = selectableCount === 0;
+      selectAllCheckbox.checked = selectableCount > 0 && selectableSelectedCount === selectableCount;
+      selectAllCheckbox.indeterminate = selectableSelectedCount > 0 && selectableSelectedCount < selectableCount;
+    }
+    if (selectedCount) {
+      selectedCount.textContent = count === 0
+        ? 'No entities selected for redirection'
+        : count + ' ' + (count === 1 ? 'entity' : 'entities') + ' selected for redirection';
+    }
+  }
+  duplicateCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', updateDuplicateSelection);
+  });
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function() {
+      duplicateCheckboxes.forEach(function(checkbox) {
+        if (!checkbox.disabled) checkbox.checked = selectAllCheckbox.checked;
+      });
+      updateDuplicateSelection();
+    });
+  }
+  updateDuplicateSelection();
+</script>
 {% endblock %}
