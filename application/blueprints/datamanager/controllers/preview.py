@@ -34,12 +34,12 @@ def _build_entity_organisation_summary(new_entities, authoritative, pipeline_sum
     entities were actually created; otherwise there is nothing to map.
 
     Returns (entity_org_table_params, has_entity_org, entity_org_warning,
-    entity_org_overlap_warning, entity_org_error_warning)
+    entity_org_overlap_info, entity_org_error_warning)
     """
     entity_org_table_params = None
     has_entity_org = False
     entity_org_warning = None
-    entity_org_overlap_warning = None
+    entity_org_overlap_info = None
     entity_org_error_warning = None
 
     if not new_entities:
@@ -47,7 +47,7 @@ def _build_entity_organisation_summary(new_entities, authoritative, pipeline_sum
             entity_org_table_params,
             has_entity_org,
             entity_org_warning,
-            entity_org_overlap_warning,
+            entity_org_overlap_info,
             entity_org_error_warning,
         )
 
@@ -57,34 +57,31 @@ def _build_entity_organisation_summary(new_entities, authoritative, pipeline_sum
             entity_org_table_params,
             has_entity_org,
             entity_org_warning,
-            entity_org_overlap_warning,
+            entity_org_overlap_info,
             entity_org_error_warning,
         )
 
     entity_organisation_data = pipeline_summary.get("entity-organisation") or []
     if entity_organisation_data:
-        (
-            entity_org_table_params,
-            has_entity_org,
-        ) = build_entity_organisation_csv(entity_organisation_data)
-
         entry = entity_organisation_data[0]
         if entry.get("overlap"):
-            entity_org_overlap_warning = (
-                "Entity org range mapping already assigned for these new "
-                "entities - likely a single source dataset"
-            )
-        if entry.get("error"):
+            entity_org_overlap_info = "Entity org already exists - no action needed"
+        elif entry.get("error"):
             entity_org_error_warning = (
                 "An error occurred creating the entity-organisation csv, "
                 "please re-run if you believe this is required"
             )
+        else:
+            (
+                entity_org_table_params,
+                has_entity_org,
+            ) = build_entity_organisation_csv(entity_organisation_data)
 
     return (
         entity_org_table_params,
         has_entity_org,
         entity_org_warning,
-        entity_org_overlap_warning,
+        entity_org_overlap_info,
         entity_org_error_warning,
     )
 
@@ -205,7 +202,7 @@ def handle_entities_preview(request_id, req):
         entity_org_table_params,
         has_entity_org,
         entity_org_warning,
-        entity_org_overlap_warning,
+        entity_org_overlap_info,
         entity_org_error_warning,
     ) = _build_entity_organisation_summary(new_entities, authoritative, pipeline_summary)
 
@@ -230,7 +227,7 @@ def handle_entities_preview(request_id, req):
         entity_org_table_params=entity_org_table_params,
         has_entity_org=has_entity_org,
         entity_org_warning=entity_org_warning,
-        entity_org_overlap_warning=entity_org_overlap_warning,
+        entity_org_overlap_info=entity_org_overlap_info,
         entity_org_error_warning=entity_org_error_warning,
     )
 
