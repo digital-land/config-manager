@@ -135,7 +135,7 @@
     {% endif %}
 
     <!-- Entity Org Summary -->
-    {% if entity_org_warning or (has_entity_org and entity_org_table_params) %}
+    {% if entity_org_warning or entity_org_overlap_warning or entity_org_error_warning or (has_entity_org and entity_org_table_params) %}
     <div class="govuk-!-margin-bottom-6">
       <h2 class="govuk-heading-m"><u>Entity Org Summary</u></h2>
       <div style="border: 1px solid #b1b4b6; padding: 20px;">
@@ -149,9 +149,27 @@
           </strong>
         </div>
         {% else %}
+        {% if has_entity_org and entity_org_table_params %}
         <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
           {{ table(entity_org_table_params) }}
         </div>
+        {% endif %}
+        {% if entity_org_overlap_warning %}
+        <div class="govuk-warning-text">
+          <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+          <strong class="govuk-warning-text__text">
+            <span class="govuk-visually-hidden">Warning</span>
+            {{ entity_org_overlap_warning }}
+          </strong>
+        </div>
+        {% endif %}
+        {% if entity_org_error_warning %}
+        <div class="govuk-error-summary" role="alert">
+          <strong class="govuk-error-message">
+            {{ entity_org_error_warning }}
+          </strong>
+        </div>
+        {% endif %}
         {% endif %}
       </div>
     </div>
