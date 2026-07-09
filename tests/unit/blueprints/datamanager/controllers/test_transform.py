@@ -48,6 +48,21 @@ def test_prepare_duplicate_candidates_auto_selects_complete_matches():
     assert candidates[0]["auto_select"] is True
 
 
+def test_prepare_duplicate_candidates_does_not_auto_select_existing_redirects():
+    candidates = _prepare_duplicate_candidates(
+        [
+            {
+                "match_type": "complete_match",
+                "old_entity_redirects": [
+                    {"old-entity": "100", "entity": "300", "status": "301"}
+                ],
+            }
+        ]
+    )
+
+    assert candidates[0]["auto_select"] is False
+
+
 def test_prepare_duplicate_candidates_auto_selects_single_matches_over_threshold():
     candidates = _prepare_duplicate_candidates(
         [

@@ -19,7 +19,8 @@ def test_parse_selected_redirects_filters_invalid_rows():
             '{"old_entity":"100","entity":"200","dataset":"tree","match_type":"complete_match"}',
             '{"old_entity":"","entity":"201","dataset":"tree"}',
             "not-json",
-        ]
+        ],
+        [{"old_entity": "100", "entity": "200", "dataset": "tree"}],
     )
 
     assert redirects == [

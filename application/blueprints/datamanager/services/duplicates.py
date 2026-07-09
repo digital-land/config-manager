@@ -29,14 +29,10 @@ def _candidate_key(candidate: dict) -> tuple[str, str, str]:
 
 
 def parse_selected_redirects(
-    values: list[str], duplicate_candidates: list[dict] | None = None
+    values: list[str], duplicate_candidates: list[dict]
 ) -> list[dict]:
     selected = []
-    valid_keys = (
-        {_candidate_key(candidate) for candidate in duplicate_candidates}
-        if duplicate_candidates is not None
-        else None
-    )
+    valid_keys = {_candidate_key(candidate) for candidate in duplicate_candidates}
     seen_old_entities = set()
 
     for value in values:
@@ -52,7 +48,7 @@ def parse_selected_redirects(
         dataset = str(row.get("dataset", "") or "")
         if not old_entity or not entity or not dataset:
             continue
-        if valid_keys is not None and (old_entity, entity, dataset) not in valid_keys:
+        if (old_entity, entity, dataset) not in valid_keys:
             continue
         if old_entity in seen_old_entities:
             continue

@@ -85,6 +85,7 @@
                   <th scope="col" class="govuk-table__header">Entry date</th>
                   <th scope="col" class="govuk-table__header">End date</th>
                   <th scope="col" class="govuk-table__header">Organisation</th>
+                  <th scope="col" class="govuk-table__header">Current redirects</th>
                   <th scope="col" class="govuk-table__header">Evidence</th>
                 </tr>
               </thead>
@@ -105,42 +106,47 @@
                     </div>
                   </td>
                   <td class="govuk-table__cell app-wrap">
-                    <div style="color: #00703c;">
+                    <div class="app-duplicate-new-entity">
                       {% if _flagged_errors_query %}
-                      <a class="govuk-link" style="color: #00703c;" href="{{ url_for(_transform_endpoint, request_id=request_id, entity_search=row.entity, errors=_flagged_errors_query, _anchor='entities-table') }}"><code>{{ row.entity }}</code></a>
+                      <a class="govuk-link app-duplicate-new-entity" href="{{ url_for(_transform_endpoint, request_id=request_id, entity_search=row.entity, errors=_flagged_errors_query, _anchor='entities-table') }}"><code>{{ row.entity }}</code></a>
                       {% else %}
-                      <a class="govuk-link" style="color: #00703c;" href="{{ url_for(_transform_endpoint, request_id=request_id, entity_search=row.entity, _anchor='entities-table') }}"><code>{{ row.entity }}</code></a>
+                      <a class="govuk-link app-duplicate-new-entity" href="{{ url_for(_transform_endpoint, request_id=request_id, entity_search=row.entity, _anchor='entities-table') }}"><code>{{ row.entity }}</code></a>
                       {% endif %}
                     </div>
                   </td>
                   <td class="govuk-table__cell app-wrap">
-                    <div style="color: #d4692a;">
+                    <div class="app-duplicate-old-entity">
                       {% if row.old_entity %}
-                      <a class="govuk-link" style="color: #d4692a;" href="{{ planning_entity_base_url }}/{{ row.old_entity }}" target="_blank" rel="noopener noreferrer"><code>{{ row.old_entity }}</code></a>
+                      <a class="govuk-link app-duplicate-old-entity" href="{{ planning_entity_base_url }}/{{ row.old_entity }}" target="_blank" rel="noopener noreferrer"><code>{{ row.old_entity }}</code></a>
                       {% else %}
                       <code></code>
                       {% endif %}
                     </div>
                   </td>
                   <td class="govuk-table__cell app-wrap">
-                    <div style="color: #00703c;">{{ row.new_reference or '' }}</div>
-                    <div style="color: #d4692a;">{{ row.old_reference or '' }}</div>
+                    <div class="app-duplicate-new-entity">{{ row.new_reference or '' }}</div>
+                    <div class="app-duplicate-old-entity">{{ row.old_reference or '' }}</div>
                   </td>
                   <td class="govuk-table__cell app-wrap">
-                    <div style="color: #00703c;">{{ row.new_name or '' }}</div>
-                    <div style="color: #d4692a;">{{ row.old_name or '' }}</div>
+                    <div class="app-duplicate-new-entity">{{ row.new_name or '' }}</div>
+                    <div class="app-duplicate-old-entity">{{ row.old_name or '' }}</div>
                   </td>
                   <td class="govuk-table__cell app-wrap">
-                    <div style="color: #00703c;">{{ row.get("new_entry_date") or row.get("new_entry-date") or '' }}</div>
-                    <div style="color: #d4692a;">{{ row.get("old_entry_date") or row.get("old_entry-date") or '' }}</div>
+                    <div class="app-duplicate-new-entity">{{ row.get("new_entry_date") or row.get("new_entry-date") or '' }}</div>
+                    <div class="app-duplicate-old-entity">{{ row.get("old_entry_date") or row.get("old_entry-date") or '' }}</div>
                   </td>
                   <td class="govuk-table__cell app-wrap">
-                    <div style="color: #00703c;">{{ row.get("new_end_date") or row.get("new_end-date") or '' }}</div>
-                    <div style="color: #d4692a;">{{ row.get("old_end_date") or row.get("old_end-date") or '' }}</div>
+                    <div class="app-duplicate-new-entity">{{ row.get("new_end_date") or row.get("new_end-date") or '' }}</div>
+                    <div class="app-duplicate-old-entity">{{ row.get("old_end_date") or row.get("old_end-date") or '' }}</div>
                   </td>
                   <td class="govuk-table__cell app-wrap">
-                    <div style="color: #00703c;">{{ row.new_organisation or row.new_organisation_entity or '' }}</div>
-                    <div style="color: #d4692a;">{{ row.old_organisation or row.old_organisation_entity or '' }}</div>
+                    <div class="app-duplicate-new-entity">{{ row.new_organisation or row.new_organisation_entity or '' }}</div>
+                    <div class="app-duplicate-old-entity">{{ row.old_organisation or row.old_organisation_entity or '' }}</div>
+                  </td>
+                  <td class="govuk-table__cell app-wrap app-duplicate-old-entity">
+                    {% for redirect in row.old_entity_redirects or [] %}
+                      {{ redirect.get("entity", "") }}{% if redirect.get("status") %} ({{ redirect.get("status") }}){% endif %}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
                   </td>
                   <td class="govuk-table__cell app-wrap">{{ row.evidence or 'Spatial match' }}</td>
                 </tr>
@@ -182,6 +188,12 @@
   .app-duplicates-table .govuk-table__header,
   .app-duplicates-table .govuk-table__cell {
     vertical-align: middle;
+  }
+  .app-duplicate-new-entity {
+    color: #00703c;
+  }
+  .app-duplicate-old-entity {
+    color: #d4692a;
   }
   .app-duplicates-table .app-checkbox-header {
     padding-bottom: 10px;

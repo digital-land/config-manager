@@ -560,7 +560,22 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
                                 "new_end_date": "",
                                 "name_similarity": 62,
                                 "evidence": "name similarity 62%",
-                            }
+                            },
+                            {
+                                "old_entity": "101",
+                                "entity": "201",
+                                "dataset": "conservation-area",
+                                "old_reference": "old-redirect-ref",
+                                "new_reference": "new-redirect-ref",
+                                "match_type": "complete_match",
+                                "old_entity_redirects": [
+                                    {
+                                        "old-entity": "101",
+                                        "entity": "300",
+                                        "status": "301",
+                                    }
+                                ],
+                            },
                         ],
                     },
                 }
@@ -611,8 +626,10 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
     assert b"Match type" not in response.data
     assert b"Entry date" in response.data
     assert b"End date" in response.data
+    assert b"Current redirects" in response.data
     assert b"old-ref" in response.data
     assert b"new-ref" in response.data
+    assert b"300 (301)" in response.data
     assert b"2020-01-01" in response.data
     assert b"2026-01-01" in response.data
     assert (
@@ -623,6 +640,19 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
     assert (
         b'id="entity-redirect-1" name="entity_redirects" type="checkbox"'
         in response.data
+    )
+    assert (
+        b'id="entity-redirect-2" name="entity_redirects" type="checkbox"'
+        in response.data
+    )
+    assert (
+        b'id="entity-redirect-2" name="entity_redirects" type="checkbox"'
+        b" value=" in response.data
+    )
+    assert (
+        b'id="entity-redirect-2" name="entity_redirects" type="checkbox"'
+        b" value="
+        b" checked disabled" not in response.data
     )
     assert b"old_entity" in response.data
     assert b"checked disabled" in response.data

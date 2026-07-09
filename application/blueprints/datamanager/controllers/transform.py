@@ -246,6 +246,9 @@ def _name_similarity_percent(value) -> float:
 
 
 def _dedup_candidate_auto_select(candidate: dict) -> bool:
+    if candidate.get("old_entity_redirects"):
+        return False
+
     match_type = str(candidate.get("match_type", "")).replace(" ", "_").lower()
     if match_type == "complete_match":
         return True
