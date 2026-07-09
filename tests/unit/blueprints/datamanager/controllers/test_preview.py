@@ -19,7 +19,9 @@ def test_non_authoritative_is_informational_only():
         warning,
         overlap_info,
         error_warning,
-    ) = _build_entity_organisation_summary(NEW_ENTITIES, False, {"entity-organisation": []})
+    ) = _build_entity_organisation_summary(
+        NEW_ENTITIES, False, {"entity-organisation": []}
+    )
 
     assert table_params is None
     assert has_entity_org is False

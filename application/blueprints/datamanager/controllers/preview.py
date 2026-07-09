@@ -204,7 +204,9 @@ def handle_entities_preview(request_id, req):
         entity_org_warning,
         entity_org_overlap_info,
         entity_org_error_warning,
-    ) = _build_entity_organisation_summary(new_entities, authoritative, pipeline_summary)
+    ) = _build_entity_organisation_summary(
+        new_entities, authoritative, pipeline_summary
+    )
 
     return render_template(
         "datamanager/entities_preview.html",
