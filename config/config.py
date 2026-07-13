@@ -101,8 +101,8 @@ def get_request_api_endpoint():
     mapping = {
         "local": "http://localhost:8000",
         "development": "https://pub-async.development.planning.data.gov.uk",
-        "staging": "http://staging-pub-async-api-lb-12493311.eu-west-2.elb.amazonaws.com",
-        "production": "http://production-pub-async-api-lb-636110663.eu-west-2.elb.amazonaws.com",
+        "staging": "https://pub-async.staging.planning.data.gov.uk",
+        "production": "https://pub-async.planning.data.gov.uk",
     }
 
     return mapping.get(env, mapping["local"])
