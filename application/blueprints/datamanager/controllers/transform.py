@@ -1,8 +1,9 @@
+import json
 import logging
 import re
 
 import requests
-from flask import render_template, request as flask_request
+from flask import current_app, render_template, request as flask_request
 from shapely import wkt
 from shapely.geometry import mapping
 
@@ -232,6 +233,58 @@ def _entity_row_matches_filter(row: dict, category_filter: str) -> bool:
     if not category_filter:
         return True
     return row.get("category") == category_filter
+
+
+def _name_similarity_percent(value) -> float:
+    if value in (None, ""):
+        return 0
+    try:
+        similarity = float(str(value).strip().rstrip("%"))
+    except (TypeError, ValueError):
+        return 0
+    return similarity * 100 if 0 < similarity <= 1 else similarity
+
+
+def _dedup_candidate_auto_select(candidate: dict) -> bool:
+    if candidate.get("old_entity_redirects"):
+        return False
+
+    match_type = str(candidate.get("match_type", "")).replace(" ", "_").lower()
+    if match_type == "complete_match":
+        return True
+    if match_type != "single_match":
+        return False
+    return _name_similarity_percent(candidate.get("name_similarity")) > 85
+
+
+def _dedup_candidate_form_value(candidate: dict) -> str:
+    if candidate.get("form_value"):
+        return str(candidate.get("form_value"))
+
+    return json.dumps(
+        {
+            "old_entity": candidate.get("old_entity", ""),
+            "entity": candidate.get("entity", ""),
+            "dataset": candidate.get("dataset", ""),
+            "old_reference": candidate.get("old_reference", ""),
+            "new_reference": candidate.get("new_reference", ""),
+            "match_type": candidate.get("match_type", ""),
+            "notes": candidate.get("notes")
+            or "Redirect duplicate entity selected in Assign Entities",
+        },
+        separators=(",", ":"),
+    )
+
+
+def _prepare_duplicate_candidates(candidates: list[dict]) -> list[dict]:
+    return [
+        {
+            **candidate,
+            "auto_select": _dedup_candidate_auto_select(candidate),
+            "form_value": _dedup_candidate_form_value(candidate),
+        }
+        for candidate in candidates
+    ]
 
 
 def _count_categories(rows: list) -> dict:
@@ -566,6 +619,7 @@ def handle_check_transform(
     params = req.get("params") or {}
     organisation_code = params.get("organisationName") or params.get("organisation", "")
     dataset_id = params.get("dataset", "")
+    is_assign_entities = transform_endpoint == "assign_entities.flagged_resource_detail"
     resource_hash = params.get("resource", "")
     organisation_display = get_organisation_name(organisation_code)
     dataset_display = get_dataset_name(dataset_id, default=dataset_id)
@@ -607,6 +661,11 @@ def handle_check_transform(
     source_summary = response_data.get("source-summary") or {}
     existing_endpoints = _resolve_existing_endpoints(source_summary)
     pipelines_append_required = source_summary.get("pipelines_append_required")
+    pipeline_summary = response_data.get("pipeline-summary") or {}
+    show_dedup_tab = is_assign_entities and dataset_id == "conservation-area"
+    duplicate_candidates = _prepare_duplicate_candidates(
+        pipeline_summary.get("duplicate-candidates") or [] if show_dedup_tab else []
+    )
 
     # Calculate pagination for transformed facts and issue logs, and for entities.
     page_number = max(1, int(flask_request.args.get("page_number", 1)))
@@ -687,6 +746,14 @@ def handle_check_transform(
         endpoint_url=endpoint_url,
         documentation_url=documentation_url,
         resource_hash=resource_hash,
+        show_dedup_tab=show_dedup_tab,
+        duplicate_candidates=duplicate_candidates,
+        planning_entity_base_url=(
+            current_app.config.get(
+                "PLANNING_BASE_URL", "https://www.planning.data.gov.uk"
+            ).rstrip("/")
+            + "/entity"
+        ),
         geometries=geometries,
         geometry_points=geometry_points,
         boundary_geojson=boundary_geojson,

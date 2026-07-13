@@ -1,6 +1,8 @@
 from unittest.mock import patch
 
 from application.blueprints.datamanager.services.github import GitHubWorkflowError
+from application.db.models import RequestMeta
+from application.extensions import db
 
 PENDING_ADD_DATA_RESULT = {
     "status": "PENDING",
@@ -18,6 +20,40 @@ class TestEntitiesPreviewRoute:
             response = client.get("/datamanager/add-data/test-id/entities")
         assert response.status_code == 200
         assert b"Preparing entities preview" in response.data
+
+    def test_renders_old_entity_redirect_table(self, client):
+        db.session.add(
+            RequestMeta(
+                request_id="test-id",
+                entity_redirects=(
+                    '[{"old_entity":"100","entity":"200",'
+                    '"dataset":"conservation-area"}]'
+                ),
+            )
+        )
+        db.session.commit()
+        result = {
+            "status": "COMPLETE",
+            "params": {"dataset": "conservation-area", "authoritative": False},
+            "response": {
+                "data": {
+                    "pipeline-summary": {"new-in-resource": 0},
+                    "endpoint-summary": {},
+                    "source-summary": {},
+                }
+            },
+        }
+        with patch(
+            "application.blueprints.datamanager.router.fetch_request",
+            return_value=result,
+        ):
+            response = client.get("/datamanager/add-data/test-id/entities")
+
+        assert response.status_code == 200
+        assert b"old-entity.csv" in response.data
+        assert b"100" in response.data
+        assert b"301" in response.data
+        assert b"200" in response.data
 
 
 class TestAddDataConfirmRoute:
@@ -79,3 +115,33 @@ class TestAddDataConfirmRoute:
             response = client.post("/datamanager/add-data/test-id/confirm-async")
         assert response.status_code == 200
         assert b"govuk-error-summary" in response.data
+
+    def test_confirm_passes_entity_redirects_to_workflow(self, client):
+        db.session.add(
+            RequestMeta(
+                request_id="confirm-redirect-id",
+                entity_redirects=(
+                    '[{"old_entity":"100","entity":"200",'
+                    '"dataset":"conservation-area"}]'
+                ),
+            )
+        )
+        db.session.commit()
+        with client.session_transaction() as sess:
+            sess["user"] = {"login": "test-user"}
+        with patch(
+            "application.blueprints.datamanager.controllers.preview.trigger_add_data_async_workflow",
+            return_value={"success": True, "message": "Workflow triggered"},
+        ) as trigger:
+            response = client.post(
+                "/datamanager/add-data/confirm-redirect-id/confirm-async"
+            )
+
+        assert response.status_code == 200
+        assert trigger.call_args.kwargs["entity_redirects"] == [
+            {
+                "old_entity": "100",
+                "entity": "200",
+                "dataset": "conservation-area",
+            }
+        ]

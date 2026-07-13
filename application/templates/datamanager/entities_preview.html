@@ -194,6 +194,19 @@
     </div>
     {% endif %}
 
+    <!-- Old Entity Summary -->
+    {% if old_entity_redirect_table_params %}
+    <div class="govuk-!-margin-bottom-6">
+      <h2 class="govuk-heading-m"><u>Old Entity Summary</u></h2>
+      <div style="border: 1px solid #b1b4b6; padding: 20px;">
+        <h3 class="govuk-heading-s">old-entity.csv</h3>
+        <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
+          {{ table(old_entity_redirect_table_params) }}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <div class="govuk-button-group">
       <form method="post" action="{{ url_for('datamanager.add_data_confirm_async', request_id=request_id) }}">
         <input type="hidden" name="github_branch" value="{{ github_branch or '' }}">

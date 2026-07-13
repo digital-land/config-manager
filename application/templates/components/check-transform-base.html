@@ -84,6 +84,7 @@
         <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
           <a class="govuk-tabs__tab" href="#entities-table">Entities</a>
         </li>
+        {% block extra_tabs scoped %}{% endblock %}
         <li class="govuk-tabs__list-item">
           <a class="govuk-tabs__tab" href="#transformed-table">Transformed</a>
         </li>
@@ -167,6 +168,8 @@
         {{ govukPagination(entity_pagination_params) }}
         {% endif %}
       </div>
+
+      {% block extra_panels scoped %}{% endblock %}
 
       <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="transformed-table">
         <p class="govuk-hint govuk-!-margin-bottom-4">The individual facts extracted from the submitted data by the pipeline <b>with entity lookup enabled</b>.</p>
