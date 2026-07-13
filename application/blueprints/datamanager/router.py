@@ -41,6 +41,7 @@ from .controllers.preview import (
     handle_add_data_confirm,
 )
 from .controllers.transform import handle_check_transform
+from .services.duplicates import parse_selected_redirects
 from .services.async_api import (
     AsyncAPIError,
     fetch_request,
@@ -310,6 +311,27 @@ def flagged_resource_detail(request_id):
         return render_template("datamanager/error.html", message=e.message)
 
 
+def flagged_resource_detail_post(request_id):
+    req = fetch_request(request_id)
+    response_data = (req.get("response") or {}).get("data") or {}
+    pipeline_summary = response_data.get("pipeline-summary") or {}
+    duplicate_candidates = pipeline_summary.get("duplicate-candidates") or []
+    redirects = parse_selected_redirects(
+        request.form.getlist("entity_redirects"), duplicate_candidates
+    )
+    meta = db.session.get(RequestMeta, request_id)
+    if meta is None:
+        meta = RequestMeta(
+            request_id=request_id,
+            entity_redirects=json.dumps(redirects),
+        )
+        db.session.add(meta)
+    else:
+        meta.entity_redirects = json.dumps(redirects)
+    db.session.commit()
+    return redirect(url_for("datamanager.entities_preview", request_id=request_id))
+
+
 datamanager_bp.add_url_rule("/", view_func=dashboard_get, methods=["GET"])
 datamanager_bp.add_url_rule("/", view_func=dashboard_add, methods=["POST"])
 datamanager_bp.add_url_rule(
@@ -365,4 +387,9 @@ assign_entities_bp.add_url_rule(
     "/check-results/<request_id>",
     view_func=flagged_resource_detail,
     methods=["GET"],
+)
+assign_entities_bp.add_url_rule(
+    "/check-results/<request_id>",
+    view_func=flagged_resource_detail_post,
+    methods=["POST"],
 )

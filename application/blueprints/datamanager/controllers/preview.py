@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import date
 
 from flask import (
     render_template,
@@ -26,6 +27,54 @@ from ..utils.csv_formats import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _load_json_list(value: str | None) -> list:
+    if not value:
+        return []
+    try:
+        loaded = json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return []
+    return loaded if isinstance(loaded, list) else []
+
+
+def build_old_entity_redirect_table(entity_redirects: list[dict]) -> dict | None:
+    if not entity_redirects:
+        return None
+
+    columns = [
+        "old-entity",
+        "status",
+        "entity",
+        "notes",
+        "end-date",
+        "entry-date",
+        "start-date",
+    ]
+    entry_date = date.today().isoformat()
+    rows = []
+    for redirect in entity_redirects:
+        row = {
+            "old-entity": str(redirect.get("old_entity", "")),
+            "status": "301",
+            "entity": str(redirect.get("entity", "")),
+            "notes": str(
+                redirect.get("notes")
+                or "Redirect duplicate entity selected in Assign Entities"
+            ),
+            "end-date": "",
+            "entry-date": entry_date,
+            "start-date": "",
+        }
+        rows.append({"columns": {c: {"value": row[c]} for c in columns}})
+
+    return {
+        "columns": columns,
+        "fields": columns,
+        "rows": rows,
+        "columnNameProcessing": "none",
+    }
 
 
 def handle_entities_preview(request_id, req):
@@ -113,8 +162,12 @@ def handle_entities_preview(request_id, req):
     # Retire endpoint details
     request_meta = db.session.get(RequestMeta, request_id)
     endpoints_to_retire = (
-        json.loads(request_meta.endpoints_to_retire or "[]") if request_meta else []
+        _load_json_list(request_meta.endpoints_to_retire) if request_meta else []
     )
+    entity_redirects = (
+        _load_json_list(request_meta.entity_redirects) if request_meta else []
+    )
+    old_entity_redirect_table_params = build_old_entity_redirect_table(entity_redirects)
     existing_endpoints = (
         source_summary_data.get("existing_endpoint_for_organisation_dataset") or []
     )
@@ -163,6 +216,8 @@ def handle_entities_preview(request_id, req):
         source_flow=source_flow,
         return_url=return_url,
         retire_summary=retire_summary,
+        entity_redirects=entity_redirects,
+        old_entity_redirect_table_params=old_entity_redirect_table_params,
         new_count=int(pipeline_summary.get("new-in-resource") or 0),
         existing_count=int(pipeline_summary.get("existing-in-resource") or 0),
         endpoint_already_exists=endpoint_already_exists,
@@ -188,7 +243,10 @@ def handle_add_data_confirm(
 ):
     request_meta = db.session.get(RequestMeta, request_id)
     endpoints_to_retire = (
-        json.loads(request_meta.endpoints_to_retire or "[]") if request_meta else []
+        _load_json_list(request_meta.endpoints_to_retire) if request_meta else []
+    )
+    entity_redirects = (
+        _load_json_list(request_meta.entity_redirects) if request_meta else []
     )
     try:
         result = trigger_add_data_async_workflow(
@@ -196,6 +254,7 @@ def handle_add_data_confirm(
             triggered_by=f"{session.get('user', {}).get('login', 'unknown')}",
             github_branch=github_branch,
             endpoints_to_retire=endpoints_to_retire,
+            entity_redirects=entity_redirects,
         )
     except GitHubWorkflowError as e:
         logger.exception(f"GitHub async workflow error: {e}")

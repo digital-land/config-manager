@@ -75,3 +75,39 @@ class TestTriggerAddDataAsyncWorkflow:
 
         assert result["success"] is False
         assert result["status_code"] == 422
+
+    def test_includes_entity_redirects_in_payload(self, app):
+        mock_dispatch = Mock()
+        mock_dispatch.status_code = 204
+
+        with app.app_context():
+            app.config["GITHUB_APP_ID"] = "app-id"
+            app.config["GITHUB_APP_INSTALLATION_ID"] = "install-id"
+            app.config["GITHUB_APP_PRIVATE_KEY"] = "key"
+            with patch(
+                "application.blueprints.datamanager.services.github.generate_jwt",
+                return_value="jwt-token",
+            ):
+                with patch(
+                    "application.blueprints.datamanager.services.github.get_installation_token",
+                    return_value="access-token",
+                ):
+                    with patch(
+                        "application.blueprints.datamanager.services.github.requests.post",
+                        return_value=mock_dispatch,
+                    ) as post:
+                        trigger_add_data_async_workflow(
+                            "request-123",
+                            entity_redirects=[
+                                {
+                                    "old_entity": "100",
+                                    "entity": "200",
+                                    "dataset": "conservation-area",
+                                }
+                            ],
+                        )
+
+        payload = post.call_args.kwargs["json"]
+        assert payload["client_payload"]["entity_redirects"] == (
+            '[{"old_entity":"100","entity":"200","dataset":"conservation-area"}]'
+        )
