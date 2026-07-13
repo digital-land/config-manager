@@ -88,7 +88,7 @@ The workflow fetches request data from:
 {ASYNC_API_BASE_URL}/requests/{request_id}
 ```
 
-**Default base URL:** `http://development-pub-async-api-lb-69142969.eu-west-2.elb.amazonaws.com`
+**Default base URL:** `https://pub-async.development.planning.data.gov.uk`
 
 To override, set the `ASYNC_API_BASE_URL` repository variable in GitHub Settings > Secrets and variables > Actions > Variables.
 
