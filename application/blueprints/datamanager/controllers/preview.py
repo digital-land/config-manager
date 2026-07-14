@@ -12,8 +12,13 @@ from application.db.models import RequestMeta
 from application.extensions import db
 
 from . import ControllerError
+from ..services.async_api import fetch_request
 from ..services.github import (
+    config_branch_changed_for_collection,
+    get_branch_head_sha,
     trigger_add_data_async_workflow,
+    wait_for_add_data_workflow_idle,
+    GitHubAppError,
     GitHubWorkflowError,
 )
 from ..services.dataset import get_dataset_name
@@ -133,6 +138,42 @@ def build_old_entity_redirect_table(entity_redirects: list[dict]) -> dict | None
         "rows": rows,
         "columnNameProcessing": "none",
     }
+
+
+def record_branch_baseline(request_id, github_branch):
+    """
+    Capture the config branch HEAD at assessment-submission time so that, when the
+    user later confirms, we can detect whether the branch advanced underneath the
+    assessment (which would make the assigned entity numbers stale).
+
+    Only relevant when submitting onto the shared branch (config-manager-update);
+    a brand-new-branch submission has no shared state to race against. Failures to
+    read the SHA are logged and swallowed - the confirm-time check degrades to a
+    no-op rather than blocking submission.
+    """
+    if not github_branch:
+        return
+    try:
+        # If an add-data workflow is mid-push to the branch, wait for it to settle so
+        # the baseline reflects the state the async worker will actually read. Bounded;
+        # on timeout we proceed anyway and rely on the confirm-time check.
+        wait_for_add_data_workflow_idle()
+        sha = get_branch_head_sha(github_branch)
+    except GitHubAppError as e:
+        logger.warning(
+            "Could not capture branch baseline for %s: %s", request_id, e
+        )
+        return
+    if not sha:
+        return
+
+    meta = db.session.get(RequestMeta, request_id)
+    if meta is None:
+        meta = RequestMeta(request_id=request_id, branch_sha=sha)
+        db.session.add(meta)
+    else:
+        meta.branch_sha = sha
+    db.session.commit()
 
 
 def handle_entities_preview(request_id, req):
@@ -302,6 +343,37 @@ def handle_add_data_confirm(
     entity_redirects = (
         _load_json_list(request_meta.entity_redirects) if request_meta else []
     )
+
+    # Stale-assessment guard: if the config branch has advanced for this collection
+    # since the assessment was taken, the assigned entity numbers may now collide.
+    # Block the confirm and send the user back to re-run. Only applies to the shared
+    # branch, and only when we captured a baseline SHA at submission.
+    baseline_sha = request_meta.branch_sha if request_meta else None
+    if github_branch and baseline_sha:
+        req = fetch_request(request_id)
+        collection = (req.get("params") or {}).get("collection")
+        if collection and config_branch_changed_for_collection(
+            baseline_sha, github_branch, collection
+        ):
+            logger.info(
+                "Blocking stale confirm for request %s: %s advanced for collection %s",
+                request_id,
+                github_branch,
+                collection,
+            )
+            return render_template(
+                "datamanager/add-data-stale.html",
+                collection=collection,
+                github_branch=github_branch,
+                source_flow=source_flow,
+                return_url=return_url
+                or (
+                    url_for("assign_entities.flagged_resources_start")
+                    if source_flow == "assign_entities"
+                    else url_for("datamanager.dashboard_get")
+                ),
+            )
+
     try:
         result = trigger_add_data_async_workflow(
             request_id=request_id,
