@@ -15,7 +15,7 @@ from . import ControllerError
 from ..services.async_api import fetch_request
 from ..services.github import (
     config_branch_changed_for_collection,
-    get_branch_head_sha,
+    get_config_baseline_sha,
     trigger_add_data_async_workflow,
     wait_for_add_data_workflow_idle,
     GitHubAppError,
@@ -158,7 +158,7 @@ def record_branch_baseline(request_id, github_branch):
         # the baseline reflects the state the async worker will actually read. Bounded;
         # on timeout we proceed anyway and rely on the confirm-time check.
         wait_for_add_data_workflow_idle()
-        sha = get_branch_head_sha(github_branch)
+        sha = get_config_baseline_sha(github_branch)
     except GitHubAppError as e:
         logger.warning(
             "Could not capture branch baseline for %s: %s", request_id, e

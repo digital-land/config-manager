@@ -204,6 +204,23 @@ def get_branch_head_sha(branch: str) -> str | None:
         raise GitHubAppError(f"Failed to read HEAD SHA for branch '{branch}': {e}")
 
 
+def get_config_baseline_sha(branch: str) -> str | None:
+    """
+    Return the HEAD SHA to baseline an assessment against: the shared branch if it
+    exists, otherwise ``main``.
+
+    The shared branch (config-manager-update) is created lazily by the first
+    add-data commit, so early in a cycle it may not exist yet. In that case the
+    async worker reads config from ``main``, so we must baseline against ``main``
+    too - otherwise nothing is recorded and the confirm-time check is skipped.
+    """
+    sha = get_branch_head_sha(branch)
+    if sha is None:
+        logger.info(f"Branch '{branch}' not found; baselining against 'main'")
+        sha = get_branch_head_sha("main")
+    return sha
+
+
 def config_branch_changed_for_collection(
     base_sha: str, branch: str, collection: str
 ) -> bool:
@@ -211,16 +228,21 @@ def config_branch_changed_for_collection(
     Decide whether the config branch has moved in a way that affects a collection
     since the assessment was taken at `base_sha`.
 
-    Uses the compare API (base_sha...branch) and returns True if any changed file
-    lives under ``pipeline/{collection}/``. Fails closed (returns True) on any
-    uncertainty - a diverged/force-pushed history, a truncated file list, or an
-    API error - so a stale confirmation is never let through by accident.
+    Uses the compare API (base_sha...head) and returns True if any changed file
+    lives under ``pipeline/{collection}/``. The head is the shared branch if it
+    exists, otherwise ``main`` (the pending commit would land on a branch freshly
+    cut from main). Fails closed (returns True) on any uncertainty - a
+    diverged/force-pushed history, a truncated file list, or an API error - so a
+    stale confirmation is never let through by accident.
     """
     access_token = _get_access_token()
     github_api_base_url = current_app.config["GITHUB_API_BASE_URL"]
+    # If the shared branch doesn't exist yet, compare against main - the branch the
+    # assessment was baselined against and the branch the commit will be cut from.
+    head = branch if get_branch_head_sha(branch) is not None else "main"
     url = (
         f"{github_api_base_url}/repos/digital-land/config/compare/"
-        f"{base_sha}...{branch}"
+        f"{base_sha}...{head}"
     )
 
     try:
@@ -231,7 +253,7 @@ def config_branch_changed_for_collection(
         data = response.json()
     except requests.exceptions.RequestException as e:
         logger.error(
-            f"Compare API failed for {base_sha}...{branch}; failing closed: {e}"
+            f"Compare API failed for {base_sha}...{head}; failing closed: {e}"
         )
         return True
 
@@ -243,7 +265,7 @@ def config_branch_changed_for_collection(
         # "diverged" (force push / rewritten history) or anything unexpected -
         # we cannot reason about it, so treat as changed.
         logger.warning(
-            f"Compare status '{status}' for {base_sha}...{branch}; failing closed"
+            f"Compare status '{status}' for {base_sha}...{head}; failing closed"
         )
         return True
 
@@ -252,7 +274,7 @@ def config_branch_changed_for_collection(
     # cannot be sure the collection is unaffected, so fail closed.
     if len(files) >= 300:
         logger.warning(
-            f"Compare file list truncated for {base_sha}...{branch}; failing closed"
+            f"Compare file list truncated for {base_sha}...{head}; failing closed"
         )
         return True
 

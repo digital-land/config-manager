@@ -85,6 +85,11 @@ class DevelopmentConfig(Config):
     SAFE_URLS = {"localhost:5000"}
     AUTHENTICATION_ON = False
 
+    # Commit dev submissions to a separate long-lived branch so they never touch the
+    # production config-manager-update branch (which auto-merges to main). Still
+    # overridable via the CONFIG_REPO_BRANCH env var.
+    CONFIG_REPO_BRANCH = os.getenv("CONFIG_REPO_BRANCH", "test-config-manager-update")
+
     # Override to load private key from file path for development
     _key_path = os.getenv("GITHUB_APP_PRIVATE_KEY_PATH")
     if _key_path and os.path.exists(_key_path):

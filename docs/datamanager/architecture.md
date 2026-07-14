@@ -6,9 +6,11 @@ This document describes the structure of the `datamanager` blueprint and how to 
 
 ## Directory layout
 
+> Docs for this blueprint live in `docs/datamanager/` (this file, plus `github-add.md` and
+> `stale-check.md`).
+
 ```
 application/blueprints/datamanager/
-├── architecture.md
 ├── router.py               # Blueprint definition, URL rules, auth guard
 ├── config.py               # External API URL builders
 ├── controllers/
