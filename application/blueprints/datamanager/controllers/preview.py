@@ -164,9 +164,7 @@ def record_branch_baseline(request_id, github_branch, check_request_id=None):
         wait_for_add_data_workflow_idle()
         sha = get_config_baseline_sha(github_branch)
     except GitHubAppError as e:
-        logger.warning(
-            "Could not capture branch baseline for %s: %s", request_id, e
-        )
+        logger.warning("Could not capture branch baseline for %s: %s", request_id, e)
         return
     if not sha:
         return

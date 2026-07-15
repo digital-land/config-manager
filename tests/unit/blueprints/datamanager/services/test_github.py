@@ -168,9 +168,7 @@ class TestAddDataWorkflowRunning:
     def _run(self, app, statuses):
         resp = Mock()
         resp.raise_for_status.return_value = None
-        resp.json.return_value = {
-            "workflow_runs": [{"status": s} for s in statuses]
-        }
+        resp.json.return_value = {"workflow_runs": [{"status": s} for s in statuses]}
         jwt_p, token_p = _patch_token()
         with app.app_context():
             _with_app_creds(app)
@@ -246,9 +244,7 @@ class TestWaitForAddDataWorkflowIdle:
             with jwt_p, token_p, patch(
                 "application.blueprints.datamanager.services.github._add_data_workflow_active",
                 return_value=True,
-            ), patch(
-                "application.blueprints.datamanager.services.github.time.sleep"
-            ):
+            ), patch("application.blueprints.datamanager.services.github.time.sleep"):
                 assert (
                     wait_for_add_data_workflow_idle(timeout=5, poll_interval=5) is False
                 )
@@ -270,7 +266,9 @@ class TestGetConfigBaselineSha:
             _with_app_creds(app)
             with patch(
                 "application.blueprints.datamanager.services.github.get_branch_head_sha",
-                side_effect=lambda b: None if b == "config-manager-update" else "main-sha",
+                side_effect=lambda b: (
+                    None if b == "config-manager-update" else "main-sha"
+                ),
             ) as head:
                 assert get_config_baseline_sha("config-manager-update") == "main-sha"
         assert [c.args[0] for c in head.call_args_list] == [

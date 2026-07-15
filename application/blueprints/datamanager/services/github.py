@@ -131,9 +131,7 @@ def _add_data_workflow_active(access_token: str) -> bool:
         f"{_ADD_DATA_WORKFLOW_FILE}/runs?per_page=30"
     )
     try:
-        response = requests.get(
-            url, headers=_github_headers(access_token), timeout=10
-        )
+        response = requests.get(url, headers=_github_headers(access_token), timeout=10)
         response.raise_for_status()
         runs = response.json().get("workflow_runs") or []
     except requests.exceptions.RequestException as e:
@@ -191,9 +189,7 @@ def get_branch_head_sha(branch: str) -> str | None:
     url = f"{github_api_base_url}/repos/digital-land/config/branches/{branch}"
 
     try:
-        response = requests.get(
-            url, headers=_github_headers(access_token), timeout=10
-        )
+        response = requests.get(url, headers=_github_headers(access_token), timeout=10)
         if response.status_code == 404:
             logger.warning(f"Branch '{branch}' not found when reading HEAD SHA")
             return None
@@ -246,15 +242,11 @@ def config_branch_changed_for_collection(
     )
 
     try:
-        response = requests.get(
-            url, headers=_github_headers(access_token), timeout=10
-        )
+        response = requests.get(url, headers=_github_headers(access_token), timeout=10)
         response.raise_for_status()
         data = response.json()
     except requests.exceptions.RequestException as e:
-        logger.error(
-            f"Compare API failed for {base_sha}...{head}; failing closed: {e}"
-        )
+        logger.error(f"Compare API failed for {base_sha}...{head}; failing closed: {e}")
         return True
 
     status = data.get("status")
