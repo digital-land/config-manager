@@ -140,11 +140,15 @@ def build_old_entity_redirect_table(entity_redirects: list[dict]) -> dict | None
     }
 
 
-def record_branch_baseline(request_id, github_branch):
+def record_branch_baseline(request_id, github_branch, check_request_id=None):
     """
     Capture the config branch HEAD at assessment-submission time so that, when the
     user later confirms, we can detect whether the branch advanced underneath the
     assessment (which would make the assigned entity numbers stale).
+
+    Also records `check_request_id` (the check-results request this assessment came
+    from, when there is one) so a blocked confirm can route back to that page to
+    re-transform, rather than to home.
 
     Only relevant when submitting onto the shared branch (config-manager-update);
     a brand-new-branch submission has no shared state to race against. Failures to
@@ -169,10 +173,16 @@ def record_branch_baseline(request_id, github_branch):
 
     meta = db.session.get(RequestMeta, request_id)
     if meta is None:
-        meta = RequestMeta(request_id=request_id, branch_sha=sha)
+        meta = RequestMeta(
+            request_id=request_id,
+            branch_sha=sha,
+            check_request_id=check_request_id,
+        )
         db.session.add(meta)
     else:
         meta.branch_sha = sha
+        if check_request_id:
+            meta.check_request_id = check_request_id
     db.session.commit()
 
 
@@ -361,17 +371,25 @@ def handle_add_data_confirm(
                 github_branch,
                 collection,
             )
+            # Prefer sending the user back to the check-results page they started
+            # from, where they can re-transform; otherwise fall back to home.
+            check_request_id = request_meta.check_request_id if request_meta else None
+            if check_request_id:
+                rerun_url = url_for(
+                    "datamanager.check_results", request_id=check_request_id
+                )
+            else:
+                rerun_url = return_url or (
+                    url_for("assign_entities.flagged_resources_start")
+                    if source_flow == "assign_entities"
+                    else url_for("datamanager.dashboard_get")
+                )
             return render_template(
                 "datamanager/add-data-stale.html",
                 collection=collection,
                 github_branch=github_branch,
                 source_flow=source_flow,
-                return_url=return_url
-                or (
-                    url_for("assign_entities.flagged_resources_start")
-                    if source_flow == "assign_entities"
-                    else url_for("datamanager.dashboard_get")
-                ),
+                return_url=rerun_url,
             )
 
     try:

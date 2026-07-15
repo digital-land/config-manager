@@ -390,7 +390,9 @@ def _submit_add_data_preview(request_id, add_data_fields):
     }
 
     preview_id = submit_request(params)
-    record_branch_baseline(preview_id, params["github_branch"])
+    record_branch_baseline(
+        preview_id, params["github_branch"], check_request_id=request_id
+    )
     return redirect(url_for("datamanager.check_transform", request_id=preview_id))
 
 

@@ -59,8 +59,11 @@ compares the baseline against the current branch state via
   (>=300-file) diff, or any API error, so a possibly-stale result is never let through.
 
 If the branch changed for the collection, the confirm is blocked and the user is shown
-`templates/datamanager/add-data-stale.html` with a "Re-run transform" action. Otherwise the commit
-workflow is triggered as normal.
+`templates/datamanager/add-data-stale.html` with a "Re-run transform" action. When the assessment
+came from a check-results page (the add-data flow records its `check_request_id` on `RequestMeta`),
+that action routes back to `datamanager.check_results` for that id so the user can re-transform;
+otherwise it falls back to the flow's start page or home. The commit workflow is only triggered
+when the branch has not changed.
 
 The check only runs when submitting onto the shared branch **and** a baseline was captured — so
 requests created before this feature (no `branch_sha`) pass through unchanged.

@@ -452,6 +452,9 @@ class RequestMeta(db.Model):
     branch_sha = db.Column(
         db.Text, nullable=True
     )  # config-manager-update HEAD SHA when the assessment was submitted
+    check_request_id = db.Column(
+        db.Text, nullable=True
+    )  # check-results request this assessment came from, for re-run routing
 
 
 class Filter(DateModel, VersionedMixin):
