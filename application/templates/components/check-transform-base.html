@@ -337,7 +337,8 @@
     containerId: "map-container",
     geometries: {{ geometries | tojson | safe }},
     geometryPoints: {{ geometry_points | tojson | safe }},
-    boundaryGeoJsonUrl: {% if boundary_geojson %}{{ boundary_geojson | tojson | safe }}{% else %}null{% endif %}
+    boundaryGeoJsonUrl: {% if boundary_geojson %}{{ boundary_geojson | tojson | safe }}{% else %}null{% endif %},
+    entityFilter: {{ (entity_filter or "") | tojson | safe }}
   };
 </script>
 <script src="{{ url_for('static', filename='javascripts/map.js') }}"></script>
