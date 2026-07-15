@@ -145,15 +145,6 @@ def record_branch_baseline(request_id, github_branch, check_request_id=None):
     Capture the config branch HEAD at assessment-submission time so that, when the
     user later confirms, we can detect whether the branch advanced underneath the
     assessment (which would make the assigned entity numbers stale).
-
-    Also records `check_request_id` (the check-results request this assessment came
-    from, when there is one) so a blocked confirm can route back to that page to
-    re-transform, rather than to home.
-
-    Only relevant when submitting onto the shared branch (config-manager-update);
-    a brand-new-branch submission has no shared state to race against. Failures to
-    read the SHA are logged and swallowed - the confirm-time check degrades to a
-    no-op rather than blocking submission.
     """
     if not github_branch:
         return
@@ -354,8 +345,6 @@ def handle_add_data_confirm(
 
     # Stale-assessment guard: if the config branch has advanced for this collection
     # since the assessment was taken, the assigned entity numbers may now collide.
-    # Block the confirm and send the user back to re-run. Only applies to the shared
-    # branch, and only when we captured a baseline SHA at submission.
     baseline_sha = request_meta.branch_sha if request_meta else None
     if github_branch and baseline_sha:
         req = fetch_request(request_id)
@@ -370,7 +359,6 @@ def handle_add_data_confirm(
                 collection,
             )
             # Prefer sending the user back to the check-results page they started
-            # from, where they can re-transform; otherwise fall back to home.
             check_request_id = request_meta.check_request_id if request_meta else None
             if check_request_id:
                 rerun_url = url_for(
