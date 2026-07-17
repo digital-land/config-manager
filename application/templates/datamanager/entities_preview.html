@@ -207,12 +207,12 @@
     </div>
     {% endif %}
 
-    <div class="govuk-button-group">
-      <form method="post" action="{{ url_for('datamanager.add_data_confirm_async', request_id=request_id) }}">
+    <div class="govuk-button-group" id="confirm-button-group">
+      <form method="post" id="confirm-form" action="{{ url_for('datamanager.add_data_confirm_async', request_id=request_id) }}">
         <input type="hidden" name="github_branch" value="{{ github_branch or '' }}">
         <input type="hidden" name="source_flow" value="{{ source_flow or 'add_data' }}">
         <input type="hidden" name="return_url" value="{{ return_url or url_for('datamanager.dashboard_get') }}">
-        <button type="submit" class="govuk-button" data-module="govuk-button">
+        <button type="submit" class="govuk-button" data-module="govuk-button" id="confirm-submit">
           {% if github_branch %}Add to existing branch on GitHub{% else %}Create new branch and Add to GitHub{% endif %}
         </button>
       </form>
@@ -221,6 +221,30 @@
         <a href="{{ url_for('datamanager.dashboard_get') }}" class="govuk-button govuk-button--secondary">Go Back</a>
       </form>
     </div>
+
+    <div id="confirm-loading" role="status" aria-live="polite" hidden>
+      <h2 class="govuk-heading-m govuk-!-margin-top-3">Submitting…</h2>
+      <p class="govuk-body">Checking the configuration hasn't changed since your transform, then submitting to GitHub.</p>
+      <p class="govuk-body">This should only take a moment — please don't close this page.</p>
+    </div>
   </div>
 </div>
+
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
+  (function () {
+    var form = document.getElementById("confirm-form");
+    if (!form) return;
+    form.addEventListener("submit", function () {
+      var button = document.getElementById("confirm-submit");
+      if (button) {
+        button.disabled = true;
+        button.setAttribute("aria-disabled", "true");
+      }
+      var group = document.getElementById("confirm-button-group");
+      if (group) group.hidden = true;
+      var loading = document.getElementById("confirm-loading");
+      if (loading) loading.hidden = false;
+    });
+  })();
+</script>
 {% endblock %}

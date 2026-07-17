@@ -149,10 +149,8 @@ def record_branch_baseline(request_id, github_branch, check_request_id=None):
     if not github_branch:
         return
     try:
-        # If an add-data workflow is mid-push to the branch, wait for it to settle so
-        # the baseline reflects the state the async worker will actually read. Bounded;
-        # on timeout we proceed anyway and rely on the confirm-time check.
-        wait_for_add_data_workflow_idle()
+        # Quick HEAD read only - the workflow-idle wait happens at confirm time (the
+        # decision point), so submission stays fast.
         sha = get_config_baseline_sha(github_branch)
     except GitHubAppError as e:
         logger.warning("Could not capture branch baseline for %s: %s", request_id, e)
@@ -347,6 +345,10 @@ def handle_add_data_confirm(
     # since the assessment was taken, the assigned entity numbers may now collide.
     baseline_sha = request_meta.branch_sha if request_meta else None
     if github_branch and baseline_sha:
+        # Wait for any in-flight add-data workflow to finish so the compare reads a
+        # settled branch (not a mid-push state). Bounded; on timeout we proceed and
+        # the fail-closed compare below is the backstop.
+        wait_for_add_data_workflow_idle()
         req = fetch_request(request_id)
         collection = (req.get("params") or {}).get("collection")
         if collection and config_branch_changed_for_collection(

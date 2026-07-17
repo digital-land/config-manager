@@ -1,14 +1,17 @@
 {% extends 'layouts/base.html' %}
 
-{%- from "govuk_frontend_jinja/components/notification-banner/macro.html" import govukNotificationBanner -%}
-
 {% block content %}
 <div class="govuk-width-container">
   <main class="govuk-main-wrapper" id="main-content" role="main">
 
-    {{ govukNotificationBanner({
-      "html": "<h3 class=\"govuk-notification-banner__heading\">This transform is out of date</h3><p class=\"govuk-body\">The configuration has changed since this transform was run, so it was not submitted.</p>"
-    }) }}
+    <div class="govuk-error-summary" data-module="govuk-error-summary">
+      <div role="alert">
+        <h2 class="govuk-error-summary__title">This transform is out of date</h2>
+        <div class="govuk-error-summary__body">
+          <p class="govuk-body">The configuration has changed since this transform was run, so it was not submitted.</p>
+        </div>
+      </div>
+    </div>
 
     <h1 class="govuk-heading-l">Re-run the transform to continue</h1>
 

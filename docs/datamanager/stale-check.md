@@ -37,18 +37,23 @@ Behaviour:
   `get_config_baseline_sha` (`services/github.py`) baselines against `main` instead — which is
   what the async worker reads when the branch is absent. Without this the baseline would be empty
   and the check would silently do nothing.
-- **Wait for in-flight commits.** If an `add-data-async-script` workflow is mid-push when we read
-  HEAD, the baseline would capture a commit the worker has not seen yet. So we first wait
-  (bounded) for any active run to finish — `wait_for_add_data_workflow_idle` /
-  `add_data_workflow_running` (`services/github.py`). This is a no-op in the common case and
-  capped so it never hangs the request.
+- **Fast.** Submission only reads the branch HEAD (one API call) — it does not wait on any
+  in-flight workflow, so the submit request never hangs. The workflow-idle wait happens at confirm
+  (the decision point) instead.
 - **Fails open.** Any error reading the SHA is logged and skipped rather than blocking the
   submission.
 
 ### 2. Check at confirmation
 
-Before triggering the commit workflow, `handle_add_data_confirm` (`controllers/preview.py`)
-compares the baseline against the current branch state via
+Before triggering the commit workflow, `handle_add_data_confirm` (`controllers/preview.py`) first
+**waits for any in-flight `add-data-async-script` workflow to finish** (`wait_for_add_data_workflow_idle`
+/ `add_data_workflow_running`, `services/github.py`) so the comparison reads a settled branch and
+not a mid-push state. This is a no-op in the common case and bounded by
+`ADD_DATA_WORKFLOW_WAIT_TIMEOUT`; on timeout it proceeds and the fail-closed compare below is the
+backstop. During this wait the confirm page shows a "Submitting…" loading panel
+(`templates/datamanager/entities_preview.html`) so it never looks stuck.
+
+It then compares the baseline against the current branch state via
 `config_branch_changed_for_collection` (`services/github.py`):
 
 - Uses the GitHub compare API, `GET /repos/digital-land/config/compare/{baseline_sha}...{head}`.
@@ -75,18 +80,19 @@ In `config/config.py`:
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `CONFIG_REPO_BRANCH` | `config-manager-update` (prod), `test-config-manager-update` (dev) | Shared branch to commit to / check against |
-| `ADD_DATA_WORKFLOW_WAIT_TIMEOUT` | `60` (seconds) | Max wait for an in-flight workflow before capturing HEAD |
+| `ADD_DATA_WORKFLOW_WAIT_TIMEOUT` | `60` (seconds) | Max wait at confirm for an in-flight workflow before comparing |
 | `ADD_DATA_WORKFLOW_POLL_INTERVAL` | `5` (seconds) | Poll interval while waiting |
 
 The gunicorn `--timeout` in the `Procfile` (120s) is kept comfortably above the wait timeout so a
-web worker is not killed mid-wait.
+web worker is not killed while the confirm request waits.
 
 ## Design intent
 
-- Correctness lives in the confirm-time check, which **fails closed**.
-- The submission-side pieces (baseline capture, workflow-wait, main fallback) only exist to keep
-  the baseline accurate and cut false-positive re-run prompts; they **fail open** so they can
-  never block a submission over an infrastructure hiccup.
+- Correctness lives in the confirm-time check, which **waits for the workflow to settle** and then
+  **fails closed**.
+- The submission-side pieces (baseline capture with the main fallback) only exist to keep the
+  baseline accurate; they **fail open** so they can never block a submission over an infrastructure
+  hiccup, and they do no blocking work so the submit stays fast.
 
 ## Related
 
