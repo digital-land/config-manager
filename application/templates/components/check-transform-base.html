@@ -131,6 +131,18 @@
           <table class="govuk-table dl-table app-table">
             <thead class="govuk-table__head">
               <tr class="govuk-table__row">
+                {% if is_assign_entities %}
+                <th scope="col" class="govuk-table__header app-checkbox-header">
+                  <div class="govuk-checkboxes govuk-checkboxes--small app-checkboxes--table-header" data-module="govuk-checkboxes">
+                    <div class="govuk-checkboxes__item">
+                      <input class="govuk-checkboxes__input" id="entity-select-all" type="checkbox">
+                      <label class="govuk-label govuk-checkboxes__label" for="entity-select-all">
+                        <span class="govuk-visually-hidden">Select all new entities</span>
+                      </label>
+                    </div>
+                  </div>
+                </th>
+                {% endif %}
                 {% for col in entities_data.columns %}
                 <th scope="col" class="govuk-table__header">{{ col }}</th>
                 {% endfor %}
@@ -143,6 +155,22 @@
               {% elif row.category == 'new' %}{% set _row_bg = '#d4edda' %}
               {% else %}{% set _row_bg = '#d0e4f7' %}{% endif %}
               <tr class="govuk-table__row" style="background-color: {{ _row_bg }};">
+                {% if is_assign_entities %}
+                {% set selection = row.entity_selection or {} %}
+                <td class="govuk-table__cell">
+                  <div class="govuk-checkboxes govuk-checkboxes--small app-checkboxes--table-header" data-module="govuk-checkboxes">
+                    <div class="govuk-checkboxes__item">
+                      {% if selection.can_select %}
+                      <input type="hidden" name="visible_selected_entities" value="{{ selection.form_value | e }}" form="duplicate-redirect-form">
+                      {% endif %}
+                      <input class="govuk-checkboxes__input entity-selection-checkbox" id="selected-entity-{{ loop.index }}" name="selected_entities" type="checkbox" value="{{ selection.form_value | e }}" form="duplicate-redirect-form" {% if selection.selected %}checked{% endif %} {% if not selection.can_select %}disabled{% endif %}>
+                      <label class="govuk-label govuk-checkboxes__label" for="selected-entity-{{ loop.index }}">
+                        <span class="govuk-visually-hidden">Select entity {{ row.fields.entity }}</span>
+                      </label>
+                    </div>
+                  </div>
+                </td>
+                {% endif %}
                 {% for col in entities_data.columns %}
                 {% set _changed = row.changed_fields and col in row.changed_fields %}
                 <td class="govuk-table__cell app-wrap{% if _changed %} app-cell-changed{% endif %}"{% if _changed %} title="Platform value: {{ row.changed_fields[col] }}" data-platform-value="Platform value: {{ row.changed_fields[col] }}"{% endif %}>
@@ -155,6 +183,17 @@
             </tbody>
           </table>
         </div>
+        {% if is_assign_entities %}
+        {% set selected_entity_count = entities_data.rows | selectattr('entity_selection.selected') | list | length %}
+        {% set selectable_entity_count = entities_data.rows | selectattr('entity_selection.can_select') | list | length %}
+        <p class="govuk-!-margin-top-2" id="entity-selected-count" style="white-space: nowrap;">
+          {% if selectable_entity_count %}
+          {{ selected_entity_count }} of {{ selectable_entity_count }} {{ 'entity' if selectable_entity_count == 1 else 'entities' }} selected for assignment
+          {% else %}
+          No entities available for assignment
+          {% endif %}
+        </p>
+        {% endif %}
         {% elif entity_search or entity_filter %}
         <p class="govuk-body">No entities match your search or filter.</p>
         {% else %}
@@ -330,6 +369,135 @@
 {% endblock %}
 
 {% block pageScripts %}{{ super() }}
+<style {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
+  .app-checkbox-header {
+    padding-bottom: 10px;
+    padding-top: 10px;
+    text-align: center;
+    width: 24px;
+  }
+  .app-checkboxes--table-header {
+    display: inline-block;
+    height: 24px;
+    margin: 0;
+    vertical-align: middle;
+    width: 24px;
+  }
+  .app-checkboxes--table-header .govuk-checkboxes__item {
+    display: block;
+    height: 24px;
+    min-height: 24px;
+    position: relative;
+    width: 24px;
+  }
+  .app-checkboxes--table-header .govuk-checkboxes__input {
+    height: 24px;
+    left: 0;
+    margin: 0;
+    position: absolute;
+    top: 0;
+    width: 24px;
+  }
+  .app-checkboxes--table-header .govuk-checkboxes__label::before {
+    left: 0;
+    top: 0;
+  }
+  .app-checkboxes--table-header .govuk-checkboxes__label::after {
+    left: 6px;
+    top: 7px;
+  }
+  .app-checkboxes--table-header .govuk-checkboxes__label {
+    display: block;
+    height: 24px;
+    min-height: 0;
+    max-width: none;
+    padding: 0;
+    width: 24px;
+  }
+</style>
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
+  var entitySelectedCount = document.getElementById('entity-selected-count');
+  var entityCheckboxes = document.querySelectorAll('.entity-selection-checkbox');
+  var duplicateCheckboxesForSelection = document.querySelectorAll('.duplicate-checkbox');
+  var entitySelectAllCheckbox = document.getElementById('entity-select-all');
+  var entitySelectionChanged = document.getElementById('entity-selection-changed');
+  var entitySelectionSubmit = document.getElementById('entity-selection-submit');
+  var initialEntitySelection = Array.prototype.map.call(entityCheckboxes, function(checkbox) {
+    return !checkbox.disabled && checkbox.checked ? checkbox.value : null;
+  }).filter(Boolean).sort().join('|');
+  var initialRedirectSelection = Array.prototype.map.call(duplicateCheckboxesForSelection, function(checkbox) {
+    return !checkbox.disabled && checkbox.checked ? checkbox.value : null;
+  }).filter(Boolean).sort().join('|');
+  function currentRedirectSelection() {
+    return Array.prototype.map.call(duplicateCheckboxesForSelection, function(checkbox) {
+      return !checkbox.disabled && checkbox.checked ? checkbox.value : null;
+    }).filter(Boolean).sort().join('|');
+  }
+  function darkenRowColour(colour) {
+    var match = (colour || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (!match) return colour || '';
+    var amount = 18;
+    return 'rgb(' + [1, 2, 3].map(function(index) {
+      return Math.max(0, Number(match[index]) - amount);
+    }).join(', ') + ')';
+  }
+  function updateEntitySelection() {
+    if (!entitySelectedCount || !entityCheckboxes.length) return;
+    var count = 0;
+    var selectableCount = 0;
+    var selectableSelectedCount = 0;
+    var currentSelection = [];
+    entityCheckboxes.forEach(function(checkbox) {
+      var row = checkbox.closest('.govuk-table__row');
+      if (row && row.dataset.originalBackground === undefined) {
+        row.dataset.originalBackground = row.style.backgroundColor || '';
+      }
+      if (!checkbox.disabled) {
+        selectableCount += 1;
+        if (checkbox.checked) selectableSelectedCount += 1;
+      }
+      if (checkbox.checked && !checkbox.disabled) {
+        count += 1;
+        currentSelection.push(checkbox.value);
+        if (row) row.style.backgroundColor = darkenRowColour(row.dataset.originalBackground);
+      } else if (row && checkbox.disabled === false) {
+        row.style.backgroundColor = row.dataset.originalBackground || '';
+      }
+    });
+    entitySelectedCount.textContent = selectableCount
+      ? count + ' of ' + selectableCount + ' ' + (selectableCount === 1 ? 'entity' : 'entities') + ' selected for assignment'
+      : 'No entities available for assignment';
+    if (entitySelectAllCheckbox) {
+      entitySelectAllCheckbox.checked = selectableCount > 0 && selectableSelectedCount === selectableCount;
+      entitySelectAllCheckbox.indeterminate = selectableSelectedCount > 0 && selectableSelectedCount < selectableCount;
+      entitySelectAllCheckbox.disabled = selectableCount === 0;
+    }
+    var selectionChanged = currentSelection.sort().join('|') !== initialEntitySelection
+      || currentRedirectSelection() !== initialRedirectSelection;
+    if (entitySelectionChanged) {
+      entitySelectionChanged.value = selectionChanged ? 'true' : 'false';
+    }
+    if (entitySelectionSubmit) {
+      entitySelectionSubmit.textContent = selectionChanged ? 'Process entities' : 'Continue to preview';
+    }
+  }
+  window.updateEntitySelectionState = updateEntitySelection;
+  entityCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', updateEntitySelection);
+  });
+  duplicateCheckboxesForSelection.forEach(function(checkbox) {
+    checkbox.addEventListener('change', updateEntitySelection);
+  });
+  if (entitySelectAllCheckbox) {
+    entitySelectAllCheckbox.addEventListener('change', function() {
+      entityCheckboxes.forEach(function(checkbox) {
+        if (!checkbox.disabled) checkbox.checked = entitySelectAllCheckbox.checked;
+      });
+      updateEntitySelection();
+    });
+  }
+  updateEntitySelection();
+</script>
 <script src="{{ url_for('static', filename='javascripts/entity-table-tooltip.js') }}"></script>
 {% if geometries %}
 <script>

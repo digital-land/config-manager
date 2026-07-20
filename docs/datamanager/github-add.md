@@ -34,7 +34,6 @@ The trigger lives in `services/github.py` (`trigger_add_data_async_workflow`, ca
     "triggered_by": "your-name-or-system",
     "branch": "config-manager-update",
     "retire_endpoints": "hash1,hash2",
-    "entity_redirects": "[{\"old_entity\":\"100\",\"entity\":\"200\"}]",
     "environment": "production"
   }
 }
@@ -47,7 +46,6 @@ The trigger lives in `services/github.py` (`trigger_add_data_async_workflow`, ca
 | `client_payload.triggered_by` | no | Who/what triggered it (used in commit/PR content) |
 | `client_payload.branch` | no | Target branch — see [Branch behaviour](#branch-behaviour) |
 | `client_payload.retire_endpoints` | no | Comma-separated endpoint hashes to end-date |
-| `client_payload.entity_redirects` | no | JSON list of old→new entity redirects |
 | `client_payload.environment` | no | Async API environment: `development` \| `staging` \| `production` (default `staging`) |
 
 The branch config-manager sends is its `CONFIG_REPO_BRANCH` setting — `config-manager-update` in
@@ -111,7 +109,7 @@ URL is resolved from the `environment` in the payload:
     "data": {
       "endpoint-summary": { "new_endpoint_entry": {}, "endpoint_url_in_endpoint_csv": false },
       "source-summary": { "new_source_entry": {}, "documentation_url_in_source_csv": false },
-      "pipeline-summary": { "new-entities": [], "entity-organisation": [] }
+      "pipeline-summary": { "new-entities": [], "entity-organisation": [], "old-entity": [] }
     },
     "error": null
   }
@@ -127,7 +125,7 @@ URL is resolved from the `environment` in the payload:
 | `pipeline/{collection}/lookup.csv` | `pipeline-summary.new-entities` | array non-empty |
 | `pipeline/{collection}/column.csv` | `params.column_mapping` | mapping non-empty |
 | `pipeline/{collection}/entity-organisation.csv` | `pipeline-summary.entity-organisation` | `params.authoritative` true, and not an overlap/error |
-| `pipeline/{collection}/old-entity.csv` | `client_payload.entity_redirects` | redirects provided |
+| `pipeline/{collection}/old-entity.csv` | `pipeline-summary.old-entity` | array non-empty |
 
 Retiring endpoints (`retire_endpoints`) does not append rows — it sets `end-date` on the matching
 rows in `collection/{collection}/endpoint.csv` and `source.csv`.
@@ -148,4 +146,6 @@ The workflow fails if `request_id` is empty, the request cannot be fetched, its 
 
 - [stale-check.md](stale-check.md) — how config-manager avoids committing stale entity numbers when
   the branch advances between assessment and confirmation.
+- [Assign Entities architecture](../assign-entities/architecture.md) — how Assign Entities
+  selections are sent to async.
 - [architecture.md](architecture.md) — the datamanager blueprint structure.

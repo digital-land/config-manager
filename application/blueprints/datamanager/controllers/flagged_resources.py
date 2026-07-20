@@ -348,7 +348,12 @@ def _get_resource_organisation(resource, dataset_id):
 
 
 def _submit_assign_entities_request(
-    dataset_input, resource, organisation=None, return_endpoint=None
+    dataset_input,
+    resource,
+    organisation=None,
+    return_endpoint=None,
+    selected_entities=None,
+    selected_redirects=None,
 ):
     dataset_id, collection_id = _resolve_dataset_and_collection(dataset_input)
     organisation = organisation or _get_resource_organisation(resource, dataset_id)
@@ -365,6 +370,10 @@ def _submit_assign_entities_request(
         params["organisation"] = organisation
     if return_endpoint:
         params["return_endpoint"] = return_endpoint
+    if selected_entities is not None:
+        params["selected_entities"] = selected_entities
+    if selected_redirects is not None:
+        params["selected_redirects"] = selected_redirects
     preview_id = submit_request(params)
     record_branch_baseline(preview_id, params["github_branch"])
     return preview_id

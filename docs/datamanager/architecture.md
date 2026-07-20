@@ -7,7 +7,8 @@ This document describes the structure of the `datamanager` blueprint and how to 
 ## Directory layout
 
 > Docs for this blueprint live in `docs/datamanager/` (this file, plus `github-add.md` and
-> `stale-check.md`).
+> `stale-check.md`). Assign Entities has its own workflow docs in
+> `docs/assign-entities/architecture.md`.
 
 ```
 application/blueprints/datamanager/

@@ -220,6 +220,129 @@ def _build_entities_data(resp_details: list, platform_entities: list) -> dict:
     return {"columns": columns, "rows": rows}
 
 
+def _entity_candidate_reference_key(entity: dict) -> tuple:
+    return (
+        str(entity.get("organisation", "")).strip(),
+        str(entity.get("reference", "")).strip(),
+    )
+
+
+def _add_all_entity_candidates(entities_data: dict, all_entities: list) -> dict:
+    if not all_entities:
+        return entities_data
+
+    columns = list(entities_data.get("columns") or [])
+    for priority_col in _ENTITY_COL_PRIORITY:
+        if priority_col not in columns:
+            columns.append(priority_col)
+    for entity in all_entities:
+        if not isinstance(entity, dict):
+            continue
+        for col in entity:
+            if col not in _ENTITY_COL_EXCLUDE and col not in columns:
+                columns.append(col)
+
+    existing_entity_ids = {
+        _normalise_entity_id((row.get("fields") or {}).get("entity", ""))
+        for row in entities_data.get("rows", [])
+        if _normalise_entity_id((row.get("fields") or {}).get("entity", ""))
+    }
+    existing_reference_keys = {
+        _entity_candidate_reference_key(row.get("fields") or {})
+        for row in entities_data.get("rows", [])
+        if all(_entity_candidate_reference_key(row.get("fields") or {}))
+    }
+    rows = list(entities_data.get("rows", []))
+    for entity in all_entities:
+        if not isinstance(entity, dict):
+            continue
+        entity_id = _normalise_entity_id(entity.get("entity", ""))
+        reference_key = _entity_candidate_reference_key(entity)
+        if entity_id and entity_id in existing_entity_ids:
+            continue
+        if all(reference_key) and reference_key in existing_reference_keys:
+            continue
+        rows.append(
+            {
+                "fields": {col: str(entity.get(col, "")) for col in columns},
+                "category": "new",
+                "changed_fields": {},
+            }
+        )
+        if entity_id:
+            existing_entity_ids.add(entity_id)
+        if all(reference_key):
+            existing_reference_keys.add(reference_key)
+
+    return {"columns": columns, "rows": rows}
+
+
+def _normalise_selected_entities(selected_entities) -> set:
+    """Return selected entity keys from async request params.
+
+    A missing or empty param is handled by callers as "all new entities"; this
+    function returns only explicit organisation/reference selections.
+    """
+    if not selected_entities:
+        return set()
+    if not isinstance(selected_entities, list):
+        return set()
+    return {
+        (
+            str(entity.get("organisation", "")).strip(),
+            str(entity.get("reference", "")).strip(),
+        )
+        for entity in selected_entities
+        if isinstance(entity, dict)
+        and entity.get("organisation")
+        and entity.get("reference")
+    }
+
+
+def _entity_selection_form_value(organisation: str, reference: str) -> str:
+    return json.dumps(
+        {
+            "organisation": organisation,
+            "reference": reference,
+        },
+        separators=(",", ":"),
+    )
+
+
+def _add_assign_entities_selection_metadata(
+    entities_data: dict,
+    organisation: str,
+    selected_entities,
+) -> dict:
+    """Add checkbox metadata to Assign Entities rows.
+
+    Only rows categorised as new can be assigned entity numbers. If async did
+    not receive explicit selected_entities, every selectable new row starts
+    checked; otherwise only matching organisation/reference pairs start checked.
+    """
+    selected_entity_keys = _normalise_selected_entities(selected_entities)
+    select_all_new = not selected_entity_keys
+
+    for row in entities_data.get("rows", []):
+        fields = row.get("fields") or {}
+        reference = str(fields.get("reference", "")).strip()
+        can_select = row.get("category") == "new" and bool(reference)
+        selected = can_select and (
+            select_all_new or (organisation, reference) in selected_entity_keys
+        )
+        row["entity_selection"] = {
+            "can_select": can_select,
+            "selected": selected,
+            "form_value": (
+                _entity_selection_form_value(organisation, reference)
+                if reference
+                else ""
+            ),
+        }
+
+    return entities_data
+
+
 def _entity_row_matches_search(row: dict, search_query: str) -> bool:
     if not search_query:
         return True
@@ -235,26 +358,59 @@ def _entity_row_matches_filter(row: dict, category_filter: str) -> bool:
     return row.get("category") == category_filter
 
 
-def _name_similarity_percent(value) -> float:
-    if value in (None, ""):
-        return 0
-    try:
-        similarity = float(str(value).strip().rstrip("%"))
-    except (TypeError, ValueError):
-        return 0
-    return similarity * 100 if 0 < similarity <= 1 else similarity
+def _dedup_candidate_redirect_key(candidate: dict) -> tuple[str, str]:
+    return (
+        str(candidate.get("old_entity", "") or "").strip(),
+        str(candidate.get("entity", "") or "").strip(),
+    )
 
 
-def _dedup_candidate_auto_select(candidate: dict) -> bool:
-    if candidate.get("old_entity_redirects"):
-        return False
+def _old_entity_redirect_key(row: dict) -> tuple[str, str]:
+    return (
+        str(row.get("old-entity", "") or row.get("old_entity", "") or "").strip(),
+        str(row.get("entity", "") or "").strip(),
+    )
 
-    match_type = str(candidate.get("match_type", "")).replace(" ", "_").lower()
-    if match_type == "complete_match":
-        return True
-    if match_type != "single_match":
-        return False
-    return _name_similarity_percent(candidate.get("name_similarity")) > 85
+
+def _dedup_candidate_selected_entity_key(
+    candidate: dict, organisation: str
+) -> tuple[str, str]:
+    return (
+        str(
+            candidate.get("new_organisation")
+            or candidate.get("organisation")
+            or organisation
+            or ""
+        ).strip(),
+        str(
+            candidate.get("new_reference", "") or candidate.get("reference", "") or ""
+        ).strip(),
+    )
+
+
+def _dedup_candidate_selected_redirect_key(
+    candidate: dict, organisation: str
+) -> tuple[str, str, str]:
+    """Return the key used to compare a Dedup candidate with selected_redirects."""
+    entity_key = _dedup_candidate_selected_entity_key(candidate, organisation)
+    return (
+        entity_key[0],
+        entity_key[1],
+        str(candidate.get("old_entity", "") or "").strip(),
+    )
+
+
+def _selected_redirect_key(redirect: dict) -> tuple[str, str, str]:
+    """Return the async selected_redirects key for a submitted redirect param."""
+    return (
+        str(redirect.get("organisation", "") or "").strip(),
+        str(redirect.get("reference", "") or "").strip(),
+        str(
+            redirect.get("old_entity_number", "")
+            or redirect.get("old_entity", "")
+            or ""
+        ).strip(),
+    )
 
 
 def _dedup_candidate_form_value(candidate: dict) -> str:
@@ -276,11 +432,50 @@ def _dedup_candidate_form_value(candidate: dict) -> str:
     )
 
 
-def _prepare_duplicate_candidates(candidates: list[dict]) -> list[dict]:
+def _prepare_duplicate_candidates(
+    candidates: list[dict],
+    old_entity_rows: list[dict] | None = None,
+    organisation: str = "",
+    selected_entities=None,
+    selected_redirects=None,
+) -> list[dict]:
+    """Prepare Dedup candidates for rendering and selection.
+
+    Async's ``pipeline-summary.old-entity`` is the source of initial redirect
+    preselection. Rows present in old-entity but absent from request
+    ``selected_redirects`` are inferred to be async auto-selected and are locked
+    in the UI so users cannot untick redirects generated by async policy.
+    """
+    preselected_redirects = {
+        key
+        for key in (
+            _old_entity_redirect_key(row)
+            for row in (old_entity_rows or [])
+            if isinstance(row, dict)
+        )
+        if all(key)
+    }
+    selected_redirect_keys = {
+        _selected_redirect_key(redirect)
+        for redirect in (selected_redirects or [])
+        if isinstance(redirect, dict) and all(_selected_redirect_key(redirect))
+    }
+    selected_entity_keys = _normalise_selected_entities(selected_entities)
+    select_all_new = not selected_entity_keys
     return [
         {
             **candidate,
-            "auto_select": _dedup_candidate_auto_select(candidate),
+            "auto_select": _dedup_candidate_redirect_key(candidate)
+            in preselected_redirects,
+            "redirect_locked": _dedup_candidate_redirect_key(candidate)
+            in preselected_redirects
+            and _dedup_candidate_selected_redirect_key(candidate, organisation)
+            not in selected_redirect_keys,
+            "redirect_can_select": (
+                select_all_new
+                or _dedup_candidate_selected_entity_key(candidate, organisation)
+                in selected_entity_keys
+            ),
             "form_value": _dedup_candidate_form_value(candidate),
         }
         for candidate in candidates
@@ -337,9 +532,17 @@ def _paginate_entity_data(
     entity_page: int,
     entity_search: str,
     entity_filter: str = "",
+    include_selection: bool = False,
+    organisation: str = "",
+    selected_entities=None,
+    all_entities=None,
 ) -> tuple:
     entity_start_offset = (entity_page - 1) * _ROWS_PER_PAGE
     entities_data_full = _build_entities_data(all_resp_details, platform_entities)
+    if include_selection:
+        entities_data_full = _add_all_entity_candidates(
+            entities_data_full, all_entities or []
+        )
     # Counts cover every entity, independent of the current search/filter, so the
     # summary boxes always show the full picture.
     category_counts = _count_categories(entities_data_full["rows"])
@@ -366,6 +569,12 @@ def _paginate_entity_data(
         "columns": entities_data_full["columns"],
         "rows": entity_page_rows,
     }
+    if include_selection:
+        entities_data = _add_assign_entities_selection_metadata(
+            entities_data,
+            organisation,
+            selected_entities,
+        )
     return (
         entities_data,
         has_next_entity_page,
@@ -618,6 +827,7 @@ def handle_check_transform(
     """
     params = req.get("params") or {}
     organisation_code = params.get("organisationName") or params.get("organisation", "")
+    selected_entities = params.get("selected_entities")
     dataset_id = params.get("dataset", "")
     is_assign_entities = transform_endpoint == "assign_entities.flagged_resource_detail"
     resource_hash = params.get("resource", "")
@@ -662,9 +872,14 @@ def handle_check_transform(
     existing_endpoints = _resolve_existing_endpoints(source_summary)
     pipelines_append_required = source_summary.get("pipelines_append_required")
     pipeline_summary = response_data.get("pipeline-summary") or {}
+    all_entities = pipeline_summary.get("all-entities") or []
     show_dedup_tab = is_assign_entities and dataset_id == "conservation-area"
     duplicate_candidates = _prepare_duplicate_candidates(
-        pipeline_summary.get("duplicate-candidates") or [] if show_dedup_tab else []
+        pipeline_summary.get("duplicate-candidates") or [] if show_dedup_tab else [],
+        pipeline_summary.get("old-entity") or [],
+        organisation=organisation_code,
+        selected_entities=selected_entities,
+        selected_redirects=params.get("selected_redirects"),
     )
 
     # Calculate pagination for transformed facts and issue logs, and for entities.
@@ -693,6 +908,10 @@ def handle_check_transform(
         entity_page,
         entity_search,
         entity_filter,
+        include_selection=is_assign_entities,
+        organisation=organisation_code,
+        selected_entities=selected_entities,
+        all_entities=all_entities,
     )
     transformed_table = _build_transform_table(resp_details)
     issue_log_table = _build_issue_log_table(resp_details)
@@ -746,6 +965,7 @@ def handle_check_transform(
         endpoint_url=endpoint_url,
         documentation_url=documentation_url,
         resource_hash=resource_hash,
+        is_assign_entities=is_assign_entities,
         show_dedup_tab=show_dedup_tab,
         duplicate_candidates=duplicate_candidates,
         planning_entity_base_url=(

@@ -1,6 +1,5 @@
 import json
 import logging
-from datetime import date
 
 from flask import (
     render_template,
@@ -102,8 +101,8 @@ def _load_json_list(value: str | None) -> list:
     return loaded if isinstance(loaded, list) else []
 
 
-def build_old_entity_redirect_table(entity_redirects: list[dict]) -> dict | None:
-    if not entity_redirects:
+def build_old_entity_redirect_table(old_entity_rows: list[dict]) -> dict | None:
+    if not old_entity_rows:
         return None
 
     columns = [
@@ -115,22 +114,30 @@ def build_old_entity_redirect_table(entity_redirects: list[dict]) -> dict | None
         "entry-date",
         "start-date",
     ]
-    entry_date = date.today().isoformat()
     rows = []
-    for redirect in entity_redirects:
+    for old_entity in old_entity_rows:
+        if not isinstance(old_entity, dict):
+            continue
         row = {
-            "old-entity": str(redirect.get("old_entity", "")),
-            "status": "301",
-            "entity": str(redirect.get("entity", "")),
-            "notes": str(
-                redirect.get("notes")
-                or "Redirect duplicate entity selected in Assign Entities"
+            "old-entity": str(
+                old_entity.get("old-entity", "") or old_entity.get("old_entity", "")
             ),
-            "end-date": "",
-            "entry-date": entry_date,
-            "start-date": "",
+            "status": str(old_entity.get("status", "")),
+            "entity": str(old_entity.get("entity", "")),
+            "notes": str(old_entity.get("notes", "")),
+            "end-date": str(
+                old_entity.get("end-date", "") or old_entity.get("end_date", "")
+            ),
+            "entry-date": str(
+                old_entity.get("entry-date", "") or old_entity.get("entry_date", "")
+            ),
+            "start-date": str(
+                old_entity.get("start-date", "") or old_entity.get("start_date", "")
+            ),
         }
         rows.append({"columns": {c: {"value": row[c]} for c in columns}})
+    if not rows:
+        return None
 
     return {
         "columns": columns,
@@ -260,10 +267,13 @@ def handle_entities_preview(request_id, req):
     endpoints_to_retire = (
         _load_json_list(request_meta.endpoints_to_retire) if request_meta else []
     )
-    entity_redirects = (
-        _load_json_list(request_meta.entity_redirects) if request_meta else []
+    old_entity_rows = pipeline_summary.get("old-entity") or []
+    old_entity_redirect_table_params = build_old_entity_redirect_table(old_entity_rows)
+    old_entity_redirect_count = (
+        len(old_entity_redirect_table_params["rows"])
+        if old_entity_redirect_table_params
+        else 0
     )
-    old_entity_redirect_table_params = build_old_entity_redirect_table(entity_redirects)
     existing_endpoints = (
         source_summary_data.get("existing_endpoint_for_organisation_dataset") or []
     )
@@ -306,9 +316,9 @@ def handle_entities_preview(request_id, req):
         source_flow=source_flow,
         return_url=return_url,
         retire_summary=retire_summary,
-        entity_redirects=entity_redirects,
         old_entity_redirect_table_params=old_entity_redirect_table_params,
-        new_count=int(pipeline_summary.get("new-in-resource") or 0),
+        old_entity_redirect_count=old_entity_redirect_count,
+        new_count=len(new_entities),
         existing_count=int(pipeline_summary.get("existing-in-resource") or 0),
         endpoint_already_exists=endpoint_already_exists,
         endpoint_url=endpoint_url,
@@ -336,9 +346,6 @@ def handle_add_data_confirm(
     request_meta = db.session.get(RequestMeta, request_id)
     endpoints_to_retire = (
         _load_json_list(request_meta.endpoints_to_retire) if request_meta else []
-    )
-    entity_redirects = (
-        _load_json_list(request_meta.entity_redirects) if request_meta else []
     )
 
     # Stale-assessment guard: if the config branch has advanced for this collection
@@ -386,7 +393,6 @@ def handle_add_data_confirm(
             triggered_by=f"{session.get('user', {}).get('login', 'unknown')}",
             github_branch=github_branch,
             endpoints_to_retire=endpoints_to_retire,
-            entity_redirects=entity_redirects,
         )
     except GitHubWorkflowError as e:
         logger.exception(f"GitHub async workflow error: {e}")

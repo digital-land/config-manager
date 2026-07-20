@@ -100,7 +100,7 @@ class TestTriggerAddDataAsyncWorkflow:
         assert result["success"] is False
         assert result["status_code"] == 422
 
-    def test_includes_entity_redirects_in_payload(self, app):
+    def test_does_not_include_entity_redirects_in_payload(self, app):
         mock_dispatch = Mock()
         mock_dispatch.status_code = 204
 
@@ -120,22 +120,10 @@ class TestTriggerAddDataAsyncWorkflow:
                         "application.blueprints.datamanager.services.github.requests.post",
                         return_value=mock_dispatch,
                     ) as post:
-                        trigger_add_data_async_workflow(
-                            "request-123",
-                            entity_redirects=[
-                                {
-                                    "old_entity": "100",
-                                    "entity": "200",
-                                    "dataset": "conservation-area",
-                                }
-                            ],
-                        )
+                        trigger_add_data_async_workflow("request-123")
 
         payload = post.call_args.kwargs["json"]
-        assert payload["client_payload"]["entity_redirects"] == (
-            '[{"old_entity":"100","entity":"200","dataset":"conservation-area"}]'
-        )
-
+        assert "entity_redirects" not in payload["client_payload"]
 
 class TestGetBranchHeadSha:
     def test_returns_sha(self, app):
