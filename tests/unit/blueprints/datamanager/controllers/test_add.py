@@ -105,6 +105,47 @@ class TestAddDataConfirmRoute:
         assert b'href="/assign-entities/"' in response.data
         assert b"Assign more entities" in response.data
 
+    def test_confirm_waits_for_workflow_then_blocks_when_branch_changed(self, client):
+        db.session.add(
+            RequestMeta(
+                request_id="stale-id",
+                branch_sha="base-sha",
+                check_request_id="my-check-id",
+            )
+        )
+        db.session.commit()
+        with client.session_transaction() as sess:
+            sess["user"] = {"login": "test-user"}
+
+        calls = []
+        with patch(
+            "application.blueprints.datamanager.controllers.preview."
+            "wait_for_add_data_workflow_idle",
+            side_effect=lambda *a, **k: calls.append("wait"),
+        ), patch(
+            "application.blueprints.datamanager.controllers.preview."
+            "config_branch_changed_for_collection",
+            side_effect=lambda *a, **k: calls.append("compare") or True,
+        ), patch(
+            "application.blueprints.datamanager.controllers.preview.fetch_request",
+            return_value={"params": {"collection": "conservation-area"}},
+        ), patch(
+            "application.blueprints.datamanager.controllers.preview."
+            "trigger_add_data_async_workflow",
+        ) as trigger:
+            response = client.post(
+                "/datamanager/add-data/stale-id/confirm-async",
+                data={"github_branch": "config-manager-update"},
+            )
+
+        assert response.status_code == 200
+        # workflow-idle wait must run BEFORE the branch comparison
+        assert calls == ["wait", "compare"]
+        # blocked: the workflow must not have been triggered
+        trigger.assert_not_called()
+        # routed back to the check-results page to re-transform
+        assert b"/datamanager/check-results/my-check-id" in response.data
+
     def test_returns_error_when_workflow_raises(self, client):
         with client.session_transaction() as sess:
             sess["user"] = {"login": "test-user"}

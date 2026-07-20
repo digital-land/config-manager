@@ -37,6 +37,17 @@ class Config:
     CONFIG_REPO_BRANCH = os.getenv("CONFIG_REPO_BRANCH", "config-manager-update")
     ENVIRONMENT = os.getenv("ENVIRONMENT", "local").lower()
 
+    # When capturing the config branch baseline at assessment-submission time, wait
+    # up to this many seconds for any in-flight add-data-async-script workflow (which
+    # would be pushing to the branch) to finish before reading HEAD. Keep the gunicorn
+    # --timeout in the Procfile comfortably above this so the worker is not killed.
+    ADD_DATA_WORKFLOW_WAIT_TIMEOUT = int(
+        os.getenv("ADD_DATA_WORKFLOW_WAIT_TIMEOUT", "60")
+    )
+    ADD_DATA_WORKFLOW_POLL_INTERVAL = int(
+        os.getenv("ADD_DATA_WORKFLOW_POLL_INTERVAL", "5")
+    )
+
     CACHE_TYPE = "SimpleCache"
     CACHE_DEFAULT_TIMEOUT = 300
 
@@ -73,6 +84,11 @@ class DevelopmentConfig(Config):
     WTF_CSRF_ENABLED = False
     SAFE_URLS = {"localhost:5000"}
     AUTHENTICATION_ON = False
+
+    # Commit dev submissions to a separate long-lived branch so they never touch the
+    # production config-manager-update branch (which auto-merges to main). Still
+    # overridable via the CONFIG_REPO_BRANCH env var.
+    CONFIG_REPO_BRANCH = os.getenv("CONFIG_REPO_BRANCH", "test-config-manager-update")
 
     # Override to load private key from file path for development
     _key_path = os.getenv("GITHUB_APP_PRIVATE_KEY_PATH")

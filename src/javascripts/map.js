@@ -108,8 +108,14 @@ const POINT_HANDOFF_OPACITY = [
 
 // Checkbox key rendered as a map control so it stays visible in fullscreen.
 class LayerToggleControl {
-  constructor() {
-    this.enabled = new Set(LAYER_KEY.map((l) => l.id));
+  // `activeFilter` comes from the category box the user clicked on the page
+  // (new/changed/in_both/existing). When set, the map opens with only that
+  // category ticked — the user can still tick the others back on afterwards.
+  constructor(activeFilter) {
+    const validFilter = LAYER_KEY.some((l) => l.id === activeFilter);
+    this.enabled = validFilter
+      ? new Set([activeFilter])
+      : new Set(LAYER_KEY.map((l) => l.id));
   }
 
   onAdd(map) {
@@ -120,7 +126,7 @@ class LayerToggleControl {
       const label = document.createElement("label");
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.checked = true;
+      checkbox.checked = this.enabled.has(layer.id);
       checkbox.addEventListener("change", () => {
         if (checkbox.checked) {
           this.enabled.add(layer.id);
@@ -138,6 +144,8 @@ class LayerToggleControl {
       label.appendChild(document.createTextNode(layer.label));
       this._container.appendChild(label);
     });
+    // Reflect the initial selection on the map (a no-op when all are ticked).
+    this.apply();
     return this._container;
   }
 
@@ -422,7 +430,7 @@ function addCategoryCluster(map, category, points, showPopup, hasPolygons) {
 }
 
 function initMap() {
-  const { containerId, geometries, geometryPoints, boundaryGeoJsonUrl } =
+  const { containerId, geometries, geometryPoints, boundaryGeoJsonUrl, entityFilter } =
     window.serverContext;
 
   if (!geometries || geometries.length === 0) {
@@ -551,7 +559,7 @@ function initMap() {
     }
 
     if (hasStatus) {
-      map.addControl(new LayerToggleControl(), "top-left");
+      map.addControl(new LayerToggleControl(entityFilter), "top-left");
         map.addControl(
           new EntitySearchControl((entityId) => featuresByEntity.get(entityId)),
           "top-left"

@@ -11,6 +11,7 @@ from flask import current_app, redirect, render_template, request, session, url_
 from application.data_access.overview.digital_land_queries import get_resource
 
 from . import ControllerError
+from .preview import record_branch_baseline
 from .transform import handle_check_transform
 from ..services.async_api import AsyncAPIError, fetch_request, submit_request
 from ..services.dataset import get_collection_id, get_dataset_id, get_dataset_name
@@ -364,7 +365,9 @@ def _submit_assign_entities_request(
         params["organisation"] = organisation
     if return_endpoint:
         params["return_endpoint"] = return_endpoint
-    return submit_request(params)
+    preview_id = submit_request(params)
+    record_branch_baseline(preview_id, params["github_branch"])
+    return preview_id
 
 
 def handle_flagged_resources_start():

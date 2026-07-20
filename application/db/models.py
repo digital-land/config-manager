@@ -449,6 +449,12 @@ class RequestMeta(db.Model):
         db.Text, nullable=True
     )  # JSON list of endpoint hashes
     entity_redirects = db.Column(db.Text, nullable=True)  # JSON list of old-entity rows
+    branch_sha = db.Column(
+        db.Text, nullable=True
+    )  # config-manager-update HEAD SHA when the assessment was submitted
+    check_request_id = db.Column(
+        db.Text, nullable=True
+    )  # check-results request this assessment came from, for re-run routing
 
 
 class Filter(DateModel, VersionedMixin):

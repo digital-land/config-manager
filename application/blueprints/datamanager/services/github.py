@@ -117,6 +117,163 @@ def get_installation_token(jwt_token: str, installation_id: str) -> str:
         raise GitHubAppAuthError(f"Failed to get installation token: {e}")
 
 
+# Workflow run statuses that mean the add-data script is still touching the branch.
+_ACTIVE_RUN_STATUSES = {"queued", "in_progress", "waiting", "requested", "pending"}
+
+_ADD_DATA_WORKFLOW_FILE = "add-data-async-script.yml"
+
+
+def _add_data_workflow_active(access_token: str) -> bool:
+    """Return True if an add-data-async-script run is queued or in progress."""
+    github_api_base_url = current_app.config["GITHUB_API_BASE_URL"]
+    url = (
+        f"{github_api_base_url}/repos/digital-land/config/actions/workflows/"
+        f"{_ADD_DATA_WORKFLOW_FILE}/runs?per_page=30"
+    )
+    try:
+        response = requests.get(url, headers=_github_headers(access_token), timeout=10)
+        response.raise_for_status()
+        runs = response.json().get("workflow_runs") or []
+    except requests.exceptions.RequestException as e:
+        # If we cannot tell, assume idle and proceed - the confirm-time check remains
+        # the correctness backstop, and we would rather not wait needlessly.
+        logger.error(f"Failed to list add-data workflow runs; assuming idle: {e}")
+        return False
+    return any(run.get("status") in _ACTIVE_RUN_STATUSES for run in runs)
+
+
+def add_data_workflow_running() -> bool:
+    """Return True if an add-data-async-script workflow run is currently active."""
+    return _add_data_workflow_active(_get_access_token())
+
+
+def wait_for_add_data_workflow_idle(
+    timeout: int | None = None, poll_interval: int | None = None
+) -> bool:
+    """
+    Block until no add-data-async-script workflow run is active, or until `timeout`
+    seconds elapse. Returns True if the workflow became idle, False if we gave up.
+
+    A single installation token is reused across polls. On timeout the caller should
+    proceed anyway (the confirm-time branch check is the correctness backstop); this
+    wait only improves the accuracy of the captured baseline.
+    """
+    if timeout is None:
+        timeout = current_app.config.get("ADD_DATA_WORKFLOW_WAIT_TIMEOUT", 60)
+    if poll_interval is None:
+        poll_interval = current_app.config.get("ADD_DATA_WORKFLOW_POLL_INTERVAL", 5)
+
+    access_token = _get_access_token()
+    deadline = time.monotonic() + timeout
+    while True:
+        if not _add_data_workflow_active(access_token):
+            return True
+        if time.monotonic() + poll_interval >= deadline:
+            logger.warning(
+                "add-data workflow still active after %ss; proceeding with current HEAD",
+                timeout,
+            )
+            return False
+        time.sleep(poll_interval)
+
+
+def get_branch_head_sha(branch: str) -> str | None:
+    """
+    Return the current HEAD commit SHA of a branch in digital-land/config.
+
+    Returns None if the branch does not exist (404). Raises GitHubAppError on
+    other failures so callers can decide how to degrade.
+    """
+    access_token = _get_access_token()
+    github_api_base_url = current_app.config["GITHUB_API_BASE_URL"]
+    url = f"{github_api_base_url}/repos/digital-land/config/branches/{branch}"
+
+    try:
+        response = requests.get(url, headers=_github_headers(access_token), timeout=10)
+        if response.status_code == 404:
+            logger.warning(f"Branch '{branch}' not found when reading HEAD SHA")
+            return None
+        response.raise_for_status()
+        return response.json()["commit"]["sha"]
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to read HEAD SHA for branch '{branch}': {e}")
+        raise GitHubAppError(f"Failed to read HEAD SHA for branch '{branch}': {e}")
+
+
+def get_config_baseline_sha(branch: str) -> str | None:
+    """
+    Return the HEAD SHA to baseline an assessment against: the shared branch if it
+    exists, otherwise ``main``.
+
+    The shared branch (config-manager-update) is created lazily by the first
+    add-data commit, so early in a cycle it may not exist yet. In that case the
+    async worker reads config from ``main``, so we must baseline against ``main``
+    too - otherwise nothing is recorded and the confirm-time check is skipped.
+    """
+    sha = get_branch_head_sha(branch)
+    if sha is None:
+        logger.info(f"Branch '{branch}' not found; baselining against 'main'")
+        sha = get_branch_head_sha("main")
+    return sha
+
+
+def config_branch_changed_for_collection(
+    base_sha: str, branch: str, collection: str
+) -> bool:
+    """
+    Decide whether the config branch has moved in a way that affects a collection
+    since the assessment was taken at `base_sha`.
+
+    Uses the compare API (base_sha...head) and returns True if any changed file
+    lives under ``pipeline/{collection}/``. The head is the shared branch if it
+    exists, otherwise ``main`` (the pending commit would land on a branch freshly
+    cut from main). Fails closed (returns True) on any uncertainty - a
+    diverged/force-pushed history, a truncated file list, or an API error - so a
+    stale confirmation is never let through by accident.
+    """
+    access_token = _get_access_token()
+    github_api_base_url = current_app.config["GITHUB_API_BASE_URL"]
+    # If the shared branch doesn't exist yet, compare against main - the branch the
+    # assessment was baselined against and the branch the commit will be cut from.
+    head = branch if get_branch_head_sha(branch) is not None else "main"
+    url = (
+        f"{github_api_base_url}/repos/digital-land/config/compare/"
+        f"{base_sha}...{head}"
+    )
+
+    try:
+        response = requests.get(url, headers=_github_headers(access_token), timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Compare API failed for {base_sha}...{head}; failing closed: {e}")
+        return True
+
+    status = data.get("status")
+    if status == "identical":
+        # Branch HEAD is exactly the assessed commit - nothing changed.
+        return False
+    if status not in ("ahead", "behind"):
+        # "diverged" (force push / rewritten history) or anything unexpected -
+        # we cannot reason about it, so treat as changed.
+        logger.warning(
+            f"Compare status '{status}' for {base_sha}...{head}; failing closed"
+        )
+        return True
+
+    files = data.get("files") or []
+    # The compare endpoint caps the file list at 300 entries. If we hit the cap we
+    # cannot be sure the collection is unaffected, so fail closed.
+    if len(files) >= 300:
+        logger.warning(
+            f"Compare file list truncated for {base_sha}...{head}; failing closed"
+        )
+        return True
+
+    prefix = f"pipeline/{collection}/"
+    return any((f.get("filename") or "").startswith(prefix) for f in files)
+
+
 def trigger_add_data_async_workflow(
     request_id: str,
     triggered_by: str = "config-manager",
