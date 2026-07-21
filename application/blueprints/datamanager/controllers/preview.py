@@ -122,9 +122,9 @@ def build_old_entity_redirect_table(old_entity_rows: list[dict]) -> dict | None:
             "old-entity": str(
                 old_entity.get("old-entity", "") or old_entity.get("old_entity", "")
             ),
-            "status": str(old_entity.get("status", "")),
-            "entity": str(old_entity.get("entity", "")),
-            "notes": str(old_entity.get("notes", "")),
+            "status": str(old_entity.get("status", "") or ""),
+            "entity": str(old_entity.get("entity", "") or ""),
+            "notes": str(old_entity.get("notes", "") or ""),
             "end-date": str(
                 old_entity.get("end-date", "") or old_entity.get("end_date", "")
             ),

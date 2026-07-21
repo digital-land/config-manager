@@ -539,10 +539,7 @@ def _paginate_entity_data(
 ) -> tuple:
     entity_start_offset = (entity_page - 1) * _ROWS_PER_PAGE
     entities_data_full = _build_entities_data(all_resp_details, platform_entities)
-    if include_selection:
-        entities_data_full = _add_all_entity_candidates(
-            entities_data_full, all_entities or []
-        )
+
     # Counts cover every entity, independent of the current search/filter, so the
     # summary boxes always show the full picture.
     category_counts = _count_categories(entities_data_full["rows"])

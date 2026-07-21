@@ -1,8 +1,34 @@
 from application.blueprints.datamanager.controllers.preview import (
     _build_entity_organisation_summary,
+    build_old_entity_redirect_table,
 )
 
 NEW_ENTITIES = [{"entity": "10100002", "reference": "REF001"}]
+
+
+def test_old_entity_redirect_table_renders_null_values_as_empty_strings():
+    table_params = build_old_entity_redirect_table(
+        [
+            {
+                "old-entity": None,
+                "status": None,
+                "entity": None,
+                "notes": None,
+                "end-date": None,
+                "entry-date": None,
+                "start-date": None,
+            }
+        ]
+    )
+
+    row = table_params["rows"][0]["columns"]
+    assert row["old-entity"]["value"] == ""
+    assert row["status"]["value"] == ""
+    assert row["entity"]["value"] == ""
+    assert row["notes"]["value"] == ""
+    assert row["end-date"]["value"] == ""
+    assert row["entry-date"]["value"] == ""
+    assert row["start-date"]["value"] == ""
 
 
 def test_no_new_entities_hides_section():
