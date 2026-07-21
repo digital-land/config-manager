@@ -352,7 +352,7 @@ def _submit_assign_entities_request(
     resource,
     organisation=None,
     return_endpoint=None,
-    selected_entities=None,
+    excluded_references=None,
     selected_redirects=None,
 ):
     dataset_id, collection_id = _resolve_dataset_and_collection(dataset_input)
@@ -370,8 +370,8 @@ def _submit_assign_entities_request(
         params["organisation"] = organisation
     if return_endpoint:
         params["return_endpoint"] = return_endpoint
-    if selected_entities is not None:
-        params["selected_entities"] = selected_entities
+    if excluded_references is not None:
+        params["excluded_references"] = excluded_references
     if selected_redirects is not None:
         params["selected_redirects"] = selected_redirects
     preview_id = submit_request(params)

@@ -101,6 +101,15 @@ def _load_json_list(value: str | None) -> list:
     return loaded if isinstance(loaded, list) else []
 
 
+def _count_excluded_references(params: dict) -> int:
+    references = params.get("excluded_references") or []
+    if not isinstance(references, list):
+        return 0
+    return len(
+        {str(reference).strip() for reference in references if str(reference).strip()}
+    )
+
+
 def build_old_entity_redirect_table(old_entity_rows: list[dict]) -> dict | None:
     if not old_entity_rows:
         return None
@@ -319,6 +328,7 @@ def handle_entities_preview(request_id, req):
         old_entity_redirect_table_params=old_entity_redirect_table_params,
         old_entity_redirect_count=old_entity_redirect_count,
         new_count=len(new_entities),
+        excluded_count=_count_excluded_references(params),
         existing_count=int(pipeline_summary.get("existing-in-resource") or 0),
         endpoint_already_exists=endpoint_already_exists,
         endpoint_url=endpoint_url,

@@ -17,10 +17,10 @@ ASYNC_BASE = f"{get_request_api_endpoint()}/requests"
 def _selected_entity_checkbox(response_data, reference):
     response_text = response_data.decode()
     match = re.search(
-        rf'<input\b[^>]*name="selected_entities"[^>]*value="[^"]*{re.escape(reference)}[^"]*"[^>]*>',
+        rf'<input\b[^>]*name="selected_entity_references"[^>]*value="{re.escape(reference)}"[^>]*>',
         response_text,
     )
-    assert match, f"Could not find selected_entities checkbox for {reference}"
+    assert match, f"Could not find selected_entity_references checkbox for {reference}"
     return match.group(0)
 
 
@@ -490,13 +490,13 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
     assert b'action="/assign-entities/check-results/assign-id-1"' in response.data
     assert b'form="duplicate-redirect-form"' in response.data
     assert b"entity-select-all" in response.data
-    assert b'name="selected_entities"' in response.data
-    assert b'ref-2&#34;}" form="duplicate-redirect-form" checked' in response.data
+    assert b'name="selected_entity_references"' in response.data
+    assert b'value="ref-2" form="duplicate-redirect-form" checked' in response.data
     assert b"1 of 1 entity selected for assignment" in response.data
 
 
 @rsps.activate
-def test_assign_entities_check_results_uses_selected_entities_param(client):
+def test_assign_entities_check_results_uses_excluded_references_param(client):
     rsps.add(
         rsps.GET,
         f"{ASYNC_BASE}/assign-selected-id",
@@ -506,9 +506,7 @@ def test_assign_entities_check_results_uses_selected_entities_param(client):
                 "dataset": "tree",
                 "organisation": "local-authority:ABC",
                 "resource": "resource-a",
-                "selected_entities": [
-                    {"organisation": "local-authority:ABC", "reference": "ref-2"}
-                ],
+                "excluded_references": ["ref-1"],
             },
             "response": {
                 "data": {
@@ -521,18 +519,6 @@ def test_assign_entities_check_results_uses_selected_entities_param(client):
                                 "organisation": "local-authority:ABC",
                                 "reference": "ref-2",
                             }
-                        ],
-                        "all-entities": [
-                            {
-                                "entity": "1",
-                                "organisation": "local-authority:ABC",
-                                "reference": "ref-1",
-                            },
-                            {
-                                "entity": "2",
-                                "organisation": "local-authority:ABC",
-                                "reference": "ref-2",
-                            },
                         ],
                     },
                 }
@@ -806,6 +792,9 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
     assert b"disabled" in first_checkbox
     assert b"entity-redirect-select-all" in response.data
     assert b"1 of 2 entities selected for redirection" in response.data
+    assert b"JSON.parse(checkbox.value" not in response.data
+    assert b"function entitySelectionReference(checkbox)" in response.data
+    assert b"entitySelectAllCheckbox.addEventListener" in response.data
 
 
 @rsps.activate
@@ -940,9 +929,7 @@ def test_assign_entities_check_results_post_stores_redirects(client):
 
 def test_assign_entities_check_results_post_resubmits_changed_entity_selection(client):
     request_id = "assign-selection-id"
-    selected_value = json.dumps(
-        {"organisation": "local-authority:ABC", "reference": "ref-2"}
-    )
+    selected_value = "ref-2"
     selected_redirect = json.dumps(
         {
             "old_entity": "100",
@@ -953,7 +940,7 @@ def test_assign_entities_check_results_post_resubmits_changed_entity_selection(c
             "match_type": "complete_match",
         }
     )
-    unselected_entity_redirect = json.dumps(
+    excluded_redirect = json.dumps(
         {
             "old_entity": "101",
             "entity": "201",
@@ -976,16 +963,6 @@ def test_assign_entities_check_results_post_resubmits_changed_entity_selection(c
                 "data": {
                     "pipeline-summary": {
                         "new-entities": [
-                            {
-                                "organisation": "local-authority:ABC",
-                                "reference": "ref-2",
-                            },
-                        ],
-                        "all-entities": [
-                            {
-                                "organisation": "local-authority:ABC",
-                                "reference": "ref-1",
-                            },
                             {
                                 "organisation": "local-authority:ABC",
                                 "reference": "ref-2",
@@ -1016,19 +993,14 @@ def test_assign_entities_check_results_post_resubmits_changed_entity_selection(c
                 f"/assign-entities/check-results/{request_id}",
                 data={
                     "entity_selection_changed": "true",
-                    "visible_selected_entities": [
-                        json.dumps(
-                            {
-                                "organisation": "local-authority:ABC",
-                                "reference": "ref-1",
-                            }
-                        ),
+                    "visible_entity_references": [
+                        "ref-1",
                         selected_value,
                     ],
-                    "selected_entities": [selected_value],
+                    "selected_entity_references": [selected_value],
                     "entity_redirects": [
                         selected_redirect,
-                        unselected_entity_redirect,
+                        excluded_redirect,
                         json.dumps(
                             {
                                 "old_entity": "999",
@@ -1050,12 +1022,9 @@ def test_assign_entities_check_results_post_resubmits_changed_entity_selection(c
         "resource-a",
         organisation="local-authority:ABC",
         return_endpoint="assign_entities.flagged_resources_summary",
-        selected_entities=[
-            {"organisation": "local-authority:ABC", "reference": "ref-2"}
-        ],
+        excluded_references=["ref-1"],
         selected_redirects=[
             {
-                "organisation": "local-authority:ABC",
                 "reference": "ref-2",
                 "old_entity_number": "100",
             }
@@ -1068,10 +1037,7 @@ def test_assign_entities_check_results_post_continues_for_unchanged_entity_selec
     client,
 ):
     request_id = "assign-unchanged-id"
-    selected_values = [
-        json.dumps({"organisation": "local-authority:ABC", "reference": "ref-1"}),
-        json.dumps({"organisation": "local-authority:ABC", "reference": "ref-2"}),
-    ]
+    selected_values = ["ref-1", "ref-2"]
     with patch(
         "application.blueprints.datamanager.router.fetch_request",
         return_value={
@@ -1093,16 +1059,6 @@ def test_assign_entities_check_results_post_continues_for_unchanged_entity_selec
                                 "reference": "ref-2",
                             },
                         ],
-                        "all-entities": [
-                            {
-                                "organisation": "local-authority:ABC",
-                                "reference": "ref-1",
-                            },
-                            {
-                                "organisation": "local-authority:ABC",
-                                "reference": "ref-2",
-                            },
-                        ],
                         "duplicate-candidates": [],
                     }
                 }
@@ -1114,7 +1070,7 @@ def test_assign_entities_check_results_post_continues_for_unchanged_entity_selec
         ) as submit_request:
             response = client.post(
                 f"/assign-entities/check-results/{request_id}",
-                data={"selected_entities": selected_values},
+                data={"selected_entity_references": selected_values},
             )
 
     assert response.status_code == 302
@@ -1130,10 +1086,7 @@ def test_assign_entities_check_results_post_resubmits_changed_redirect_selection
     client,
 ):
     request_id = "assign-redirect-selection-id"
-    selected_values = [
-        json.dumps({"organisation": "local-authority:ABC", "reference": "ref-1"}),
-        json.dumps({"organisation": "local-authority:ABC", "reference": "ref-2"}),
-    ]
+    selected_values = ["ref-1", "ref-2"]
     selected_redirect = json.dumps(
         {
             "old_entity": "100",
@@ -1163,16 +1116,6 @@ def test_assign_entities_check_results_post_resubmits_changed_redirect_selection
                                 "reference": "ref-2",
                             },
                         ],
-                        "all-entities": [
-                            {
-                                "organisation": "local-authority:ABC",
-                                "reference": "ref-1",
-                            },
-                            {
-                                "organisation": "local-authority:ABC",
-                                "reference": "ref-2",
-                            },
-                        ],
                         "duplicate-candidates": [
                             {
                                 "old_entity": "100",
@@ -1193,8 +1136,8 @@ def test_assign_entities_check_results_post_resubmits_changed_redirect_selection
                 f"/assign-entities/check-results/{request_id}",
                 data={
                     "entity_selection_changed": "true",
-                    "visible_selected_entities": selected_values,
-                    "selected_entities": selected_values,
+                    "visible_entity_references": selected_values,
+                    "selected_entity_references": selected_values,
                     "entity_redirects": [selected_redirect],
                 },
             )
@@ -1208,13 +1151,9 @@ def test_assign_entities_check_results_post_resubmits_changed_redirect_selection
         "resource-a",
         organisation="local-authority:ABC",
         return_endpoint="assign_entities.flagged_resources_start",
-        selected_entities=[
-            {"organisation": "local-authority:ABC", "reference": "ref-1"},
-            {"organisation": "local-authority:ABC", "reference": "ref-2"},
-        ],
+        excluded_references=[],
         selected_redirects=[
             {
-                "organisation": "local-authority:ABC",
                 "reference": "ref-1",
                 "old_entity_number": "100",
             }

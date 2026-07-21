@@ -82,7 +82,7 @@ The page is rendered from:
 - `response-details` rows fetched by `fetch_response_details(request_id)`
 - platform entities from the planning data API, for comparison and row categories
 - `response-details.transformed_row`, for Assign Entities rows
-- request param `selected_entities`, for Assign Entities checked state
+- request param `excluded_references`, for Assign Entities checked state
 - `pipeline-summary.duplicate-candidates`, for the Dedup tab
 - `pipeline-summary.old-entity`, for preselected duplicate redirects
 
@@ -97,19 +97,19 @@ The Entities tab includes a checkbox column only in the Assign Entities flow.
 | `in_both` | Entity exists and matches | disabled |
 | `existing` | Entity exists on the platform only | disabled |
 
-Each enabled checkbox submits this JSON value:
+Each enabled checkbox submits the row reference as its value:
 
-```json
-{ "organisation": "local-authority:ABC", "reference": "REF-1" }
+```text
+REF-1
 ```
 
-This organisation/reference pair is the selection identity. Entity numbers are not used as the
-selection key because the point of the flow is to decide which references should receive numbers.
+The reference is the selection identity. Entity numbers are not used as the selection key because
+the point of the flow is to decide which references should receive numbers.
 
 Initial checkbox state comes from async request params:
 
-- missing or empty `selected_entities`: all selectable `new` rows are checked
-- non-empty `selected_entities`: only matching organisation/reference pairs are checked
+- missing or empty `excluded_references`: all selectable `new` rows are checked
+- non-empty `excluded_references`: matching references are unchecked
 
 Search and pagination render only a subset of rows. To avoid losing selections from other pages,
 the template posts the visible row values separately and `router.py` merges the visible changes back
@@ -138,12 +138,12 @@ Changing either the Entities tab or the Dedup tab changes the submit button text
 On POST, `flagged_resource_detail_post`:
 
 1. Fetches the current async response.
-2. Parses selected entity checkbox values.
-3. Validates selected entities against the current async response.
+2. Parses selected entity checkbox reference values.
+3. Calculates excluded references from the visible rows and current request params.
 4. Parses selected Dedup checkbox values against `duplicate-candidates`.
-5. Merges visible entity selections with current full selection.
-6. Filters Dedup redirects to only selected entity references.
-7. Submits a replacement async request with `selected_entities` and `selected_redirects`.
+5. Merges visible entity selections with the current excluded references.
+6. Filters Dedup redirects to exclude references that will not receive entity numbers.
+7. Submits a replacement async request with `excluded_references` and `selected_redirects`.
 8. Redirects to the new request's Assign Entities check-results page.
 
 The replacement request looks like:
@@ -159,12 +159,11 @@ The replacement request looks like:
   "organisationName": "local-authority:ABC",
   "organisation": "local-authority:ABC",
   "return_endpoint": "assign_entities.flagged_resources_start",
-  "selected_entities": [
-    { "organisation": "local-authority:ABC", "reference": "REF-1" }
+  "excluded_references": [
+    "REF-2"
   ],
   "selected_redirects": [
     {
-      "organisation": "local-authority:ABC",
       "reference": "REF-1",
       "old_entity_number": "100"
     }
@@ -172,9 +171,8 @@ The replacement request looks like:
 }
 ```
 
-config-manager blocks submitting no selected entities from the UI. This is deliberate: async treats
-`selected_entities: []` as assign all, so an empty UI selection would otherwise do the opposite of
-what the user intended.
+`excluded_references` contains only references that should not receive entity numbers.
+An empty list means nothing was excluded from assignment.
 
 ### 6. Preview
 
@@ -184,6 +182,7 @@ completed async output. It does not recalculate Assign Entities rows.
 | Preview section | Source |
 | --- | --- |
 | Rows that will create new entities | `pipeline-summary.new-entities` |
+| Rows that will NOT create new entities | `params.excluded_references` |
 | Entity organisation CSV | `pipeline-summary.entity-organisation` |
 | Old Entity Summary / `old-entity.csv` | `pipeline-summary.old-entity` |
 
@@ -212,7 +211,7 @@ the `request_id` to fetch the completed async result and appends:
 
 Entity number generation happens in async, before the result is returned to config-manager.
 
-Selection is applied before async adds lookup entries, so unselected references do not consume
+Selection is applied before async adds lookup entries, so excluded references do not consume
 numbers. That means selection should not create gaps in the assigned range. If gaps appear in a
 preview, debug async's generated `pipeline-summary.new-entities` and the branch it assessed
 against, not config-manager's preview code.
@@ -225,10 +224,10 @@ authoritative and valid.
 
 ## Gotchas
 
-### Empty selection means assign all in async
+### Empty excluded references means assign all
 
-Async treats missing `selected_entities` and `selected_entities: []` as "assign all new entities".
-The UI prevents processing an empty selected set to avoid accidental all-entity assignment.
+Async treats missing or empty `excluded_references` as "exclude nothing". The UI can send
+an empty list when every selectable reference is selected.
 
 ### Transformed rows vs `new-entities`
 
@@ -285,16 +284,16 @@ the user to re-run.
 
 Check the replacement async request params:
 
-- Does it include a non-empty `selected_entities` array?
-- Are entries shaped as `{ "organisation": "...", "reference": "..." }`?
-- Do the organisation/reference values match the transformed row references?
+- Does `excluded_references` contain the references that were unchecked?
+- Is it a list of reference strings?
+- Do the reference values match the transformed row references?
 
-If `selected_entities` is missing or empty, async will process all new entities.
+If `excluded_references` is missing or empty, async will process all new entities.
 
 ### A selected row disappeared from the Entities tab
 
 Check whether async returned the row in `response-details.transformed_row`. The Assign Entities tab
-expects transformed rows for all resource entities, including unselected candidates. The preview is
+expects transformed rows for all resource entities, including excluded candidates. The preview is
 allowed to contain only assigned rows in `pipeline-summary.new-entities`.
 
 ### A selected row does not appear in preview
@@ -313,7 +312,7 @@ The preview uses those fields directly. If the row is not there, the issue is ea
 Check:
 
 - The candidate's `new_reference` or `reference`
-- The request param `selected_entities`
+- The request param `excluded_references`
 - The rendered row's `redirect_can_select`
 - Whether the row is locked because it is in `pipeline-summary.old-entity` but absent from
   `selected_redirects`
@@ -325,7 +324,7 @@ Check the POST body from the Assign Entities page:
 - `entity_selection_changed` should be `true`
 - selected duplicate checkboxes should post as `entity_redirects`
 - parsed redirects must match a row in `pipeline-summary.duplicate-candidates`
-- redirects for unselected entity references are deliberately filtered out
+- redirects for excluded references are deliberately filtered out
 
 ### Preview old-entity count is wrong
 

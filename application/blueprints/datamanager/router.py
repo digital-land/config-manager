@@ -312,139 +312,59 @@ def flagged_resource_detail(request_id):
         return render_template("datamanager/error.html", message=e.message)
 
 
-def _selected_entity_key(entity):
-    """Return the Assign Entities selection identity for an entity row."""
-    return (
-        str(entity.get("organisation", "")).strip(),
-        str(entity.get("reference", "")).strip(),
-    )
-
-
-def _parse_selected_entities(values, new_entities):
-    """Validate submitted entity checkbox values against async candidate rows.
-
-    The browser submits JSON values with only organisation and reference. Those
-    values are accepted only when the same pair exists in the current async
-    response, so hidden/form tampering cannot add extra references.
-    """
-    valid_entities_by_key = {}
-    for entity in new_entities:
-        if not isinstance(entity, dict):
-            continue
-        key = _selected_entity_key(entity)
-        if all(key):
-            valid_entities_by_key.setdefault(
-                key,
-                {
-                    "organisation": key[0],
-                    "reference": key[1],
-                },
-            )
-
-    selected = []
+def _normalise_reference_values(values):
+    """Return submitted reference values as a de-duplicated, ordered list."""
+    references = []
     seen = set()
-    for value in values:
-        try:
-            submitted = json.loads(value)
-        except (TypeError, json.JSONDecodeError):
+    for value in values or []:
+        reference = str(value or "").strip()
+        if not reference or reference in seen:
             continue
-        if not isinstance(submitted, dict):
-            continue
-        key = _selected_entity_key(submitted)
-        if key not in valid_entities_by_key or key in seen:
-            continue
-        selected.append(valid_entities_by_key[key])
-        seen.add(key)
-
-    return selected, list(valid_entities_by_key.values())
+        references.append(reference)
+        seen.add(reference)
+    return references
 
 
-def _current_selected_entities(current_selected_entities, all_entities):
-    """Expand request-param selected_entities into the current candidate rows."""
-    if not current_selected_entities:
-        return all_entities
-
-    current_keys = {
-        _selected_entity_key(entity)
-        for entity in current_selected_entities
-        if isinstance(entity, dict)
-    }
-    return [
-        entity
-        for entity in all_entities
-        if _selected_entity_key(entity) in current_keys
-    ]
-
-
-def _merge_visible_selected_entities(
-    current_entities, visible_entities, selected_visible
+def _merge_visible_excluded_references(
+    current_excluded_references,
+    visible_references,
+    selected_visible_references,
 ):
-    """Merge current full selection with selections from the visible page.
-
-    Entity search and pagination mean the browser only posts rows rendered on
-    the current page. This keeps selections from other pages/search states and
-    replaces only the visible subset with the user's latest checkbox state.
-    """
-    visible_keys = {_selected_entity_key(entity) for entity in visible_entities}
-    selected_visible_keys = {
-        _selected_entity_key(entity) for entity in selected_visible
-    }
-    selected_keys = {
-        _selected_entity_key(entity)
-        for entity in current_entities
-        if _selected_entity_key(entity) not in visible_keys
-    } | selected_visible_keys
-    merged = []
-    seen = set()
-    for entity in current_entities + selected_visible:
-        key = _selected_entity_key(entity)
-        if key in selected_keys and key not in seen:
-            merged.append(entity)
-            seen.add(key)
-    return merged
+    """Merge current exclusions with checkbox state from the visible page."""
+    current_excluded = set(_normalise_reference_values(current_excluded_references))
+    visible = set(_normalise_reference_values(visible_references))
+    selected_visible = set(_normalise_reference_values(selected_visible_references))
+    excluded = (current_excluded - visible) | (visible - selected_visible)
+    return sorted(excluded)
 
 
-def _selected_redirects_for_async(redirects, organisation, selected_entities=None):
+def _selected_redirects_for_async(redirects, excluded_references=None):
     """Map validated Dedup rows to async selected_redirects params.
 
     Config-manager's Dedup form values use old/new entity field names, while
-    async expects ``organisation``, ``reference`` and ``old_entity_number``.
-    When selected_entities is supplied, redirects for unselected entities are
-    dropped because async can only redirect entities being assigned.
+    async expects ``reference`` and ``old_entity_number``. Redirects for
+    explicitly excluded references are dropped because async can only redirect
+    entities being assigned.
     """
-    selected_entity_keys = (
-        {_selected_entity_key(entity) for entity in selected_entities}
-        if selected_entities is not None
-        else None
-    )
+    excluded_references = set(_normalise_reference_values(excluded_references))
     selected_redirects = []
     seen = set()
     for redirect_row in redirects:
         reference = str(
             redirect_row.get("new_reference") or redirect_row.get("reference") or ""
         ).strip()
-        redirect_organisation = str(
-            redirect_row.get("new_organisation")
-            or redirect_row.get("organisation")
-            or organisation
-            or ""
-        ).strip()
         old_entity_number = str(
             redirect_row.get("old_entity")
             or redirect_row.get("old_entity_number")
             or ""
         ).strip()
-        if (
-            selected_entity_keys is not None
-            and (redirect_organisation, reference) not in selected_entity_keys
-        ):
+        if reference in excluded_references:
             continue
-        key = (redirect_organisation, reference, old_entity_number)
+        key = (reference, old_entity_number)
         if not all(key) or key in seen:
             continue
         selected_redirects.append(
             {
-                "organisation": redirect_organisation,
                 "reference": reference,
                 "old_entity_number": old_entity_number,
             }
@@ -463,28 +383,12 @@ def flagged_resource_detail_post(request_id):
     redirects = parse_selected_redirects(
         request.form.getlist("entity_redirects"), duplicate_candidates
     )
-    selectable_entities = (
-        pipeline_summary.get("all-entities")
-        or pipeline_summary.get("new-entities")
-        or []
-    )
-    selected_entities, all_selectable_entities = _parse_selected_entities(
-        request.form.getlist("selected_entities"), selectable_entities
-    )
     if request.form.get("entity_selection_changed") == "true":
-        visible_entities, _ = _parse_selected_entities(
-            request.form.getlist("visible_selected_entities"), selectable_entities
+        excluded_references = _merge_visible_excluded_references(
+            params.get("excluded_references") or [],
+            request.form.getlist("visible_entity_references"),
+            request.form.getlist("selected_entity_references"),
         )
-        current_entities = _current_selected_entities(
-            params.get("selected_entities"), all_selectable_entities
-        )
-        selected_entities = _merge_visible_selected_entities(
-            current_entities, visible_entities, selected_entities
-        )
-        if not selected_entities:
-            raise ControllerError(
-                "Select at least one new entity. The async service treats an empty selection as selecting all entities."
-            )
         try:
             new_request_id = _submit_assign_entities_request(
                 params.get("dataset", ""),
@@ -492,9 +396,9 @@ def flagged_resource_detail_post(request_id):
                 organisation=organisation,
                 return_endpoint=params.get("return_endpoint")
                 or "assign_entities.flagged_resources_start",
-                selected_entities=selected_entities,
+                excluded_references=excluded_references,
                 selected_redirects=_selected_redirects_for_async(
-                    redirects, organisation, selected_entities
+                    redirects, excluded_references
                 ),
             )
         except AsyncAPIError as e:

@@ -246,27 +246,24 @@
   var duplicateCheckboxes = document.querySelectorAll('.duplicate-checkbox');
   var selectAllCheckbox = document.getElementById('entity-redirect-select-all');
   var entitySelectionCheckboxes = document.querySelectorAll('.entity-selection-checkbox');
-  function entitySelectionValue(checkbox) {
-    try {
-      return JSON.parse(checkbox.value || '{}');
-    } catch (e) {
-      return {};
-    }
+  var entitySelectAllCheckbox = document.getElementById('entity-select-all');
+  function entitySelectionReference(checkbox) {
+    return checkbox.value || '';
   }
   function visibleEntityReferences() {
     var references = {};
     entitySelectionCheckboxes.forEach(function(checkbox) {
-      var value = entitySelectionValue(checkbox);
-      if (value.reference) references[value.reference] = checkbox;
+      var reference = entitySelectionReference(checkbox);
+      if (reference) references[reference] = checkbox;
     });
     return references;
   }
   function selectedEntityReferences() {
     var references = {};
     entitySelectionCheckboxes.forEach(function(checkbox) {
-      var value = entitySelectionValue(checkbox);
-      if (value.reference && checkbox.checked && !checkbox.disabled) {
-        references[value.reference] = true;
+      var reference = entitySelectionReference(checkbox);
+      if (reference && checkbox.checked && !checkbox.disabled) {
+        references[reference] = true;
       }
     });
     return references;
@@ -341,6 +338,9 @@
       });
       updateDuplicateSelection();
     });
+  }
+  if (entitySelectAllCheckbox) {
+    entitySelectAllCheckbox.addEventListener('change', updateDuplicateSelection);
   }
   updateDuplicateSelection();
 </script>

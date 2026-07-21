@@ -161,9 +161,9 @@
                   <div class="govuk-checkboxes govuk-checkboxes--small app-checkboxes--table-header" data-module="govuk-checkboxes">
                     <div class="govuk-checkboxes__item">
                       {% if selection.can_select %}
-                      <input type="hidden" name="visible_selected_entities" value="{{ selection.form_value | e }}" form="duplicate-redirect-form">
+                      <input type="hidden" name="visible_entity_references" value="{{ selection.form_value | e }}" form="duplicate-redirect-form">
                       {% endif %}
-                      <input class="govuk-checkboxes__input entity-selection-checkbox" id="selected-entity-{{ loop.index }}" name="selected_entities" type="checkbox" value="{{ selection.form_value | e }}" form="duplicate-redirect-form" {% if selection.selected %}checked{% endif %} {% if not selection.can_select %}disabled{% endif %}>
+                      <input class="govuk-checkboxes__input entity-selection-checkbox" id="selected-entity-{{ loop.index }}" name="selected_entity_references" type="checkbox" value="{{ selection.form_value | e }}" form="duplicate-redirect-form" {% if selection.selected %}checked{% endif %} {% if not selection.can_select %}disabled{% endif %}>
                       <label class="govuk-label govuk-checkboxes__label" for="selected-entity-{{ loop.index }}">
                         <span class="govuk-visually-hidden">Select entity {{ row.fields.entity }}</span>
                       </label>

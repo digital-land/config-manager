@@ -25,7 +25,12 @@ class TestEntitiesPreviewRoute:
     def test_renders_old_entity_redirect_table(self, client):
         result = {
             "status": "COMPLETE",
-            "params": {"dataset": "conservation-area", "authoritative": False},
+            "params": {
+                "dataset": "conservation-area",
+                "authoritative": False,
+                "resource": "resource-a",
+                "excluded_references": ["not-selected", "not-selected", ""],
+            },
             "response": {
                 "data": {
                     "pipeline-summary": {
@@ -72,6 +77,13 @@ class TestEntitiesPreviewRoute:
         )
         assert b"Rows that will create new entities" in response.data
         assert b'<dd class="govuk-summary-list__value">2</dd>' in response.data
+        assert b"Rows that will" in response.data
+        assert b"NOT</span> create new entities" in response.data
+        assert re.search(
+            rb"Rows that will.*?NOT</span> create new entities.*?<dd class=\"govuk-summary-list__value\">1</dd>",
+            response.data,
+            re.S,
+        )
 
 
 class TestAddDataConfirmRoute:

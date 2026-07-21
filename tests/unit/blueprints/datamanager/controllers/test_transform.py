@@ -90,7 +90,6 @@ def test_prepare_duplicate_candidates_does_not_lock_selected_redirect_rows():
         organisation="local-authority:ABC",
         selected_redirects=[
             {
-                "organisation": "local-authority:ABC",
                 "reference": "ref-1",
                 "old_entity_number": "100",
             }
@@ -133,7 +132,7 @@ def test_prepare_duplicate_candidates_keeps_old_entity_field_alias():
     assert candidates[0]["auto_select"] is True
 
 
-def test_prepare_duplicate_candidates_disables_redirects_for_unselected_entities():
+def test_prepare_duplicate_candidates_disables_redirects_for_excluded_references():
     candidates = _prepare_duplicate_candidates(
         [
             {
@@ -148,9 +147,7 @@ def test_prepare_duplicate_candidates_disables_redirects_for_unselected_entities
             },
         ],
         organisation="local-authority:ABC",
-        selected_entities=[
-            {"organisation": "local-authority:ABC", "reference": "ref-2"}
-        ],
+        excluded_references=["ref-1"],
     )
 
     assert candidates[0]["redirect_can_select"] is False

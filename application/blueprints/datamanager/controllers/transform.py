@@ -220,66 +220,48 @@ def _build_entities_data(resp_details: list, platform_entities: list) -> dict:
     return {"columns": columns, "rows": rows}
 
 
-def _normalise_selected_entities(selected_entities) -> set:
-    """Return selected entity keys from async request params.
+def _normalise_excluded_references(excluded_references) -> set:
+    """Return explicitly excluded references from async request params.
 
-    A missing or empty param is handled by callers as "all new entities"; this
-    function returns only explicit organisation/reference selections.
+    A missing or empty param means no references were excluded from assignment.
     """
-    if not selected_entities:
+    if not excluded_references:
         return set()
-    if not isinstance(selected_entities, list):
+    if not isinstance(excluded_references, list):
         return set()
     return {
-        (
-            str(entity.get("organisation", "")).strip(),
-            str(entity.get("reference", "")).strip(),
-        )
-        for entity in selected_entities
-        if isinstance(entity, dict)
-        and entity.get("organisation")
-        and entity.get("reference")
+        str(reference).strip()
+        for reference in excluded_references
+        if str(reference).strip()
     }
 
 
-def _entity_selection_form_value(organisation: str, reference: str) -> str:
-    return json.dumps(
-        {
-            "organisation": organisation,
-            "reference": reference,
-        },
-        separators=(",", ":"),
-    )
+def _entity_selection_form_value(reference: str) -> str:
+    return reference
 
 
 def _add_assign_entities_selection_metadata(
     entities_data: dict,
-    organisation: str,
-    selected_entities,
+    excluded_references,
 ) -> dict:
     """Add checkbox metadata to Assign Entities rows.
 
-    Only rows categorised as new can be assigned entity numbers. If async did
-    not receive explicit selected_entities, every selectable new row starts
-    checked; otherwise only matching organisation/reference pairs start checked.
+    Only rows categorised as new can be assigned entity numbers. Async request
+    params contain references excluded from assignment, so every selectable row
+    starts checked unless its reference is explicitly excluded.
     """
-    selected_entity_keys = _normalise_selected_entities(selected_entities)
-    select_all_new = not selected_entity_keys
+    excluded_reference_set = _normalise_excluded_references(excluded_references)
 
     for row in entities_data.get("rows", []):
         fields = row.get("fields") or {}
         reference = str(fields.get("reference", "")).strip()
         can_select = row.get("category") == "new" and bool(reference)
-        selected = can_select and (
-            select_all_new or (organisation, reference) in selected_entity_keys
-        )
+        selected = can_select and reference not in excluded_reference_set
         row["entity_selection"] = {
             "can_select": can_select,
             "selected": selected,
             "form_value": (
-                _entity_selection_form_value(organisation, reference)
-                if reference
-                else ""
+                _entity_selection_form_value(reference) if reference else ""
             ),
         }
 
@@ -315,38 +297,23 @@ def _old_entity_redirect_key(row: dict) -> tuple[str, str]:
     )
 
 
-def _dedup_candidate_selected_entity_key(
-    candidate: dict, organisation: str
-) -> tuple[str, str]:
-    return (
-        str(
-            candidate.get("new_organisation")
-            or candidate.get("organisation")
-            or organisation
-            or ""
-        ).strip(),
-        str(
-            candidate.get("new_reference", "") or candidate.get("reference", "") or ""
-        ).strip(),
-    )
+def _dedup_candidate_selected_entity_reference(candidate: dict) -> str:
+    return str(
+        candidate.get("new_reference", "") or candidate.get("reference", "") or ""
+    ).strip()
 
 
-def _dedup_candidate_selected_redirect_key(
-    candidate: dict, organisation: str
-) -> tuple[str, str, str]:
+def _dedup_candidate_selected_redirect_key(candidate: dict) -> tuple[str, str]:
     """Return the key used to compare a Dedup candidate with selected_redirects."""
-    entity_key = _dedup_candidate_selected_entity_key(candidate, organisation)
     return (
-        entity_key[0],
-        entity_key[1],
+        _dedup_candidate_selected_entity_reference(candidate),
         str(candidate.get("old_entity", "") or "").strip(),
     )
 
 
-def _selected_redirect_key(redirect: dict) -> tuple[str, str, str]:
+def _selected_redirect_key(redirect: dict) -> tuple[str, str]:
     """Return the async selected_redirects key for a submitted redirect param."""
     return (
-        str(redirect.get("organisation", "") or "").strip(),
         str(redirect.get("reference", "") or "").strip(),
         str(
             redirect.get("old_entity_number", "")
@@ -379,7 +346,7 @@ def _prepare_duplicate_candidates(
     candidates: list[dict],
     old_entity_rows: list[dict] | None = None,
     organisation: str = "",
-    selected_entities=None,
+    excluded_references=None,
     selected_redirects=None,
 ) -> list[dict]:
     """Prepare Dedup candidates for rendering and selection.
@@ -403,8 +370,7 @@ def _prepare_duplicate_candidates(
         for redirect in (selected_redirects or [])
         if isinstance(redirect, dict) and all(_selected_redirect_key(redirect))
     }
-    selected_entity_keys = _normalise_selected_entities(selected_entities)
-    select_all_new = not selected_entity_keys
+    excluded_reference_set = _normalise_excluded_references(excluded_references)
     return [
         {
             **candidate,
@@ -412,13 +378,10 @@ def _prepare_duplicate_candidates(
             in preselected_redirects,
             "redirect_locked": _dedup_candidate_redirect_key(candidate)
             in preselected_redirects
-            and _dedup_candidate_selected_redirect_key(candidate, organisation)
+            and _dedup_candidate_selected_redirect_key(candidate)
             not in selected_redirect_keys,
-            "redirect_can_select": (
-                select_all_new
-                or _dedup_candidate_selected_entity_key(candidate, organisation)
-                in selected_entity_keys
-            ),
+            "redirect_can_select": _dedup_candidate_selected_entity_reference(candidate)
+            not in excluded_reference_set,
             "form_value": _dedup_candidate_form_value(candidate),
         }
         for candidate in candidates
@@ -476,8 +439,7 @@ def _paginate_entity_data(
     entity_search: str,
     entity_filter: str = "",
     include_selection: bool = False,
-    organisation: str = "",
-    selected_entities=None,
+    excluded_references=None,
 ) -> tuple:
     entity_start_offset = (entity_page - 1) * _ROWS_PER_PAGE
     entities_data_full = _build_entities_data(all_resp_details, platform_entities)
@@ -511,8 +473,7 @@ def _paginate_entity_data(
     if include_selection:
         entities_data = _add_assign_entities_selection_metadata(
             entities_data,
-            organisation,
-            selected_entities,
+            excluded_references,
         )
     return (
         entities_data,
@@ -766,7 +727,7 @@ def handle_check_transform(
     """
     params = req.get("params") or {}
     organisation_code = params.get("organisationName") or params.get("organisation", "")
-    selected_entities = params.get("selected_entities")
+    excluded_references = params.get("excluded_references")
     dataset_id = params.get("dataset", "")
     is_assign_entities = transform_endpoint == "assign_entities.flagged_resource_detail"
     resource_hash = params.get("resource", "")
@@ -816,7 +777,7 @@ def handle_check_transform(
         pipeline_summary.get("duplicate-candidates") or [] if show_dedup_tab else [],
         pipeline_summary.get("old-entity") or [],
         organisation=organisation_code,
-        selected_entities=selected_entities,
+        excluded_references=excluded_references,
         selected_redirects=params.get("selected_redirects"),
     )
 
@@ -847,8 +808,7 @@ def handle_check_transform(
         entity_search,
         entity_filter,
         include_selection=is_assign_entities,
-        organisation=organisation_code,
-        selected_entities=selected_entities,
+        excluded_references=excluded_references,
     )
     transformed_table = _build_transform_table(resp_details)
     issue_log_table = _build_issue_log_table(resp_details)

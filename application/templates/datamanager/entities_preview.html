@@ -30,6 +30,14 @@
             </dt>
             <dd class="govuk-summary-list__value">{{ new_count }}</dd>
           </div>
+          {% if source_flow == 'assign_entities' %}
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Rows that will <span class="govuk-!-font-weight-bold" style="color: #d4351c;">NOT</span> create new entities
+            </dt>
+            <dd class="govuk-summary-list__value">{{ excluded_count }}</dd>
+          </div>
+          {% endif %}
         </dl>
         </div>
 
