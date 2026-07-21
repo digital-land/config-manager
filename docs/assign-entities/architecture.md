@@ -81,8 +81,8 @@ The page is rendered from:
 
 - `response-details` rows fetched by `fetch_response_details(request_id)`
 - platform entities from the planning data API, for comparison and row categories
-- `pipeline-summary.all-entities`, falling back to `pipeline-summary.new-entities`, for Assign
-  Entities selectable rows
+- `response-details.transformed_row`, for Assign Entities rows
+- request param `selected_entities`, for Assign Entities checked state
 - `pipeline-summary.duplicate-candidates`, for the Dedup tab
 - `pipeline-summary.old-entity`, for preselected duplicate redirects
 
@@ -230,11 +230,11 @@ authoritative and valid.
 Async treats missing `selected_entities` and `selected_entities: []` as "assign all new entities".
 The UI prevents processing an empty selected set to avoid accidental all-entity assignment.
 
-### `all-entities` vs `new-entities`
+### Transformed rows vs `new-entities`
 
-The Entities tab renders from `pipeline-summary.all-entities` when present. This lets the user see
-unselected new rows after processing a subset. The preview uses `pipeline-summary.new-entities`,
-which should contain only the rows async will actually assign.
+The Entities tab renders from transformed rows and platform comparison data. It expects async to
+return transformed rows for all resource entities, selected or not. The preview uses
+`pipeline-summary.new-entities`, which should contain only the rows async will actually assign.
 
 ### Existing rows are visible but not selectable
 
@@ -287,16 +287,15 @@ Check the replacement async request params:
 
 - Does it include a non-empty `selected_entities` array?
 - Are entries shaped as `{ "organisation": "...", "reference": "..." }`?
-- Do the organisation/reference values match `pipeline-summary.all-entities`?
+- Do the organisation/reference values match the transformed row references?
 
 If `selected_entities` is missing or empty, async will process all new entities.
 
 ### A selected row disappeared from the Entities tab
 
-Check whether async returned `pipeline-summary.all-entities`. The Assign Entities tab needs this
-field to keep unassigned candidates visible after a subset is processed. If only
-`pipeline-summary.new-entities` is returned, the page can only render the entities async actually
-assigned.
+Check whether async returned the row in `response-details.transformed_row`. The Assign Entities tab
+expects transformed rows for all resource entities, including unselected candidates. The preview is
+allowed to contain only assigned rows in `pipeline-summary.new-entities`.
 
 ### A selected row does not appear in preview
 

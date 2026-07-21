@@ -220,63 +220,6 @@ def _build_entities_data(resp_details: list, platform_entities: list) -> dict:
     return {"columns": columns, "rows": rows}
 
 
-def _entity_candidate_reference_key(entity: dict) -> tuple:
-    return (
-        str(entity.get("organisation", "")).strip(),
-        str(entity.get("reference", "")).strip(),
-    )
-
-
-def _add_all_entity_candidates(entities_data: dict, all_entities: list) -> dict:
-    if not all_entities:
-        return entities_data
-
-    columns = list(entities_data.get("columns") or [])
-    for priority_col in _ENTITY_COL_PRIORITY:
-        if priority_col not in columns:
-            columns.append(priority_col)
-    for entity in all_entities:
-        if not isinstance(entity, dict):
-            continue
-        for col in entity:
-            if col not in _ENTITY_COL_EXCLUDE and col not in columns:
-                columns.append(col)
-
-    existing_entity_ids = {
-        _normalise_entity_id((row.get("fields") or {}).get("entity", ""))
-        for row in entities_data.get("rows", [])
-        if _normalise_entity_id((row.get("fields") or {}).get("entity", ""))
-    }
-    existing_reference_keys = {
-        _entity_candidate_reference_key(row.get("fields") or {})
-        for row in entities_data.get("rows", [])
-        if all(_entity_candidate_reference_key(row.get("fields") or {}))
-    }
-    rows = list(entities_data.get("rows", []))
-    for entity in all_entities:
-        if not isinstance(entity, dict):
-            continue
-        entity_id = _normalise_entity_id(entity.get("entity", ""))
-        reference_key = _entity_candidate_reference_key(entity)
-        if entity_id and entity_id in existing_entity_ids:
-            continue
-        if all(reference_key) and reference_key in existing_reference_keys:
-            continue
-        rows.append(
-            {
-                "fields": {col: str(entity.get(col, "")) for col in columns},
-                "category": "new",
-                "changed_fields": {},
-            }
-        )
-        if entity_id:
-            existing_entity_ids.add(entity_id)
-        if all(reference_key):
-            existing_reference_keys.add(reference_key)
-
-    return {"columns": columns, "rows": rows}
-
-
 def _normalise_selected_entities(selected_entities) -> set:
     """Return selected entity keys from async request params.
 
@@ -535,7 +478,6 @@ def _paginate_entity_data(
     include_selection: bool = False,
     organisation: str = "",
     selected_entities=None,
-    all_entities=None,
 ) -> tuple:
     entity_start_offset = (entity_page - 1) * _ROWS_PER_PAGE
     entities_data_full = _build_entities_data(all_resp_details, platform_entities)
@@ -869,7 +811,6 @@ def handle_check_transform(
     existing_endpoints = _resolve_existing_endpoints(source_summary)
     pipelines_append_required = source_summary.get("pipelines_append_required")
     pipeline_summary = response_data.get("pipeline-summary") or {}
-    all_entities = pipeline_summary.get("all-entities") or []
     show_dedup_tab = is_assign_entities and dataset_id == "conservation-area"
     duplicate_candidates = _prepare_duplicate_candidates(
         pipeline_summary.get("duplicate-candidates") or [] if show_dedup_tab else [],
@@ -908,7 +849,6 @@ def handle_check_transform(
         include_selection=is_assign_entities,
         organisation=organisation_code,
         selected_entities=selected_entities,
-        all_entities=all_entities,
     )
     transformed_table = _build_transform_table(resp_details)
     issue_log_table = _build_issue_log_table(resp_details)

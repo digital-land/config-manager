@@ -14,6 +14,16 @@ from config.config import get_request_api_endpoint
 ASYNC_BASE = f"{get_request_api_endpoint()}/requests"
 
 
+def _selected_entity_checkbox(response_data, reference):
+    response_text = response_data.decode()
+    match = re.search(
+        rf'<input\b[^>]*name="selected_entities"[^>]*value="[^"]*{re.escape(reference)}[^"]*"[^>]*>',
+        response_text,
+    )
+    assert match, f"Could not find selected_entities checkbox for {reference}"
+    return match.group(0)
+
+
 CSV_INPUT = (
     "dataset,resource,organisation,reference,status,entities_created,error_code,message\n"
     "tree,resource-a,local-authority:ABC,ref-1,error,12%,LARGE_NUMBER_OF_NEW_ENTITIES,Entity growth is 12%\n"
@@ -535,6 +545,14 @@ def test_assign_entities_check_results_uses_selected_entities_param(client):
         f"{ASYNC_BASE}/assign-selected-id/response-details",
         json=[
             {
+                "entry_number": 1,
+                "transformed_row": [
+                    {"entity": "1", "field": "reference", "value": "ref-1"},
+                    {"entity": "1", "field": "name", "value": "Name 1"},
+                ],
+                "issue_logs": [],
+            },
+            {
                 "entry_number": 2,
                 "transformed_row": [
                     {"entity": "2", "field": "reference", "value": "ref-2"},
@@ -577,11 +595,13 @@ def test_assign_entities_check_results_uses_selected_entities_param(client):
                         )
 
     assert response.status_code == 200
-    assert b'ref-1&#34;}" form="duplicate-redirect-form"  >' in response.data
-    assert b'ref-2&#34;}" form="duplicate-redirect-form" checked' in response.data
-    assert (
-        b'existing-ref&#34;}" form="duplicate-redirect-form"  disabled' in response.data
-    )
+    ref_1_checkbox = _selected_entity_checkbox(response.data, "ref-1")
+    ref_2_checkbox = _selected_entity_checkbox(response.data, "ref-2")
+    existing_checkbox = _selected_entity_checkbox(response.data, "existing-ref")
+    assert "checked" not in ref_1_checkbox
+    assert "disabled" not in ref_1_checkbox
+    assert "checked" in ref_2_checkbox
+    assert "disabled" in existing_checkbox
     assert b"1 of 2 entities selected for assignment" in response.data
 
 
