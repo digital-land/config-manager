@@ -125,6 +125,7 @@ class TestTriggerAddDataAsyncWorkflow:
         payload = post.call_args.kwargs["json"]
         assert "entity_redirects" not in payload["client_payload"]
 
+
 class TestGetBranchHeadSha:
     def test_returns_sha(self, app):
         resp = Mock()
