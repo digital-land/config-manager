@@ -188,16 +188,6 @@ class TestAddDataConfirmRoute:
         assert b"govuk-error-summary" in response.data
 
     def test_confirm_does_not_pass_entity_redirects_to_workflow(self, client):
-        db.session.add(
-            RequestMeta(
-                request_id="confirm-redirect-id",
-                entity_redirects=(
-                    '[{"old_entity":"100","entity":"200",'
-                    '"dataset":"conservation-area"}]'
-                ),
-            )
-        )
-        db.session.commit()
         with client.session_transaction() as sess:
             sess["user"] = {"login": "test-user"}
         with patch(

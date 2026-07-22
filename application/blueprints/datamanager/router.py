@@ -411,16 +411,6 @@ def flagged_resource_detail_post(request_id):
             )
         )
 
-    meta = db.session.get(RequestMeta, request_id)
-    if meta is None:
-        meta = RequestMeta(
-            request_id=request_id,
-            entity_redirects=json.dumps(redirects),
-        )
-        db.session.add(meta)
-    else:
-        meta.entity_redirects = json.dumps(redirects)
-    db.session.commit()
     return redirect(url_for("datamanager.entities_preview", request_id=request_id))
 
 

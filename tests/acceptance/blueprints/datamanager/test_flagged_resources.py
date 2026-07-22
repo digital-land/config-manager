@@ -7,7 +7,7 @@ from unittest.mock import patch
 import responses as rsps
 
 from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK
-from application.db.models import RequestMeta, ServiceLock
+from application.db.models import ServiceLock
 from application.extensions import db
 from config.config import get_request_api_endpoint
 
@@ -861,7 +861,7 @@ def test_assign_entities_check_results_hides_dedup_for_other_datasets(client):
     assert b'id="duplicates-table"' not in response.data
 
 
-def test_assign_entities_check_results_post_stores_redirects(client):
+def test_assign_entities_check_results_post_continues_without_storing_redirects(client):
     request_id = "assign-post-id"
     with patch(
         "application.blueprints.datamanager.router.fetch_request",
@@ -913,18 +913,6 @@ def test_assign_entities_check_results_post_stores_redirects(client):
     assert response.headers["Location"].endswith(
         f"/datamanager/add-data/{request_id}/entities"
     )
-    meta = db.session.get(RequestMeta, request_id)
-    assert json.loads(meta.entity_redirects) == [
-        {
-            "old_entity": "100",
-            "entity": "200",
-            "dataset": "tree",
-            "old_reference": "old-ref",
-            "new_reference": "new-ref",
-            "match_type": "complete_match",
-            "notes": "Redirect duplicate entity selected in Assign Entities",
-        }
-    ]
 
 
 def test_assign_entities_check_results_post_resubmits_changed_entity_selection(client):
@@ -1030,7 +1018,6 @@ def test_assign_entities_check_results_post_resubmits_changed_entity_selection(c
             }
         ],
     )
-    assert db.session.get(RequestMeta, request_id) is None
 
 
 def test_assign_entities_check_results_post_continues_for_unchanged_entity_selection(
@@ -1078,8 +1065,6 @@ def test_assign_entities_check_results_post_continues_for_unchanged_entity_selec
         f"/datamanager/add-data/{request_id}/entities"
     )
     submit_request.assert_not_called()
-    meta = db.session.get(RequestMeta, request_id)
-    assert json.loads(meta.entity_redirects) == []
 
 
 def test_assign_entities_check_results_post_resubmits_changed_redirect_selection(

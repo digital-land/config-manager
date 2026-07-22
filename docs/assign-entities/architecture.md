@@ -1,8 +1,8 @@
 # Assign Entities - Architecture
 
 This document describes the Assign Entities process end to end: how config-manager starts async
-processing, how entity and redirect selections are represented, what the preview shows, what is
-committed to config, and where to look when the flow behaves unexpectedly.
+processing, how entity and redirect selections are represented, what the preview shows, which
+async result fields become config rows, and where to look when the flow behaves unexpectedly.
 
 Assign Entities is not a separate async request type. It is a specialised config-manager journey
 that submits an async `add_data` request for an existing resource hash, then reuses the add-data
@@ -198,8 +198,7 @@ On confirmation, config-manager calls `trigger_add_data_async_workflow` with:
 - `retire_endpoints`
 - `environment`
 
-It does not send entity selections or redirect selections to GitHub. The config repo workflow uses
-the `request_id` to fetch the completed async result and appends:
+The config repo workflow uses the `request_id` to fetch the completed async result and appends:
 
 - `pipeline/{collection}/lookup.csv` from `pipeline-summary.new-entities`
 - `pipeline/{collection}/entity-organisation.csv` from `pipeline-summary.entity-organisation`
@@ -264,12 +263,6 @@ The preview only shows async output. If a row is missing from preview, go back t
 Entities check-results page and process a new selection. The preview should not be used to add or
 remove selected references.
 
-### GitHub does not receive redirects
-
-Redirect selections are only sent to async as `selected_redirects` during **Process entities**.
-GitHub confirmation sends only a request id; `old-entity.csv` rows are read by the config repo from
-`pipeline-summary.old-entity`.
-
 ### Branch state can make results stale
 
 Assign Entities uses the same stale-assessment protection as add-data. If the shared config branch
@@ -329,13 +322,12 @@ Check the POST body from the Assign Entities page:
 ### Preview old-entity count is wrong
 
 The count is the number of rows rendered from `pipeline-summary.old-entity`. Check the async result
-first. Stored `RequestMeta.entity_redirects` is not used for this preview summary.
+first.
 
 ### GitHub PR does not contain old-entity rows
 
-Check the async request fetched by the config repo workflow. The GitHub payload does not include
-redirect rows. The config repo should append `old-entity.csv` from
-`pipeline-summary.old-entity`.
+Check `pipeline-summary.old-entity` in the completed async result fetched by the config repo
+workflow.
 
 ### Entity numbers look stale or collide
 
