@@ -16,7 +16,7 @@
     <div class="govuk-!-margin-bottom-6">
       <h2 class="govuk-heading-m"><u>Entity Summary</u></h2>
       <div style="border: 1px solid #b1b4b6; padding: 20px;">
-        <div style="background-color: #f3f2f1; padding: 10px 15px; margin-bottom: 30px;">
+        <div class="govuk-!-background-colour-light-grey govuk-!-padding-3 govuk-!-margin-bottom-6">
         <dl class="govuk-summary-list govuk-!-margin-bottom-0">
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">
@@ -30,6 +30,14 @@
             </dt>
             <dd class="govuk-summary-list__value">{{ new_count }}</dd>
           </div>
+          {% if source_flow == 'assign_entities' %}
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Rows that will <span class="govuk-!-font-weight-bold" style="color: #d4351c;">NOT</span> create new entities
+            </dt>
+            <dd class="govuk-summary-list__value">{{ excluded_count }}</dd>
+          </div>
+          {% endif %}
         </dl>
         </div>
 
@@ -139,8 +147,8 @@
     <div class="govuk-!-margin-bottom-6">
       <h2 class="govuk-heading-m"><u>Entity Org Summary</u></h2>
       <div style="border: 1px solid #b1b4b6; padding: 20px;">
-        <h3 class="govuk-heading-s">entity-organisation.csv</h3>
         {% if entity_org_warning %}
+        <h3 class="govuk-heading-s">entity-organisation.csv</h3>
         <div class="govuk-warning-text">
           <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
           <strong class="govuk-warning-text__text">
@@ -149,16 +157,19 @@
           </strong>
         </div>
         {% elif entity_org_overlap_info %}
+        <h3 class="govuk-heading-s">entity-organisation.csv</h3>
         <div class="govuk-inset-text">
           {{ entity_org_overlap_info }}
         </div>
         {% elif entity_org_error_warning %}
+        <h3 class="govuk-heading-s">entity-organisation.csv</h3>
         <div class="govuk-error-summary" role="alert">
           <strong class="govuk-error-message">
             {{ entity_org_error_warning }}
           </strong>
         </div>
         {% elif has_entity_org and entity_org_table_params %}
+        <h3 class="govuk-heading-s">entity-organisation.csv</h3>
         <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
           {{ table(entity_org_table_params) }}
         </div>
@@ -199,6 +210,17 @@
     <div class="govuk-!-margin-bottom-6">
       <h2 class="govuk-heading-m"><u>Old Entity Summary</u></h2>
       <div style="border: 1px solid #b1b4b6; padding: 20px;">
+        <div style="background-color: #f3f2f1; padding: 10px 15px; margin-bottom: 30px;">
+        <dl class="govuk-summary-list govuk-!-margin-bottom-0">
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Number of redirects
+            </dt>
+            <dd class="govuk-summary-list__value">{{ old_entity_redirect_count }}</dd>
+          </div>
+        </dl>
+        </div>
+
         <h3 class="govuk-heading-s">old-entity.csv</h3>
         <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
           {{ table(old_entity_redirect_table_params) }}

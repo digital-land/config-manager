@@ -448,7 +448,6 @@ class RequestMeta(db.Model):
     endpoints_to_retire = db.Column(
         db.Text, nullable=True
     )  # JSON list of endpoint hashes
-    entity_redirects = db.Column(db.Text, nullable=True)  # JSON list of old-entity rows
     branch_sha = db.Column(
         db.Text, nullable=True
     )  # config-manager-update HEAD SHA when the assessment was submitted
