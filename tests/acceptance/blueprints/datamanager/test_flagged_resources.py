@@ -166,12 +166,18 @@ def test_add_data_lock_does_not_block_assign_entities_preview(client):
     # assign-entities flow. Locking Add Data must not block it for that flow.
     _register_preview_request(
         "assign-preview-1",
-        {"dataset": "tree", "organisation": "local-authority:ABC", "resource": "resource-a"},
+        {
+            "dataset": "tree",
+            "organisation": "local-authority:ABC",
+            "resource": "resource-a",
+        },
     )
     db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
     db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
     db.session.add(
-        ServiceLock(name=ADD_DATA_LOCK, locked_by="someone", locked_at=datetime.utcnow())
+        ServiceLock(
+            name=ADD_DATA_LOCK, locked_by="someone", locked_at=datetime.utcnow()
+        )
     )
     db.session.commit()
 
@@ -189,7 +195,11 @@ def test_add_data_lock_does_not_block_assign_entities_preview(client):
 def test_assign_entities_lock_blocks_assign_entities_preview(client):
     _register_preview_request(
         "assign-preview-2",
-        {"dataset": "tree", "organisation": "local-authority:ABC", "resource": "resource-a"},
+        {
+            "dataset": "tree",
+            "organisation": "local-authority:ABC",
+            "resource": "resource-a",
+        },
     )
     db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
     db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
@@ -225,7 +235,9 @@ def test_add_data_lock_still_blocks_add_data_preview(client):
     db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
     db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
     db.session.add(
-        ServiceLock(name=ADD_DATA_LOCK, locked_by="someone", locked_at=datetime.utcnow())
+        ServiceLock(
+            name=ADD_DATA_LOCK, locked_by="someone", locked_at=datetime.utcnow()
+        )
     )
     db.session.commit()
 

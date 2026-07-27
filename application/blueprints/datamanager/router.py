@@ -134,6 +134,7 @@ def _require_assign_entities_unlocked():
             url_for("base.index", assign_entities_blocked_by=lock.locked_by)
         )
 
+
 def _request_is_assign_entities_flow():
     """Best-effort detection of whether the current request is part of the
     assign-entities flow rather than add-data.

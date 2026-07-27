@@ -90,6 +90,7 @@ def _build_entity_organisation_summary(new_entities, authoritative, pipeline_sum
         entity_org_error_warning,
     )
 
+
 # Used by router to try and variable lock/unlock this page
 def determine_source_flow(params: dict) -> str:
     params = params or {}
