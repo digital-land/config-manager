@@ -139,10 +139,10 @@ def _request_is_assign_entities_flow():
     """Best-effort detection of whether the current request is part of the
     assign-entities flow rather than add-data.
     """
-    form_flow = request.form.get("source_flow")
-    if form_flow:
-        return form_flow == "assign_entities"
-
+    # The confirm POST always carries the originating flow as a hidden field
+    if request.endpoint == "datamanager.add_data_confirm_async":
+        return request.form.get("source_flow") == "assign_entities"
+    
     request_id = (request.view_args or {}).get("request_id")
     if not request_id:
         return False
