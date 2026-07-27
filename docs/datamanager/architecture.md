@@ -6,8 +6,8 @@ This document describes the structure of the `datamanager` blueprint and how to 
 
 ## Directory layout
 
-> Docs for this blueprint live in `docs/datamanager/` (this file, plus `github-add.md` and
-> `stale-check.md`).
+> Docs for this blueprint live in `docs/datamanager/` (this file, plus `add-data.md`,
+> `assign-entities.md`, and `github-add.md`).
 
 ```
 application/blueprints/datamanager/

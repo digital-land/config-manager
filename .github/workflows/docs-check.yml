@@ -1,0 +1,113 @@
+name: Docs update reminder
+run-name: Docs check - ${{ github.head_ref || github.ref_name }} by @${{ github.actor }}
+
+# Warn-only check: when a PR makes a substantial code change (more than
+# DOCS_MIN_CHANGED_LINES lines across application/src/migrations/requirements)
+# but does not touch the docs/ folder, post a non-blocking reminder to update
+# the documentation. This never fails the build - it is a nudge, not a gate.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  # Minimum number of changed code lines (additions + deletions) before the
+  # docs reminder fires. Small changes are ignored.
+  DOCS_MIN_CHANGED_LINES: 100
+
+jobs:
+  docs-reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check whether a substantial code change skipped docs
+        id: changes
+        run: |
+          base="origin/${{ github.base_ref }}"
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          numstat="$(git diff --numstat "$base"...HEAD)"
+          echo "Changed files (added / deleted / path):"
+          echo "$numstat"
+
+          docs_changed=false
+          code_lines=0
+          while IFS=$'\t' read -r added deleted path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              docs/*)
+                docs_changed=true
+                ;;
+              application/*|src/*|migrations/*|requirements/*)
+                # Binary files report '-' for added/deleted; skip them.
+                if [ "$added" != "-" ]; then
+                  code_lines=$(( code_lines + added + deleted ))
+                fi
+                ;;
+            esac
+          done <<< "$numstat"
+
+          echo "Code lines changed: $code_lines (threshold ${DOCS_MIN_CHANGED_LINES})"
+          echo "code_lines=$code_lines" >> "$GITHUB_OUTPUT"
+
+          if [ "$docs_changed" = false ] && [ "$code_lines" -gt "${DOCS_MIN_CHANGED_LINES}" ]; then
+            echo "needs_docs=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_docs=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Warn in job summary
+        if: steps.changes.outputs.needs_docs == 'true'
+        run: |
+          {
+            echo "## 📝 Documentation reminder"
+            echo ""
+            echo "This PR changes **${{ steps.changes.outputs.code_lines }}** lines of code"
+            echo "(threshold ${DOCS_MIN_CHANGED_LINES}) but does not update anything in \`docs/\`."
+            echo "If this change affects behaviour, please update the relevant docs"
+            echo "(e.g. \`docs/datamanager/\`). This check is a reminder only and does **not** block merging."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR
+        if: steps.changes.outputs.needs_docs == 'true'
+        uses: actions/github-script@v7
+        env:
+          CODE_LINES: ${{ steps.changes.outputs.code_lines }}
+          THRESHOLD: ${{ env.DOCS_MIN_CHANGED_LINES }}
+        with:
+          script: |
+            const marker = '<!-- docs-update-reminder -->';
+            const body = `${marker}\n📝 **Documentation reminder**\n\n` +
+              `This PR changes **${process.env.CODE_LINES}** lines of code ` +
+              `(threshold ${process.env.THRESHOLD}) but does not update anything in \`docs/\`. ` +
+              'If this change affects behaviour, please update the relevant docs ' +
+              '(e.g. `docs/datamanager/`).\n\n' +
+              '_This is a non-blocking reminder — it will not prevent merging._';
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

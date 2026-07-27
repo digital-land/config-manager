@@ -2,28 +2,19 @@
 
 When a user confirms an add-data (or assign-entities) submission, config-manager triggers a GitHub
 Action in the `digital-land/config` repo that commits the assessed data onto a config branch and
-opens/updates a PR. This document describes that trigger and the workflow it runs.
+opens/updates a PR.
 
 The trigger lives in `services/github.py` (`trigger_add_data_async_workflow`, called from
-`controllers/preview.py`). The workflow itself is `.github/workflows/add-data-async-script.yml`
-("Add Data From Async API") in `digital-land/config`, running `bin/add_data.py`.
-
-## How it works
-
-1. Fetches the full request from the async API using `request_id`.
-2. Validates the request `status` is `COMPLETE` with no error.
-3. Resolves the target branch (see [Branch behaviour](#branch-behaviour)).
-4. Appends rows to the relevant collection/pipeline CSVs (see [CSV files updated](#csv-files-updated)).
-5. Commits and creates or updates a PR against `main`.
+`controllers/preview.py`). The workflow is `.github/workflows/add-data-async-script.yml` in
+`digital-land/config`, running `bin/add_data.py`. It fetches the request from the async API,
+validates `status` is `COMPLETE` with no error, appends rows to the relevant collection/pipeline
+CSVs, then commits and creates/updates a PR against `main`.
 
 ## Triggering the workflow
 
-**Endpoint:** `POST {GITHUB_API_BASE_URL}/repos/digital-land/config/dispatches`
-
-**Headers:**
-- `Accept: application/vnd.github+json`
-- `Authorization: Bearer <INSTALLATION_ACCESS_TOKEN>`
-- `X-GitHub-Api-Version: 2022-11-28`
+**Endpoint:** `POST {GITHUB_API_BASE_URL}/repos/digital-land/config/dispatches` — sent as a GitHub
+App (`GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY`), with
+`X-GitHub-Api-Version: 2022-11-28`.
 
 **Payload:**
 ```json
@@ -40,83 +31,27 @@ The trigger lives in `services/github.py` (`trigger_add_data_async_workflow`, ca
 }
 ```
 
-| Field | Required | Purpose |
-| --- | --- | --- |
-| `event_type` | yes | Must be `add-data-async-script` |
-| `client_payload.request_id` | yes | ID of a `COMPLETE` async request |
-| `client_payload.triggered_by` | no | Who/what triggered it (used in commit/PR content) |
-| `client_payload.branch` | no | Target branch — see [Branch behaviour](#branch-behaviour) |
-| `client_payload.retire_endpoints` | no | Comma-separated endpoint hashes to end-date |
-| `client_payload.entity_redirects` | no | JSON list of old→new entity redirects |
-| `client_payload.environment` | no | Async API environment: `development` \| `staging` \| `production` (default `staging`) |
+Only `event_type` (must be `add-data-async-script`) and `client_payload.request_id` (a `COMPLETE`
+async request) are required. `branch` defaults per [Branch behaviour](#branch-behaviour);
+`retire_endpoints` end-dates the matching endpoint/source rows; `entity_redirects` is a JSON list of
+old→new entity redirects; `environment` (`development` | `staging` | `production`, default
+`staging`) selects the async API base URL the workflow reads.
 
 The branch config-manager sends is its `CONFIG_REPO_BRANCH` setting — `config-manager-update` in
 production, `test-config-manager-update` in development.
 
 ## Branch behaviour
 
-`bin/add_data.py` (`resolve_branch`) is branch-agnostic; the `branch` parameter controls how it
-creates or updates branches and PRs.
+`bin/add_data.py` (`resolve_branch`) is branch-agnostic; the `branch` parameter controls branch/PR
+creation:
 
-- **No `branch`** — a new branch `add-data-async/{collection}-{timestamp}` is created and a PR is
-  opened against `main`.
-- **`branch` given, open PR exists** — checks out the branch, appends on top, and updates the
-  existing PR body with the new submission label. This batches multiple submissions into one PR.
-- **`branch` given, branch exists but no open PR** — checks out the branch, appends, opens a new
-  PR against `main`.
-- **`branch` given, branch does not exist** — creates a fresh branch with that name and opens a
-  PR against `main`.
-- **Test mode** (`--test`) — commits to a `test/{branch}` branch as a **draft** PR that must not
-  be merged. config-manager does not send this today; it uses a dedicated test branch instead.
+- **No `branch`** — creates `add-data-async/{collection}-{timestamp}` and opens a PR against `main`.
+- **`branch` given** — checks out (or creates) it, appends on top, and updates the open PR if there
+  is one or opens a new one. This batches multiple submissions into a single PR, whose body
+  accumulates one label per submission: `add-{dataset}-{organisation}-{triggered_by}`.
 
-Only a PR from `config-manager-update → main` is auto-merged
-(`auto-merge-config-manager.yml`); other branch names (e.g. `test-config-manager-update`) open a
-normal PR that is never auto-merged.
-
-## Commit messages and PR content
-
-Each submission produces a commit and PR label:
-
-```
-add-{dataset}-{organisation}-{triggered_by}
-```
-
-e.g. `add-article-4-direction-area-local-authority:SKP-matt`. When batched onto one branch, the PR
-body accumulates all labels.
-
-## Async API service
-
-The workflow fetches request data from `{ASYNC_API_BASE_URL}/requests/{request_id}`, where the base
-URL is resolved from the `environment` in the payload:
-
-| environment | base URL |
-| --- | --- |
-| `development` | `http://development-pub-async-api-lb-…elb.amazonaws.com` |
-| `staging` (default) | `http://staging-pub-async-api-lb-…elb.amazonaws.com` |
-| `production` | `http://production-pub-async-api-lb-…elb.amazonaws.com` |
-
-### Expected response shape
-
-```json
-{
-  "params": {
-    "collection": "article-4-direction",
-    "dataset": "article-4-direction-area",
-    "organisation": "local-authority:SKP",
-    "column_mapping": { "geom": "geometry" },
-    "authoritative": true
-  },
-  "status": "COMPLETE",
-  "response": {
-    "data": {
-      "endpoint-summary": { "new_endpoint_entry": {}, "endpoint_url_in_endpoint_csv": false },
-      "source-summary": { "new_source_entry": {}, "documentation_url_in_source_csv": false },
-      "pipeline-summary": { "new-entities": [], "entity-organisation": [] }
-    },
-    "error": null
-  }
-}
-```
+Only a `config-manager-update → main` PR is auto-merged (`auto-merge-config-manager.yml`); other
+branch names (e.g. `test-config-manager-update`) open a normal PR that is never auto-merged.
 
 ## CSV files updated
 
@@ -129,23 +64,65 @@ URL is resolved from the `environment` in the payload:
 | `pipeline/{collection}/entity-organisation.csv` | `pipeline-summary.entity-organisation` | `params.authoritative` true, and not an overlap/error |
 | `pipeline/{collection}/old-entity.csv` | `client_payload.entity_redirects` | redirects provided |
 
-Retiring endpoints (`retire_endpoints`) does not append rows — it sets `end-date` on the matching
-rows in `collection/{collection}/endpoint.csv` and `source.csv`.
-
-## Authentication
-
-config-manager triggers the dispatch as a GitHub App (`services/github.py`), using
-`GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, and `GITHUB_APP_PRIVATE_KEY`. The workflow in the
-config repo authenticates separately to fetch the request and push commits.
-
-## Error handling
-
 The workflow fails if `request_id` is empty, the request cannot be fetched, its status is not
 `COMPLETE`, the response contains an error, the `collection` has no matching `collection/` and
 `pipeline/` directories, or there are no changes to commit.
 
+## Stale-assessment guard
+
+Adding data is two steps: **assess** (the async worker reads the shared branch, assigns free entity
+numbers, and freezes them into the result) and **confirm** (the user reviews, then the workflow
+above commits the frozen numbers). The review page can sit open a long time; if another submission
+advances the shared branch in between, the frozen numbers can collide — the same entity number used
+twice, surfacing later as a failed PR a developer has to unpick by hand. This guard blocks the
+confirm when that has happened.
+
+**Baseline at submission.** `record_branch_baseline` (`controllers/preview.py`, called from both
+`_submit_add_data_preview` in `controllers/form.py` and `_submit_assign_entities_request` in
+`controllers/flagged_resources.py`) records the branch HEAD SHA the assessment is based on onto
+`RequestMeta.branch_sha`. It:
+
+- skips new-branch submissions (no shared state to race);
+- baselines against `main` when `config-manager-update` does not exist yet (it is created lazily by
+  the first commit), via `get_config_baseline_sha` (`services/github.py`) — matching what the async
+  worker reads when the branch is absent;
+- reads only the branch HEAD (one API call, no waiting) so submit stays fast;
+- **fails open** — any error is logged and skipped rather than blocking the submission.
+
+**Check at confirmation.** Before triggering the commit workflow, `handle_add_data_confirm`
+(`controllers/preview.py`) first **waits for any in-flight `add-data-async-script` workflow to
+finish** (`wait_for_add_data_workflow_idle`, `services/github.py`) so it compares a settled branch,
+bounded by `ADD_DATA_WORKFLOW_WAIT_TIMEOUT`; the confirm page shows a "Submitting…" panel during the
+wait. It then compares the baseline via `config_branch_changed_for_collection`
+(`GET /repos/digital-land/config/compare/{baseline_sha}...{head}`, where `head` is the shared branch
+or `main`):
+
+- returns "changed" only if a changed file lives under `pipeline/{collection}/`, so other
+  collections do not block each other;
+- **fails closed** — treats the branch as changed on a diverged/force-pushed history, a truncated
+  (>=300-file) diff, or any API error, so a possibly-stale result is never let through.
+
+If the branch changed, the confirm is blocked and the user sees
+`templates/datamanager/add-data-stale.html` with a "Re-run transform" action, routing back to
+`datamanager.check_results` for the recorded `check_request_id` (or the flow's start page). The
+guard only runs when submitting onto the shared branch **and** a baseline was captured, so requests
+predating this feature pass through unchanged.
+
+### Configuration (`config/config.py`)
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `CONFIG_REPO_BRANCH` | `config-manager-update` (prod), `test-config-manager-update` (dev) | Shared branch to commit to / check against |
+| `ADD_DATA_WORKFLOW_WAIT_TIMEOUT` | `60` (seconds) | Max wait at confirm for an in-flight workflow before comparing |
+| `ADD_DATA_WORKFLOW_POLL_INTERVAL` | `5` (seconds) | Poll interval while waiting |
+
+The gunicorn `--timeout` in the `Procfile` (120s) is kept comfortably above the wait timeout so a
+web worker is not killed while the confirm request waits.
+
+> **Note:** there is no CI check for duplicate entity numbers before the auto-merged PR lands, and
+> the commit workflow has no concurrency group — both are worth adding as defence-in-depth but are
+> out of scope for this guard.
+
 ## Related
 
-- [stale-check.md](stale-check.md) — how config-manager avoids committing stale entity numbers when
-  the branch advances between assessment and confirmation.
 - [architecture.md](architecture.md) — the datamanager blueprint structure.

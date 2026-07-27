@@ -13,7 +13,6 @@ is-safe-url
 flask-talisman
 digital_land @ git+https://github.com/digital-land/pipeline.git#egg=digital-land
 sentry-sdk[flask]
-PyGithub
-pydantic
+PyJWT[crypto]
 flask-sslify
 pandas
