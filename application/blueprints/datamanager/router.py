@@ -142,7 +142,7 @@ def _request_is_assign_entities_flow():
     # The confirm POST always carries the originating flow as a hidden field
     if request.endpoint == "datamanager.add_data_confirm_async":
         return request.form.get("source_flow") == "assign_entities"
-    
+
     request_id = (request.view_args or {}).get("request_id")
     if not request_id:
         return False
