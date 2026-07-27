@@ -160,7 +160,7 @@ def require_login():
     if login_response:
         return login_response
 
-    # The entities preview is used by both add-data and assign-entities flows, so the applicable lock depends on which flow the request belongs to.
+    # The entities preview is used by both add-data and assign-entities flows
     if (
         request.endpoint in _SHARED_FLOW_ENDPOINTS
         and _request_is_assign_entities_flow()
