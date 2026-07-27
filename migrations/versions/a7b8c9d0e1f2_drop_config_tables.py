@@ -10,7 +10,7 @@ robust to environments where a subset was already absent and does not depend
 on foreign-key drop ordering.
 
 Revision ID: a7b8c9d0e1f2
-Revises: f6a7b8c9d0e1
+Revises: 7b8c9d0e1f2a
 Create Date: 2026-07-24
 
 """
@@ -19,7 +19,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "a7b8c9d0e1f2"
-down_revision = "f6a7b8c9d0e1"
+down_revision = "7b8c9d0e1f2a"
 branch_labels = None
 depends_on = None
 

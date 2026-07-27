@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime
 from io import BytesIO
 from unittest.mock import patch
@@ -6,11 +7,21 @@ from unittest.mock import patch
 import responses as rsps
 
 from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK
-from application.db.models import RequestMeta, ServiceLock
+from application.db.models import ServiceLock
 from application.extensions import db
 from config.config import get_request_api_endpoint
 
 ASYNC_BASE = f"{get_request_api_endpoint()}/requests"
+
+
+def _selected_entity_checkbox(response_data, reference):
+    response_text = response_data.decode()
+    match = re.search(
+        rf'<input\b[^>]*name="selected_entity_references"[^>]*value="{re.escape(reference)}"[^>]*>',
+        response_text,
+    )
+    assert match, f"Could not find selected_entity_references checkbox for {reference}"
+    return match.group(0)
 
 
 CSV_INPUT = (
@@ -382,7 +393,19 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
                     "source-summary": {
                         "existing_endpoint_for_organisation_dataset": ["endpoint-a"]
                     },
-                    "pipeline-summary": {"new-in-resource": 1},
+                    "pipeline-summary": {
+                        "new-in-resource": 2,
+                        "new-entities": [
+                            {
+                                "organisation": "local-authority:ABC",
+                                "reference": "ref-1",
+                            },
+                            {
+                                "organisation": "local-authority:ABC",
+                                "reference": "ref-2",
+                            },
+                        ],
+                    },
                 }
             },
         },
@@ -466,6 +489,106 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
     assert b"retire_endpoints" not in response.data
     assert b'action="/assign-entities/check-results/assign-id-1"' in response.data
     assert b'form="duplicate-redirect-form"' in response.data
+    assert b"entity-select-all" in response.data
+    assert b'name="selected_entity_references"' in response.data
+    assert b'value="ref-2" form="duplicate-redirect-form" checked' in response.data
+    assert b"1 of 1 entity selected for assignment" in response.data
+
+
+@rsps.activate
+def test_assign_entities_check_results_uses_excluded_references_param(client):
+    rsps.add(
+        rsps.GET,
+        f"{ASYNC_BASE}/assign-selected-id",
+        json={
+            "status": "COMPLETE",
+            "params": {
+                "dataset": "tree",
+                "organisation": "local-authority:ABC",
+                "resource": "resource-a",
+                "excluded_references": ["ref-1"],
+            },
+            "response": {
+                "data": {
+                    "source-summary": {},
+                    "pipeline-summary": {
+                        "new-in-resource": 2,
+                        "new-entities": [
+                            {
+                                "entity": "2",
+                                "organisation": "local-authority:ABC",
+                                "reference": "ref-2",
+                            }
+                        ],
+                    },
+                }
+            },
+        },
+        status=200,
+    )
+    rsps.add(
+        rsps.GET,
+        f"{ASYNC_BASE}/assign-selected-id/response-details",
+        json=[
+            {
+                "entry_number": 1,
+                "transformed_row": [
+                    {"entity": "1", "field": "reference", "value": "ref-1"},
+                    {"entity": "1", "field": "name", "value": "Name 1"},
+                ],
+                "issue_logs": [],
+            },
+            {
+                "entry_number": 2,
+                "transformed_row": [
+                    {"entity": "2", "field": "reference", "value": "ref-2"},
+                    {"entity": "2", "field": "name", "value": "Name 2"},
+                ],
+                "issue_logs": [],
+            },
+            {
+                "entry_number": 3,
+                "transformed_row": [
+                    {"entity": "3", "field": "reference", "value": "existing-ref"},
+                    {"entity": "3", "field": "name", "value": "Existing"},
+                ],
+                "issue_logs": [],
+            },
+        ],
+        status=200,
+    )
+
+    transform_controller = "application.blueprints.datamanager.controllers.transform"
+    with patch(f"{transform_controller}.get_org_entity", return_value=90):
+        with patch(f"{transform_controller}.get_organisation_name"):
+            with patch(f"{transform_controller}.get_dataset_name", return_value="Tree"):
+                with patch(
+                    f"{transform_controller}.get_entity_count_for_organisation_and_dataset",
+                    return_value=1,
+                ):
+                    with patch(
+                        f"{transform_controller}.get_entities_for_organisation_and_dataset",
+                        return_value=[
+                            {
+                                "entity": "3",
+                                "reference": "existing-ref",
+                                "name": "Existing",
+                            }
+                        ],
+                    ):
+                        response = client.get(
+                            "/assign-entities/check-results/assign-selected-id"
+                        )
+
+    assert response.status_code == 200
+    ref_1_checkbox = _selected_entity_checkbox(response.data, "ref-1")
+    ref_2_checkbox = _selected_entity_checkbox(response.data, "ref-2")
+    existing_checkbox = _selected_entity_checkbox(response.data, "existing-ref")
+    assert "checked" not in ref_1_checkbox
+    assert "disabled" not in ref_1_checkbox
+    assert "checked" in ref_2_checkbox
+    assert "disabled" in existing_checkbox
+    assert b"1 of 2 entities selected for assignment" in response.data
 
 
 @rsps.activate
@@ -540,6 +663,13 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
                     "source-summary": {},
                     "pipeline-summary": {
                         "new-in-resource": 1,
+                        "old-entity": [
+                            {
+                                "old-entity": "100",
+                                "status": "301",
+                                "entity": "200",
+                            }
+                        ],
                         "duplicate-candidates": [
                             {
                                 "old_entity": "100",
@@ -636,7 +766,7 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
         b'href="/assign-entities/check-results/assign-duplicates-id?'
         b'entity_search=200#entities-table"'
     ) in response.data
-    assert b'type="hidden" name="entity_redirects"' in response.data
+    assert b'type="hidden" name="entity_redirects"' not in response.data
     assert (
         b'id="entity-redirect-1" name="entity_redirects" type="checkbox"'
         in response.data
@@ -655,9 +785,16 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
         b" checked disabled" not in response.data
     )
     assert b"old_entity" in response.data
-    assert b"checked disabled" in response.data
+    first_checkbox = re.search(
+        rb'<input[^>]*id="entity-redirect-1"[^>]*>', response.data
+    ).group(0)
+    assert b"checked" in first_checkbox
+    assert b"disabled" in first_checkbox
     assert b"entity-redirect-select-all" in response.data
-    assert b"entities selected for redirection" in response.data
+    assert b"1 of 2 entities selected for redirection" in response.data
+    assert b"JSON.parse(checkbox.value" not in response.data
+    assert b"function entitySelectionReference(checkbox)" in response.data
+    assert b"entitySelectAllCheckbox.addEventListener" in response.data
 
 
 @rsps.activate
@@ -724,7 +861,7 @@ def test_assign_entities_check_results_hides_dedup_for_other_datasets(client):
     assert b'id="duplicates-table"' not in response.data
 
 
-def test_assign_entities_check_results_post_stores_redirects(client):
+def test_assign_entities_check_results_post_continues_without_storing_redirects(client):
     request_id = "assign-post-id"
     with patch(
         "application.blueprints.datamanager.router.fetch_request",
@@ -776,18 +913,237 @@ def test_assign_entities_check_results_post_stores_redirects(client):
     assert response.headers["Location"].endswith(
         f"/datamanager/add-data/{request_id}/entities"
     )
-    meta = db.session.get(RequestMeta, request_id)
-    assert json.loads(meta.entity_redirects) == [
+
+
+def test_assign_entities_check_results_post_resubmits_changed_entity_selection(client):
+    request_id = "assign-selection-id"
+    selected_value = "ref-2"
+    selected_redirect = json.dumps(
         {
             "old_entity": "100",
             "entity": "200",
             "dataset": "tree",
             "old_reference": "old-ref",
-            "new_reference": "new-ref",
+            "new_reference": "ref-2",
             "match_type": "complete_match",
-            "notes": "Redirect duplicate entity selected in Assign Entities",
         }
-    ]
+    )
+    excluded_redirect = json.dumps(
+        {
+            "old_entity": "101",
+            "entity": "201",
+            "dataset": "tree",
+            "old_reference": "old-ref-1",
+            "new_reference": "ref-1",
+            "match_type": "complete_match",
+        }
+    )
+    with patch(
+        "application.blueprints.datamanager.router.fetch_request",
+        return_value={
+            "params": {
+                "dataset": "tree",
+                "resource": "resource-a",
+                "organisation": "local-authority:ABC",
+                "return_endpoint": "assign_entities.flagged_resources_summary",
+            },
+            "response": {
+                "data": {
+                    "pipeline-summary": {
+                        "new-entities": [
+                            {
+                                "organisation": "local-authority:ABC",
+                                "reference": "ref-2",
+                            },
+                        ],
+                        "duplicate-candidates": [
+                            {
+                                "old_entity": "100",
+                                "entity": "200",
+                                "dataset": "tree",
+                            },
+                            {
+                                "old_entity": "101",
+                                "entity": "201",
+                                "dataset": "tree",
+                            },
+                        ],
+                    }
+                }
+            },
+        },
+    ):
+        with patch(
+            "application.blueprints.datamanager.router._submit_assign_entities_request",
+            return_value="replacement-id",
+        ) as submit_request:
+            response = client.post(
+                f"/assign-entities/check-results/{request_id}",
+                data={
+                    "entity_selection_changed": "true",
+                    "visible_entity_references": [
+                        "ref-1",
+                        selected_value,
+                    ],
+                    "selected_entity_references": [selected_value],
+                    "entity_redirects": [
+                        selected_redirect,
+                        excluded_redirect,
+                        json.dumps(
+                            {
+                                "old_entity": "999",
+                                "entity": "200",
+                                "dataset": "tree",
+                                "new_reference": "ref-2",
+                            }
+                        ),
+                    ],
+                },
+            )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/assign-entities/check-results/replacement-id"
+    )
+    submit_request.assert_called_once_with(
+        "tree",
+        "resource-a",
+        organisation="local-authority:ABC",
+        return_endpoint="assign_entities.flagged_resources_summary",
+        excluded_references=["ref-1"],
+        selected_redirects=[
+            {
+                "reference": "ref-2",
+                "old_entity_number": "100",
+            }
+        ],
+    )
+
+
+def test_assign_entities_check_results_post_continues_for_unchanged_entity_selection(
+    client,
+):
+    request_id = "assign-unchanged-id"
+    selected_values = ["ref-1", "ref-2"]
+    with patch(
+        "application.blueprints.datamanager.router.fetch_request",
+        return_value={
+            "params": {
+                "dataset": "tree",
+                "resource": "resource-a",
+                "organisation": "local-authority:ABC",
+            },
+            "response": {
+                "data": {
+                    "pipeline-summary": {
+                        "new-entities": [
+                            {
+                                "organisation": "local-authority:ABC",
+                                "reference": "ref-1",
+                            },
+                            {
+                                "organisation": "local-authority:ABC",
+                                "reference": "ref-2",
+                            },
+                        ],
+                        "duplicate-candidates": [],
+                    }
+                }
+            },
+        },
+    ):
+        with patch(
+            "application.blueprints.datamanager.router._submit_assign_entities_request"
+        ) as submit_request:
+            response = client.post(
+                f"/assign-entities/check-results/{request_id}",
+                data={"selected_entity_references": selected_values},
+            )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        f"/datamanager/add-data/{request_id}/entities"
+    )
+    submit_request.assert_not_called()
+
+
+def test_assign_entities_check_results_post_resubmits_changed_redirect_selection(
+    client,
+):
+    request_id = "assign-redirect-selection-id"
+    selected_values = ["ref-1", "ref-2"]
+    selected_redirect = json.dumps(
+        {
+            "old_entity": "100",
+            "entity": "200",
+            "dataset": "tree",
+            "new_reference": "ref-1",
+        }
+    )
+    with patch(
+        "application.blueprints.datamanager.router.fetch_request",
+        return_value={
+            "params": {
+                "dataset": "tree",
+                "resource": "resource-a",
+                "organisation": "local-authority:ABC",
+            },
+            "response": {
+                "data": {
+                    "pipeline-summary": {
+                        "new-entities": [
+                            {
+                                "organisation": "local-authority:ABC",
+                                "reference": "ref-1",
+                            },
+                            {
+                                "organisation": "local-authority:ABC",
+                                "reference": "ref-2",
+                            },
+                        ],
+                        "duplicate-candidates": [
+                            {
+                                "old_entity": "100",
+                                "entity": "200",
+                                "dataset": "tree",
+                            }
+                        ],
+                    }
+                }
+            },
+        },
+    ):
+        with patch(
+            "application.blueprints.datamanager.router._submit_assign_entities_request",
+            return_value="replacement-id",
+        ) as submit_request:
+            response = client.post(
+                f"/assign-entities/check-results/{request_id}",
+                data={
+                    "entity_selection_changed": "true",
+                    "visible_entity_references": selected_values,
+                    "selected_entity_references": selected_values,
+                    "entity_redirects": [selected_redirect],
+                },
+            )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/assign-entities/check-results/replacement-id"
+    )
+    submit_request.assert_called_once_with(
+        "tree",
+        "resource-a",
+        organisation="local-authority:ABC",
+        return_endpoint="assign_entities.flagged_resources_start",
+        excluded_references=[],
+        selected_redirects=[
+            {
+                "reference": "ref-1",
+                "old_entity_number": "100",
+            }
+        ],
+    )
 
 
 @rsps.activate

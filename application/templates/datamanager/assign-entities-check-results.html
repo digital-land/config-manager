@@ -59,6 +59,7 @@
       <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="duplicates-table">
         <p class="govuk-hint govuk-!-margin-bottom-4">Possible spatial duplicates between entities in this resource and existing platform entities for this dataset. <strong style="color: #00703c;">Green</strong> is the new provision entity. <strong style="color: #d4692a;">Orange</strong> is the existing platform entity.</p>
         <form method="post" action="{{ url_for('assign_entities.flagged_resource_detail_post', request_id=request_id) }}" id="duplicate-redirect-form">
+          <input type="hidden" name="entity_selection_changed" id="entity-selection-changed" value="false">
           {% if duplicate_candidates %}
           <div class="govuk-!-margin-bottom-2" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
             <span class="govuk-body-s govuk-!-margin-bottom-0" style="color: #505a5f;"><strong style="color: #00703c;">&#9679;</strong> Green: new provision entity</span>
@@ -95,10 +96,7 @@
                   <td class="govuk-table__cell">
                     <div class="govuk-checkboxes govuk-checkboxes--small app-checkboxes--table-header" data-module="govuk-checkboxes">
                       <div class="govuk-checkboxes__item">
-                        {% if row.auto_select %}
-                        <input type="hidden" name="entity_redirects" value="{{ row.form_value | e }}">
-                        {% endif %}
-                        <input class="govuk-checkboxes__input duplicate-checkbox" id="entity-redirect-{{ loop.index }}" name="entity_redirects" type="checkbox" value="{{ row.form_value | e }}" {% if row.auto_select %}checked disabled{% endif %}>
+                        <input class="govuk-checkboxes__input duplicate-checkbox" id="entity-redirect-{{ loop.index }}" name="entity_redirects" type="checkbox" value="{{ row.form_value | e }}" data-entity-reference="{{ row.new_reference or row.reference or '' }}" data-restore-checked="{{ 'true' if row.auto_select else 'false' }}" data-redirect-locked="{{ 'true' if row.redirect_locked else 'false' }}" {% if row.auto_select and row.redirect_can_select %}checked{% endif %} {% if row.redirect_locked or not row.redirect_can_select %}disabled{% endif %}>
                         <label class="govuk-label govuk-checkboxes__label" for="entity-redirect-{{ loop.index }}">
                           <span class="govuk-visually-hidden">Select redirect for entity {{ row.entity }}</span>
                         </label>
@@ -155,11 +153,12 @@
             </table>
           </div>
           {% set selected_count = duplicate_candidates | selectattr('auto_select') | list | length %}
+          {% set selectable_count = duplicate_candidates | rejectattr('auto_select') | list | length %}
           <p class="govuk-!-margin-top-2" id="duplicate-selected-count" style="white-space: nowrap;">
-            {% if selected_count %}
-            {{ selected_count }} {{ 'entity' if selected_count == 1 else 'entities' }} selected for redirection
+            {% if duplicate_candidates %}
+            {{ selected_count }} of {{ selectable_count + selected_count }} {{ 'entity' if (selectable_count + selected_count) == 1 else 'entities' }} selected for redirection
             {% else %}
-            No entities selected for redirection
+            No entities available for redirection
             {% endif %}
           </p>
           {% else %}
@@ -168,13 +167,15 @@
         </form>
       </div>
       {% else %}
-      <form method="post" action="{{ url_for('assign_entities.flagged_resource_detail_post', request_id=request_id) }}" id="duplicate-redirect-form"></form>
+      <form method="post" action="{{ url_for('assign_entities.flagged_resource_detail_post', request_id=request_id) }}" id="duplicate-redirect-form">
+        <input type="hidden" name="entity_selection_changed" id="entity-selection-changed" value="false">
+      </form>
       {% endif %}
 {% endblock %}
 
 {% block action_buttons %}
     <div class="govuk-button-group govuk-!-margin-top-6">
-      <button type="submit" form="duplicate-redirect-form" class="govuk-button" data-module="govuk-button">
+      <button type="submit" form="duplicate-redirect-form" class="govuk-button" data-module="govuk-button" id="entity-selection-submit">
         Continue to preview
       </button>
       <a href="{{ url_for('datamanager.dashboard_get') }}" class="govuk-link">
@@ -244,7 +245,55 @@
   var selectedCount = document.getElementById('duplicate-selected-count');
   var duplicateCheckboxes = document.querySelectorAll('.duplicate-checkbox');
   var selectAllCheckbox = document.getElementById('entity-redirect-select-all');
+  var entitySelectionCheckboxes = document.querySelectorAll('.entity-selection-checkbox');
+  var entitySelectAllCheckbox = document.getElementById('entity-select-all');
+  function entitySelectionReference(checkbox) {
+    return checkbox.value || '';
+  }
+  function visibleEntityReferences() {
+    var references = {};
+    entitySelectionCheckboxes.forEach(function(checkbox) {
+      var reference = entitySelectionReference(checkbox);
+      if (reference) references[reference] = checkbox;
+    });
+    return references;
+  }
+  function selectedEntityReferences() {
+    var references = {};
+    entitySelectionCheckboxes.forEach(function(checkbox) {
+      var reference = entitySelectionReference(checkbox);
+      if (reference && checkbox.checked && !checkbox.disabled) {
+        references[reference] = true;
+      }
+    });
+    return references;
+  }
+  function updateDuplicateAvailability() {
+    var visibleReferences = visibleEntityReferences();
+    var selectedReferences = selectedEntityReferences();
+    duplicateCheckboxes.forEach(function(checkbox) {
+      var reference = checkbox.dataset.entityReference || '';
+      if (!reference || !visibleReferences[reference]) return;
+      var canSelect = Boolean(selectedReferences[reference]);
+      var isLocked = checkbox.dataset.redirectLocked === 'true';
+      if (!canSelect) {
+        checkbox.dataset.restoreChecked = checkbox.checked ? 'true' : checkbox.dataset.restoreChecked;
+        checkbox.checked = false;
+        checkbox.disabled = true;
+      } else if (isLocked) {
+        checkbox.checked = true;
+        checkbox.disabled = true;
+      } else {
+        checkbox.disabled = false;
+        if (checkbox.dataset.restoreChecked === 'true') {
+          checkbox.checked = true;
+          checkbox.dataset.restoreChecked = 'false';
+        }
+      }
+    });
+  }
   function updateDuplicateSelection() {
+    updateDuplicateAvailability();
     var count = 0;
     var selectableCount = 0;
     var selectableSelectedCount = 0;
@@ -267,12 +316,19 @@
       selectAllCheckbox.indeterminate = selectableSelectedCount > 0 && selectableSelectedCount < selectableCount;
     }
     if (selectedCount) {
-      selectedCount.textContent = count === 0
-        ? 'No entities selected for redirection'
-        : count + ' ' + (count === 1 ? 'entity' : 'entities') + ' selected for redirection';
+      var totalCount = duplicateCheckboxes.length;
+      selectedCount.textContent = totalCount
+        ? count + ' of ' + totalCount + ' ' + (totalCount === 1 ? 'entity' : 'entities') + ' selected for redirection'
+        : 'No entities available for redirection';
+    }
+    if (window.updateEntitySelectionState) {
+      window.updateEntitySelectionState();
     }
   }
   duplicateCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', updateDuplicateSelection);
+  });
+  entitySelectionCheckboxes.forEach(function(checkbox) {
     checkbox.addEventListener('change', updateDuplicateSelection);
   });
   if (selectAllCheckbox) {
@@ -282,6 +338,9 @@
       });
       updateDuplicateSelection();
     });
+  }
+  if (entitySelectAllCheckbox) {
+    entitySelectAllCheckbox.addEventListener('change', updateDuplicateSelection);
   }
   updateDuplicateSelection();
 </script>

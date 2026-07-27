@@ -25,7 +25,6 @@ App (`GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY`), w
     "triggered_by": "your-name-or-system",
     "branch": "config-manager-update",
     "retire_endpoints": "hash1,hash2",
-    "entity_redirects": "[{\"old_entity\":\"100\",\"entity\":\"200\"}]",
     "environment": "production"
   }
 }
@@ -33,9 +32,8 @@ App (`GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY`), w
 
 Only `event_type` (must be `add-data-async-script`) and `client_payload.request_id` (a `COMPLETE`
 async request) are required. `branch` defaults per [Branch behaviour](#branch-behaviour);
-`retire_endpoints` end-dates the matching endpoint/source rows; `entity_redirects` is a JSON list of
-old→new entity redirects; `environment` (`development` | `staging` | `production`, default
-`staging`) selects the async API base URL the workflow reads.
+`retire_endpoints` end-dates the matching endpoint/source rows; `environment` (`development` |
+`staging` | `production`, default `staging`) selects the async API base URL the workflow reads.
 
 The branch config-manager sends is its `CONFIG_REPO_BRANCH` setting — `config-manager-update` in
 production, `test-config-manager-update` in development.
@@ -62,7 +60,7 @@ branch names (e.g. `test-config-manager-update`) open a normal PR that is never 
 | `pipeline/{collection}/lookup.csv` | `pipeline-summary.new-entities` | array non-empty |
 | `pipeline/{collection}/column.csv` | `params.column_mapping` | mapping non-empty |
 | `pipeline/{collection}/entity-organisation.csv` | `pipeline-summary.entity-organisation` | `params.authoritative` true, and not an overlap/error |
-| `pipeline/{collection}/old-entity.csv` | `client_payload.entity_redirects` | redirects provided |
+| `pipeline/{collection}/old-entity.csv` | `pipeline-summary.old-entity` | array non-empty |
 
 The workflow fails if `request_id` is empty, the request cannot be fetched, its status is not
 `COMPLETE`, the response contains an error, the `collection` has no matching `collection/` and
@@ -125,4 +123,7 @@ web worker is not killed while the confirm request waits.
 
 ## Related
 
+- [add-data.md](add-data.md) — the Add data user flow that leads to this commit workflow.
+- [Assign Entities architecture](../assign-entities/architecture.md) — how Assign Entities
+  selections are sent to async.
 - [architecture.md](architecture.md) — the datamanager blueprint structure.

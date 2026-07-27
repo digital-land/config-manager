@@ -6,13 +6,13 @@ This document describes the structure of the `datamanager` blueprint and how to 
 
 ## Directory layout
 
-> Docs for this blueprint live in `docs/datamanager/` (this file, plus `add-data.md`,
-> `assign-entities.md`, and `github-add.md`).
+> Docs for this blueprint live in `docs/datamanager/` (this file, plus `add-data.md` and
+> `github-add.md`). Assign Entities has its own workflow docs in
+> `docs/assign-entities/architecture.md`.
 
 ```
 application/blueprints/datamanager/
 ├── router.py               # Blueprint definition, URL rules, auth guard
-├── config.py               # External API URL builders
 ├── controllers/
 │   ├── __init__.py         # ControllerError exception
 │   ├── form.py             # Dashboard GET/POST, import, add-data form

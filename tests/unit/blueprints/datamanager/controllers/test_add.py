@@ -1,3 +1,4 @@
+import re
 from unittest.mock import patch
 
 from application.blueprints.datamanager.services.github import GitHubWorkflowError
@@ -22,22 +23,35 @@ class TestEntitiesPreviewRoute:
         assert b"Preparing entities preview" in response.data
 
     def test_renders_old_entity_redirect_table(self, client):
-        db.session.add(
-            RequestMeta(
-                request_id="test-id",
-                entity_redirects=(
-                    '[{"old_entity":"100","entity":"200",'
-                    '"dataset":"conservation-area"}]'
-                ),
-            )
-        )
-        db.session.commit()
         result = {
             "status": "COMPLETE",
-            "params": {"dataset": "conservation-area", "authoritative": False},
+            "params": {
+                "dataset": "conservation-area",
+                "authoritative": False,
+                "resource": "resource-a",
+                "excluded_references": ["not-selected", "not-selected", ""],
+            },
             "response": {
                 "data": {
-                    "pipeline-summary": {"new-in-resource": 0},
+                    "pipeline-summary": {
+                        "new-in-resource": 0,
+                        "old-entity": [
+                            {
+                                "old-entity": "100",
+                                "status": "301",
+                                "entity": "200",
+                            },
+                            {
+                                "old-entity": "101",
+                                "status": "301",
+                                "entity": "201",
+                            },
+                        ],
+                        "new-entities": [
+                            {"entity": "200", "reference": "new-ref"},
+                            {"entity": "201", "reference": "other-ref"},
+                        ],
+                    },
                     "endpoint-summary": {},
                     "source-summary": {},
                 }
@@ -52,8 +66,24 @@ class TestEntitiesPreviewRoute:
         assert response.status_code == 200
         assert b"old-entity.csv" in response.data
         assert b"100" in response.data
+        assert b"101" in response.data
         assert b"301" in response.data
         assert b"200" in response.data
+        assert b"Number of redirects" in response.data
+        assert re.search(
+            rb"Number of redirects.*?<dd class=\"govuk-summary-list__value\">2</dd>",
+            response.data,
+            re.S,
+        )
+        assert b"Rows that will create new entities" in response.data
+        assert b'<dd class="govuk-summary-list__value">2</dd>' in response.data
+        assert b"Rows that will" in response.data
+        assert b"NOT</span> create new entities" in response.data
+        assert re.search(
+            rb"Rows that will.*?NOT</span> create new entities.*?<dd class=\"govuk-summary-list__value\">1</dd>",
+            response.data,
+            re.S,
+        )
 
 
 class TestAddDataConfirmRoute:
@@ -157,17 +187,7 @@ class TestAddDataConfirmRoute:
         assert response.status_code == 200
         assert b"govuk-error-summary" in response.data
 
-    def test_confirm_passes_entity_redirects_to_workflow(self, client):
-        db.session.add(
-            RequestMeta(
-                request_id="confirm-redirect-id",
-                entity_redirects=(
-                    '[{"old_entity":"100","entity":"200",'
-                    '"dataset":"conservation-area"}]'
-                ),
-            )
-        )
-        db.session.commit()
+    def test_confirm_does_not_pass_entity_redirects_to_workflow(self, client):
         with client.session_transaction() as sess:
             sess["user"] = {"login": "test-user"}
         with patch(
@@ -179,10 +199,4 @@ class TestAddDataConfirmRoute:
             )
 
         assert response.status_code == 200
-        assert trigger.call_args.kwargs["entity_redirects"] == [
-            {
-                "old_entity": "100",
-                "entity": "200",
-                "dataset": "conservation-area",
-            }
-        ]
+        assert "entity_redirects" not in trigger.call_args.kwargs

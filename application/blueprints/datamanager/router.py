@@ -25,6 +25,7 @@ from .controllers.form import (
 )
 from .controllers.flagged_resources import (
     REQUIRED_COLUMNS,
+    _submit_assign_entities_request,
     handle_flagged_resource_detail,
     handle_flagged_resource_submit,
     handle_flagged_resources_import,
@@ -311,24 +312,105 @@ def flagged_resource_detail(request_id):
         return render_template("datamanager/error.html", message=e.message)
 
 
+def _normalise_reference_values(values):
+    """Return submitted reference values as a de-duplicated, ordered list."""
+    references = []
+    seen = set()
+    for value in values or []:
+        reference = str(value or "").strip()
+        if not reference or reference in seen:
+            continue
+        references.append(reference)
+        seen.add(reference)
+    return references
+
+
+def _merge_visible_excluded_references(
+    current_excluded_references,
+    visible_references,
+    selected_visible_references,
+):
+    """Merge current exclusions with checkbox state from the visible page."""
+    current_excluded = set(_normalise_reference_values(current_excluded_references))
+    visible = set(_normalise_reference_values(visible_references))
+    selected_visible = set(_normalise_reference_values(selected_visible_references))
+    excluded = (current_excluded - visible) | (visible - selected_visible)
+    return sorted(excluded)
+
+
+def _selected_redirects_for_async(redirects, excluded_references=None):
+    """Map validated Dedup rows to async selected_redirects params.
+
+    Config-manager's Dedup form values use old/new entity field names, while
+    async expects ``reference`` and ``old_entity_number``. Redirects for
+    explicitly excluded references are dropped because async can only redirect
+    entities being assigned.
+    """
+    excluded_references = set(_normalise_reference_values(excluded_references))
+    selected_redirects = []
+    seen = set()
+    for redirect_row in redirects:
+        reference = str(
+            redirect_row.get("new_reference") or redirect_row.get("reference") or ""
+        ).strip()
+        old_entity_number = str(
+            redirect_row.get("old_entity")
+            or redirect_row.get("old_entity_number")
+            or ""
+        ).strip()
+        if reference in excluded_references:
+            continue
+        key = (reference, old_entity_number)
+        if not all(key) or key in seen:
+            continue
+        selected_redirects.append(
+            {
+                "reference": reference,
+                "old_entity_number": old_entity_number,
+            }
+        )
+        seen.add(key)
+    return selected_redirects
+
+
 def flagged_resource_detail_post(request_id):
     req = fetch_request(request_id)
+    params = req.get("params") or {}
     response_data = (req.get("response") or {}).get("data") or {}
     pipeline_summary = response_data.get("pipeline-summary") or {}
+    organisation = params.get("organisation") or params.get("organisationName") or None
     duplicate_candidates = pipeline_summary.get("duplicate-candidates") or []
     redirects = parse_selected_redirects(
         request.form.getlist("entity_redirects"), duplicate_candidates
     )
-    meta = db.session.get(RequestMeta, request_id)
-    if meta is None:
-        meta = RequestMeta(
-            request_id=request_id,
-            entity_redirects=json.dumps(redirects),
+    if request.form.get("entity_selection_changed") == "true":
+        excluded_references = _merge_visible_excluded_references(
+            params.get("excluded_references") or [],
+            request.form.getlist("visible_entity_references"),
+            request.form.getlist("selected_entity_references"),
         )
-        db.session.add(meta)
-    else:
-        meta.entity_redirects = json.dumps(redirects)
-    db.session.commit()
+        try:
+            new_request_id = _submit_assign_entities_request(
+                params.get("dataset", ""),
+                params.get("resource", ""),
+                organisation=organisation,
+                return_endpoint=params.get("return_endpoint")
+                or "assign_entities.flagged_resources_start",
+                excluded_references=excluded_references,
+                selected_redirects=_selected_redirects_for_async(
+                    redirects, excluded_references
+                ),
+            )
+        except AsyncAPIError as e:
+            raise ControllerError(
+                f"Assign entities submission failed: {e.detail}"
+            ) from e
+        return redirect(
+            url_for(
+                "assign_entities.flagged_resource_detail", request_id=new_request_id
+            )
+        )
+
     return redirect(url_for("datamanager.entities_preview", request_id=request_id))
 
 

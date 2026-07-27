@@ -19,8 +19,8 @@ logic, and the only one with documentation and tests.
 - [`datamanager/architecture.md`](datamanager/architecture.md) — structure of the
   `datamanager` blueprint (router, controllers, services, utils) and how to work within it
 - [`datamanager/add-data.md`](datamanager/add-data.md) — the **Add data** user flow, step by step
-- [`datamanager/assign-entities.md`](datamanager/assign-entities.md) — the **Assign entities** (batch)
-  user flow and how it shares steps with Add data
+- [`assign-entities/architecture.md`](assign-entities/architecture.md) — the **Assign entities**
+  (batch) flow end to end, and how it shares steps with Add data
 - [`datamanager/github-add.md`](datamanager/github-add.md) — the GitHub workflow-dispatch that adds
   data to the `config` repo, and the stale-assessment guard that runs at confirmation
 

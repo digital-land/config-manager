@@ -53,8 +53,8 @@ option to select **endpoints to retire**. `POST /check-transform/<id>` (`check_t
 `router.py`) stores the chosen `retire_endpoints` on the `RequestMeta` row and redirects to the
 entities preview.
 
-> `transform.py` is shared with the [Assign entities](assign-entities.md) flow and branches on the
-> calling endpoint; see that doc for the differences.
+> `transform.py` is shared with the [Assign Entities](../assign-entities/architecture.md) flow and
+> branches on the calling endpoint; see that doc for the differences.
 
 ### 5. Entities preview (`datamanager.entities_preview`, `controllers/preview.py`)
 
@@ -82,6 +82,6 @@ landing page). The `datamanager` before-request guard redirects to the landing p
 
 ## Related
 
-- [assign-entities.md](assign-entities.md) — the sibling flow that shares the transform/preview/commit steps.
+- [Assign Entities architecture](../assign-entities/architecture.md) — the sibling flow that shares the transform/preview/commit steps.
 - [github-add.md](github-add.md) — the GitHub commit workflow and the stale-assessment guard.
 - [architecture.md](architecture.md) — the datamanager blueprint structure.
