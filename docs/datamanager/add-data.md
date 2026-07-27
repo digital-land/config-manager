@@ -9,10 +9,23 @@ All routes are on the `datamanager` blueprint (`/datamanager`, login-required, b
 Add Data [service lock](#service-lock) is held). View functions live in `router.py` and delegate to
 the controllers named below.
 
+## Code map
+
+| Area | File | Role |
+| --- | --- | --- |
+| Routes | `application/blueprints/datamanager/router.py` | Add-data routes, thin view functions, retire-endpoints POST |
+| Dashboard / form | `application/blueprints/datamanager/controllers/form.py` | Dashboard GET/POST, CSV import, add-data form, preview submission |
+| Check results | `application/blueprints/datamanager/controllers/check.py` | Check-results display and column-mapping resubmit |
+| Transform | `application/blueprints/datamanager/controllers/transform.py` | Transformed facts, issue logs, entity-growth view (shared with Assign Entities) |
+| Preview / confirm | `application/blueprints/datamanager/controllers/preview.py` | Entities preview, stale-assessment guard, GitHub dispatch |
+| Async client | `application/blueprints/datamanager/services/async_api.py` | Submit/fetch async requests and response details |
+| GitHub dispatch | `application/blueprints/datamanager/services/github.py` | Triggers the config repo commit workflow |
+| Dataset / org lookups | `application/blueprints/datamanager/services/{dataset,organisation}.py` | Dataset/collection ids, organisation names and entity numbers |
+
 ## The steps
 
 ```
-dashboard -> initial form → check-results → add-data form (optional) → check-transform → entities-preview → confirm → success
+dashboard -> initial form → check-results → add-data form (only if needed) → check-transform → entities-preview → confirm → success
 ```
 
 ### 1. Dashboard (`datamanager.dashboard_get` / `dashboard_add`, `controllers/form.py`)
@@ -53,7 +66,13 @@ option to select **endpoints to retire**. `POST /check-transform/<id>` (`check_t
 `router.py`) stores the chosen `retire_endpoints` on the `RequestMeta` row and redirects to the
 entities preview.
 
-> `transform.py` is shared with the [Assign Entities](../assign-entities/architecture.md) flow and
+> **Scope has grown.** This page started as a home for optional pre-commit *actions* (notably
+> selecting endpoints to retire), but has since become a fully-fledged **comparison of the entities
+> in the resource against the entities already on the platform**. Those two concerns now share one
+> page; it will likely need **tabs** to separate them — one for **actions** (e.g. retire endpoints)
+> and one for the **platform provision comparison**.
+
+> `transform.py` is shared with the [Assign Entities](assign-entities.md) flow and
 > branches on the calling endpoint; see that doc for the differences.
 
 ### 5. Entities preview (`datamanager.entities_preview`, `controllers/preview.py`)
@@ -61,6 +80,13 @@ entities preview.
 `GET /add-data/<request_id>/entities` renders `entities_preview.html`: a final review of the new
 entities, any old→new entity redirects, and the organisation summary. This is the confirmation
 point.
+
+> **Platform vs lookup — a common confusion.** Check transform (step 4) decides what is "new" by
+> comparing the resource against the **platform API** (what is actually live). This preview decides
+> what is "new" by comparing only against the **`lookup.csv`** file (what config already knows). So
+> an entity can flag as new on check transform (not yet on the platform) but *not* appear as new
+> here because it already exists in the lookup — and vice versa. Only a genuinely new lookup entry
+> shows here, because this page reflects the rows that would be appended to `lookup.csv`.
 
 ### 6. Confirm → commit (`datamanager.add_data_confirm_async`, `controllers/preview.py`)
 
@@ -80,8 +106,27 @@ The Add Data flow is disabled while a `ServiceLock` named `add_data` is held (to
 landing page). The `datamanager` before-request guard redirects to the landing page with a
 `add_data_blocked_by` note while the lock is set.
 
+## Gotchas
+
+- **Two async requests per journey.** The dashboard submits a **check** request; the add-data form
+  submits a separate **preview** request. They have different `request_id`s, and the URL switches
+  from `/check-results/<id>` to `/check-transform/<id>` and `/add-data/<id>/…` accordingly.
+- **The add-data form can be skipped.** If `session["add_data_fields"]` already has every field
+  (`_has_all_add_data_fields`), the form is bypassed and the preview is submitted directly — so a
+  magic-link/prefilled journey can jump straight past step 3.
+- **Re-running the check makes a new id.** Resubmitting with corrected column mappings
+  (`handle_check_resubmit`) creates a *new* check request and redirects to its id; the old id is
+  left behind.
+- **`authoritative` must be `yes`/`no`.** It is validated on the form and decides whether
+  `entity-organisation.csv` rows are written by the commit workflow.
+- **`retire_endpoints` is stored, not applied.** The check-transform POST saves the selected hashes
+  on the `RequestMeta` row; the actual end-dating happens later in the commit workflow, not in
+  config-manager.
+- **The stale guard can silently no-op.** It only runs when submitting onto the shared branch *and*
+  a baseline was captured at submission — see [github-add.md](github-add.md#stale-assessment-guard).
+
 ## Related
 
-- [Assign Entities architecture](../assign-entities/architecture.md) — the sibling flow that shares the transform/preview/commit steps.
+- [Assign Entities architecture](assign-entities.md) — the sibling flow that shares the transform/preview/commit steps.
 - [github-add.md](github-add.md) — the GitHub commit workflow and the stale-assessment guard.
 - [architecture.md](architecture.md) — the datamanager blueprint structure.

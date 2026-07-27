@@ -355,6 +355,6 @@ suite before merging changes that touch shared templates or GitHub dispatch beha
 
 ## Related
 
-- [Datamanager GitHub workflow](../datamanager/github-add.md)
-- [Datamanager stale-assessment guard](../datamanager/github-add.md#stale-assessment-guard)
-- [Datamanager blueprint architecture](../datamanager/architecture.md)
+- [Datamanager GitHub workflow](github-add.md)
+- [Datamanager stale-assessment guard](github-add.md#stale-assessment-guard)
+- [Datamanager blueprint architecture](architecture.md)

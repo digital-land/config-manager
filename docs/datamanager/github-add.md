@@ -124,6 +124,6 @@ web worker is not killed while the confirm request waits.
 ## Related
 
 - [add-data.md](add-data.md) — the Add data user flow that leads to this commit workflow.
-- [Assign Entities architecture](../assign-entities/architecture.md) — how Assign Entities
+- [Assign Entities architecture](assign-entities.md) — how Assign Entities
   selections are sent to async.
 - [architecture.md](architecture.md) — the datamanager blueprint structure.
