@@ -90,6 +90,13 @@ def _build_entity_organisation_summary(new_entities, authoritative, pipeline_sum
         entity_org_error_warning,
     )
 
+# Used by router to try and variable lock/unlock this page
+def determine_source_flow(params: dict) -> str:
+    params = params or {}
+    if params.get("resource") and not params.get("url"):
+        return "assign_entities"
+    return "add_data"
+
 
 def _load_json_list(value: str | None) -> list:
     if not value:
@@ -258,11 +265,7 @@ def handle_entities_preview(request_id, req):
     ) = build_column_csv_preview(column_mapping, dataset_id, endpoint_summary)
 
     github_branch = params.get("github_branch") or None
-    source_flow = (
-        "assign_entities"
-        if params.get("resource") and not params.get("url")
-        else "add_data"
-    )
+    source_flow = determine_source_flow(params)
     return_endpoint = params.get("return_endpoint")
     if return_endpoint:
         return_url = url_for(return_endpoint)

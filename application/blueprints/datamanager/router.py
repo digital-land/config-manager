@@ -38,6 +38,7 @@ from .controllers.check import (
     handle_check_resubmit,
 )
 from .controllers.preview import (
+    determine_source_flow,
     handle_entities_preview,
     handle_add_data_confirm,
 )
@@ -51,6 +52,14 @@ from .utils import (
     handle_error,
     inject_now,
 )
+
+# Routes that physically live under datamanager but are also used by the
+# assign-entities flow. For these the applicable process lock depends on which
+# flow the request belongs to, not on the URL prefix.
+_SHARED_FLOW_ENDPOINTS = {
+    "datamanager.entities_preview",
+    "datamanager.add_data_confirm_async",
+}
 
 datamanager_bp = Blueprint("datamanager", __name__, url_prefix="/datamanager")
 assign_entities_bp = Blueprint(
@@ -125,6 +134,23 @@ def _require_assign_entities_unlocked():
             url_for("base.index", assign_entities_blocked_by=lock.locked_by)
         )
 
+def _request_is_assign_entities_flow():
+    """Best-effort detection of whether the current request is part of the
+    assign-entities flow rather than add-data.
+    """
+    form_flow = request.form.get("source_flow")
+    if form_flow:
+        return form_flow == "assign_entities"
+
+    request_id = (request.view_args or {}).get("request_id")
+    if not request_id:
+        return False
+    try:
+        req = fetch_request(request_id)
+    except AsyncAPIError:
+        return False
+    return determine_source_flow(req.get("params") or {}) == "assign_entities"
+
 
 @datamanager_bp.before_request
 def require_login():
@@ -132,6 +158,13 @@ def require_login():
     login_response = _require_login()
     if login_response:
         return login_response
+
+    # The entities preview is used by both add-data and assign-entities flows, so the applicable lock depends on which flow the request belongs to.
+    if (
+        request.endpoint in _SHARED_FLOW_ENDPOINTS
+        and _request_is_assign_entities_flow()
+    ):
+        return _require_assign_entities_unlocked()
 
     return _require_add_data_unlocked()
 

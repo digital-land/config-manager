@@ -140,6 +140,106 @@ def test_assign_entities_uses_assign_entities_process_lock(client):
     assert "assign_entities_blocked_by=someone" in response.headers["Location"]
 
 
+def _register_preview_request(request_id, params):
+    """Register an async request the entities-preview page can render."""
+    rsps.add(
+        rsps.GET,
+        f"{ASYNC_BASE}/{request_id}",
+        json={
+            "status": "COMPLETE",
+            "params": params,
+            "response": {
+                "data": {
+                    "pipeline-summary": {},
+                    "endpoint-summary": {},
+                    "source-summary": {},
+                }
+            },
+        },
+        status=200,
+    )
+
+
+@rsps.activate
+def test_add_data_lock_does_not_block_assign_entities_preview(client):
+    # The entities preview lives under /datamanager but is shared with the
+    # assign-entities flow. Locking Add Data must not block it for that flow.
+    _register_preview_request(
+        "assign-preview-1",
+        {"dataset": "tree", "organisation": "local-authority:ABC", "resource": "resource-a"},
+    )
+    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+    db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
+    db.session.add(
+        ServiceLock(name=ADD_DATA_LOCK, locked_by="someone", locked_at=datetime.utcnow())
+    )
+    db.session.commit()
+
+    try:
+        response = client.get("/datamanager/add-data/assign-preview-1/entities")
+    finally:
+        db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+        db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
+        db.session.commit()
+
+    assert response.status_code == 200
+
+
+@rsps.activate
+def test_assign_entities_lock_blocks_assign_entities_preview(client):
+    _register_preview_request(
+        "assign-preview-2",
+        {"dataset": "tree", "organisation": "local-authority:ABC", "resource": "resource-a"},
+    )
+    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+    db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
+    db.session.add(
+        ServiceLock(
+            name=ASSIGN_ENTITIES_LOCK, locked_by="someone", locked_at=datetime.utcnow()
+        )
+    )
+    db.session.commit()
+
+    try:
+        response = client.get("/datamanager/add-data/assign-preview-2/entities")
+    finally:
+        db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+        db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
+        db.session.commit()
+
+    assert response.status_code == 302
+    assert "assign_entities_blocked_by=someone" in response.headers["Location"]
+
+
+@rsps.activate
+def test_add_data_lock_still_blocks_add_data_preview(client):
+    # An add-data request (carries a source url) must remain gated by Add Data.
+    _register_preview_request(
+        "add-preview-1",
+        {
+            "dataset": "tree",
+            "organisation": "local-authority:ABC",
+            "url": "https://example.com/data.csv",
+        },
+    )
+    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+    db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
+    db.session.add(
+        ServiceLock(name=ADD_DATA_LOCK, locked_by="someone", locked_at=datetime.utcnow())
+    )
+    db.session.commit()
+
+    try:
+        response = client.get("/datamanager/add-data/add-preview-1/entities")
+    finally:
+        db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+        db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
+        db.session.commit()
+
+    assert response.status_code == 302
+    assert "add_data_blocked_by=someone" in response.headers["Location"]
+
+
 def test_assign_entities_card_can_unlock_assign_entities_process(client):
     db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
     db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
