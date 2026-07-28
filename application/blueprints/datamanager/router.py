@@ -275,8 +275,7 @@ def check_transform(request_id):
 
 
 def check_transform_post(request_id):
-    """Store selected endpoints to retire/unretire from the transform page.
-    """
+    """Store selected endpoints to retire/unretire from the transform page."""
     checked = request.form.getlist("retire_endpoints")
     presented = request.form.getlist("presented_endpoints")
     currently_retired = request.form.getlist("currently_retired")
@@ -287,12 +286,8 @@ def check_transform_post(request_id):
 
     # to_retire = presented and checked and not currently retired → newly retiring
     # to_unretire = currently retired and presented and now unchecked → unretiring
-    to_retire = [
-        h for h in presented if h in checked and h not in currently_retired
-    ]
-    to_unretire = [
-        h for h in currently_retired if h in presented and h not in checked
-    ]
+    to_retire = [h for h in presented if h in checked and h not in currently_retired]
+    to_unretire = [h for h in currently_retired if h in presented and h not in checked]
 
     meta = db.session.get(RequestMeta, request_id)
     if meta is None:

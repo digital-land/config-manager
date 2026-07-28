@@ -53,7 +53,9 @@ class TestGetEndpointUrlsForHashes:
 
     def test_exception_returns_empty_dict(self, app):
         with app.app_context():
-            with patch(f"{ENDPOINT_MODULE}.requests.get", side_effect=Exception("boom")):
+            with patch(
+                f"{ENDPOINT_MODULE}.requests.get", side_effect=Exception("boom")
+            ):
                 assert get_endpoint_info_for_hashes(["hash-a"]) == {}
 
 
@@ -90,5 +92,7 @@ class TestGetEndpointLogSummaryForHashes:
 
     def test_exception_returns_empty_dict(self, app):
         with app.app_context():
-            with patch(f"{ENDPOINT_MODULE}.requests.get", side_effect=Exception("slow")):
+            with patch(
+                f"{ENDPOINT_MODULE}.requests.get", side_effect=Exception("slow")
+            ):
                 assert get_endpoint_log_summary_for_hashes(["hash-a"]) == {}
