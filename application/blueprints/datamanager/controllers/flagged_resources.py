@@ -11,7 +11,7 @@ from flask import current_app, redirect, render_template, request, session, url_
 from application.data_access.overview.digital_land_queries import get_resource
 
 from . import ControllerError
-from .preview import record_branch_baseline
+from .request_meta import record_branch_baseline, record_source_flow
 from .transform import handle_check_transform
 from ..services.async_api import AsyncAPIError, fetch_request, submit_request
 from ..services.dataset import get_collection_id, get_dataset_id, get_dataset_name
@@ -375,6 +375,7 @@ def _submit_assign_entities_request(
     if selected_redirects is not None:
         params["selected_redirects"] = selected_redirects
     preview_id = submit_request(params)
+    record_source_flow(preview_id, "assign_entities")
     record_branch_baseline(preview_id, params["github_branch"])
     return preview_id
 

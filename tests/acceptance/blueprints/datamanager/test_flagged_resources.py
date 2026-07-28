@@ -7,7 +7,7 @@ from unittest.mock import patch
 import responses as rsps
 
 from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK
-from application.db.models import ServiceLock
+from application.db.models import RequestMeta, ServiceLock
 from application.extensions import db
 from config.config import get_request_api_endpoint
 
@@ -160,6 +160,20 @@ def _register_preview_request(request_id, params):
     )
 
 
+def _seed_source_flow(request_id, source_flow):
+    """Record which flow created a request, as submission does."""
+    db.session.merge(RequestMeta(request_id=request_id, source_flow=source_flow))
+    db.session.commit()
+
+
+def _clear_locks_and_meta(*request_ids):
+    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
+    db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
+    for request_id in request_ids:
+        db.session.query(RequestMeta).filter_by(request_id=request_id).delete()
+    db.session.commit()
+
+
 @rsps.activate
 def test_add_data_lock_does_not_block_assign_entities_preview(client):
     # The entities preview lives under /datamanager but is shared with the
@@ -172,8 +186,8 @@ def test_add_data_lock_does_not_block_assign_entities_preview(client):
             "resource": "resource-a",
         },
     )
-    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
-    db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
+    _clear_locks_and_meta("assign-preview-1")
+    _seed_source_flow("assign-preview-1", "assign_entities")
     db.session.add(
         ServiceLock(
             name=ADD_DATA_LOCK, locked_by="someone", locked_at=datetime.utcnow()
@@ -184,25 +198,15 @@ def test_add_data_lock_does_not_block_assign_entities_preview(client):
     try:
         response = client.get("/datamanager/add-data/assign-preview-1/entities")
     finally:
-        db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
-        db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
-        db.session.commit()
+        _clear_locks_and_meta("assign-preview-1")
 
     assert response.status_code == 200
 
 
 @rsps.activate
 def test_assign_entities_lock_blocks_assign_entities_preview(client):
-    _register_preview_request(
-        "assign-preview-2",
-        {
-            "dataset": "tree",
-            "organisation": "local-authority:ABC",
-            "resource": "resource-a",
-        },
-    )
-    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
-    db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
+    _clear_locks_and_meta("assign-preview-2")
+    _seed_source_flow("assign-preview-2", "assign_entities")
     db.session.add(
         ServiceLock(
             name=ASSIGN_ENTITIES_LOCK, locked_by="someone", locked_at=datetime.utcnow()
@@ -213,9 +217,7 @@ def test_assign_entities_lock_blocks_assign_entities_preview(client):
     try:
         response = client.get("/datamanager/add-data/assign-preview-2/entities")
     finally:
-        db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
-        db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
-        db.session.commit()
+        _clear_locks_and_meta("assign-preview-2")
 
     assert response.status_code == 302
     assert "assign_entities_blocked_by=someone" in response.headers["Location"]
@@ -223,17 +225,9 @@ def test_assign_entities_lock_blocks_assign_entities_preview(client):
 
 @rsps.activate
 def test_add_data_lock_still_blocks_add_data_preview(client):
-    # An add-data request (carries a source url) must remain gated by Add Data.
-    _register_preview_request(
-        "add-preview-1",
-        {
-            "dataset": "tree",
-            "organisation": "local-authority:ABC",
-            "url": "https://example.com/data.csv",
-        },
-    )
-    db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
-    db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
+    # An add-data request must remain gated by Add Data.
+    _clear_locks_and_meta("add-preview-1")
+    _seed_source_flow("add-preview-1", "add_data")
     db.session.add(
         ServiceLock(
             name=ADD_DATA_LOCK, locked_by="someone", locked_at=datetime.utcnow()
@@ -244,9 +238,7 @@ def test_add_data_lock_still_blocks_add_data_preview(client):
     try:
         response = client.get("/datamanager/add-data/add-preview-1/entities")
     finally:
-        db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
-        db.session.query(ServiceLock).filter_by(name=ASSIGN_ENTITIES_LOCK).delete()
-        db.session.commit()
+        _clear_locks_and_meta("add-preview-1")
 
     assert response.status_code == 302
     assert "add_data_blocked_by=someone" in response.headers["Location"]

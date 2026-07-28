@@ -38,7 +38,6 @@ from .controllers.check import (
     handle_check_resubmit,
 )
 from .controllers.preview import (
-    determine_source_flow,
     handle_entities_preview,
     handle_add_data_confirm,
 )
@@ -136,21 +135,16 @@ def _require_assign_entities_unlocked():
 
 
 def _request_is_assign_entities_flow():
-    """Best-effort detection of whether the current request is part of the
-    assign-entities flow rather than add-data.
+    """Whether a shared datamanager route belongs to the assign-entities flow.
     """
-    # The confirm POST always carries the originating flow as a hidden field
-    if request.endpoint == "datamanager.add_data_confirm_async":
-        return request.form.get("source_flow") == "assign_entities"
-
     request_id = (request.view_args or {}).get("request_id")
     if not request_id:
         return False
     try:
-        req = fetch_request(request_id)
-    except AsyncAPIError:
+        meta = db.session.get(RequestMeta, request_id)
+    except SQLAlchemyError:
         return False
-    return determine_source_flow(req.get("params") or {}) == "assign_entities"
+    return bool(meta and meta.source_flow == "assign_entities")
 
 
 @datamanager_bp.before_request

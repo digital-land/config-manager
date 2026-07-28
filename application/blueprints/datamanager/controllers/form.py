@@ -14,7 +14,7 @@ from flask import (
     url_for,
 )
 
-from .preview import record_branch_baseline
+from .request_meta import record_branch_baseline, record_source_flow
 from ..services.async_api import (
     AsyncAPIError,
     fetch_request,
@@ -390,6 +390,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
     }
 
     preview_id = submit_request(params)
+    record_source_flow(preview_id, "add_data")
     record_branch_baseline(
         preview_id, params["github_branch"], check_request_id=request_id
     )
