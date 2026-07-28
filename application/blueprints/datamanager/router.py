@@ -135,8 +135,7 @@ def _require_assign_entities_unlocked():
 
 
 def _request_is_assign_entities_flow():
-    """Whether a shared datamanager route belongs to the assign-entities flow.
-    """
+    """Whether a shared datamanager route belongs to the assign-entities flow."""
     request_id = (request.view_args or {}).get("request_id")
     if not request_id:
         return False

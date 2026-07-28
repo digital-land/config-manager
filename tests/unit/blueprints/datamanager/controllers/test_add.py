@@ -57,9 +57,7 @@ class TestEntitiesPreviewRoute:
                 }
             },
         }
-        db.session.add(
-            RequestMeta(request_id="test-id", source_flow="assign_entities")
-        )
+        db.session.add(RequestMeta(request_id="test-id", source_flow="assign_entities"))
         db.session.commit()
         with patch(
             "application.blueprints.datamanager.router.fetch_request",
