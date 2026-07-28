@@ -27,3 +27,7 @@ class RequestMeta(db.Model):
     check_request_id = db.Column(
         db.Text, nullable=True
     )  # check-results request this assessment came from, for re-run routing
+    source_flow = db.Column(
+        db.Text, nullable=True
+    )  # "add_data" or "assign_entities" - which flow created this request, so the
+    # shared preview/confirm pages apply the correct process lock

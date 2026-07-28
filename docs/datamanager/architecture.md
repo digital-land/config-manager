@@ -18,7 +18,8 @@ application/blueprints/datamanager/
 │   ├── check.py            # Check results (geometry, column mapping) and resubmit
 │   ├── preview.py          # Entities preview and async GitHub confirm
 │   ├── transform.py        # Transformed facts, issue logs, entity growth check
-│   └── flagged_resources.py # Assign-entities: import, summary, per-resource submit
+│   ├── flagged_resources.py # Assign-entities: import, summary, per-resource submit
+│   └── request_meta.py     # Submission-time writers for the RequestMeta table
 ├── services/
 │   ├── async_api.py        # Async request API client
 │   ├── dataset.py          # Dataset lookups and autocomplete
@@ -64,6 +65,11 @@ Controllers receive a request context and orchestrate the workflow: validate inp
 | `preview.py` | Entities preview loading/result page, add-data confirm (trigger GitHub workflow and show success) |
 | `transform.py` | Transformed facts and issue log display, entity comparison vs. platform entities, entity growth check; shared between add-data and assign-entities flows |
 | `flagged_resources.py` | Assign-entities flow: upload/paste flagged-resources CSV, grouped summary view, per-resource submit to async API |
+| `request_meta.py` | Records per-request metadata on the `RequestMeta` table at submission time (`source_flow`, config branch baseline) that the async request's params can't carry |
+
+#### `RequestMeta` and `source_flow`
+
+The entities preview and confirm routes live under `/datamanager` but are reused by the assign-entities flow (which redirects into them rather than having its own copies). Because those two endpoints are shared, the URL prefix alone can't tell which process lock applies. So at submission time each flow records `source_flow` (`"add_data"` / `"assign_entities"`) on `RequestMeta` via `record_source_flow`; the router's lock guard and the preview render then read it back — the single source of truth for which flow a request belongs to.
 
 #### `ControllerError`
 

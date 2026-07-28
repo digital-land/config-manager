@@ -53,6 +53,14 @@ from .utils import (
     inject_now,
 )
 
+# Routes that physically live under datamanager but are also used by the
+# assign-entities flow. For these the applicable process lock depends on which
+# flow the request belongs to, not on the URL prefix.
+_SHARED_FLOW_ENDPOINTS = {
+    "datamanager.entities_preview",
+    "datamanager.add_data_confirm_async",
+}
+
 datamanager_bp = Blueprint("datamanager", __name__, url_prefix="/datamanager")
 assign_entities_bp = Blueprint(
     "assign_entities", __name__, url_prefix="/assign-entities"
@@ -127,12 +135,31 @@ def _require_assign_entities_unlocked():
         )
 
 
+def _request_is_assign_entities_flow():
+    """Whether a shared datamanager route belongs to the assign-entities flow."""
+    request_id = (request.view_args or {}).get("request_id")
+    if not request_id:
+        return False
+    try:
+        meta = db.session.get(RequestMeta, request_id)
+    except SQLAlchemyError:
+        return False
+    return bool(meta and meta.source_flow == "assign_entities")
+
+
 @datamanager_bp.before_request
 def require_login():
     """Require login for all datamanager routes"""
     login_response = _require_login()
     if login_response:
         return login_response
+
+    # The entities preview is used by both add-data and assign-entities flows
+    if (
+        request.endpoint in _SHARED_FLOW_ENDPOINTS
+        and _request_is_assign_entities_flow()
+    ):
+        return _require_assign_entities_unlocked()
 
     return _require_add_data_unlocked()
 
