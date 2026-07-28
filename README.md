@@ -14,14 +14,6 @@ Create or update db schema
 
     make upgrade-db
 
-Load data
-
-    make load-data
-
-Drop local data
-
-    make drop-data
-
 To run the application run:
 
     make run
