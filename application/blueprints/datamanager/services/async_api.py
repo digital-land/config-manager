@@ -3,16 +3,25 @@ import logging
 
 import requests
 
+from config.config import get_request_api_endpoint
+
 from application.extensions import cache
 
-from ..config import (
-    get_async_request_url,
-    get_async_requests_url,
-    get_async_response_details_url,
-)
 from ..utils import REQUESTS_TIMEOUT
 
 logger = logging.getLogger(__name__)
+
+
+def _requests_url() -> str:
+    return f"{get_request_api_endpoint()}/requests"
+
+
+def _request_url(request_id: str) -> str:
+    return f"{get_request_api_endpoint()}/requests/{request_id}"
+
+
+def _response_details_url(request_id: str) -> str:
+    return f"{get_request_api_endpoint()}/requests/{request_id}/response-details"
 
 
 class AsyncAPIError(Exception):
@@ -36,9 +45,7 @@ def submit_request(params: dict) -> str:
     logger.info("Submitting request to async API")
     logger.debug(json.dumps(payload, indent=2))
 
-    response = requests.post(
-        get_async_requests_url(), json=payload, timeout=REQUESTS_TIMEOUT
-    )
+    response = requests.post(_requests_url(), json=payload, timeout=REQUESTS_TIMEOUT)
 
     logger.info(f"Async API responded with {response.status_code}")
     try:
@@ -70,7 +77,7 @@ def fetch_request(request_id: str) -> dict:
     Returns the parsed JSON response on 200.
     Raises AsyncAPIError on non-200 status.
     """
-    response = requests.get(get_async_request_url(request_id), timeout=REQUESTS_TIMEOUT)
+    response = requests.get(_request_url(request_id), timeout=REQUESTS_TIMEOUT)
 
     if response.status_code != 200:
         raise AsyncAPIError(
@@ -108,7 +115,7 @@ def fetch_response_details(
             min(limit, max_rows - len(all_details)) if max_rows is not None else limit
         )
         try:
-            url = get_async_response_details_url(request_id)
+            url = _response_details_url(request_id)
             params = {"offset": offset, "limit": fetch_limit}
             logger.debug(f"Fetching batch - URL: {url}, Params: {params}")
 

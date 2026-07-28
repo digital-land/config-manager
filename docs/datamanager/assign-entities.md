@@ -30,7 +30,7 @@ itself. It passes selected references to async, then displays and commits whatev
 | Routes | `application/blueprints/datamanager/router.py` | Assign Entities routes, selection POST handling, replacement async request |
 | Start/import | `application/blueprints/datamanager/controllers/flagged_resources.py` | Direct resource/dataset entry, flagged-resources CSV import, async request submission |
 | Results page | `application/blueprints/datamanager/controllers/transform.py` | Builds Entities and Dedup tab data from async response |
-| Shared results template | `application/templates/components/check-transform-base.html` | Entities tab table, entity checkboxes, selection count, shared button state |
+| Shared results template | `application/templates/datamanager/components/check-transform-base.html` | Entities tab table, entity checkboxes, selection count, shared button state |
 | Dedup template | `application/templates/datamanager/assign-entities-check-results.html` | Dedup tab, duplicate redirect checkboxes, hidden changed flag |
 | Preview | `application/blueprints/datamanager/controllers/preview.py` | Displays async-generated lookup, entity-organisation, and old-entity rows |
 | GitHub dispatch | `application/blueprints/datamanager/services/github.py` | Triggers the config repo workflow with the completed async request id |
@@ -355,6 +355,6 @@ suite before merging changes that touch shared templates or GitHub dispatch beha
 
 ## Related
 
-- [Datamanager GitHub workflow](../datamanager/github-add.md)
-- [Datamanager stale-assessment check](../datamanager/stale-check.md)
-- [Datamanager blueprint architecture](../datamanager/architecture.md)
+- [Datamanager GitHub workflow](github-add.md)
+- [Datamanager stale-assessment guard](github-add.md#stale-assessment-guard)
+- [Datamanager blueprint architecture](architecture.md)

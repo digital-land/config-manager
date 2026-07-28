@@ -8,7 +8,6 @@ from shapely import wkt
 from shapely.geometry import mapping
 
 from . import ControllerError
-from ..config import get_entity_geojson_url, get_entity_search_url
 from ..services.async_api import fetch_response_details
 from ..services.dataset import get_dataset_name, get_dataset_typology
 from ..services.organisation import get_org_entity, get_organisation_name
@@ -21,6 +20,17 @@ from ..services.planning_data import (
 from ..utils import REQUESTS_TIMEOUT
 
 logger = logging.getLogger(__name__)
+
+
+def _entity_search_url(dataset_id, reference):
+    base = current_app.config["PLANNING_BASE_URL"]
+    return f"{base}/entity.json?dataset={dataset_id}&reference={reference}"
+
+
+def _entity_geojson_url(reference):
+    base = current_app.config["PLANNING_BASE_URL"]
+    return f"{base}/entity.geojson?reference={reference}"
+
 
 _TRANSFORM_COLS = [
     "entry_number",
@@ -689,7 +699,7 @@ def fetch_boundary_geojson(organisation_code: str) -> dict:
             return empty
         lpa_prefix, lpa_id = organisation_code.split(":", 1)
         resp = requests.get(
-            get_entity_search_url(lpa_prefix, lpa_id), timeout=REQUESTS_TIMEOUT
+            _entity_search_url(lpa_prefix, lpa_id), timeout=REQUESTS_TIMEOUT
         )
         resp.raise_for_status()
         d = resp.json()
@@ -702,7 +712,7 @@ def fetch_boundary_geojson(organisation_code: str) -> dict:
         if not reference:
             return empty
         return requests.get(
-            get_entity_geojson_url(reference), timeout=REQUESTS_TIMEOUT
+            _entity_geojson_url(reference), timeout=REQUESTS_TIMEOUT
         ).json()
     except Exception as e:
         logger.warning("Failed to fetch boundary data for %s: %s", organisation_code, e)

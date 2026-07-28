@@ -65,7 +65,6 @@ def create_app(config_filename):
     register_templates(app)
     register_filters(app)
     register_extensions(app)
-    register_commands(app)
 
     # get_specification(app)
 
@@ -81,21 +80,9 @@ def register_blueprints(app):
 
     app.register_blueprint(base)
 
-    from application.blueprints.source.views import source_bp
-
-    app.register_blueprint(source_bp)
-
-    from application.blueprints.endpoint.views import endpoint_bp
-
-    app.register_blueprint(endpoint_bp)
-
     from application.blueprints.auth.views import auth_bp
 
     app.register_blueprint(auth_bp)
-
-    from application.blueprints.dataset.views import dataset_bp
-
-    app.register_blueprint(dataset_bp)
 
     from application.blueprints.datamanager.router import (
         assign_entities_bp,
@@ -104,18 +91,6 @@ def register_blueprints(app):
 
     app.register_blueprint(datamanager_bp)
     app.register_blueprint(assign_entities_bp)
-
-    from application.blueprints.schema.views import schema_bp
-
-    app.register_blueprint(schema_bp)
-
-    from application.blueprints.report.views import report_bp
-
-    app.register_blueprint(report_bp)
-
-    from application.blueprints.publisher.views import publisher_pages
-
-    app.register_blueprint(publisher_pages)
 
 
 def register_context_processors(app):
@@ -230,11 +205,3 @@ def register_templates(app):
         ]
     )
     app.jinja_loader = multi_loader
-
-
-def register_commands(app):
-    from application.commands import publish_cli
-    from application.data_commands import data_cli
-
-    app.cli.add_command(data_cli)
-    app.cli.add_command(publish_cli)

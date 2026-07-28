@@ -56,12 +56,6 @@ upgrade-db:
 downgrade-db:
 	flask db downgrade
 
-load-data:
-	flask data load --spec 1 --config 1
-
-drop-data:
-	flask data drop
-
 test-unit:
 	@echo "Running Unit tests...."
 	python -m pytest tests/unit/ -v
