@@ -542,7 +542,7 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
     transform_controller = "application.blueprints.datamanager.controllers.transform"
 
     with patch(
-        f"{transform_controller}.get_endpoint_urls_for_hashes",
+        f"{transform_controller}.get_endpoint_info_for_hashes",
         return_value={
             "endpoint-a": {
                 "endpoint_url": "https://example.com/data.csv",

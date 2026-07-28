@@ -1131,6 +1131,7 @@ class TestCheckTransformPostRetireUnretire:
                 [
                     ("presented_endpoints", "hash-active"),
                     ("presented_endpoints", "hash-retired"),
+                    ("presented_endpoints", current_hash),
                     ("currently_retired", "hash-retired"),
                     ("retire_endpoints", "hash-active"),
                     ("retire_endpoints", current_hash),

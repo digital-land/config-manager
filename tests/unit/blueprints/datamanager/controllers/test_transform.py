@@ -209,7 +209,7 @@ def test_resolve_existing_endpoints_enriches_sorts_and_flags():
     }
 
     with patch(
-        f"{TRANSFORM_MODULE}.get_endpoint_urls_for_hashes", return_value=endpoint_data
+        f"{TRANSFORM_MODULE}.get_endpoint_info_for_hashes", return_value=endpoint_data
     ), patch(
         f"{TRANSFORM_MODULE}.get_endpoint_log_summary_for_hashes", return_value=log_data
     ):
