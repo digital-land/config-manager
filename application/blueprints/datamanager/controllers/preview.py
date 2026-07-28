@@ -101,6 +101,29 @@ def _load_json_list(value: str | None) -> list:
     return loaded if isinstance(loaded, list) else []
 
 
+def _build_endpoint_summary(
+    selected_hashes, existing_endpoints, dataset_id, organisation_code
+):
+    summary = []
+    if not selected_hashes:
+        return summary
+    dataset_display = get_dataset_name(dataset_id, default=dataset_id)
+    org_display = get_organisation_name(organisation_code)
+    for ep in existing_endpoints:
+        ep_hash = ep.get("endpoint") if isinstance(ep, dict) else ep
+        ep_url = ep.get("endpoint-url", ep_hash) if isinstance(ep, dict) else ep
+        if ep_hash in selected_hashes:
+            summary.append(
+                {
+                    "endpoint": ep_hash,
+                    "endpoint-url": ep_url,
+                    "dataset": dataset_display,
+                    "organisation": org_display,
+                }
+            )
+    return summary
+
+
 def _count_excluded_references(params: dict) -> int:
     references = params.get("excluded_references") or []
     if not isinstance(references, list):
@@ -276,6 +299,9 @@ def handle_entities_preview(request_id, req):
     endpoints_to_retire = (
         _load_json_list(request_meta.endpoints_to_retire) if request_meta else []
     )
+    endpoints_to_unretire = (
+        _load_json_list(request_meta.endpoints_to_unretire) if request_meta else []
+    )
     old_entity_rows = pipeline_summary.get("old-entity") or []
     old_entity_redirect_table_params = build_old_entity_redirect_table(old_entity_rows)
     old_entity_redirect_count = (
@@ -289,22 +315,13 @@ def handle_entities_preview(request_id, req):
     if isinstance(existing_endpoints, str):
         existing_endpoints = [existing_endpoints] if existing_endpoints else []
     organisation_code = params.get("organisationName") or params.get("organisation", "")
-    retire_summary = []
-    if endpoints_to_retire:
-        dataset_display = get_dataset_name(dataset_id, default=dataset_id)
-        org_display = get_organisation_name(organisation_code)
-        for ep in existing_endpoints:
-            ep_hash = ep.get("endpoint") if isinstance(ep, dict) else ep
-            ep_url = ep.get("endpoint-url", ep_hash) if isinstance(ep, dict) else ep
-            if ep_hash in endpoints_to_retire:
-                retire_summary.append(
-                    {
-                        "endpoint": ep_hash,
-                        "endpoint-url": ep_url,
-                        "dataset": dataset_display,
-                        "organisation": org_display,
-                    }
-                )
+
+    retire_summary = _build_endpoint_summary(
+        endpoints_to_retire, existing_endpoints, dataset_id, organisation_code
+    )
+    unretire_summary = _build_endpoint_summary(
+        endpoints_to_unretire, existing_endpoints, dataset_id, organisation_code
+    )
 
     # Build entity-organisation CSV preview
     authoritative = params.get("authoritative", False)
@@ -325,6 +342,7 @@ def handle_entities_preview(request_id, req):
         source_flow=source_flow,
         return_url=return_url,
         retire_summary=retire_summary,
+        unretire_summary=unretire_summary,
         old_entity_redirect_table_params=old_entity_redirect_table_params,
         old_entity_redirect_count=old_entity_redirect_count,
         new_count=len(new_entities),
@@ -356,6 +374,9 @@ def handle_add_data_confirm(
     request_meta = db.session.get(RequestMeta, request_id)
     endpoints_to_retire = (
         _load_json_list(request_meta.endpoints_to_retire) if request_meta else []
+    )
+    endpoints_to_unretire = (
+        _load_json_list(request_meta.endpoints_to_unretire) if request_meta else []
     )
 
     # Stale-assessment guard: if the config branch has advanced for this collection
@@ -403,6 +424,7 @@ def handle_add_data_confirm(
             triggered_by=f"{session.get('user', {}).get('login', 'unknown')}",
             github_branch=github_branch,
             endpoints_to_retire=endpoints_to_retire,
+            endpoints_to_unretire=endpoints_to_unretire,
         )
     except GitHubWorkflowError as e:
         logger.exception(f"GitHub async workflow error: {e}")

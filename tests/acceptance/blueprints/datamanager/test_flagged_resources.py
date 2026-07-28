@@ -442,9 +442,13 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
         return_value={
             "endpoint-a": {
                 "endpoint_url": "https://example.com/data.csv",
+                "entry_date": "2026-01-01",
                 "end_date": "",
             }
         },
+    ), patch(
+        f"{transform_controller}.get_endpoint_log_summary_for_hashes",
+        return_value={},
     ):
         with patch(f"{transform_controller}.get_org_entity", return_value=90):
             with patch(f"{transform_controller}.get_organisation_name"):
