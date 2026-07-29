@@ -1,9 +1,14 @@
 import json
+from unittest.mock import patch
 
+from application.utils import compute_hash
 from application.blueprints.datamanager.controllers.transform import (
     _dedup_candidate_form_value,
     _prepare_duplicate_candidates,
+    _resolve_existing_endpoints,
 )
+
+TRANSFORM_MODULE = "application.blueprints.datamanager.controllers.transform"
 
 
 def test_dedup_candidate_form_value_builds_redirect_payload():
@@ -152,3 +157,55 @@ def test_prepare_duplicate_candidates_disables_redirects_for_excluded_references
 
     assert candidates[0]["redirect_can_select"] is False
     assert candidates[1]["redirect_can_select"] is True
+
+
+def test_resolve_existing_endpoints_enriches_sorts_and_flags():
+    current_url = "https://example.com/current.csv"
+    current_hash = compute_hash(current_url)
+    source_summary = {
+        "existing_endpoint_for_organisation_dataset": [
+            "hash-old",
+            current_hash,
+            "hash-new",
+        ]
+    }
+    endpoint_data = {
+        "hash-old": {
+            "endpoint_url": "https://example.com/old.csv",
+            "entry_date": "2026-01-01",
+            "end_date": "2026-06-01",
+        },
+        current_hash: {
+            "endpoint_url": current_url,
+            "entry_date": "2026-03-01",
+            "end_date": "",
+        },
+        "hash-new": {
+            "endpoint_url": "https://example.com/new.csv",
+            "entry_date": "2026-05-01",
+            "end_date": "",
+        },
+    }
+    log_data = {
+        "hash-new": {
+            "latest_status": "200",
+            "latest_log_entry_date": "2026-07-20",
+        }
+    }
+
+    with patch(
+        f"{TRANSFORM_MODULE}.get_endpoint_info_for_hashes", return_value=endpoint_data
+    ), patch(
+        f"{TRANSFORM_MODULE}.get_endpoint_log_summary_for_hashes", return_value=log_data
+    ):
+        result = _resolve_existing_endpoints(source_summary, current_url)
+
+    # Sorted by entry-date desc: hash-new (05-01), current (03-01), hash-old (01-01)
+    assert [r["endpoint"] for r in result] == ["hash-new", current_hash, "hash-old"]
+
+    by_hash = {r["endpoint"]: r for r in result}
+    assert by_hash["hash-old"]["is_retired"] is True
+    assert by_hash["hash-old"]["is_current"] is False
+    assert by_hash[current_hash]["is_current"] is True
+    assert by_hash["hash-new"]["latest-status"] == "200"
+    assert by_hash["hash-new"]["latest-log-entry-date"] == "2026-07-20"

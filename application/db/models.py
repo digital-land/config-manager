@@ -18,6 +18,9 @@ class RequestMeta(db.Model):
     endpoints_to_retire = db.Column(
         db.Text, nullable=True
     )  # JSON list of endpoint hashes
+    endpoints_to_unretire = db.Column(
+        db.Text, nullable=True
+    )  # JSON list of endpoint hashes to clear the end-date for
     branch_sha = db.Column(
         db.Text, nullable=True
     )  # config-manager-update HEAD SHA when the assessment was submitted

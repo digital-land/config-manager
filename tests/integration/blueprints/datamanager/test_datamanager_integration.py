@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 import responses as rsps
@@ -1097,3 +1098,49 @@ class TestEntityPagination:
                     ):
                         response = client.get("/datamanager/check-transform/test-id")
         assert b"Showing entities 7010000100 to 7010000109" in response.data
+
+
+class TestCheckTransformPostRetireUnretire:
+    @rsps.activate
+    def test_diffs_retire_and_unretire_and_protects_current(self, client):
+        from application.db.models import RequestMeta
+        from application.extensions import db
+        from application.utils import compute_hash
+
+        current_url = "https://example.com/current.csv"
+        current_hash = compute_hash(current_url)
+        rsps.add(
+            rsps.GET,
+            f"{ASYNC_BASE}/req-diff",
+            json={
+                **COMPLETED_TRANSFORM_REQUEST,
+                "id": "req-diff",
+                "params": {"url": current_url},
+            },
+            status=200,
+        )
+
+        # active endpoint "hash-active" ticked -> retire
+        # retired endpoint "hash-retired" left unticked -> unretire
+        # current endpoint slipped into the checked list -> must be ignored
+        from werkzeug.datastructures import MultiDict
+
+        response = client.post(
+            "/datamanager/check-transform/req-diff",
+            data=MultiDict(
+                [
+                    ("presented_endpoints", "hash-active"),
+                    ("presented_endpoints", "hash-retired"),
+                    ("presented_endpoints", current_hash),
+                    ("currently_retired", "hash-retired"),
+                    ("retire_endpoints", "hash-active"),
+                    ("retire_endpoints", current_hash),
+                ]
+            ),
+        )
+        assert response.status_code == 302
+
+        with client.application.app_context():
+            meta = db.session.get(RequestMeta, "req-diff")
+            assert json.loads(meta.endpoints_to_retire) == ["hash-active"]
+            assert json.loads(meta.endpoints_to_unretire) == ["hash-retired"]

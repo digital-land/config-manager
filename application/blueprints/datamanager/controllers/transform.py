@@ -8,11 +8,15 @@ from shapely import wkt
 from shapely.geometry import mapping
 
 from . import ControllerError
+from application.utils import compute_hash
 from ..services.async_api import fetch_response_details
 from ..services.dataset import get_dataset_name, get_dataset_typology
 from ..services.organisation import get_org_entity, get_organisation_name
 from ..services.doc_crawler import check_endpoint_in_doc, is_gov_uk_url
-from ..services.endpoint import get_endpoint_urls_for_hashes
+from ..services.endpoint import (
+    get_endpoint_log_summary_for_hashes,
+    get_endpoint_info_for_hashes,
+)
 from ..services.planning_data import (
     get_entities_for_organisation_and_dataset,
     get_entity_count_for_organisation_and_dataset,
@@ -407,22 +411,48 @@ def _count_categories(rows: list) -> dict:
     return counts
 
 
-def _resolve_existing_endpoints(source_summary: dict) -> list:
+def _date_only(date_str: str) -> str:
+    """Truncate an ISO datetime (``YYYY-MM-DDThh:mm:ssZ``) to ``YYYY-MM-DD``."""
+    return date_str[:10] if date_str else ""
+
+
+def _resolve_existing_endpoints(
+    source_summary: dict, current_endpoint_url: str = ""
+) -> list:
     existing_endpoints = (
         source_summary.get("existing_endpoint_for_organisation_dataset") or []
     )
     if isinstance(existing_endpoints, str):
         existing_endpoints = [existing_endpoints] if existing_endpoints else []
-    if existing_endpoints:
-        endpoint_data = get_endpoint_urls_for_hashes(existing_endpoints)
-        existing_endpoints = [
-            {
-                "endpoint": h,
-                "endpoint-url": endpoint_data.get(h, {}).get("endpoint_url", ""),
-                "end-date": endpoint_data.get(h, {}).get("end_date", ""),
-            }
-            for h in existing_endpoints
-        ]
+    # The same endpoint hash can appear on more than one source.csv row for an
+    # org/dataset; retiring matches on the hash so it actions every row at once.
+    # Collapse duplicates so the retire table shows one row per endpoint.
+    existing_endpoints = list(dict.fromkeys(existing_endpoints))
+    if not existing_endpoints:
+        return existing_endpoints
+
+    endpoint_data = get_endpoint_info_for_hashes(existing_endpoints)
+    log_data = get_endpoint_log_summary_for_hashes(existing_endpoints)
+    # The endpoint hash is sha256(endpoint_url), so this matches the endpoint
+    # being added when it is already present in the endpoint CSV.
+    current_hash = compute_hash(current_endpoint_url) if current_endpoint_url else None
+
+    existing_endpoints = [
+        {
+            "endpoint": h,
+            "endpoint-url": endpoint_data.get(h, {}).get("endpoint_url", ""),
+            "entry-date": _date_only(endpoint_data.get(h, {}).get("entry_date", "")),
+            "end-date": _date_only(endpoint_data.get(h, {}).get("end_date", "")),
+            "latest-status": log_data.get(h, {}).get("latest_status", ""),
+            "latest-log-entry-date": _date_only(
+                log_data.get(h, {}).get("latest_log_entry_date", "")
+            ),
+            "is_retired": bool(endpoint_data.get(h, {}).get("end_date", "")),
+            "is_current": h == current_hash,
+        }
+        for h in existing_endpoints
+    ]
+    existing_endpoints.sort(key=lambda e: e["entry-date"] or "", reverse=True)
     return existing_endpoints
 
 
@@ -779,7 +809,7 @@ def handle_check_transform(
     response_payload = req.get("response") or {}
     response_data = response_payload.get("data") or {}
     source_summary = response_data.get("source-summary") or {}
-    existing_endpoints = _resolve_existing_endpoints(source_summary)
+    existing_endpoints = _resolve_existing_endpoints(source_summary, endpoint_url)
     pipelines_append_required = source_summary.get("pipelines_append_required")
     pipeline_summary = response_data.get("pipeline-summary") or {}
     show_dedup_tab = is_assign_entities and dataset_id == "conservation-area"
