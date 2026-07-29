@@ -61,10 +61,14 @@ redirects to check-transform.
 ### 4. Check transform (`datamanager.check_transform`, `controllers/transform.py`)
 
 `GET /check-transform/<request_id>` renders `check-transform-loading.html` then
-`check-transform.html`: the transformed facts, issue logs, and an entity-growth view, plus the
-option to select **endpoints to retire**. `POST /check-transform/<id>` (`check_transform_post`,
-`router.py`) stores the chosen `retire_endpoints` on the `RequestMeta` row and redirects to the
-entities preview.
+`check-transform.html`: the transformed facts, issue logs, and an entity-growth view, plus a
+**retire/unretire** table of the org/dataset's existing endpoints (endpoint URL, entry date,
+latest status and latest log entry date — enriched from the `endpoint` table and
+`performance/reporting_historic_endpoints`). Each checkbox reflects the desired *retired* state:
+ticking an active endpoint retires it, unticking a currently-retired one unretires it; the
+endpoint being added is shown disabled and cannot be changed. `POST /check-transform/<id>`
+(`check_transform_post`, `router.py`) diffs the submission and stores `retire_endpoints` /
+`endpoints_to_unretire` on the `RequestMeta` row, then redirects to the entities preview.
 
 > **Scope has grown.** This page started as a home for optional pre-commit *actions* (notably
 > selecting endpoints to retire), but has since become a fully-fledged **comparison of the entities
@@ -119,9 +123,9 @@ landing page). The `datamanager` before-request guard redirects to the landing p
   left behind.
 - **`authoritative` must be `yes`/`no`.** It is validated on the form and decides whether
   `entity-organisation.csv` rows are written by the commit workflow.
-- **`retire_endpoints` is stored, not applied.** The check-transform POST saves the selected hashes
-  on the `RequestMeta` row; the actual end-dating happens later in the commit workflow, not in
-  config-manager.
+- **`retire_endpoints` / `endpoints_to_unretire` are stored, not applied.** The check-transform POST
+  saves the selected hashes on the `RequestMeta` row; the actual end-dating (retire) and end-date
+  clearing (unretire) happen later in the commit workflow, not in config-manager.
 - **The stale guard can silently no-op.** It only runs when submitting onto the shared branch *and*
   a baseline was captured at submission — see [github-add.md](github-add.md#stale-assessment-guard).
 

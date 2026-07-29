@@ -69,7 +69,7 @@ Controllers receive a request context and orchestrate the workflow: validate inp
 
 #### `RequestMeta` and `source_flow`
 
-The entities preview and confirm routes live under `/datamanager` but are reused by the assign-entities flow (which redirects into them rather than having its own copies). Because those two endpoints are shared, the URL prefix alone can't tell which process lock applies. So at submission time each flow records `source_flow` (`"add_data"` / `"assign_entities"`) on `RequestMeta` via `record_source_flow`; the router's lock guard and the preview render then read it back — the single source of truth for which flow a request belongs to.
+The entities preview and confirm routes live under `/datamanager` but are reused by the assign-entities flow (which redirects into them rather than having its own copies). Because those two endpoints are shared, the URL prefix alone can't tell which process lock applies. So at submission time each flow records `source_flow` (`"add_data"` / `"assign_entities"`) on `RequestMeta` via `record_source_flow`; the router's lock guard and the preview render then read it back — the single source of truth for which flow a request belongs to. `RequestMeta` also carries the check-transform retire/unretire selections (`endpoints_to_retire` / `endpoints_to_unretire`) that the async request's params can't — stored on POST and forwarded to the commit workflow.
 
 #### `ControllerError`
 
