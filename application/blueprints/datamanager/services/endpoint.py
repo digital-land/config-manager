@@ -48,18 +48,11 @@ def get_endpoint_log_summary_for_hashes(hashes: list) -> dict:
     """
     Given a list of endpoint hashes, returns a dict mapping
     {hash: {"latest_status": ..., "latest_log_entry_date": ...}}.
-
-    Reads the ``performance/reporting_historic_endpoints`` table (which includes
-    retired endpoints) instead of the large ``log`` table, avoiding datasette's
-    SQL time limit. That table holds multiple rows per endpoint, so we keep the
-    row with the most recent ``latest_log_entry_date`` for each hash.
     """
     if not hashes:
         return {}
 
     datasette_url = current_app.config.get("DATASETTE_BASE_URL")
-    # DATASETTE_BASE_URL points at the ``digital-land`` database; the reporting
-    # table lives in the sibling ``performance`` database on the same host.
     datasette_root = datasette_url.rsplit("/", 1)[0]
     url = (
         f"{datasette_root}/performance/reporting_historic_endpoints.json"
