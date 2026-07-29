@@ -1,10 +1,8 @@
 import json
-from datetime import date
 from unittest.mock import patch
 
 from application.utils import compute_hash
 from application.blueprints.datamanager.controllers.transform import (
-    _days_since,
     _dedup_candidate_form_value,
     _prepare_duplicate_candidates,
     _resolve_existing_endpoints,
@@ -161,18 +159,6 @@ def test_prepare_duplicate_candidates_disables_redirects_for_excluded_references
     assert candidates[1]["redirect_can_select"] is True
 
 
-def test_days_since_computes_whole_days():
-    fixed = (date.today() - date(2020, 1, 1)).days
-    assert _days_since("2020-01-01T00:00:00Z") == fixed
-    assert _days_since("2020-01-01") == fixed
-
-
-def test_days_since_returns_none_for_empty_or_invalid():
-    assert _days_since("") is None
-    assert _days_since(None) is None
-    assert _days_since("not-a-date") is None
-
-
 def test_resolve_existing_endpoints_enriches_sorts_and_flags():
     current_url = "https://example.com/current.csv"
     current_hash = compute_hash(current_url)
@@ -204,7 +190,6 @@ def test_resolve_existing_endpoints_enriches_sorts_and_flags():
         "hash-new": {
             "latest_status": "200",
             "latest_log_entry_date": "2026-07-20",
-            "latest_200_date": "2026-07-20",
         }
     }
 
@@ -223,5 +208,4 @@ def test_resolve_existing_endpoints_enriches_sorts_and_flags():
     assert by_hash["hash-old"]["is_current"] is False
     assert by_hash[current_hash]["is_current"] is True
     assert by_hash["hash-new"]["latest-status"] == "200"
-    assert by_hash["hash-new"]["days-since-200"] is not None
-    assert by_hash["hash-old"]["days-since-200"] is None
+    assert by_hash["hash-new"]["latest-log-entry-date"] == "2026-07-20"

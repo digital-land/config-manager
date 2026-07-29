@@ -1,7 +1,6 @@
 import json
 import logging
 import re
-from datetime import date, datetime
 
 import requests
 from flask import current_app, render_template, request as flask_request
@@ -417,17 +416,6 @@ def _date_only(date_str: str) -> str:
     return date_str[:10] if date_str else ""
 
 
-def _days_since(date_str: str):
-    """Whole days between ``date_str`` (ISO ``YYYY-MM-DD...``) and today, or None."""
-    if not date_str:
-        return None
-    try:
-        d = datetime.fromisoformat(date_str[:10]).date()
-    except ValueError:
-        return None
-    return (date.today() - d).days
-
-
 def _resolve_existing_endpoints(
     source_summary: dict, current_endpoint_url: str = ""
 ) -> list:
@@ -459,7 +447,6 @@ def _resolve_existing_endpoints(
             "latest-log-entry-date": _date_only(
                 log_data.get(h, {}).get("latest_log_entry_date", "")
             ),
-            "days-since-200": _days_since(log_data.get(h, {}).get("latest_200_date")),
             "is_retired": bool(endpoint_data.get(h, {}).get("end_date", "")),
             "is_current": h == current_hash,
         }
