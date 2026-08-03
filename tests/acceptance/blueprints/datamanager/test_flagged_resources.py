@@ -1337,7 +1337,9 @@ def test_resource_link_submits_assign_entities_request(client):
     with patch(
         "application.blueprints.datamanager.controllers.flagged_resources.get_dataset_id",
         return_value=None,
-    ):
+    ), patch(
+        "application.blueprints.datamanager.controllers.flagged_resources.record_branch_baseline"
+    ) as record_branch_baseline:
         with patch(
             "application.blueprints.datamanager.controllers.flagged_resources.get_dataset_name",
             return_value="Tree",
@@ -1369,6 +1371,9 @@ def test_resource_link_submits_assign_entities_request(client):
     location = response.headers["Location"]
     assert "/assign-entities/check-results/assign-id-1" in location
     assert "errors=large_number_of_new_entities,current_resource_empty" in location
+    record_branch_baseline.assert_called_once_with(
+        "assign-id-1", "config-manager-update"
+    )
     assert len(rsps.calls) == 1
     assert rsps.calls[0].request.url == ASYNC_BASE
     assert rsps.calls[0].request.headers["Content-Type"] == "application/json"
