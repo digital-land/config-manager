@@ -880,7 +880,9 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
     assert b"Redirect (301)" in response.data
     assert response.data.index(b"Redirect (301)") < response.data.index(b"Retire (410)")
     assert re.search(
-        rb'<button[^>]*type="button"[^>]*class="[^"]*govuk-button--secondary[^"]*"[^>]*data-redirect-status-choice="410"[^>]*>\s*Retire \(410\)\s*</button>',
+        rb'<button[^>]*type="button"[^>]*class="[^"]*govuk-button--secondary'
+        rb'[^"]*"[^>]*data-redirect-status-choice="410"[^>]*>'
+        rb"\s*Retire \(410\)\s*</button>",
         response.data,
     )
     assert b'name="redirect_status"' not in response.data

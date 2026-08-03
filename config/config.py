@@ -115,7 +115,7 @@ def get_request_api_endpoint():
     env = os.getenv("ENVIRONMENT", "local").lower()
 
     mapping = {
-        "local": "http://host.docker.internal:8000",
+        "local": "http://localhost:8000",
         "development": "https://pub-async.development.planning.data.gov.uk",
         "staging": "https://pub-async.staging.planning.data.gov.uk",
         "production": "https://pub-async.planning.data.gov.uk",
