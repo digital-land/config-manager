@@ -206,6 +206,8 @@ def test_resolve_existing_endpoints_enriches_sorts_and_flags():
     assert by_hash[current_hash]["is_current"] is True
     assert by_hash["hash-new"]["latest-status"] == "200"
     assert by_hash["hash-new"]["latest-log-entry-date"] == "2026-07-20"
+
+
 def test_prepare_duplicate_candidates_classifies_redirect_targets_by_entity_number():
     candidates = _prepare_duplicate_candidates(
         [
