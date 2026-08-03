@@ -57,10 +57,18 @@
 {% block extra_panels %}
       {% if show_dedup_tab %}
       <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="duplicates-table">
-        <p class="govuk-hint govuk-!-margin-bottom-4">Possible spatial duplicates between entities in this resource and existing platform entities for this dataset. <strong style="color: #00703c;">Green</strong> is the new provision entity. <strong style="color: #d4692a;">Orange</strong> is the existing platform entity.</p>
+        <p class="govuk-hint govuk-!-margin-bottom-4">Possible duplicates between entities in this resource and existing platform entities for this dataset. <strong style="color: #00703c;">Green</strong> is the new provision entity. <strong style="color: #d4692a;">Orange</strong> is the existing platform entity.</p>
         <form method="post" action="{{ url_for('assign_entities.flagged_resource_detail_post', request_id=request_id) }}" id="duplicate-redirect-form">
           <input type="hidden" name="entity_selection_changed" id="entity-selection-changed" value="false">
           {% if duplicate_candidates %}
+          <div class="govuk-button-group govuk-!-margin-bottom-4" id="redirect-status-actions" hidden>
+            <button type="button" class="govuk-button govuk-!-margin-bottom-0 redirect-status-button" data-module="govuk-button" data-redirect-status-choice="301">
+              Redirect (301)
+            </button>
+            <button type="button" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0 redirect-status-button" data-module="govuk-button" data-redirect-status-choice="410">
+              Retire (410)
+            </button>
+          </div>
           <div class="govuk-!-margin-bottom-2" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
             <span class="govuk-body-s govuk-!-margin-bottom-0" style="color: #505a5f;"><strong style="color: #00703c;">&#9679;</strong> Green: new provision entity</span>
             <span class="govuk-body-s govuk-!-margin-bottom-0" style="color: #505a5f;"><strong style="color: #d4692a;">&#9679;</strong> Orange: existing platform entity</span>
@@ -79,13 +87,17 @@
                       </div>
                     </div>
                   </th>
-                  <th scope="col" class="govuk-table__header">New Entity</th>
                   <th scope="col" class="govuk-table__header">Old entity</th>
+                  <th scope="col" class="govuk-table__header">New Entity</th>
+                  <th scope="col" class="govuk-table__header">Status</th>
                   <th scope="col" class="govuk-table__header">Reference</th>
                   <th scope="col" class="govuk-table__header">Name</th>
                   <th scope="col" class="govuk-table__header">Entry date</th>
                   <th scope="col" class="govuk-table__header">End date</th>
                   <th scope="col" class="govuk-table__header">Organisation</th>
+                  {% for col in duplicate_columns %}
+                  <th scope="col" class="govuk-table__header">{{ col }}</th>
+                  {% endfor %}
                   <th scope="col" class="govuk-table__header">Current redirects</th>
                   <th scope="col" class="govuk-table__header">Evidence</th>
                 </tr>
@@ -96,11 +108,20 @@
                   <td class="govuk-table__cell">
                     <div class="govuk-checkboxes govuk-checkboxes--small app-checkboxes--table-header" data-module="govuk-checkboxes">
                       <div class="govuk-checkboxes__item">
-                        <input class="govuk-checkboxes__input duplicate-checkbox" id="entity-redirect-{{ loop.index }}" name="entity_redirects" type="checkbox" value="{{ row.form_value | e }}" data-entity-reference="{{ row.new_reference or row.reference or '' }}" data-restore-checked="{{ 'true' if row.auto_select else 'false' }}" data-redirect-locked="{{ 'true' if row.redirect_locked else 'false' }}" {% if row.auto_select and row.redirect_can_select %}checked{% endif %} {% if row.redirect_locked or not row.redirect_can_select %}disabled{% endif %}>
+                        <input class="govuk-checkboxes__input duplicate-checkbox" id="entity-redirect-{{ loop.index }}" name="entity_redirects" type="checkbox" value="{{ row.form_value | e }}" data-old-entity="{{ row.old_entity or '' }}" data-entity-reference="{{ row.new_reference or row.reference or '' }}" data-redirect-status="{{ row.redirect_status or '' }}" data-restore-checked="{{ 'true' if row.redirect_selected else 'false' }}" data-redirect-locked="{{ 'true' if row.redirect_locked else 'false' }}" data-redirect-can-select="{{ 'true' if row.redirect_can_select else 'false' }}" data-target-requires-assignment="{{ 'true' if row.target_requires_assignment else 'false' }}" {% if row.redirect_selected and row.redirect_can_select %}checked{% endif %} {% if row.redirect_locked or not row.redirect_can_select %}disabled{% endif %}>
                         <label class="govuk-label govuk-checkboxes__label" for="entity-redirect-{{ loop.index }}">
                           <span class="govuk-visually-hidden">Select redirect for entity {{ row.entity }}</span>
                         </label>
                       </div>
+                    </div>
+                  </td>
+                  <td class="govuk-table__cell app-wrap">
+                    <div class="app-duplicate-old-entity">
+                      {% if row.old_entity %}
+                      <a class="govuk-link app-duplicate-old-entity" href="{{ planning_entity_base_url }}/{{ row.old_entity }}" target="_blank" rel="noopener noreferrer"><code>{{ row.old_entity }}</code></a>
+                      {% else %}
+                      <code></code>
+                      {% endif %}
                     </div>
                   </td>
                   <td class="govuk-table__cell app-wrap">
@@ -112,14 +133,8 @@
                       {% endif %}
                     </div>
                   </td>
-                  <td class="govuk-table__cell app-wrap">
-                    <div class="app-duplicate-old-entity">
-                      {% if row.old_entity %}
-                      <a class="govuk-link app-duplicate-old-entity" href="{{ planning_entity_base_url }}/{{ row.old_entity }}" target="_blank" rel="noopener noreferrer"><code>{{ row.old_entity }}</code></a>
-                      {% else %}
-                      <code></code>
-                      {% endif %}
-                    </div>
+                  <td class="govuk-table__cell app-wrap duplicate-status">
+                    {{ row.redirect_status or '' }}
                   </td>
                   <td class="govuk-table__cell app-wrap">
                     <div class="app-duplicate-new-entity">{{ row.new_reference or '' }}</div>
@@ -141,6 +156,14 @@
                     <div class="app-duplicate-new-entity">{{ row.new_organisation or row.new_organisation_entity or '' }}</div>
                     <div class="app-duplicate-old-entity">{{ row.old_organisation or row.old_organisation_entity or '' }}</div>
                   </td>
+                  {% for col in duplicate_columns %}
+                  <td class="govuk-table__cell app-wrap">
+                    {% set new_value = row.new_fields.get(col, '') %}
+                    {% set old_value = row.old_fields.get(col, '') %}
+                    <div class="app-duplicate-new-entity">{% if new_value | length > 50 %}{{ new_value[:50] }}...{% else %}{{ new_value }}{% endif %}</div>
+                    <div class="app-duplicate-old-entity">{% if old_value | length > 50 %}{{ old_value[:50] }}...{% else %}{{ old_value }}{% endif %}</div>
+                  </td>
+                  {% endfor %}
                   <td class="govuk-table__cell app-wrap app-duplicate-old-entity">
                     {% for redirect in row.old_entity_redirects or [] %}
                       {{ redirect.get("entity", "") }}{% if redirect.get("status") %} ({{ redirect.get("status") }}){% endif %}{% if not loop.last %}, {% endif %}
@@ -152,11 +175,11 @@
               </tbody>
             </table>
           </div>
-          {% set selected_count = duplicate_candidates | selectattr('auto_select') | list | length %}
-          {% set selectable_count = duplicate_candidates | rejectattr('auto_select') | list | length %}
+          {% set selected_count = duplicate_candidates | selectattr('redirect_selected') | list | length %}
+          {% set total_count = duplicate_candidates | length %}
           <p class="govuk-!-margin-top-2" id="duplicate-selected-count" style="white-space: nowrap;">
             {% if duplicate_candidates %}
-            {{ selected_count }} of {{ selectable_count + selected_count }} {{ 'entity' if (selectable_count + selected_count) == 1 else 'entities' }} selected for redirection
+            {{ selected_count }} of {{ total_count }} {{ 'entity' if total_count == 1 else 'entities' }} selected for redirection
             {% else %}
             No entities available for redirection
             {% endif %}
@@ -186,6 +209,9 @@
 
 {% block pageScripts %}{{ super() }}
 <style {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
+  #redirect-status-actions[hidden] {
+    display: none;
+  }
   .app-duplicates-table .govuk-table__header,
   .app-duplicates-table .govuk-table__cell {
     vertical-align: middle;
@@ -245,6 +271,8 @@
   var selectedCount = document.getElementById('duplicate-selected-count');
   var duplicateCheckboxes = document.querySelectorAll('.duplicate-checkbox');
   var selectAllCheckbox = document.getElementById('entity-redirect-select-all');
+  var redirectStatusActions = document.getElementById('redirect-status-actions');
+  var redirectStatusButtons = document.querySelectorAll('.redirect-status-button');
   var entitySelectionCheckboxes = document.querySelectorAll('.entity-selection-checkbox');
   var entitySelectAllCheckbox = document.getElementById('entity-select-all');
   function entitySelectionReference(checkbox) {
@@ -268,15 +296,52 @@
     });
     return references;
   }
+  function setRedirectStatus(checkbox, status) {
+    var redirect = JSON.parse(checkbox.value);
+    redirect.status = status;
+    checkbox.value = JSON.stringify(redirect);
+    checkbox.dataset.redirectStatus = status;
+    var row = checkbox.closest('.duplicate-row');
+    var statusCell = row ? row.querySelector('.duplicate-status') : null;
+    if (statusCell) statusCell.textContent = status;
+  }
+  function enforceOneActionPerOldEntity(preferredCheckbox) {
+    var selectedByOldEntity = {};
+    duplicateCheckboxes.forEach(function(checkbox) {
+      var oldEntity = checkbox.dataset.oldEntity || '';
+      if (!oldEntity || !checkbox.checked) return;
+      var selected = selectedByOldEntity[oldEntity];
+      if (!selected) {
+        selectedByOldEntity[oldEntity] = checkbox;
+        return;
+      }
+      var selectedIsLocked = selected.dataset.redirectLocked === 'true';
+      var checkboxIsLocked = checkbox.dataset.redirectLocked === 'true';
+      var winner = selected;
+      if (checkboxIsLocked || (!selectedIsLocked && checkbox === preferredCheckbox)) {
+        winner = checkbox;
+      }
+      var loser = winner === checkbox ? selected : checkbox;
+      if (loser.dataset.redirectLocked !== 'true') {
+        loser.checked = false;
+        loser.dataset.restoreChecked = 'false';
+        setRedirectStatus(loser, '');
+      }
+      selectedByOldEntity[oldEntity] = winner;
+    });
+  }
   function updateDuplicateAvailability() {
     var visibleReferences = visibleEntityReferences();
     var selectedReferences = selectedEntityReferences();
     duplicateCheckboxes.forEach(function(checkbox) {
       var reference = checkbox.dataset.entityReference || '';
-      if (!reference || !visibleReferences[reference]) return;
-      var canSelect = Boolean(selectedReferences[reference]);
+      var targetRequiresAssignment = checkbox.dataset.targetRequiresAssignment === 'true';
       var isLocked = checkbox.dataset.redirectLocked === 'true';
+      var canSelect = checkbox.dataset.redirectCanSelect === 'true';
       if (!canSelect) {
+        checkbox.checked = false;
+        checkbox.disabled = true;
+      } else if (targetRequiresAssignment && reference && visibleReferences[reference] && !selectedReferences[reference]) {
         checkbox.dataset.restoreChecked = checkbox.checked ? 'true' : checkbox.dataset.restoreChecked;
         checkbox.checked = false;
         checkbox.disabled = true;
@@ -291,17 +356,33 @@
         }
       }
     });
+    var selectedOldEntities = {};
+    duplicateCheckboxes.forEach(function(checkbox) {
+      var oldEntity = checkbox.dataset.oldEntity || '';
+      if (oldEntity && checkbox.checked) selectedOldEntities[oldEntity] = true;
+    });
+    duplicateCheckboxes.forEach(function(checkbox) {
+      var oldEntity = checkbox.dataset.oldEntity || '';
+      if (oldEntity && !checkbox.checked && selectedOldEntities[oldEntity]) {
+        checkbox.disabled = true;
+      }
+    });
   }
-  function updateDuplicateSelection() {
+  function updateDuplicateSelection(preferredCheckbox) {
+    enforceOneActionPerOldEntity(preferredCheckbox);
     updateDuplicateAvailability();
     var count = 0;
     var selectableCount = 0;
     var selectableSelectedCount = 0;
+    var unstatedSelectedCount = 0;
     duplicateCheckboxes.forEach(function(checkbox) {
       var row = checkbox.closest('.duplicate-row');
       if (!checkbox.disabled) {
         selectableCount += 1;
-        if (checkbox.checked) selectableSelectedCount += 1;
+        if (checkbox.checked) {
+          selectableSelectedCount += 1;
+          if (!checkbox.dataset.redirectStatus) unstatedSelectedCount += 1;
+        }
       }
       if (checkbox.checked) {
         count += 1;
@@ -321,12 +402,30 @@
         ? count + ' of ' + totalCount + ' ' + (totalCount === 1 ? 'entity' : 'entities') + ' selected for redirection'
         : 'No entities available for redirection';
     }
+    if (redirectStatusActions) {
+      redirectStatusActions.hidden = unstatedSelectedCount === 0;
+    }
     if (window.updateEntitySelectionState) {
       window.updateEntitySelectionState();
     }
   }
   duplicateCheckboxes.forEach(function(checkbox) {
-    checkbox.addEventListener('change', updateDuplicateSelection);
+    checkbox.addEventListener('change', function() {
+      if (!checkbox.checked && checkbox.dataset.redirectLocked !== 'true') {
+        setRedirectStatus(checkbox, '');
+      }
+      updateDuplicateSelection(checkbox.checked ? checkbox : null);
+    });
+  });
+  redirectStatusButtons.forEach(function(button) {
+    button.addEventListener('click', function() {
+      var status = button.dataset.redirectStatusChoice || '';
+      duplicateCheckboxes.forEach(function(checkbox) {
+        if (!checkbox.checked || checkbox.disabled || checkbox.dataset.redirectStatus) return;
+        setRedirectStatus(checkbox, status);
+      });
+      updateDuplicateSelection();
+    });
   });
   entitySelectionCheckboxes.forEach(function(checkbox) {
     checkbox.addEventListener('change', updateDuplicateSelection);
@@ -334,7 +433,10 @@
   if (selectAllCheckbox) {
     selectAllCheckbox.addEventListener('change', function() {
       duplicateCheckboxes.forEach(function(checkbox) {
-        if (!checkbox.disabled) checkbox.checked = selectAllCheckbox.checked;
+        if (!checkbox.disabled) {
+          checkbox.checked = selectAllCheckbox.checked;
+          if (!checkbox.checked) setRedirectStatus(checkbox, '');
+        }
       });
       updateDuplicateSelection();
     });

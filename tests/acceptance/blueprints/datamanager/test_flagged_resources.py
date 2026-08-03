@@ -761,12 +761,26 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
                 "dataset": "conservation-area",
                 "organisation": "local-authority:ABC",
                 "resource": "resource-a",
+                "selected_redirects": [
+                    {
+                        "reference": "new-redirect-ref",
+                        "old_entity_number": "101",
+                        "status": "410",
+                    }
+                ],
             },
             "response": {
                 "data": {
                     "source-summary": {},
                     "pipeline-summary": {
                         "new-in-resource": 1,
+                        "new-entities": [{"entity": "200", "reference": "new-ref"}],
+                        "existing-entities": [
+                            {
+                                "entity": "201",
+                                "reference": "new-redirect-ref",
+                            }
+                        ],
                         "old-entity": [
                             {
                                 "old-entity": "100",
@@ -861,6 +875,32 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
     assert b"Entry date" in response.data
     assert b"End date" in response.data
     assert b"Current redirects" in response.data
+    assert b">Status</th>" in response.data
+    assert b"Retire (410)" in response.data
+    assert b"Redirect (301)" in response.data
+    assert response.data.index(b"Redirect (301)") < response.data.index(b"Retire (410)")
+    assert re.search(
+        rb'<button[^>]*type="button"[^>]*class="[^"]*govuk-button--secondary[^"]*"[^>]*data-redirect-status-choice="410"[^>]*>\s*Retire \(410\)\s*</button>',
+        response.data,
+    )
+    assert b'name="redirect_status"' not in response.data
+    assert b"redirectStatusButtons.forEach" in response.data
+    assert b"redirect.status = status" in response.data
+    assert b"setRedirectStatus(checkbox, '')" in response.data
+    assert b"function enforceOneActionPerOldEntity(preferredCheckbox)" in response.data
+    assert b'data-old-entity="100"' in response.data
+    assert b"selectedOldEntities[oldEntity]" in response.data
+    assert response.data.index(b">Old entity</th>") < response.data.index(
+        b">New Entity</th>"
+    )
+    assert b'data-redirect-status="301"' in response.data
+    assert b'data-redirect-status="410"' in response.data
+    assert b"<code>200</code> (301)" not in response.data
+    assert b"unstatedSelectedCount" in response.data
+    assert (
+        b"redirectStatusActions.hidden = unstatedSelectedCount === 0" in response.data
+    )
+    assert b"#redirect-status-actions[hidden]" in response.data
     assert b"old-ref" in response.data
     assert b"new-ref" in response.data
     assert b"300 (301)" in response.data
@@ -892,17 +932,24 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
     first_checkbox = re.search(
         rb'<input[^>]*id="entity-redirect-1"[^>]*>', response.data
     ).group(0)
+    second_checkbox = re.search(
+        rb'<input[^>]*id="entity-redirect-2"[^>]*>', response.data
+    ).group(0)
     assert b"checked" in first_checkbox
     assert b"disabled" in first_checkbox
+    assert b'data-target-requires-assignment="true"' in first_checkbox
+    assert b"checked" in second_checkbox
+    assert b"disabled" not in second_checkbox
+    assert b'data-target-requires-assignment="false"' in second_checkbox
     assert b"entity-redirect-select-all" in response.data
-    assert b"1 of 2 entities selected for redirection" in response.data
-    assert b"JSON.parse(checkbox.value" not in response.data
+    assert b"2 of 2 entities selected for redirection" in response.data
+    assert b"JSON.parse(checkbox.value" in response.data
     assert b"function entitySelectionReference(checkbox)" in response.data
     assert b"entitySelectAllCheckbox.addEventListener" in response.data
 
 
 @rsps.activate
-def test_assign_entities_check_results_hides_dedup_for_other_datasets(client):
+def test_assign_entities_check_results_shows_dynamic_dedup_for_non_geography(client):
     rsps.add(
         rsps.GET,
         f"{ASYNC_BASE}/assign-tree-id",
@@ -923,7 +970,22 @@ def test_assign_entities_check_results_hides_dedup_for_other_datasets(client):
                                 "old_entity": "100",
                                 "entity": "200",
                                 "dataset": "tree",
-                                "form_value": "{}",
+                                "old_reference": "old-ref",
+                                "new_reference": "new-ref",
+                                "old_name": "Old tree",
+                                "new_name": "New tree",
+                                "match_type": "all_fields_match",
+                                "evidence": "all comparable fields match",
+                                "old_fields": {
+                                    "reference": "old-ref",
+                                    "name": "Old tree",
+                                    "category": "Ancient",
+                                },
+                                "new_fields": {
+                                    "reference": "new-ref",
+                                    "name": "New tree",
+                                    "category": "Ancient",
+                                },
                             }
                         ],
                     },
@@ -960,9 +1022,13 @@ def test_assign_entities_check_results_hides_dedup_for_other_datasets(client):
                             )
 
     assert response.status_code == 200
-    assert b"Dedup" not in response.data
-    assert b'href="#duplicates-table"' not in response.data
-    assert b'id="duplicates-table"' not in response.data
+    assert b"Dedup" in response.data
+    assert b'href="#duplicates-table"' in response.data
+    assert b">category</th>" in response.data
+    assert b"Old tree" in response.data
+    assert b"New tree" in response.data
+    assert response.data.count(b"Ancient") == 2
+    assert b"all comparable fields match" in response.data
 
 
 def test_assign_entities_check_results_post_continues_without_storing_redirects(client):
@@ -1065,11 +1131,13 @@ def test_assign_entities_check_results_post_resubmits_changed_entity_selection(c
                                 "old_entity": "100",
                                 "entity": "200",
                                 "dataset": "tree",
+                                "new_reference": "ref-2",
                             },
                             {
                                 "old_entity": "101",
                                 "entity": "201",
                                 "dataset": "tree",
+                                "new_reference": "ref-1",
                             },
                         ],
                     }
@@ -1119,6 +1187,7 @@ def test_assign_entities_check_results_post_resubmits_changed_entity_selection(c
             {
                 "reference": "ref-2",
                 "old_entity_number": "100",
+                "status": "301",
             }
         ],
     )
@@ -1179,9 +1248,9 @@ def test_assign_entities_check_results_post_resubmits_changed_redirect_selection
     selected_redirect = json.dumps(
         {
             "old_entity": "100",
-            "entity": "200",
             "dataset": "tree",
             "new_reference": "ref-1",
+            "status": "410",
         }
     )
     with patch(
@@ -1243,8 +1312,8 @@ def test_assign_entities_check_results_post_resubmits_changed_redirect_selection
         excluded_references=[],
         selected_redirects=[
             {
-                "reference": "ref-1",
                 "old_entity_number": "100",
+                "status": "410",
             }
         ],
     )

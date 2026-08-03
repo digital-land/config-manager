@@ -206,7 +206,7 @@
     {% endif %}
 
     <!-- Old Entity Summary -->
-    {% if old_entity_redirect_table_params %}
+    {% if old_entity_table_params %}
     <div class="govuk-!-margin-bottom-6">
       <h2 class="govuk-heading-m"><u>Old Entity Summary</u></h2>
       <div style="border: 1px solid #b1b4b6; padding: 20px;">
@@ -218,12 +218,18 @@
             </dt>
             <dd class="govuk-summary-list__value">{{ old_entity_redirect_count }}</dd>
           </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+              Number of retirements
+            </dt>
+            <dd class="govuk-summary-list__value">{{ old_entity_retirement_count }}</dd>
+          </div>
         </dl>
         </div>
 
         <h3 class="govuk-heading-s">old-entity.csv</h3>
         <div class="app-scrollable-container app-scrollable govuk-!-margin-bottom-2">
-          {{ table(old_entity_redirect_table_params) }}
+          {{ table(old_entity_table_params) }}
         </div>
       </div>
     </div>

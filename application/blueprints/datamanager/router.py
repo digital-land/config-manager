@@ -365,41 +365,6 @@ def _merge_visible_excluded_references(
     return sorted(excluded)
 
 
-def _selected_redirects_for_async(redirects, excluded_references=None):
-    """Map validated Dedup rows to async selected_redirects params.
-
-    Config-manager's Dedup form values use old/new entity field names, while
-    async expects ``reference`` and ``old_entity_number``. Redirects for
-    explicitly excluded references are dropped because async can only redirect
-    entities being assigned.
-    """
-    excluded_references = set(_normalise_reference_values(excluded_references))
-    selected_redirects = []
-    seen = set()
-    for redirect_row in redirects:
-        reference = str(
-            redirect_row.get("new_reference") or redirect_row.get("reference") or ""
-        ).strip()
-        old_entity_number = str(
-            redirect_row.get("old_entity")
-            or redirect_row.get("old_entity_number")
-            or ""
-        ).strip()
-        if reference in excluded_references:
-            continue
-        key = (reference, old_entity_number)
-        if not all(key) or key in seen:
-            continue
-        selected_redirects.append(
-            {
-                "reference": reference,
-                "old_entity_number": old_entity_number,
-            }
-        )
-        seen.add(key)
-    return selected_redirects
-
-
 def flagged_resource_detail_post(request_id):
     req = fetch_request(request_id)
     params = req.get("params") or {}
@@ -407,14 +372,17 @@ def flagged_resource_detail_post(request_id):
     pipeline_summary = response_data.get("pipeline-summary") or {}
     organisation = params.get("organisation") or params.get("organisationName") or None
     duplicate_candidates = pipeline_summary.get("duplicate-candidates") or []
-    redirects = parse_selected_redirects(
-        request.form.getlist("entity_redirects"), duplicate_candidates
-    )
-    if request.form.get("entity_selection_changed") == "true":
+    selection_changed = request.form.get("entity_selection_changed") == "true"
+    if selection_changed:
         excluded_references = _merge_visible_excluded_references(
             params.get("excluded_references") or [],
             request.form.getlist("visible_entity_references"),
             request.form.getlist("selected_entity_references"),
+        )
+        selected_redirects = parse_selected_redirects(
+            request.form.getlist("entity_redirects"),
+            duplicate_candidates,
+            excluded_references=excluded_references,
         )
         try:
             new_request_id = _submit_assign_entities_request(
@@ -424,9 +392,7 @@ def flagged_resource_detail_post(request_id):
                 return_endpoint=params.get("return_endpoint")
                 or "assign_entities.flagged_resources_start",
                 excluded_references=excluded_references,
-                selected_redirects=_selected_redirects_for_async(
-                    redirects, excluded_references
-                ),
+                selected_redirects=selected_redirects,
             )
         except AsyncAPIError as e:
             raise ControllerError(

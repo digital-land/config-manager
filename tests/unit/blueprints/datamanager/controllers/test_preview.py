@@ -31,6 +31,23 @@ def test_old_entity_redirect_table_renders_null_values_as_empty_strings():
     assert row["start-date"]["value"] == ""
 
 
+def test_old_entity_redirect_table_hides_target_for_retirement():
+    table_params = build_old_entity_redirect_table(
+        [
+            {
+                "old-entity": "100",
+                "status": "410",
+                "entity": "200",
+            }
+        ]
+    )
+
+    row = table_params["rows"][0]["columns"]
+    assert row["old-entity"]["value"] == "100"
+    assert row["status"]["value"] == "410"
+    assert row["entity"]["value"] == ""
+
+
 def test_no_new_entities_hides_section():
     result = _build_entity_organisation_summary([], True, {"entity-organisation": []})
 

@@ -1,6 +1,8 @@
 import json
 import re
 
+REDIRECT_STATUSES = {"301", "410"}
+
 
 def _normalise_entity_id(raw) -> str:
     if raw is None or raw == "":
@@ -20,20 +22,29 @@ def _normalise_entity_id(raw) -> str:
         return raw_str
 
 
-def _candidate_key(candidate: dict) -> tuple[str, str, str]:
-    return (
-        _normalise_entity_id(candidate.get("old_entity", "")),
-        _normalise_entity_id(candidate.get("entity", "")),
-        str(candidate.get("dataset", "") or ""),
-    )
-
-
 def parse_selected_redirects(
-    values: list[str], duplicate_candidates: list[dict]
+    values: list[str],
+    duplicate_candidates: list[dict],
+    excluded_references=None,
 ) -> list[dict]:
     selected = []
-    valid_keys = {_candidate_key(candidate) for candidate in duplicate_candidates}
+    valid_retirement_keys = set()
+    valid_redirect_keys = set()
+    for candidate in duplicate_candidates:
+        old_entity = _normalise_entity_id(candidate.get("old_entity", ""))
+        dataset = str(candidate.get("dataset", "") or "")
+        new_reference = str(
+            candidate.get("new_reference", "") or candidate.get("reference", "") or ""
+        )
+        valid_retirement_keys.add((old_entity, dataset))
+        if new_reference:
+            valid_redirect_keys.add((old_entity, dataset, new_reference))
     seen_old_entities = set()
+    excluded_references = {
+        str(reference or "").strip()
+        for reference in (excluded_references or [])
+        if str(reference or "").strip()
+    }
 
     for value in values:
         try:
@@ -44,29 +55,33 @@ def parse_selected_redirects(
             continue
 
         old_entity = _normalise_entity_id(row.get("old_entity", ""))
-        entity = _normalise_entity_id(row.get("entity", ""))
         dataset = str(row.get("dataset", "") or "")
-        if not old_entity or not entity or not dataset:
+        new_reference = str(row.get("new_reference", "") or "")
+        row_status = str(row.get("status", "") or "").strip()
+        status = row_status if row_status in REDIRECT_STATUSES else "301"
+        if not old_entity or not dataset:
             continue
-        if (old_entity, entity, dataset) not in valid_keys:
+        if status == "410":
+            if (old_entity, dataset) not in valid_retirement_keys:
+                continue
+        elif (
+            not new_reference
+            or (old_entity, dataset, new_reference) not in valid_redirect_keys
+        ):
             continue
         if old_entity in seen_old_entities:
             continue
         seen_old_entities.add(old_entity)
 
-        selected.append(
-            {
-                "old_entity": old_entity,
-                "entity": entity,
-                "dataset": dataset,
-                "old_reference": str(row.get("old_reference", "") or ""),
-                "new_reference": str(row.get("new_reference", "") or ""),
-                "match_type": str(row.get("match_type", "") or ""),
-                "notes": str(
-                    row.get("notes", "")
-                    or "Redirect duplicate entity selected in Assign Entities"
-                ),
-            }
-        )
+        if status == "410":
+            selected.append({"old_entity_number": old_entity, "status": status})
+        elif new_reference not in excluded_references:
+            selected.append(
+                {
+                    "reference": new_reference,
+                    "old_entity_number": old_entity,
+                    "status": status,
+                }
+            )
 
     return selected
