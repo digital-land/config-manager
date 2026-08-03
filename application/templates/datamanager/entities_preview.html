@@ -205,6 +205,33 @@
     </div>
     {% endif %}
 
+    <!-- Unretire Summary -->
+    {% if unretire_summary %}
+    <div class="govuk-!-margin-bottom-6">
+      <h2 class="govuk-heading-m"><u>Unretire Summary</u></h2>
+      <div style="border: 1px solid #b1b4b6; padding: 20px;">
+        <div style="background-color: #f3f2f1; padding: 10px 15px;">
+          <dl class="govuk-summary-list govuk-!-margin-bottom-0">
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Dataset</dt>
+              <dd class="govuk-summary-list__value">{{ unretire_summary[0].dataset }}</dd>
+            </div>
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Organisation</dt>
+              <dd class="govuk-summary-list__value">{{ unretire_summary[0].organisation }}</dd>
+            </div>
+            {% for ep in unretire_summary %}
+            <div class="govuk-summary-list__row">
+              <dt class="govuk-summary-list__key">Endpoint to unretire</dt>
+              <dd class="govuk-summary-list__value"><code>{{ ep['endpoint-url'] or ep.endpoint }}</code></dd>
+            </div>
+            {% endfor %}
+          </dl>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Old Entity Summary -->
     {% if old_entity_table_params %}
     <div class="govuk-!-margin-bottom-6">

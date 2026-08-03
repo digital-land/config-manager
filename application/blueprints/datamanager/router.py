@@ -16,6 +16,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK
 from application.db.models import RequestMeta, ServiceLock
 from application.extensions import db
+from application.utils import compute_hash
 
 from .controllers.form import (
     handle_dashboard_get,
@@ -274,18 +275,43 @@ def check_transform(request_id):
 
 
 def check_transform_post(request_id):
-    """Store selected endpoints to retire from transform page and continue to preview."""
-    hashes = request.form.getlist("retire_endpoints")
+    """Store selected endpoints to retire/unretire from the transform page."""
+    checked = request.form.getlist("retire_endpoints")
+    presented = request.form.getlist("presented_endpoints")
+    currently_retired = request.form.getlist("currently_retired")
+
+    # Never allow the endpoint being added (already in the CSV) to be changed,
+    current_hash = _current_endpoint_hash(request_id)
+    presented = [h for h in presented if h != current_hash]
+
+    # to_retire = presented and checked and not currently retired → newly retiring
+    # to_unretire = currently retired and presented and now unchecked → unretiring
+    to_retire = [h for h in presented if h in checked and h not in currently_retired]
+    to_unretire = [h for h in currently_retired if h in presented and h not in checked]
+
     meta = db.session.get(RequestMeta, request_id)
     if meta is None:
         meta = RequestMeta(
-            request_id=request_id, endpoints_to_retire=json.dumps(hashes)
+            request_id=request_id,
+            endpoints_to_retire=json.dumps(to_retire),
+            endpoints_to_unretire=json.dumps(to_unretire),
         )
         db.session.add(meta)
     else:
-        meta.endpoints_to_retire = json.dumps(hashes)
+        meta.endpoints_to_retire = json.dumps(to_retire)
+        meta.endpoints_to_unretire = json.dumps(to_unretire)
     db.session.commit()
     return redirect(url_for("datamanager.entities_preview", request_id=request_id))
+
+
+def _current_endpoint_hash(request_id):
+    """sha256 of the endpoint URL being added, or None if it can't be resolved."""
+    try:
+        req = fetch_request(request_id)
+    except AsyncAPIError:
+        return None
+    url = (req.get("params") or {}).get("url", "")
+    return compute_hash(url) if url else None
 
 
 def add_data_confirm_async(request_id):
