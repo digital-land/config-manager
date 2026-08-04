@@ -11,6 +11,7 @@ from . import ControllerError
 from application.utils import compute_hash
 from ..services.async_api import fetch_response_details
 from ..services.dataset import get_dataset_name, get_dataset_typology
+from ..services.duplicates import REDIRECT_STATUSES
 from ..services.organisation import get_org_entity, get_organisation_name
 from ..services.doc_crawler import check_endpoint_in_doc, is_gov_uk_url
 from ..services.endpoint import (
@@ -351,7 +352,7 @@ def _selected_redirect_key(redirect: dict) -> tuple[str, str]:
 
 def _selected_redirect_status(redirect: dict) -> str:
     status = str(redirect.get("status", "") or "301").strip()
-    return status if status in {"301", "410"} else "301"
+    return status if status in REDIRECT_STATUSES else "301"
 
 
 def _dedup_candidate_form_value(candidate: dict, status: str = "") -> str:

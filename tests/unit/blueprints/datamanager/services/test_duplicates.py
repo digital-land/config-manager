@@ -98,7 +98,7 @@ def test_parse_selected_redirects_builds_retirement_without_target():
     assert redirects == [{"old_entity_number": "100", "status": "410"}]
 
 
-def test_parse_selected_redirects_rejects_unsupported_status():
+def test_parse_selected_redirects_coerces_unsupported_status_to_301():
     redirects = parse_selected_redirects(
         [
             '{"old_entity":"100","dataset":"tree","new_reference":"new-ref","status":"302"}'
@@ -126,6 +126,7 @@ def test_parse_selected_redirects_drops_excluded_redirects_but_keeps_retirements
     redirects = parse_selected_redirects(
         [
             '{"old_entity":"100","dataset":"tree","new_reference":"excluded","status":"301"}',
+            '{"old_entity":"100","dataset":"tree","new_reference":"included","status":"301"}',
             '{"old_entity":"101","dataset":"tree","status":"410"}',
         ],
         [
@@ -134,9 +135,21 @@ def test_parse_selected_redirects_drops_excluded_redirects_but_keeps_retirements
                 "dataset": "tree",
                 "new_reference": "excluded",
             },
+            {
+                "old_entity": "100",
+                "dataset": "tree",
+                "new_reference": "included",
+            },
             {"old_entity": "101", "dataset": "tree"},
         ],
         excluded_references=["excluded"],
     )
 
-    assert redirects == [{"old_entity_number": "101", "status": "410"}]
+    assert redirects == [
+        {
+            "reference": "included",
+            "old_entity_number": "100",
+            "status": "301",
+        },
+        {"old_entity_number": "101", "status": "410"},
+    ]

@@ -116,25 +116,7 @@ class TestAddDataConfirmRoute:
         assert b'href="/datamanager/"' in response.data
         assert b"Add more data" in response.data
 
-    def test_assign_entities_success_links_back_to_assign_entities(self, client):
-        with client.session_transaction() as sess:
-            sess["user"] = {"login": "test-user"}
-        with patch(
-            "application.blueprints.datamanager.controllers.preview.trigger_add_data_async_workflow",
-            return_value={"success": True, "message": "Workflow triggered"},
-        ):
-            response = client.post(
-                "/datamanager/add-data/test-id/confirm-async",
-                data={
-                    "source_flow": "assign_entities",
-                    "return_url": "/assign-entities/resources",
-                },
-            )
-        assert response.status_code == 200
-        assert b'href="/assign-entities/resources"' in response.data
-        assert b"Assign more entities" in response.data
-
-    def test_assign_entities_success_returns_to_flagged_resources(self, client):
+    def test_assign_entities_success_ignores_return_url(self, client):
         with client.session_transaction() as sess:
             sess["user"] = {"login": "test-user"}
         with patch(

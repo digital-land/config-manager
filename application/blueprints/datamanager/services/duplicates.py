@@ -71,10 +71,10 @@ def parse_selected_redirects(
             continue
         if old_entity in seen_old_entities:
             continue
-        seen_old_entities.add(old_entity)
 
         if status == "410":
             selected.append({"old_entity_number": old_entity, "status": status})
+            seen_old_entities.add(old_entity)
         elif new_reference not in excluded_references:
             selected.append(
                 {
@@ -83,5 +83,6 @@ def parse_selected_redirects(
                     "status": status,
                 }
             )
+            seen_old_entities.add(old_entity)
 
     return selected

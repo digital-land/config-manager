@@ -158,8 +158,8 @@
                   </td>
                   {% for col in duplicate_columns %}
                   <td class="govuk-table__cell app-wrap">
-                    {% set new_value = row.new_fields.get(col, '') %}
-                    {% set old_value = row.old_fields.get(col, '') %}
+                    {% set new_value = (row.new_fields.get(col) or '') | string %}
+                    {% set old_value = (row.old_fields.get(col) or '') | string %}
                     <div class="app-duplicate-new-entity">{% if new_value | length > 50 %}{{ new_value[:50] }}...{% else %}{{ new_value }}{% endif %}</div>
                     <div class="app-duplicate-old-entity">{% if old_value | length > 50 %}{{ old_value[:50] }}...{% else %}{{ old_value }}{% endif %}</div>
                   </td>
@@ -428,7 +428,9 @@
     });
   });
   entitySelectionCheckboxes.forEach(function(checkbox) {
-    checkbox.addEventListener('change', updateDuplicateSelection);
+    checkbox.addEventListener('change', function() {
+      updateDuplicateSelection();
+    });
   });
   if (selectAllCheckbox) {
     selectAllCheckbox.addEventListener('change', function() {

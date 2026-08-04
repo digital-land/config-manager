@@ -985,12 +985,12 @@ def test_assign_entities_check_results_shows_dynamic_dedup_for_non_geography(cli
                                 "old_fields": {
                                     "reference": "old-ref",
                                     "name": "Old tree",
-                                    "category": "Ancient",
+                                    "category": 123,
                                 },
                                 "new_fields": {
                                     "reference": "new-ref",
                                     "name": "New tree",
-                                    "category": "Ancient",
+                                    "category": 456,
                                 },
                             }
                         ],
@@ -1033,7 +1033,8 @@ def test_assign_entities_check_results_shows_dynamic_dedup_for_non_geography(cli
     assert b">category</th>" in response.data
     assert b"Old tree" in response.data
     assert b"New tree" in response.data
-    assert response.data.count(b"Ancient") == 2
+    assert b"123" in response.data
+    assert b"456" in response.data
     assert b"all comparable fields match" in response.data
 
 
