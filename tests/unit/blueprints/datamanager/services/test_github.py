@@ -5,13 +5,11 @@ import pytest
 from application.blueprints.datamanager.services.github import (
     GitHubAppAuthError,
     GitHubWorkflowError,
-    add_data_workflow_running,
     config_branch_changed_for_collection,
     generate_jwt,
     get_branch_head_sha,
     get_config_baseline_sha,
     trigger_add_data_async_workflow,
-    wait_for_add_data_workflow_idle,
 )
 
 
@@ -151,92 +149,6 @@ class TestGetBranchHeadSha:
                 return_value=resp,
             ):
                 assert get_branch_head_sha("missing-branch") is None
-
-
-class TestAddDataWorkflowRunning:
-    def _run(self, app, statuses):
-        resp = Mock()
-        resp.raise_for_status.return_value = None
-        resp.json.return_value = {"workflow_runs": [{"status": s} for s in statuses]}
-        jwt_p, token_p = _patch_token()
-        with app.app_context():
-            _with_app_creds(app)
-            with jwt_p, token_p, patch(
-                "application.blueprints.datamanager.services.github.requests.get",
-                return_value=resp,
-            ):
-                return add_data_workflow_running()
-
-    def test_true_when_in_progress(self, app):
-        assert self._run(app, ["completed", "in_progress"]) is True
-
-    def test_true_when_queued(self, app):
-        assert self._run(app, ["queued"]) is True
-
-    def test_false_when_all_completed(self, app):
-        assert self._run(app, ["completed", "completed"]) is False
-
-    def test_false_when_no_runs(self, app):
-        assert self._run(app, []) is False
-
-    def test_false_on_api_error(self, app):
-        import requests as requests_lib
-
-        resp = Mock()
-        resp.raise_for_status.side_effect = requests_lib.exceptions.RequestException(
-            "boom"
-        )
-        jwt_p, token_p = _patch_token()
-        with app.app_context():
-            _with_app_creds(app)
-            with jwt_p, token_p, patch(
-                "application.blueprints.datamanager.services.github.requests.get",
-                return_value=resp,
-            ):
-                assert add_data_workflow_running() is False
-
-
-class TestWaitForAddDataWorkflowIdle:
-    def test_returns_immediately_when_idle(self, app):
-        jwt_p, token_p = _patch_token()
-        with app.app_context():
-            _with_app_creds(app)
-            with jwt_p, token_p, patch(
-                "application.blueprints.datamanager.services.github._add_data_workflow_active",
-                return_value=False,
-            ) as active, patch(
-                "application.blueprints.datamanager.services.github.time.sleep"
-            ) as sleep:
-                assert wait_for_add_data_workflow_idle() is True
-        assert active.call_count == 1
-        sleep.assert_not_called()
-
-    def test_polls_until_idle(self, app):
-        jwt_p, token_p = _patch_token()
-        with app.app_context():
-            _with_app_creds(app)
-            with jwt_p, token_p, patch(
-                "application.blueprints.datamanager.services.github._add_data_workflow_active",
-                side_effect=[True, True, False],
-            ), patch(
-                "application.blueprints.datamanager.services.github.time.sleep"
-            ) as sleep:
-                assert (
-                    wait_for_add_data_workflow_idle(timeout=60, poll_interval=5) is True
-                )
-        assert sleep.call_count == 2
-
-    def test_gives_up_after_timeout(self, app):
-        jwt_p, token_p = _patch_token()
-        with app.app_context():
-            _with_app_creds(app)
-            with jwt_p, token_p, patch(
-                "application.blueprints.datamanager.services.github._add_data_workflow_active",
-                return_value=True,
-            ), patch("application.blueprints.datamanager.services.github.time.sleep"):
-                assert (
-                    wait_for_add_data_workflow_idle(timeout=5, poll_interval=5) is False
-                )
 
 
 class TestGetConfigBaselineSha:

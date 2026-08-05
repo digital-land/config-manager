@@ -145,7 +145,7 @@ class TestAddDataConfirmRoute:
         assert b'href="/assign-entities/"' in response.data
         assert b"Assign more entities" in response.data
 
-    def test_confirm_waits_for_workflow_then_blocks_when_branch_changed(self, client):
+    def test_confirm_blocks_when_branch_changed(self, client):
         db.session.add(
             RequestMeta(
                 request_id="stale-id",
@@ -157,30 +157,18 @@ class TestAddDataConfirmRoute:
         with client.session_transaction() as sess:
             sess["user"] = {"login": "test-user"}
 
-        calls = []
         with patch(
-            "application.blueprints.datamanager.controllers.confirm."
-            "wait_for_add_data_workflow_idle",
-            side_effect=lambda *a, **k: calls.append("wait"),
+            f"{_CONFIRM}.config_branch_changed_for_collection", return_value=True
         ), patch(
-            "application.blueprints.datamanager.controllers.confirm."
-            "config_branch_changed_for_collection",
-            side_effect=lambda *a, **k: calls.append("compare") or True,
-        ), patch(
-            "application.blueprints.datamanager.controllers.confirm.fetch_request",
+            f"{_CONFIRM}.fetch_request",
             return_value={"params": {"collection": "conservation-area"}},
-        ), patch(
-            "application.blueprints.datamanager.controllers.confirm."
-            "trigger_add_data_async_workflow",
-        ) as trigger:
+        ), patch(f"{_CONFIRM}.trigger_add_data_async_workflow") as trigger:
             response = client.post(
                 "/datamanager/add-data/stale-id/confirm-async",
                 data={"github_branch": "config-manager-update"},
             )
 
         assert response.status_code == 200
-        # workflow-idle wait must run BEFORE the branch comparison
-        assert calls == ["wait", "compare"]
         # blocked: the workflow must not have been triggered
         trigger.assert_not_called()
         # routed back to the check-results page to re-transform
@@ -253,7 +241,7 @@ class TestAddDataConfirmRoute:
             f"{_CONFIRM}.fetch_request",
             return_value={"params": {"collection": "local-plan"}},
         ), patch(
-            f"{_CONFIRM}.wait_for_add_data_workflow_idle",
+            f"{_CONFIRM}.config_branch_changed_for_collection",
             side_effect=GitHubAppError("boom"),
         ), patch(f"{_CONFIRM}.trigger_add_data_async_workflow") as trigger:
             response = client.post(
@@ -287,8 +275,6 @@ class TestAddDataConfirmRoute:
         with client.session_transaction() as sess:
             sess["user"] = {"login": "user", "is_admin": False}
         with patch(f"{_CONFIRM}.fetch_request", return_value=resp), patch(
-            f"{_CONFIRM}.wait_for_add_data_workflow_idle"
-        ), patch(
             f"{_CONFIRM}.config_branch_changed_for_collection", return_value=False
         ), patch(f"{_CONFIRM}.trigger_add_data_async_workflow") as trigger:
             response = client.post(
@@ -303,8 +289,6 @@ class TestAddDataConfirmRoute:
         with client.session_transaction() as sess:
             sess["user"] = {"login": "admin", "is_admin": True}
         with patch(f"{_CONFIRM}.fetch_request", return_value=resp), patch(
-            f"{_CONFIRM}.wait_for_add_data_workflow_idle"
-        ), patch(
             f"{_CONFIRM}.config_branch_changed_for_collection", return_value=False
         ), patch(
             f"{_CONFIRM}.trigger_add_data_async_workflow",
@@ -343,8 +327,6 @@ class TestAddDataConfirmRoute:
         with client.session_transaction() as sess:
             sess["user"] = {"login": "user", "is_admin": False}
         with patch(f"{_CONFIRM}.fetch_request", return_value=resp), patch(
-            f"{_CONFIRM}.wait_for_add_data_workflow_idle"
-        ), patch(
             f"{_CONFIRM}.config_branch_changed_for_collection", return_value=False
         ), patch(f"{_CONFIRM}.trigger_add_data_async_workflow") as trigger:
             response = client.post(

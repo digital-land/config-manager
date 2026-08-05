@@ -37,18 +37,6 @@ class Config:
     CONFIG_REPO_BRANCH = os.getenv("CONFIG_REPO_BRANCH", "config-manager-update")
     ENVIRONMENT = os.getenv("ENVIRONMENT", "local").lower()
 
-    # At confirm time, wait up to this many seconds for any in-flight
-    # add-data-async-script workflow (which would be pushing to the branch) to finish
-    # before comparing. Kept below the load balancer idle timeout (AWS default 60s) so
-    # the confirm request returns before the LB 504s it (a 504 leaves the backend still
-    # running and able to dispatch, which a user retry then duplicates).
-    ADD_DATA_WORKFLOW_WAIT_TIMEOUT = int(
-        os.getenv("ADD_DATA_WORKFLOW_WAIT_TIMEOUT", "30")
-    )
-    ADD_DATA_WORKFLOW_POLL_INTERVAL = int(
-        os.getenv("ADD_DATA_WORKFLOW_POLL_INTERVAL", "5")
-    )
-
     # How long a dispatched submission's entity numbers stay "claimed" so a concurrent
     # same-collection submission can't commit overlapping numbers before the first one's
     # commit lands on the branch. Only needs to bridge assessment->commit (minutes);

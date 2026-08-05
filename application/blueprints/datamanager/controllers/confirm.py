@@ -28,7 +28,6 @@ from ..services.entity_claims import (
 from ..services.github import (
     config_branch_changed_for_collection,
     trigger_add_data_async_workflow,
-    wait_for_add_data_workflow_idle,
     GitHubAppError,
     GitHubWorkflowError,
 )
@@ -180,9 +179,10 @@ def handle_add_data_confirm(
                 unverified=True,
             )
         try:
-            # This is guard 2, staleness check with GitHub 
-            # Wait for any in-flight add-data workflow to settle, then compare.
-            wait_for_add_data_workflow_idle()
+            # Guard 2: staleness check against GitHub - has the branch already moved
+            # for this collection since the assessment? (In-flight submissions that
+            # haven't committed yet are caught by the entity-claim guard below, so we
+            # don't block the request waiting for workflows to settle.)
             changed = bool(collection) and config_branch_changed_for_collection(
                 baseline_sha, github_branch, collection
             )
