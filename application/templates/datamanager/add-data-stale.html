@@ -6,20 +6,33 @@
 
     <div class="govuk-error-summary" data-module="govuk-error-summary">
       <div role="alert">
-        <h2 class="govuk-error-summary__title">This transform is out of date</h2>
+        <h2 class="govuk-error-summary__title">
+          {% if unverified %}This transform could not be verified{% else %}This transform is out of date{% endif %}
+        </h2>
         <div class="govuk-error-summary__body">
+          {% if unverified %}
+          <p class="govuk-body">We couldn't confirm this transform is up to date against the latest configuration, so it was not submitted.</p>
+          {% else %}
           <p class="govuk-body">The configuration has changed since this transform was run, so it was not submitted.</p>
+          {% endif %}
         </div>
       </div>
     </div>
 
     <h1 class="govuk-heading-l">Re-run the transform to continue</h1>
 
+    {% if unverified %}
+    <p class="govuk-body">
+      The check against the configuration branch{% if collection %} for the <code>{{ collection }}</code> collection{% endif %}
+      could not be completed, so the entity numbers assigned here have not been submitted.
+    </p>
+    {% else %}
     <p class="govuk-body">
       New data was added to the <code>{{ collection }}</code> collection on the
       <code>{{ github_branch }}</code> branch after this transform was run. The entity numbers
       assigned here may now clash with that data, so nothing has been submitted.
     </p>
+    {% endif %}
 
     <p class="govuk-body">
       Re-run the transform to reassess against the latest configuration, then confirm again.

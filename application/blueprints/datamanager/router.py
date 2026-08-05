@@ -38,10 +38,8 @@ from .controllers.check import (
     handle_check_results,
     handle_check_resubmit,
 )
-from .controllers.preview import (
-    handle_entities_preview,
-    handle_add_data_confirm,
-)
+from .controllers.confirm import handle_add_data_confirm
+from .controllers.preview import handle_entities_preview
 from .controllers.transform import handle_check_transform
 from .services.duplicates import parse_selected_redirects
 from .services.async_api import (
@@ -315,10 +313,14 @@ def _current_endpoint_hash(request_id):
 
 
 def add_data_confirm_async(request_id):
-    logger.info(f"Triggering async GitHub workflow for request_id: {request_id}")
+    # NB: this is logged at route entry - it does not mean the workflow was triggered;
+    # the confirm may still be blocked (stale/clash/already-submitted). The actual
+    # dispatch is logged by trigger_add_data_async_workflow.
+    logger.info(f"Confirm received for request_id: {request_id}")
     github_branch = request.form.get("github_branch") or None
     source_flow = request.form.get("source_flow") or "add_data"
     return_url = request.form.get("return_url") or None
+    override = request.form.get("override") == "true"
 
     try:
         return handle_add_data_confirm(
@@ -326,6 +328,7 @@ def add_data_confirm_async(request_id):
             github_branch=github_branch,
             source_flow=source_flow,
             return_url=return_url,
+            override=override,
         )
     except ControllerError as e:
         return render_template("datamanager/error.html", message=e.message)
