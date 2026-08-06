@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import re
 
 import requests
@@ -916,11 +917,33 @@ def handle_check_transform(
     pipeline_summary = response_data.get("pipeline-summary") or {}
     dataset_typology = get_dataset_typology(dataset_id)
     show_dedup_tab = _show_dedup_tab(is_assign_entities, dataset_id, dataset_typology)
+    raw_duplicate_candidates = pipeline_summary.get("duplicate-candidates") or []
+    old_entity_rows = pipeline_summary.get("old-entity") or []
+    selected_redirects = params.get("selected_redirects") or []
+    logger.info(
+        "Dedup visibility decision: worker_pid=%s request_id=%s request_path=%s "
+        "flask_endpoint=%s transform_endpoint=%s dataset_id=%r "
+        "dataset_typology=%r is_assign_entities=%s show_dedup_tab=%s "
+        "raw_duplicate_candidate_count=%s old_entity_count=%s "
+        "selected_redirect_count=%s",
+        os.getpid(),
+        request_id,
+        flask_request.path,
+        flask_request.endpoint,
+        transform_endpoint,
+        dataset_id,
+        dataset_typology,
+        is_assign_entities,
+        show_dedup_tab,
+        len(raw_duplicate_candidates),
+        len(old_entity_rows),
+        len(selected_redirects),
+    )
     duplicate_candidates = _prepare_duplicate_candidates(
-        pipeline_summary.get("duplicate-candidates") or [] if show_dedup_tab else [],
-        pipeline_summary.get("old-entity") or [],
+        raw_duplicate_candidates if show_dedup_tab else [],
+        old_entity_rows,
         excluded_references=excluded_references,
-        selected_redirects=params.get("selected_redirects"),
+        selected_redirects=selected_redirects,
         new_entity_rows=pipeline_summary.get("new-entities") or [],
         existing_entity_rows=pipeline_summary.get("existing-entities") or [],
     )
