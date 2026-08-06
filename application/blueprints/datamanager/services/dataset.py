@@ -24,7 +24,8 @@ CACHE_TTL_SECONDS = 300  # 5 minutes
 def _url_for_logging(url):
     """Return a URL without query parameters or fragments that may contain secrets."""
     parts = urlsplit(str(url or ""))
-    return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+    netloc = parts.netloc.rsplit("@", 1)[-1]
+    return urlunsplit((parts.scheme, netloc, parts.path, "", ""))
 
 
 def _get_datasets():
