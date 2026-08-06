@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import re
 
 import requests
@@ -11,6 +12,7 @@ from . import ControllerError
 from application.utils import compute_hash
 from ..services.async_api import fetch_response_details
 from ..services.dataset import get_dataset_name, get_dataset_typology
+from ..services.duplicates import REDIRECT_STATUSES
 from ..services.organisation import get_org_entity, get_organisation_name
 from ..services.doc_crawler import check_endpoint_in_doc, is_gov_uk_url
 from ..services.endpoint import (
@@ -67,6 +69,18 @@ _ENTITY_COL_EXCLUDE = {
     "dataset",
 }
 _ENTITY_COL_PRIORITY = ["entity", "reference", "name"]
+_DUPLICATE_FIXED_FIELDS = {
+    "entity",
+    "reference",
+    "name",
+    "entry-date",
+    "entry_date",
+    "end-date",
+    "end_date",
+    "organisation",
+    "organisation-entity",
+    "organisation_entity",
+}
 _ROWS_PER_PAGE = 500
 _PLATFORM_ENTITY_LIMIT = 10000
 _GEO_FIELDS = {"geometry", "point"}
@@ -337,31 +351,64 @@ def _selected_redirect_key(redirect: dict) -> tuple[str, str]:
     )
 
 
-def _dedup_candidate_form_value(candidate: dict) -> str:
-    if candidate.get("form_value"):
-        return str(candidate.get("form_value"))
+def _selected_redirect_status(redirect: dict) -> str:
+    status = str(redirect.get("status", "") or "301").strip()
+    return status if status in REDIRECT_STATUSES else "301"
 
+
+def _dedup_candidate_form_value(candidate: dict, status: str = "") -> str:
     return json.dumps(
         {
             "old_entity": candidate.get("old_entity", ""),
-            "entity": candidate.get("entity", ""),
             "dataset": candidate.get("dataset", ""),
-            "old_reference": candidate.get("old_reference", ""),
             "new_reference": candidate.get("new_reference", ""),
-            "match_type": candidate.get("match_type", ""),
-            "notes": candidate.get("notes")
-            or "Redirect duplicate entity selected in Assign Entities",
+            "status": status,
         },
         separators=(",", ":"),
+    )
+
+
+def _dedup_candidate_field_maps(candidate: dict) -> tuple[dict, dict]:
+    old_fields = (
+        dict(candidate.get("old_fields") or {})
+        if isinstance(candidate.get("old_fields"), dict)
+        else {}
+    )
+    new_fields = (
+        dict(candidate.get("new_fields") or {})
+        if isinstance(candidate.get("new_fields"), dict)
+        else {}
+    )
+    return old_fields, new_fields
+
+
+def _dedup_dynamic_columns(candidates: list[dict]) -> list[str]:
+    fields = {
+        str(field)
+        for candidate in candidates
+        for field_map in (candidate.get("old_fields"), candidate.get("new_fields"))
+        if isinstance(field_map, dict)
+        for field in field_map
+    }
+    excluded_fields = _ENTITY_COL_EXCLUDE | _DUPLICATE_FIXED_FIELDS
+    return sorted(field for field in fields if field not in excluded_fields)
+
+
+def _show_dedup_tab(
+    is_assign_entities: bool, dataset_id: str, dataset_typology: str
+) -> bool:
+    return is_assign_entities and (
+        dataset_id == "conservation-area" or dataset_typology != "geography"
     )
 
 
 def _prepare_duplicate_candidates(
     candidates: list[dict],
     old_entity_rows: list[dict] | None = None,
-    organisation: str = "",
     excluded_references=None,
     selected_redirects=None,
+    new_entity_rows: list[dict] | None = None,
+    existing_entity_rows: list[dict] | None = None,
 ) -> list[dict]:
     """Prepare Dedup candidates for rendering and selection.
 
@@ -379,27 +426,83 @@ def _prepare_duplicate_candidates(
         )
         if all(key)
     }
-    selected_redirect_keys = {
-        _selected_redirect_key(redirect)
+    selected_redirect_statuses = {
+        _selected_redirect_key(redirect): _selected_redirect_status(redirect)
         for redirect in (selected_redirects or [])
         if isinstance(redirect, dict) and all(_selected_redirect_key(redirect))
     }
+    selected_retirement_old_entities = {
+        str(
+            redirect.get("old_entity_number", "")
+            or redirect.get("old_entity", "")
+            or ""
+        ).strip()
+        for redirect in (selected_redirects or [])
+        if isinstance(redirect, dict) and _selected_redirect_status(redirect) == "410"
+    }
+    selected_retirement_old_entities.discard("")
+    rendered_retirement_old_entities = set()
     excluded_reference_set = _normalise_excluded_references(excluded_references)
-    return [
-        {
-            **candidate,
-            "auto_select": _dedup_candidate_redirect_key(candidate)
-            in preselected_redirects,
-            "redirect_locked": _dedup_candidate_redirect_key(candidate)
-            in preselected_redirects
-            and _dedup_candidate_selected_redirect_key(candidate)
-            not in selected_redirect_keys,
-            "redirect_can_select": _dedup_candidate_selected_entity_reference(candidate)
-            not in excluded_reference_set,
-            "form_value": _dedup_candidate_form_value(candidate),
-        }
-        for candidate in candidates
-    ]
+    new_entity_ids = {
+        str(row.get("entity", "") or "").strip()
+        for row in (new_entity_rows or [])
+        if isinstance(row, dict) and str(row.get("entity", "") or "").strip()
+    }
+    existing_entity_ids = {
+        str(row.get("entity", "") or "").strip()
+        for row in (existing_entity_rows or [])
+        if isinstance(row, dict) and str(row.get("entity", "") or "").strip()
+    }
+    target_classification_available = bool(new_entity_ids or existing_entity_ids)
+    prepared_candidates = []
+    for candidate in candidates:
+        candidate_redirect_key = _dedup_candidate_redirect_key(candidate)
+        selected_redirect_key = _dedup_candidate_selected_redirect_key(candidate)
+        target_entity = str(candidate.get("entity", "") or "").strip()
+        target_requires_assignment = target_entity in new_entity_ids
+        target_is_known = (
+            target_requires_assignment or target_entity in existing_entity_ids
+        )
+        auto_select = candidate_redirect_key in preselected_redirects
+        old_entity = str(candidate.get("old_entity", "") or "").strip()
+        retirement_selected = (
+            old_entity in selected_retirement_old_entities
+            and old_entity not in rendered_retirement_old_entities
+        )
+        if retirement_selected:
+            rendered_retirement_old_entities.add(old_entity)
+        manually_selected = (
+            selected_redirect_key in selected_redirect_statuses or retirement_selected
+        )
+        redirect_selected = auto_select or manually_selected
+        redirect_status = (
+            "410"
+            if retirement_selected
+            else selected_redirect_statuses.get(
+                selected_redirect_key, "301" if auto_select else ""
+            )
+        )
+        old_fields, new_fields = _dedup_candidate_field_maps(candidate)
+        prepared_candidates.append(
+            {
+                **candidate,
+                "auto_select": auto_select,
+                "redirect_selected": redirect_selected,
+                "redirect_locked": auto_select and not manually_selected,
+                "redirect_can_select": redirect_status == "410"
+                or (
+                    _dedup_candidate_selected_entity_reference(candidate)
+                    not in excluded_reference_set
+                    and (target_is_known or not target_classification_available)
+                ),
+                "target_requires_assignment": target_requires_assignment,
+                "redirect_status": redirect_status,
+                "old_fields": old_fields,
+                "new_fields": new_fields,
+                "form_value": _dedup_candidate_form_value(candidate, redirect_status),
+            }
+        )
+    return prepared_candidates
 
 
 def _count_categories(rows: list) -> dict:
@@ -812,14 +915,39 @@ def handle_check_transform(
     existing_endpoints = _resolve_existing_endpoints(source_summary, endpoint_url)
     pipelines_append_required = source_summary.get("pipelines_append_required")
     pipeline_summary = response_data.get("pipeline-summary") or {}
-    show_dedup_tab = is_assign_entities and dataset_id == "conservation-area"
-    duplicate_candidates = _prepare_duplicate_candidates(
-        pipeline_summary.get("duplicate-candidates") or [] if show_dedup_tab else [],
-        pipeline_summary.get("old-entity") or [],
-        organisation=organisation_code,
-        excluded_references=excluded_references,
-        selected_redirects=params.get("selected_redirects"),
+    dataset_typology = get_dataset_typology(dataset_id)
+    show_dedup_tab = _show_dedup_tab(is_assign_entities, dataset_id, dataset_typology)
+    raw_duplicate_candidates = pipeline_summary.get("duplicate-candidates") or []
+    old_entity_rows = pipeline_summary.get("old-entity") or []
+    selected_redirects = params.get("selected_redirects") or []
+    logger.info(
+        "Dedup visibility decision: worker_pid=%s request_id=%s request_path=%s "
+        "flask_endpoint=%s transform_endpoint=%s dataset_id=%r "
+        "dataset_typology=%r is_assign_entities=%s show_dedup_tab=%s "
+        "raw_duplicate_candidate_count=%s old_entity_count=%s "
+        "selected_redirect_count=%s",
+        os.getpid(),
+        request_id,
+        flask_request.path,
+        flask_request.endpoint,
+        transform_endpoint,
+        dataset_id,
+        dataset_typology,
+        is_assign_entities,
+        show_dedup_tab,
+        len(raw_duplicate_candidates),
+        len(old_entity_rows),
+        len(selected_redirects),
     )
+    duplicate_candidates = _prepare_duplicate_candidates(
+        raw_duplicate_candidates if show_dedup_tab else [],
+        old_entity_rows,
+        excluded_references=excluded_references,
+        selected_redirects=selected_redirects,
+        new_entity_rows=pipeline_summary.get("new-entities") or [],
+        existing_entity_rows=pipeline_summary.get("existing-entities") or [],
+    )
+    duplicate_columns = _dedup_dynamic_columns(duplicate_candidates)
 
     # Calculate pagination for transformed facts and issue logs, and for entities.
     page_number = max(1, int(flask_request.args.get("page_number", 1)))
@@ -855,7 +983,7 @@ def handle_check_transform(
 
     # Build a GeoJSON feature collection for the map if needed, including any platform entities not in the resource,
     # and any new or updated resource entities with geometry.
-    if get_dataset_typology(dataset_id) == "geography":
+    if dataset_typology == "geography":
         geometries, geometry_points = _build_geometry_features(
             platform_entities, all_resp_details, dataset_id
         )
@@ -905,6 +1033,7 @@ def handle_check_transform(
         is_assign_entities=is_assign_entities,
         show_dedup_tab=show_dedup_tab,
         duplicate_candidates=duplicate_candidates,
+        duplicate_columns=duplicate_columns,
         planning_entity_base_url=(
             current_app.config.get(
                 "PLANNING_BASE_URL", "https://www.planning.data.gov.uk"

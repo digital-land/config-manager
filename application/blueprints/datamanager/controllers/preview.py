@@ -148,12 +148,15 @@ def build_old_entity_redirect_table(old_entity_rows: list[dict]) -> dict | None:
     for old_entity in old_entity_rows:
         if not isinstance(old_entity, dict):
             continue
+        status = str(old_entity.get("status", "") or "")
         row = {
             "old-entity": str(
                 old_entity.get("old-entity", "") or old_entity.get("old_entity", "")
             ),
-            "status": str(old_entity.get("status", "") or ""),
-            "entity": str(old_entity.get("entity", "") or ""),
+            "status": status,
+            "entity": (
+                "" if status == "410" else str(old_entity.get("entity", "") or "")
+            ),
             "notes": str(old_entity.get("notes", "") or ""),
             "end-date": str(
                 old_entity.get("end-date", "") or old_entity.get("end_date", "")
@@ -264,11 +267,13 @@ def handle_entities_preview(request_id, req):
         _load_json_list(request_meta.endpoints_to_unretire) if request_meta else []
     )
     old_entity_rows = pipeline_summary.get("old-entity") or []
-    old_entity_redirect_table_params = build_old_entity_redirect_table(old_entity_rows)
-    old_entity_redirect_count = (
-        len(old_entity_redirect_table_params["rows"])
-        if old_entity_redirect_table_params
-        else 0
+    valid_old_entity_rows = [row for row in old_entity_rows if isinstance(row, dict)]
+    old_entity_table_params = build_old_entity_redirect_table(valid_old_entity_rows)
+    old_entity_redirect_count = sum(
+        str(row.get("status", "") or "") != "410" for row in valid_old_entity_rows
+    )
+    old_entity_retirement_count = sum(
+        str(row.get("status", "") or "") == "410" for row in valid_old_entity_rows
     )
     existing_endpoints = (
         source_summary_data.get("existing_endpoint_for_organisation_dataset") or []
@@ -304,8 +309,9 @@ def handle_entities_preview(request_id, req):
         return_url=return_url,
         retire_summary=retire_summary,
         unretire_summary=unretire_summary,
-        old_entity_redirect_table_params=old_entity_redirect_table_params,
+        old_entity_table_params=old_entity_table_params,
         old_entity_redirect_count=old_entity_redirect_count,
+        old_entity_retirement_count=old_entity_retirement_count,
         new_count=len(new_entities),
         excluded_count=_count_excluded_references(params),
         existing_count=int(pipeline_summary.get("existing-in-resource") or 0),
@@ -395,16 +401,15 @@ def handle_add_data_confirm(
         logger.error(f"Failed to trigger async workflow: {result['message']}")
         raise ControllerError(f"Failed to trigger async workflow: {result['message']}")
 
-    fallback_return_url = (
-        url_for("assign_entities.flagged_resources_start")
-        if source_flow == "assign_entities"
-        else url_for("datamanager.dashboard_get")
-    )
+    if source_flow == "assign_entities":
+        success_return_url = url_for("assign_entities.flagged_resources_summary")
+    else:
+        success_return_url = return_url or url_for("datamanager.dashboard_get")
     logger.info(f"Successfully triggered async workflow for request_id: {request_id}")
     return render_template(
         "datamanager/add-data-success.html",
         message=result["message"],
         github_branch=github_branch,
         source_flow=source_flow,
-        return_url=return_url or fallback_return_url,
+        return_url=success_return_url,
     )

@@ -46,6 +46,11 @@ class TestEntitiesPreviewRoute:
                                 "status": "301",
                                 "entity": "201",
                             },
+                            {
+                                "old-entity": "102",
+                                "status": "410",
+                                "entity": "202",
+                            },
                         ],
                         "new-entities": [
                             {"entity": "200", "reference": "new-ref"},
@@ -67,6 +72,8 @@ class TestEntitiesPreviewRoute:
 
         assert response.status_code == 200
         assert b"old-entity.csv" in response.data
+        assert b'<h3 class="govuk-heading-s">Redirects</h3>' not in response.data
+        assert b'<h3 class="govuk-heading-s">Retirements</h3>' not in response.data
         assert b"100" in response.data
         assert b"101" in response.data
         assert b"301" in response.data
@@ -74,6 +81,11 @@ class TestEntitiesPreviewRoute:
         assert b"Number of redirects" in response.data
         assert re.search(
             rb"Number of redirects.*?<dd class=\"govuk-summary-list__value\">2</dd>",
+            response.data,
+            re.S,
+        )
+        assert re.search(
+            rb"Number of retirements.*?<dd class=\"govuk-summary-list__value\">1</dd>",
             response.data,
             re.S,
         )
@@ -104,7 +116,7 @@ class TestAddDataConfirmRoute:
         assert b'href="/datamanager/"' in response.data
         assert b"Add more data" in response.data
 
-    def test_assign_entities_success_links_back_to_assign_entities(self, client):
+    def test_assign_entities_success_ignores_return_url(self, client):
         with client.session_transaction() as sess:
             sess["user"] = {"login": "test-user"}
         with patch(
@@ -115,26 +127,11 @@ class TestAddDataConfirmRoute:
                 "/datamanager/add-data/test-id/confirm-async",
                 data={
                     "source_flow": "assign_entities",
-                    "return_url": "/assign-entities/resources",
+                    "return_url": "/assign-entities/",
                 },
             )
         assert response.status_code == 200
         assert b'href="/assign-entities/resources"' in response.data
-        assert b"Assign more entities" in response.data
-
-    def test_assign_entities_success_defaults_back_to_start_page(self, client):
-        with client.session_transaction() as sess:
-            sess["user"] = {"login": "test-user"}
-        with patch(
-            "application.blueprints.datamanager.controllers.preview.trigger_add_data_async_workflow",
-            return_value={"success": True, "message": "Workflow triggered"},
-        ):
-            response = client.post(
-                "/datamanager/add-data/test-id/confirm-async",
-                data={"source_flow": "assign_entities"},
-            )
-        assert response.status_code == 200
-        assert b'href="/assign-entities/"' in response.data
         assert b"Assign more entities" in response.data
 
     def test_confirm_waits_for_workflow_then_blocks_when_branch_changed(self, client):
