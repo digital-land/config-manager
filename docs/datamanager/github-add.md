@@ -114,7 +114,7 @@ baseline was captured, so requests predating this feature pass through unchanged
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `CONFIG_REPO_BRANCH` | `config-manager-update` (prod), `test-config-manager-update` (dev) | Shared branch to commit to / check against |
-| `ENTITY_CLAIM_TTL_SECONDS` | `7200` (2h) | How long a dispatched submission's entity numbers stay claimed against concurrent overlaps |
+| `ENTITY_CLAIM_TTL_SECONDS` | `600` (10 min) | Short bridge over the dispatch→commit window during which a dispatched submission's entity numbers are held against a concurrent overlap; the GitHub compare check is the durable guard |
 
 > **Note:** there is no CI check for duplicate entity numbers before the auto-merged PR lands, and
 > the commit workflow has no concurrency group — both are worth adding as defence-in-depth but are
