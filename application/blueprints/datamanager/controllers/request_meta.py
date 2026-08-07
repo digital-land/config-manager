@@ -5,6 +5,7 @@ baseline) that the async request's own params can't carry, so downstream pages
 can behave correctly without re-inferring it.
 """
 
+import json
 import logging
 
 from application.db.models import RequestMeta
@@ -13,6 +14,18 @@ from application.extensions import db
 from ..services.github import GitHubAppError, get_config_baseline_sha
 
 logger = logging.getLogger(__name__)
+
+
+def load_json_list(value: str | None) -> list:
+    """Parse a JSON list stored in a RequestMeta text column, tolerating missing or
+    malformed values (returns an empty list)."""
+    if not value:
+        return []
+    try:
+        loaded = json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return []
+    return loaded if isinstance(loaded, list) else []
 
 
 def record_source_flow(request_id, source_flow):

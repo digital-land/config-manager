@@ -1,9 +1,7 @@
-import json
 import logging
 
 from flask import (
     render_template,
-    session,
     url_for,
 )
 
@@ -11,13 +9,7 @@ from application.db.models import RequestMeta
 from application.extensions import db
 
 from . import ControllerError
-from ..services.async_api import fetch_request
-from ..services.github import (
-    config_branch_changed_for_collection,
-    trigger_add_data_async_workflow,
-    wait_for_add_data_workflow_idle,
-    GitHubWorkflowError,
-)
+from .request_meta import load_json_list
 from ..services.dataset import get_dataset_name
 from ..services.organisation import get_organisation_name
 from ..utils.csv_formats import (
@@ -87,16 +79,6 @@ def _build_entity_organisation_summary(new_entities, authoritative, pipeline_sum
         entity_org_overlap_info,
         entity_org_error_warning,
     )
-
-
-def _load_json_list(value: str | None) -> list:
-    if not value:
-        return []
-    try:
-        loaded = json.loads(value)
-    except (TypeError, json.JSONDecodeError):
-        return []
-    return loaded if isinstance(loaded, list) else []
 
 
 def _build_endpoint_summary(
@@ -258,10 +240,10 @@ def handle_entities_preview(request_id, req):
 
     # Retire endpoint details
     endpoints_to_retire = (
-        _load_json_list(request_meta.endpoints_to_retire) if request_meta else []
+        load_json_list(request_meta.endpoints_to_retire) if request_meta else []
     )
     endpoints_to_unretire = (
-        _load_json_list(request_meta.endpoints_to_unretire) if request_meta else []
+        load_json_list(request_meta.endpoints_to_unretire) if request_meta else []
     )
     old_entity_rows = pipeline_summary.get("old-entity") or []
     old_entity_redirect_table_params = build_old_entity_redirect_table(old_entity_rows)
@@ -323,88 +305,4 @@ def handle_entities_preview(request_id, req):
         entity_org_warning=entity_org_warning,
         entity_org_overlap_info=entity_org_overlap_info,
         entity_org_error_warning=entity_org_error_warning,
-    )
-
-
-def handle_add_data_confirm(
-    request_id,
-    github_branch: str | None = None,
-    source_flow: str = "add_data",
-    return_url: str | None = None,
-):
-    request_meta = db.session.get(RequestMeta, request_id)
-    endpoints_to_retire = (
-        _load_json_list(request_meta.endpoints_to_retire) if request_meta else []
-    )
-    endpoints_to_unretire = (
-        _load_json_list(request_meta.endpoints_to_unretire) if request_meta else []
-    )
-
-    # Stale-assessment guard: if the config branch has advanced for this collection
-    # since the assessment was taken, the assigned entity numbers may now collide.
-    baseline_sha = request_meta.branch_sha if request_meta else None
-    if github_branch and baseline_sha:
-        # Wait for any in-flight add-data workflow to finish so the compare reads a
-        # settled branch (not a mid-push state). Bounded; on timeout we proceed and
-        # the fail-closed compare below is the backstop.
-        wait_for_add_data_workflow_idle()
-        req = fetch_request(request_id)
-        collection = (req.get("params") or {}).get("collection")
-        if collection and config_branch_changed_for_collection(
-            baseline_sha, github_branch, collection
-        ):
-            logger.info(
-                "Blocking stale confirm for request %s: %s advanced for collection %s",
-                request_id,
-                github_branch,
-                collection,
-            )
-            # Prefer sending the user back to the check-results page they started
-            check_request_id = request_meta.check_request_id if request_meta else None
-            if check_request_id:
-                rerun_url = url_for(
-                    "datamanager.check_results", request_id=check_request_id
-                )
-            else:
-                rerun_url = return_url or (
-                    url_for("assign_entities.flagged_resources_start")
-                    if source_flow == "assign_entities"
-                    else url_for("datamanager.dashboard_get")
-                )
-            return render_template(
-                "datamanager/add-data-stale.html",
-                collection=collection,
-                github_branch=github_branch,
-                source_flow=source_flow,
-                return_url=rerun_url,
-            )
-
-    try:
-        result = trigger_add_data_async_workflow(
-            request_id=request_id,
-            triggered_by=f"{session.get('user', {}).get('login', 'unknown')}",
-            github_branch=github_branch,
-            endpoints_to_retire=endpoints_to_retire,
-            endpoints_to_unretire=endpoints_to_unretire,
-        )
-    except GitHubWorkflowError as e:
-        logger.exception(f"GitHub async workflow error: {e}")
-        raise ControllerError(f"GitHub workflow error: {str(e)}") from e
-
-    if not result["success"]:
-        logger.error(f"Failed to trigger async workflow: {result['message']}")
-        raise ControllerError(f"Failed to trigger async workflow: {result['message']}")
-
-    fallback_return_url = (
-        url_for("assign_entities.flagged_resources_start")
-        if source_flow == "assign_entities"
-        else url_for("datamanager.dashboard_get")
-    )
-    logger.info(f"Successfully triggered async workflow for request_id: {request_id}")
-    return render_template(
-        "datamanager/add-data-success.html",
-        message=result["message"],
-        github_branch=github_branch,
-        source_flow=source_flow,
-        return_url=return_url or fallback_return_url,
     )

@@ -116,66 +116,6 @@ def get_installation_token(jwt_token: str, installation_id: str) -> str:
         raise GitHubAppAuthError(f"Failed to get installation token: {e}")
 
 
-# Workflow run statuses that mean the add-data script is still touching the branch.
-_ACTIVE_RUN_STATUSES = {"queued", "in_progress", "waiting", "requested", "pending"}
-
-_ADD_DATA_WORKFLOW_FILE = "add-data-async-script.yml"
-
-
-def _add_data_workflow_active(access_token: str) -> bool:
-    """Return True if an add-data-async-script run is queued or in progress."""
-    github_api_base_url = current_app.config["GITHUB_API_BASE_URL"]
-    url = (
-        f"{github_api_base_url}/repos/digital-land/config/actions/workflows/"
-        f"{_ADD_DATA_WORKFLOW_FILE}/runs?per_page=30"
-    )
-    try:
-        response = requests.get(url, headers=_github_headers(access_token), timeout=10)
-        response.raise_for_status()
-        runs = response.json().get("workflow_runs") or []
-    except requests.exceptions.RequestException as e:
-        # If we cannot tell, assume idle and proceed - the confirm-time check remains
-        # the correctness backstop, and we would rather not wait needlessly.
-        logger.error(f"Failed to list add-data workflow runs; assuming idle: {e}")
-        return False
-    return any(run.get("status") in _ACTIVE_RUN_STATUSES for run in runs)
-
-
-def add_data_workflow_running() -> bool:
-    """Return True if an add-data-async-script workflow run is currently active."""
-    return _add_data_workflow_active(_get_access_token())
-
-
-def wait_for_add_data_workflow_idle(
-    timeout: int | None = None, poll_interval: int | None = None
-) -> bool:
-    """
-    Block until no add-data-async-script workflow run is active, or until `timeout`
-    seconds elapse. Returns True if the workflow became idle, False if we gave up.
-
-    A single installation token is reused across polls. On timeout the caller should
-    proceed anyway (the confirm-time branch check is the correctness backstop); this
-    wait only improves the accuracy of the captured baseline.
-    """
-    if timeout is None:
-        timeout = current_app.config.get("ADD_DATA_WORKFLOW_WAIT_TIMEOUT", 60)
-    if poll_interval is None:
-        poll_interval = current_app.config.get("ADD_DATA_WORKFLOW_POLL_INTERVAL", 5)
-
-    access_token = _get_access_token()
-    deadline = time.monotonic() + timeout
-    while True:
-        if not _add_data_workflow_active(access_token):
-            return True
-        if time.monotonic() + poll_interval >= deadline:
-            logger.warning(
-                "add-data workflow still active after %ss; proceeding with current HEAD",
-                timeout,
-            )
-            return False
-        time.sleep(poll_interval)
-
-
 def get_branch_head_sha(branch: str) -> str | None:
     """
     Return the current HEAD commit SHA of a branch in digital-land/config.

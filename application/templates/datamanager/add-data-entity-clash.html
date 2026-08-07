@@ -1,0 +1,71 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="govuk-width-container">
+  <main class="govuk-main-wrapper" id="main-content" role="main">
+
+    <div class="govuk-error-summary" data-module="govuk-error-summary">
+      <div role="alert">
+        <h2 class="govuk-error-summary__title">These entity numbers are already being used</h2>
+        <div class="govuk-error-summary__body">
+          <p class="govuk-body">
+            Another submission for the <code>{{ collection }}</code> collection has already claimed
+            some of the entity numbers this transform assigned, so it was not submitted.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <h1 class="govuk-heading-l">Wait, then re-run the transform</h1>
+
+    <p class="govuk-body">
+      The following entity number{{ 's' if entities|length != 1 else '' }} on
+      <code>{{ github_branch }}</code> {{ 'are' if entities|length != 1 else 'is' }} already claimed
+      by another in-flight submission:
+    </p>
+
+    <p class="govuk-body">
+      <code>{{ entities | join(', ') }}</code>
+    </p>
+
+    <p class="govuk-body">
+      Wait a moment for that submission to finish, then re-run the transform so it is reassessed
+      against fresh entity numbers.
+    </p>
+
+    <div class="govuk-button-group govuk-!-margin-top-6">
+      <a href="{{ return_url }}" class="govuk-button" data-module="govuk-button">
+        {% if source_flow == 'assign_entities' %}Re-run assign entities{% else %}Re-run transform{% endif %}
+      </a>
+      <a href="{{ url_for('base.index') }}" class="govuk-link">
+        Return to home
+      </a>
+    </div>
+
+    {% if can_override %}
+    <div class="govuk-!-margin-top-8">
+      <hr class="govuk-section-break govuk-section-break--visible govuk-!-margin-bottom-4">
+      <h2 class="govuk-heading-m">Admin override</h2>
+      <div class="govuk-warning-text">
+        <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+        <strong class="govuk-warning-text__text">
+          <span class="govuk-visually-hidden">Warning</span>
+          Overriding will submit these entity numbers anyway and may create duplicate entities.
+          Only do this if you are sure.
+        </strong>
+      </div>
+      <form method="post" action="{{ url_for('datamanager.add_data_confirm_async', request_id=request_id) }}">
+        <input type="hidden" name="github_branch" value="{{ github_branch or '' }}">
+        <input type="hidden" name="source_flow" value="{{ source_flow or 'add_data' }}">
+        <input type="hidden" name="return_url" value="{{ return_url or '' }}">
+        <input type="hidden" name="override" value="true">
+        <button type="submit" class="govuk-button govuk-button--warning" data-module="govuk-button">
+          Override and submit anyway
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+  </main>
+</div>
+{% endblock content %}

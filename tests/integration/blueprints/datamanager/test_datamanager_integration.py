@@ -181,10 +181,12 @@ class TestAddDataConfirmRoute:
         with client.session_transaction() as sess:
             sess["user"] = {"login": "test-user"}
         with patch(
-            "application.blueprints.datamanager.controllers.preview.trigger_add_data_async_workflow",
+            "application.blueprints.datamanager.controllers.confirm.trigger_add_data_async_workflow",
             return_value={"success": True, "message": "Workflow triggered"},
         ):
-            response = client.post("/datamanager/add-data/test-id/confirm-async")
+            response = client.post(
+                "/datamanager/add-data/confirm-int-success/confirm-async"
+            )
         assert response.status_code == 200
         assert b"triggered" in response.data.lower()
 
@@ -192,10 +194,12 @@ class TestAddDataConfirmRoute:
         with client.session_transaction() as sess:
             sess["user"] = {"login": "test-user"}
         with patch(
-            "application.blueprints.datamanager.controllers.preview.trigger_add_data_async_workflow",
+            "application.blueprints.datamanager.controllers.confirm.trigger_add_data_async_workflow",
             return_value={"success": False, "message": "Dispatch rejected"},
         ):
-            response = client.post("/datamanager/add-data/test-id/confirm-async")
+            response = client.post(
+                "/datamanager/add-data/confirm-int-failure/confirm-async"
+            )
         assert response.status_code == 200
         assert b"govuk-error-summary" in response.data
 
@@ -207,10 +211,12 @@ class TestAddDataConfirmRoute:
         with client.session_transaction() as sess:
             sess["user"] = {"login": "test-user"}
         with patch(
-            "application.blueprints.datamanager.controllers.preview.trigger_add_data_async_workflow",
+            "application.blueprints.datamanager.controllers.confirm.trigger_add_data_async_workflow",
             side_effect=GitHubWorkflowError("credentials not configured"),
         ):
-            response = client.post("/datamanager/add-data/test-id/confirm-async")
+            response = client.post(
+                "/datamanager/add-data/confirm-int-error/confirm-async"
+            )
         assert response.status_code == 200
         assert b"govuk-error-summary" in response.data
 

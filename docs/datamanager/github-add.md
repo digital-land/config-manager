@@ -88,10 +88,7 @@ confirm when that has happened.
 - **fails open** — any error is logged and skipped rather than blocking the submission.
 
 **Check at confirmation.** Before triggering the commit workflow, `handle_add_data_confirm`
-(`controllers/preview.py`) first **waits for any in-flight `add-data-async-script` workflow to
-finish** (`wait_for_add_data_workflow_idle`, `services/github.py`) so it compares a settled branch,
-bounded by `ADD_DATA_WORKFLOW_WAIT_TIMEOUT`; the confirm page shows a "Submitting…" panel during the
-wait. It then compares the baseline via `config_branch_changed_for_collection`
+(`controllers/confirm.py`) compares the baseline via `config_branch_changed_for_collection`
 (`GET /repos/digital-land/config/compare/{baseline_sha}...{head}`, where `head` is the shared branch
 or `main`):
 
@@ -100,22 +97,32 @@ or `main`):
 - **fails closed** — treats the branch as changed on a diverged/force-pushed history, a truncated
   (>=300-file) diff, or any API error, so a possibly-stale result is never let through.
 
-If the branch changed, the confirm is blocked and the user sees
-`templates/datamanager/add-data-stale.html` with a "Re-run transform" action, routing back to
-`datamanager.check_results` for the recorded `check_request_id` (or the flow's start page). The
-guard only runs when submitting onto the shared branch **and** a baseline was captured, so requests
-predating this feature pass through unchanged.
+The confirmation does **not** block waiting for in-flight workflows: a submission that has
+dispatched but not yet committed is caught by the **entity-claim guard** (`services/entity_claims.py`)
+— a short-lived DB record of the entity numbers each dispatch claims, scoped to the branch — which
+blocks a second submission whose numbers overlap. A `dispatched_at` flag on `RequestMeta` gates the
+dispatch so concurrent confirms and browser retries can't double-submit. Note this is not
+end-to-end idempotency: a dispatch that raises or reports failure clears the flag
+(`_release_dispatch`) so a genuine retry isn't blocked, which means a dispatch GitHub accepted but
+whose response we never saw could be re-sent.
+
+If the branch changed (or the numbers clash), the confirmation is blocked and the user sees
+`templates/datamanager/add-data-stale.html` (or `add-data-entity-clash.html`) with a "Re-run
+transform" action, routing back to `datamanager.check_results` for the recorded `check_request_id`
+(or the flow's start page). An entity clash is not an absolute block: an admin can tick the
+override, which releases the conflicting claims and continues.
+
+The guard only runs when submitting onto the shared branch. It **fails closed** when no baseline
+was captured — a request predating this feature, or one whose `branch_sha` was never recorded, is
+shown the stale page in its `unverified` form rather than passing through. Re-running the transform
+captures a baseline and clears it.
 
 ### Configuration (`config/config.py`)
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `CONFIG_REPO_BRANCH` | `config-manager-update` (prod), `test-config-manager-update` (dev) | Shared branch to commit to / check against |
-| `ADD_DATA_WORKFLOW_WAIT_TIMEOUT` | `60` (seconds) | Max wait at confirm for an in-flight workflow before comparing |
-| `ADD_DATA_WORKFLOW_POLL_INTERVAL` | `5` (seconds) | Poll interval while waiting |
-
-The gunicorn `--timeout` in the `Procfile` (120s) is kept comfortably above the wait timeout so a
-web worker is not killed while the confirm request waits.
+| `ENTITY_CLAIM_TTL_SECONDS` | `600` (10 min) | Short bridge over the dispatch→commit window during which a dispatched submission's entity numbers are held against a concurrent overlap; the GitHub compare check is the durable guard |
 
 > **Note:** there is no CI check for duplicate entity numbers before the auto-merged PR lands, and
 > the commit workflow has no concurrency group — both are worth adding as defence-in-depth but are

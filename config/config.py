@@ -37,16 +37,12 @@ class Config:
     CONFIG_REPO_BRANCH = os.getenv("CONFIG_REPO_BRANCH", "config-manager-update")
     ENVIRONMENT = os.getenv("ENVIRONMENT", "local").lower()
 
-    # When capturing the config branch baseline at assessment-submission time, wait
-    # up to this many seconds for any in-flight add-data-async-script workflow (which
-    # would be pushing to the branch) to finish before reading HEAD. Keep the gunicorn
-    # --timeout in the Procfile comfortably above this so the worker is not killed.
-    ADD_DATA_WORKFLOW_WAIT_TIMEOUT = int(
-        os.getenv("ADD_DATA_WORKFLOW_WAIT_TIMEOUT", "60")
-    )
-    ADD_DATA_WORKFLOW_POLL_INTERVAL = int(
-        os.getenv("ADD_DATA_WORKFLOW_POLL_INTERVAL", "5")
-    )
+    # Short, temporary block on a dispatched submission's entity numbers against a
+    # concurrent same-collection submission. It only bridges the window between
+    # dispatch and the commit landing on the branch - after which the GitHub compare
+    # check (the main guard) catches the change - so a few minutes is enough, and
+    # kept short so a failed/abandoned submission doesn't lock those numbers for long.
+    ENTITY_CLAIM_TTL_SECONDS = int(os.getenv("ENTITY_CLAIM_TTL_SECONDS", str(10 * 60)))
 
     CACHE_TYPE = "SimpleCache"
     CACHE_DEFAULT_TIMEOUT = 300
