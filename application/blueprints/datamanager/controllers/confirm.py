@@ -164,7 +164,11 @@ def handle_add_data_confirm(
                 "Blocking confirm for %s: request fetch failed: %s", request_id, e
             )
             return _render_stale(
-                request_meta, None, github_branch, source_flow, return_url,
+                request_meta,
+                None,
+                github_branch,
+                source_flow,
+                return_url,
                 unverified=True,
             )
 
@@ -175,7 +179,11 @@ def handle_add_data_confirm(
         if not baseline_sha:
             logger.info("Blocking confirm for %s: no baseline captured", request_id)
             return _render_stale(
-                request_meta, collection, github_branch, source_flow, return_url,
+                request_meta,
+                collection,
+                github_branch,
+                source_flow,
+                return_url,
                 unverified=True,
             )
         try:
@@ -191,7 +199,11 @@ def handle_add_data_confirm(
                 "Blocking confirm for %s: staleness check failed: %s", request_id, e
             )
             return _render_stale(
-                request_meta, collection, github_branch, source_flow, return_url,
+                request_meta,
+                collection,
+                github_branch,
+                source_flow,
+                return_url,
                 unverified=True,
             )
         if changed:
@@ -216,15 +228,25 @@ def handle_add_data_confirm(
                 if not (override and _is_admin()):
                     logger.info(
                         "Blocking confirm for %s: entity clash on %s/%s: %s",
-                        request_id, collection, github_branch, clashes,
+                        request_id,
+                        collection,
+                        github_branch,
+                        clashes,
                     )
                     return _render_entity_clash(
-                        request_id, collection, github_branch, clashes,
-                        source_flow, return_url,
+                        request_id,
+                        collection,
+                        github_branch,
+                        clashes,
+                        source_flow,
+                        return_url,
                     )
                 logger.warning(
                     "Admin %s overriding entity clash for %s on %s/%s: %s",
-                    _confirm_user_login(), request_id, collection, github_branch,
+                    _confirm_user_login(),
+                    request_id,
+                    collection,
+                    github_branch,
                     clashes,
                 )
                 release_others(collection, github_branch, clashes)
@@ -232,11 +254,17 @@ def handle_add_data_confirm(
                 # Concurrent claim conflict -> fail closed.
                 logger.info(
                     "Blocking confirm for %s: concurrent entity claim on %s/%s",
-                    request_id, collection, github_branch,
+                    request_id,
+                    collection,
+                    github_branch,
                 )
                 return _render_entity_clash(
-                    request_id, collection, github_branch, entities,
-                    source_flow, return_url,
+                    request_id,
+                    collection,
+                    github_branch,
+                    entities,
+                    source_flow,
+                    return_url,
                 )
 
     # Atomic dispatch gate: only one POST can flip dispatched_at from NULL, so a

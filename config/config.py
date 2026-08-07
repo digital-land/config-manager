@@ -42,9 +42,7 @@ class Config:
     # dispatch and the commit landing on the branch - after which the GitHub compare
     # check (the main guard) catches the change - so a few minutes is enough, and
     # kept short so a failed/abandoned submission doesn't lock those numbers for long.
-    ENTITY_CLAIM_TTL_SECONDS = int(
-        os.getenv("ENTITY_CLAIM_TTL_SECONDS", str(10 * 60))
-    )
+    ENTITY_CLAIM_TTL_SECONDS = int(os.getenv("ENTITY_CLAIM_TTL_SECONDS", str(10 * 60)))
 
     CACHE_TYPE = "SimpleCache"
     CACHE_DEFAULT_TIMEOUT = 300

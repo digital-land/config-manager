@@ -97,17 +97,25 @@ or `main`):
 - **fails closed** — treats the branch as changed on a diverged/force-pushed history, a truncated
   (>=300-file) diff, or any API error, so a possibly-stale result is never let through.
 
-The confirm does **not** block waiting for in-flight workflows: a submission that has dispatched but
-not yet committed is caught by the **entity-claim guard** (`services/entity_claims.py`) — a
-short-lived DB record of the entity numbers each dispatch claims, scoped to the branch — which
-blocks a second submission whose numbers overlap. A `dispatched_at` flag on `RequestMeta` makes the
-dispatch **idempotent** (a retry can't double-submit).
+The confirmation does **not** block waiting for in-flight workflows: a submission that has
+dispatched but not yet committed is caught by the **entity-claim guard** (`services/entity_claims.py`)
+— a short-lived DB record of the entity numbers each dispatch claims, scoped to the branch — which
+blocks a second submission whose numbers overlap. A `dispatched_at` flag on `RequestMeta` gates the
+dispatch so concurrent confirms and browser retries can't double-submit. Note this is not
+end-to-end idempotency: a dispatch that raises or reports failure clears the flag
+(`_release_dispatch`) so a genuine retry isn't blocked, which means a dispatch GitHub accepted but
+whose response we never saw could be re-sent.
 
-If the branch changed (or the numbers clash), the confirm is blocked and the user sees
+If the branch changed (or the numbers clash), the confirmation is blocked and the user sees
 `templates/datamanager/add-data-stale.html` (or `add-data-entity-clash.html`) with a "Re-run
 transform" action, routing back to `datamanager.check_results` for the recorded `check_request_id`
-(or the flow's start page). The guard only runs when submitting onto the shared branch **and** a
-baseline was captured, so requests predating this feature pass through unchanged.
+(or the flow's start page). An entity clash is not an absolute block: an admin can tick the
+override, which releases the conflicting claims and continues.
+
+The guard only runs when submitting onto the shared branch. It **fails closed** when no baseline
+was captured — a request predating this feature, or one whose `branch_sha` was never recorded, is
+shown the stale page in its `unverified` form rather than passing through. Re-running the transform
+captures a baseline and clears it.
 
 ### Configuration (`config/config.py`)
 

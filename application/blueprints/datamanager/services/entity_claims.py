@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def _cleanup_expired(collection: str, branch: str) -> None:
-    ttl = current_app.config.get("ENTITY_CLAIM_TTL_SECONDS", 2 * 60 * 60)
+    ttl = current_app.config.get("ENTITY_CLAIM_TTL_SECONDS", 10 * 60)
     cutoff = datetime.utcnow() - timedelta(seconds=ttl)
     db.session.query(EntityClaim).filter(
         EntityClaim.collection == collection,
@@ -122,7 +122,7 @@ def release_others(collection: str, branch: str, entities: list[int]) -> None:
 def release_claims(request_id: str) -> None:
     """Drop all claims for a request (dispatch failed, so its numbers were never
     committed and must not block a retry)."""
-    db.session.query(EntityClaim).filter(
-        EntityClaim.request_id == request_id
-    ).delete(synchronize_session=False)
+    db.session.query(EntityClaim).filter(EntityClaim.request_id == request_id).delete(
+        synchronize_session=False
+    )
     db.session.commit()

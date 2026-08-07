@@ -48,6 +48,9 @@ class EntityClaim(db.Model):
 
     __table_args__ = (
         db.UniqueConstraint(
-            "collection", "entity", "branch", name="uq_entity_claim_collection_entity_branch"
+            "collection",
+            "entity",
+            "branch",
+            name="uq_entity_claim_collection_entity_branch",
         ),
     )

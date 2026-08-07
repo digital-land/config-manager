@@ -12,7 +12,8 @@ class TestEntityClaims:
             assert claim_entities("lp-a", "config-manager-update", "req-a", [100, 101])
             # the owning request sees no clash on its own numbers
             assert (
-                entity_clashes("lp-a", "config-manager-update", "req-a", [100, 101]) == []
+                entity_clashes("lp-a", "config-manager-update", "req-a", [100, 101])
+                == []
             )
             # a different request sees the overlap
             assert entity_clashes(
@@ -24,7 +25,8 @@ class TestEntityClaims:
             claim_entities("lp-b", "config-manager-update", "req-c", [200])
             # same number on a different branch is not a clash
             assert (
-                entity_clashes("lp-b", "test-config-manager-update", "req-d", [200]) == []
+                entity_clashes("lp-b", "test-config-manager-update", "req-d", [200])
+                == []
             )
 
     def test_concurrent_claim_conflict_returns_false(self, app):
@@ -37,9 +39,7 @@ class TestEntityClaims:
         with app.app_context():
             claim_entities("lp-d", "config-manager-update", "req-g", [400])
             release_claims("req-g")
-            assert (
-                entity_clashes("lp-d", "config-manager-update", "req-h", [400]) == []
-            )
+            assert entity_clashes("lp-d", "config-manager-update", "req-h", [400]) == []
 
     def test_release_others_frees_specific_numbers(self, app):
         with app.app_context():

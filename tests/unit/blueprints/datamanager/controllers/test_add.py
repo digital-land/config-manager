@@ -162,7 +162,9 @@ class TestAddDataConfirmRoute:
         ), patch(
             f"{_CONFIRM}.fetch_request",
             return_value={"params": {"collection": "conservation-area"}},
-        ), patch(f"{_CONFIRM}.trigger_add_data_async_workflow") as trigger:
+        ), patch(
+            f"{_CONFIRM}.trigger_add_data_async_workflow"
+        ) as trigger:
             response = client.post(
                 "/datamanager/add-data/stale-id/confirm-async",
                 data={"github_branch": "config-manager-update"},
@@ -243,7 +245,9 @@ class TestAddDataConfirmRoute:
         ), patch(
             f"{_CONFIRM}.config_branch_changed_for_collection",
             side_effect=GitHubAppError("boom"),
-        ), patch(f"{_CONFIRM}.trigger_add_data_async_workflow") as trigger:
+        ), patch(
+            f"{_CONFIRM}.trigger_add_data_async_workflow"
+        ) as trigger:
             response = client.post(
                 "/datamanager/add-data/gh-error-id/confirm-async",
                 data={"github_branch": "config-manager-update"},
@@ -265,9 +269,7 @@ class TestAddDataConfirmRoute:
         resp = {
             "params": {"collection": "local-plan"},
             "response": {
-                "data": {
-                    "pipeline-summary": {"new-entities": [{"entity": "5111260"}]}
-                }
+                "data": {"pipeline-summary": {"new-entities": [{"entity": "5111260"}]}}
             },
         }
 
@@ -318,9 +320,7 @@ class TestAddDataConfirmRoute:
         resp = {
             "params": {"collection": "local-plan"},
             "response": {
-                "data": {
-                    "pipeline-summary": {"new-entities": [{"entity": "5111300"}]}
-                }
+                "data": {"pipeline-summary": {"new-entities": [{"entity": "5111300"}]}}
             },
         }
         # a non-admin sending override=true is still blocked (enforced server-side)
