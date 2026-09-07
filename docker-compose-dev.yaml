@@ -35,6 +35,7 @@ services:
         FLASK_APP: application.wsgi:app
         SECRET_KEY: replaceinprod
         DATABASE_URL: postgres://postgres:postgres@db:5432/config_manager
+        REQUEST_API_BASE_URL: http://request-api:8000
         POSTGRES_HOST: db
         POSTGRES_USER: postgres
         POSTGRES_PASSWORD: postgres

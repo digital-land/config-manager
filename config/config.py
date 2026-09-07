@@ -125,10 +125,15 @@ class TestConfig(Config):
 
 def get_request_api_endpoint():
     """
-    Returns the async request backend API endpoint based on the ENVIRONMENT variable.
+    Returns an explicit async request backend API endpoint when configured,
+    otherwise selects one based on the ENVIRONMENT variable.
     ENVIRONMENT: local | development | staging | production
     Default environment is local
     """
+    override = os.getenv("REQUEST_API_BASE_URL")
+    if override:
+        return override.rstrip("/")
+
     env = os.getenv("ENVIRONMENT", "local").lower()
 
     mapping = {
