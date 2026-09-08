@@ -1501,6 +1501,7 @@ def test_resource_link_submits_assign_entities_request(client):
     assert json.loads(rsps.calls[0].request.body) == {
         "params": {
             "type": "add_data",
+            "service": "manage",
             "resource": "resource-a",
             "dataset": "tree",
             "collection": "tree",
