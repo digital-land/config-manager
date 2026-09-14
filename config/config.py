@@ -129,6 +129,10 @@ def get_request_api_endpoint():
     ENVIRONMENT: local | development | staging | production
     Default environment is local
     """
+    override = os.getenv("REQUEST_API_URL")
+    if override:
+        return override.rstrip("/")
+
     env = os.getenv("ENVIRONMENT", "local").lower()
 
     mapping = {

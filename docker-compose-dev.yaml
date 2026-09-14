@@ -30,6 +30,7 @@ services:
         db:
           condition: service_healthy
     environment:
+        REQUEST_API_URL: http://host.docker.internal:8000
         FLASK_DEBUG: True
         FLASK_CONFIG: config.DevelopmentConfig
         FLASK_APP: application.wsgi:app
@@ -41,7 +42,7 @@ services:
         POSTGRES_DB: config_manager
         POSTGRES_PORT: 5432
     ports:
-      - 5000:5000
+      - 5001:5000
       - 3000:3000
       - 3001:3001
     command: >

@@ -97,7 +97,9 @@ def handle_dashboard_get():
             request_id = ""
 
         if request_params:
-            dataset_param = request_params.get("dataset", "")
+            dataset_param = request.args.get("dataset") or request_params.get(
+                "dataset", ""
+            )
             dataset_input = get_dataset_name(dataset_param, default=dataset_param)
             dataset_id = get_dataset_id(dataset_input) if dataset_input else ""
 
@@ -265,6 +267,14 @@ def handle_dashboard_add():
         }
 
         try:
+            if request_id:
+                original_params = fetch_request(request_id).get("params", {})
+                if dataset_id != original_params.get("dataset"):
+                    payload["params"]["column_mapping"] = {
+                        **(original_params.get("column_mapping") or {}),
+                        **column_mapping,
+                    } or None
+                    request_id = ""
             if request_id:
                 logger.info(f"Reusing request ID: {request_id}")
             else:

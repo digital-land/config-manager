@@ -1,4 +1,5 @@
 import io
+import pytest
 from unittest.mock import patch
 
 from application.blueprints.datamanager.services.async_api import AsyncAPIError
@@ -118,7 +119,10 @@ class TestDashboardGetDefaults:
 
 
 class TestDashboardGetMagicLinkData:
-    def test_fetches_request_details_and_prefills_magic_link_form(self, client):
+    @pytest.mark.parametrize("override", ["", "minerals-plan"])
+    def test_fetches_request_details_and_prefills_magic_link_form(
+        self, client, override
+    ):
         with patch(
             "application.blueprints.datamanager.controllers.form.fetch_request",
             return_value={
@@ -131,10 +135,10 @@ class TestDashboardGetMagicLinkData:
             },
         ), patch(
             "application.blueprints.datamanager.controllers.form.get_dataset_name",
-            return_value="Brownfield Land",
-        ), patch(
+            return_value=override or "Brownfield Land",
+        ) as dataset_name, patch(
             "application.blueprints.datamanager.controllers.form.get_dataset_id",
-            return_value="brownfield-land",
+            return_value=override or "brownfield-land",
         ), patch(
             "application.blueprints.datamanager.controllers.form.get_provision_orgs_for_dataset",
             return_value=["local-authority:ABC"],
@@ -150,11 +154,15 @@ class TestDashboardGetMagicLinkData:
             response = client.get(
                 "/datamanager/?requestId=req-123"
                 "&documentationUrl=https://example.gov.uk/docs"
+                f"&dataset={override}"
             )
 
+        dataset_name.assert_called_once_with(
+            override or "brownfield-land", default=override or "brownfield-land"
+        )
         assert response.status_code == 200
         assert b'id="dataset-display"' in response.data
-        assert b'value="Brownfield Land"' in response.data
+        assert f'value="{override or "Brownfield Land"}"'.encode() in response.data
         assert b'id="organisation-display"' in response.data
         assert b'value="ABC Council (local-authority:ABC)"' in response.data
         assert b'id="organisation" value="local-authority:ABC"' in response.data
@@ -314,8 +322,19 @@ class TestDashboardAddPost:
 
         assert response.status_code == 200
 
-    def test_post_with_request_id_reuses_existing_check_request(self, client):
+    @pytest.mark.parametrize("original_dataset", ["brownfield-land", "local-plan"])
+    def test_post_with_request_id_checks_dataset_before_reuse(
+        self, client, original_dataset
+    ):
         with patch(
+            "application.blueprints.datamanager.controllers.form.fetch_request",
+            return_value={
+                "params": {
+                    "dataset": original_dataset,
+                    "column_mapping": {"ref": "reference"},
+                }
+            },
+        ), patch(
             "application.blueprints.datamanager.controllers.form.get_dataset_id",
             return_value="brownfield-land",
         ), patch(
@@ -355,8 +374,16 @@ class TestDashboardAddPost:
             )
 
         assert response.status_code == 302
-        assert "existing-request-id" in response.headers["Location"]
-        submit_request.assert_not_called()
+        if original_dataset == "brownfield-land":
+            assert "existing-request-id" in response.headers["Location"]
+            submit_request.assert_not_called()
+        else:
+            assert "new-request-id" in response.headers["Location"]
+            params = submit_request.call_args.args[0]
+            assert params["dataset"] == "brownfield-land"
+            assert params["collection"] == "brownfield"
+            assert params["url"] == "https://example.com/data.csv"
+            assert params["column_mapping"] == {"ref": "reference"}
 
     def test_post_with_request_id_validation_error_preserves_magic_link_state(
         self, client
