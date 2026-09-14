@@ -60,7 +60,7 @@ def submit_request(params: dict) -> str:
     Returns the request ID on success.
     Raises AsyncAPIError on any other status.
     """
-    payload = {"params": params}
+    payload = {"params": {**params, "service": "manage"}}
     logger.info("Submitting request to async API")
     logger.debug(json.dumps(payload, indent=2))
 

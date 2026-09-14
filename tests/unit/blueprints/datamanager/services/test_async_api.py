@@ -19,11 +19,12 @@ class TestSubmitRequest:
         with patch(
             "application.blueprints.datamanager.services.async_api.requests.post",
             return_value=mock_response,
-        ):
+        ) as mock_post:
             result = submit_request(
                 {"type": "check_url", "url": "https://example.com/data.csv"}
             )
         assert result == "abc123"
+        assert mock_post.call_args.kwargs["json"]["params"]["service"] == "manage"
 
     def test_raises_on_non_202(self):
         mock_response = Mock()
