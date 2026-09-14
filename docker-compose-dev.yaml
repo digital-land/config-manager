@@ -30,7 +30,7 @@ services:
         db:
           condition: service_healthy
     environment:
-        REQUEST_API_URL: http://host.docker.internal:8000
+        REQUEST_API_URL: http://request-api:8000
         FLASK_DEBUG: True
         FLASK_CONFIG: config.DevelopmentConfig
         FLASK_APP: application.wsgi:app
