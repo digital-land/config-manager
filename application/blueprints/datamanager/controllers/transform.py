@@ -23,7 +23,7 @@ from ..services.planning_data import (
     get_entities_for_organisation_and_dataset,
     get_entity_count_for_organisation_and_dataset,
 )
-from ..utils import REQUESTS_TIMEOUT
+from ..utils import REQUESTS_TIMEOUT, issue_severity_cell
 
 logger = logging.getLogger(__name__)
 
@@ -690,14 +690,8 @@ def _build_issue_log_table(resp_details: list) -> dict:
             cols = {}
             for col in _ISSUE_COLS:
                 val = str(issue.get(col, ""))
-                if col == "severity" and val.lower() == "error":
-                    cols[col] = {
-                        "value": val,
-                        "html": (
-                            '<span style="background-color:#d4351c;color:white;'
-                            'padding:2px 8px;border-radius:3px;">error</span>'
-                        ),
-                    }
+                if col == "severity":
+                    cols[col] = issue_severity_cell(val)
                 else:
                     cols[col] = {"value": val}
             rows.append({"columns": cols})

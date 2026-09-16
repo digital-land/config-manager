@@ -6,6 +6,7 @@ from io import StringIO
 import requests
 from dotenv import load_dotenv
 from flask import current_app, render_template
+from markupsafe import escape
 
 # Load .env file for this module
 load_dotenv()
@@ -13,6 +14,19 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 REQUESTS_TIMEOUT = 20  # seconds
+
+
+def issue_severity_cell(value):
+    """Format severity consistently in check and transform issue tables."""
+    value = str(value)
+    cell = {"value": value}
+    colour = {"critical": "red", "error": "yellow"}.get(value.lower())
+    if colour:
+        cell["html"] = (
+            f'<strong class="govuk-tag govuk-tag--{colour}">'
+            f"{escape(value)}</strong>"
+        )
+    return cell
 
 
 def handle_error(e):
@@ -214,7 +228,11 @@ def build_check_tables(column_field_log, resp_details):
             issue_log_rows.append(
                 {
                     "columns": {
-                        col: {"value": str(issue.get(col, ""))}
+                        col: (
+                            issue_severity_cell(issue.get(col, ""))
+                            if col == "severity"
+                            else {"value": str(issue.get(col, ""))}
+                        )
                         for col in issue_log_headers
                     }
                 }
