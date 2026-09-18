@@ -7,6 +7,25 @@
 {{ govukBackLink({ "text": "Back to Manage Service", "href": url_for('base.index') }) }}
 
 <div class="govuk-grid-row">
+  <div class="govuk-grid-column-one-third" style="position: sticky; top: 20px;">
+    <aside role="complementary">
+      <h2 class="govuk-heading-s">On this page</h2>
+      <ul class="govuk-list">
+        <li><a class="govuk-link" href="#goal">Our goal</a></li>
+        <li><a class="govuk-link" href="#what-this-means">What this means for you</a></li>
+        <li><a class="govuk-link" href="#progress">Our progress so far</a></li>
+        <li><a class="govuk-link" href="#next">What we're planning to do next</a></li>
+        <li><a class="govuk-link" href="#more-information">More information</a></li>
+      </ul>
+      <h2 class="govuk-heading-s govuk-!-margin-top-6">Related</h2>
+      <ul class="govuk-list">
+        <li><a class="govuk-link" href="https://digital-land.github.io/technical-documentation/">Technical documentation</a></li>
+        <li><a class="govuk-link" href="https://handbook.planning.data.gov.uk/">Handbook</a></li>
+        <li><a class="govuk-link" href="https://www.planning.data.gov.uk/about/roadmap">Planning Data Platform roadmap</a></li>
+      </ul>
+    </aside>
+  </div>
+
   <div class="govuk-grid-column-two-thirds">
 
     <span class="govuk-caption-l">Manage Service</span>
@@ -17,10 +36,10 @@
     <p class="govuk-body">Our plans can change based on what we learn from our users and from testing. We aim to update this roadmap every 3 months.</p>
     <p class="govuk-body-s">Last updated 18 September 2026. Next update due December 2026.</p>
 
-    <h2 class="govuk-heading-l govuk-!-margin-top-8">Our goal</h2>
+    <h2 class="govuk-heading-l govuk-!-margin-top-8" id="goal">Our goal</h2>
     <p class="govuk-body">Anyone on the team can get data onto the platform quickly, safely and consistently, without needing to edit configuration files by hand.</p>
 
-    <h2 class="govuk-heading-l govuk-!-margin-top-8">What this means for you</h2>
+    <h2 class="govuk-heading-l govuk-!-margin-top-8" id="what-this-means">What this means for you</h2>
     <p class="govuk-body"><em>Manage is an internal service used by the Planning Data team.</em></p>
     <p class="govuk-body">If you manage data for the platform, you'll experience:</p>
     <ul class="govuk-list govuk-list--bullet">
@@ -30,52 +49,62 @@
       <li><strong>Fewer manual steps:</strong> submissions from councils will come straight to you, and clean data will eventually go onto the platform without needing a review.</li>
     </ul>
 
-    <h2 class="govuk-heading-l govuk-!-margin-top-8">Our progress so far</h2>
+    <h2 class="govuk-heading-l govuk-!-margin-top-8" id="progress">Our progress so far</h2>
 
-    <h3 class="govuk-heading-m">February 2026: add data through Manage</h3>
+    <h3 class="govuk-heading-m govuk-!-margin-top-6">February 2026</h3>
+    <h4 class="govuk-heading-s">Add data through Manage</h4>
     <p class="govuk-body">You can now add a new endpoint through a guided process in Manage instead of editing configuration by hand. Manage handles column mapping, entity organisation and lookups for you. It shows your data on a map before you confirm, and warns you if the data is too large.</p>
 
-    <h3 class="govuk-heading-m">April 2026: retire endpoints and compare with the platform</h3>
+    <h3 class="govuk-heading-m govuk-!-margin-top-6">April 2026</h3>
+    <h4 class="govuk-heading-s">Retire endpoints and compare with the platform</h4>
     <p class="govuk-body">You can now retire endpoints and sources within the same provision while adding new data. The Transform page shows how your data compares with what's already on the platform, and handles large datasets by splitting them into pages.</p>
 
-    <h3 class="govuk-heading-m">June 2026: assign entities and pick up council submissions</h3>
+    <h3 class="govuk-heading-m govuk-!-margin-top-6">June 2026</h3>
+    <h4 class="govuk-heading-s">Assign entities and pick up council submissions</h4>
     <p class="govuk-body">You can now assign entities to data in batches. When a council submits an endpoint through Check and Provide, a link pre-fills the Add Data form with their details, so you don't need to re-enter them. Configuration changes are now committed automatically once you confirm, and the Preview and Confirm page is simpler as a result.</p>
 
-    <h3 class="govuk-heading-m">July 2026: spot duplicates and see data on a map</h3>
+    <h3 class="govuk-heading-m govuk-!-margin-top-6">July 2026</h3>
+    <h4 class="govuk-heading-s">Spot duplicates and see data on a map</h4>
     <p class="govuk-body">When you assign entities, Manage now detects duplicates and lets you redirect them to the existing entity, for both spatial and non-spatial data. The Transform page includes a map. The retire endpoints section gives you more context, and you can now unretire an endpoint.</p>
 
-    <h3 class="govuk-heading-m">August 2026: consistent with Check and Provide</h3>
+    <h3 class="govuk-heading-m govuk-!-margin-top-6">August 2026</h3>
+    <h4 class="govuk-heading-s">Consistent with Check and Provide</h4>
     <p class="govuk-body">Manage now uses the same definitions of "must fix" and "needs improving" as Check and Provide, so councils and the team see the same picture of their data. Within a session, you can also see which resources you've already processed.</p>
 
-    <h2 class="govuk-heading-l govuk-!-margin-top-8">What we're planning to do next</h2>
+    <h2 class="govuk-heading-l govuk-!-margin-top-8" id="next">What we're planning to do next</h2>
 
-    <h3 class="govuk-heading-m">By December 2026: clearer pages for new team members</h3>
+    <h3 class="govuk-heading-m govuk-!-margin-top-6">By December 2026</h3>
+
+    <h4 class="govuk-heading-s">Clearer pages for new team members</h4>
     <p class="govuk-body">We're reviewing the design of Manage, which we built quickly as a proof of concept. Every page in the Add Data and Assign Entities processes will include a description of what it does. This will make it easier for new team members to learn the service and use it confidently.</p>
 
-    <h3 class="govuk-heading-m">By December 2026: configuration in a database</h3>
+    <h4 class="govuk-heading-s">Configuration in a database</h4>
     <p class="govuk-body">We'll create a database behind Manage to hold the configuration that currently lives in the config repository. That's 16 files for each of our 55 collections, covering endpoints, sources, column mappings, lookups and more. For a while, changes will be written to both the database and GitHub until we're confident they match.</p>
 
-    <h3 class="govuk-heading-m">By December 2026: council submissions come straight to Manage</h3>
+    <h4 class="govuk-heading-s">Council submissions come straight to Manage</h4>
     <p class="govuk-body">When a council submits an endpoint through Check and Provide, it will appear on a dashboard in Manage instead of as a Jira ticket. Councils will get emails through GOV.UK Notify when we receive their data and when it's being processed. You'll be able to message them if you find a problem they need to fix.</p>
 
-    <h3 class="govuk-heading-m">By March 2027: edit configuration directly</h3>
+    <h3 class="govuk-heading-m govuk-!-margin-top-6">By March 2027</h3>
+
+    <h4 class="govuk-heading-s">Edit configuration directly</h4>
     <p class="govuk-body">You'll be able to edit each configuration table directly in Manage. That covers quick fixes like retiring an endpoint or correcting a single value, without going through the full Add Data process or editing files in GitHub.</p>
 
-    <h3 class="govuk-heading-m">By March 2027: do more through Add Data</h3>
+    <h4 class="govuk-heading-s">Do more through Add Data</h4>
     <p class="govuk-body">With configuration in a database, Add Data will be able to handle more of it, like filters and default values, so fewer changes need to be made by hand. We'll also bring Add Data and Assign Entities into line, so the same checks apply whichever you use. For example, duplicate detection, which currently only happens in Assign Entities, will also happen in Add Data.</p>
 
-    <h3 class="govuk-heading-m">Later: switch the pipeline to Manage</h3>
+    <h3 class="govuk-heading-m govuk-!-margin-top-6">From April 2027</h3>
+
+    <h4 class="govuk-heading-s">Switch the pipeline to Manage</h4>
     <p class="govuk-body">Once the database and GitHub have matched for long enough, the pipeline will read configuration directly from Manage and we'll stop using the config repository.</p>
 
-    <h3 class="govuk-heading-m">Later: automatic adding for clean data</h3>
+    <h4 class="govuk-heading-s">Automatic adding for clean data</h4>
     <p class="govuk-body">If a council's data passes all our checks, comes from an authoritative source, and has no duplicates or endpoints to retire, it will go through automatically, ready for that night's pipeline run. You won't need to review it.</p>
 
-    <h3 class="govuk-heading-m">Later: one place for everything entering the pipeline</h3>
+    <h4 class="govuk-heading-s">One place for everything entering the pipeline</h4>
     <p class="govuk-body">We'll explore adding editors for other parts of the pipeline, including reporting, the collections Airflow runs each night, and setting up new datasets and collections. For example, once a new dataset is added to the specification, you'd be able to set up its collection, add the first endpoint and create the files it needs, all from within Manage. This work is currently a manual, Python-based process.</p>
 
-    <h2 class="govuk-heading-l govuk-!-margin-top-8">More information</h2>
-    {# TODO: replace with the team's contact details before merging #}
-    <p class="govuk-body">For more information about this work, contact the Collecting & Managing Data team.</p>
+    <h2 class="govuk-heading-l govuk-!-margin-top-8" id="more-information">More information</h2>
+    <p class="govuk-body">For more information about this work, contact the Collecting &amp; Managing Data team.</p>
 
   </div>
 </div>
