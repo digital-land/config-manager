@@ -72,6 +72,13 @@ def toggle_process_lock(process):
     return redirect(url_for("base.index"))
 
 
+@base.route("/roadmap", strict_slashes=False)
+def roadmap():
+    # Public page: the base blueprint has no login wall, so this is viewable
+    # without signing in with GitHub.
+    return render_template("roadmap.html")
+
+
 @base.route("/health", strict_slashes=False)
 def healthz():
     return "OK", 200
