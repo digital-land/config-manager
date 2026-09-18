@@ -12,9 +12,12 @@ def test_roadmap_page_renders(client):
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "<h1 class=\"govuk-heading-xl\">Roadmap</h1>" in html
+    assert '<h1 class="govuk-heading-xl">Roadmap</h1>' in html
     assert "Our progress so far" in html
-    assert "What we&#39;re planning to do next" in html or "What we're planning to do next" in html
+    assert (
+        "What we&#39;re planning to do next" in html
+        or "What we're planning to do next" in html
+    )
 
 
 def test_roadmap_page_does_not_require_login():
