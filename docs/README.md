@@ -6,7 +6,7 @@ the service consists of three active Flask blueprints:
 
 | Blueprint | URL prefix | Purpose |
 |---|---|---|
-| `base` | `/` | Landing page (`index`), service-lock toggles |
+| `base` | `/` | Landing page (`index`), public roadmap page (`/roadmap`), service-lock toggles |
 | `auth` | `/auth` | GitHub OAuth login and admin-team checks |
 | `datamanager` (+ `assign_entities`) | `/datamanager`, `/assign-entities` | The add-data and assign-entities operator workflows |
 

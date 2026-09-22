@@ -1,6 +1,7 @@
 {%- from 'govuk_frontend_jinja/components/table/macro.html' import govukTable -%}
 {%- from 'govuk_frontend_jinja/components/details/macro.html' import govukDetails -%}
 {%- from "govuk_frontend_jinja/components/phase-banner/macro.html" import govukPhaseBanner -%}
+{%- from "govuk_frontend_jinja/components/footer/macro.html" import govukFooter -%}
 {% extends 'digital-land-frontend/layouts/base.jinja' %}
 {% set htmlClasses = "govuk-template--rebranded" %}
 {% from 'macro/data-item.html' import appDataItem %}
@@ -63,6 +64,31 @@
 }) }}
 {% endif %}
 {% endblock beforeContent %}
+
+{% block footerContent %}
+{# Overrides the digital-land-frontend footer partial to add a Roadmap link.
+   Keeps the partial's existing links and open source statement. #}
+{% set github_url = 'https://github.com/digital-land/digital-land/' %}
+{{ govukFooter({
+  "meta": {
+    "items": [
+      {
+        "href": url_for('base.roadmap'),
+        "text": "Roadmap"
+      },
+      {
+        "href": "/cookies",
+        "text": "Cookies"
+      },
+      {
+        "href": "/accessibility-statement",
+        "text": "Accessibility statement"
+      }
+    ],
+    "html": 'The <a class="govuk-footer__link" href="' + github_url + '">software</a> and <a class="govuk-footer__link" href="' + github_url + '">data</a> used to build these pages is <a class="govuk-footer__link" href="' + github_url + 'blob/main/LICENSE">open source</a>.'
+  }
+}) }}
+{% endblock footerContent %}
 
 {% block content %}
 <h1 class="govuk-heading-xl">{{ title|default('Index') }}</h1>
