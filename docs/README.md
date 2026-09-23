@@ -58,3 +58,17 @@ editing UI gone, that schema and its tooling were retired:
 A non-blocking GitHub Actions check ([`.github/workflows/docs-check.yml`](../.github/workflows/docs-check.yml))
 posts a reminder on pull requests that change application code without updating anything in
 `docs/`. It is a nudge, not a merge gate — update the relevant docs when behaviour changes.
+
+
+## Data Quality Framework severity rollout
+
+Issue tasks use their task-log severity: `critical` is **Must fix** and blocks
+progress; `error` is **Needs improving** and allows submission. Internal issues
+and other severities are excluded from these task lists. Missing mandatory
+columns remain blocking through the existing column-field handling.
+
+Do not merge this change until the companion specification PR assigning critical
+severities is merged. Include the async request-service update that explicitly requests both critical
+and error issue tasks. Deploy against the updated specification so blocking issues
+are emitted as critical tasks. Quality-criteria levels no longer determine
+whether a task blocks progress, including missing reference values.

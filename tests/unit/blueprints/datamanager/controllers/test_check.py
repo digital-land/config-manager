@@ -1,6 +1,8 @@
 import json
 from unittest.mock import patch
 
+import pytest
+
 from application.blueprints.datamanager.controllers.check import (
     _issue_tasks,
     _missing_column_tasks,
@@ -72,11 +74,13 @@ class TestCheckResultsRoute:
         assert submitted_params["column_mapping"] == {"MyColumn": "name"}
 
 
-def _issue_task(issue_type, field, count=1, summary="", responsibility="external"):
+def _issue_task(
+    issue_type, field, count=1, summary="", responsibility="external", severity="error"
+):
     return {
         "task-source": "issue",
         "responsibility": responsibility,
-        "severity": "error",
+        "severity": severity,
         "summary": summary,
         "details": json.dumps(
             {"issue_type": issue_type, "field": field, "count": count}
@@ -94,33 +98,36 @@ def _column_field_task(field, summary=""):
     }
 
 
-QUALITY_CRITERIA_LEVELS = {
-    "invalid geometry": 2,
-    "invalid date": 3,
-    "missing value": 3,
-    "unknown entity": 2,
-}
-
-
 class TestIssueTasks:
-    def test_splits_issues_by_quality_criteria_level(self):
+    def test_splits_issues_by_severity(self):
         task_log = [
-            _issue_task("invalid geometry", "geometry", summary="Invalid geometry"),
+            _issue_task(
+                "invalid geometry",
+                "geometry",
+                summary="Invalid geometry",
+                severity="critical",
+            ),
             _issue_task("invalid date", "start-date", summary="Invalid date"),
         ]
-        tasks = _issue_tasks(task_log, QUALITY_CRITERIA_LEVELS)
-        assert sorted(tasks) == [(2, "Invalid geometry"), (3, "Invalid date")]
+        tasks = _issue_tasks(task_log)
+        assert sorted(tasks) == [
+            ("critical", "Invalid geometry"),
+            ("error", "Invalid date"),
+        ]
 
-    def test_missing_value_on_reference_is_blocking(self):
-        # 'missing value' is level 3 in general, but blocking on the reference field
+    def test_missing_reference_values_follow_task_severity(self):
+        # Missing reference values no longer override task severity
         task_log = [
             _issue_task("missing value", "reference", summary="References missing"),
             _issue_task("missing value", "name", summary="Names missing"),
         ]
-        tasks = _issue_tasks(task_log, QUALITY_CRITERIA_LEVELS)
-        assert sorted(tasks) == [(2, "References missing"), (3, "Names missing")]
+        tasks = _issue_tasks(task_log)
+        assert sorted(tasks) == [
+            ("error", "Names missing"),
+            ("error", "References missing"),
+        ]
 
-    def test_excludes_internal_and_unlevelled_issues(self):
+    def test_excludes_internal_and_warning_issues(self):
         task_log = [
             _issue_task(
                 "unknown entity",
@@ -128,32 +135,37 @@ class TestIssueTasks:
                 summary="Unknown entity",
                 responsibility="internal",
             ),
-            _issue_task("not in the issue type table", "name", summary="Something"),
+            _issue_task(
+                "warning issue", "name", summary="Something", severity="warning"
+            ),
         ]
-        assert _issue_tasks(task_log, QUALITY_CRITERIA_LEVELS) == []
+        assert _issue_tasks(task_log) == []
 
     def test_aggregates_counts_by_issue_type_and_field(self):
         task_log = [
             _issue_task("invalid date", "start-date", count=2),
             _issue_task("invalid date", "start-date", count=3),
         ]
-        tasks = _issue_tasks(task_log, QUALITY_CRITERIA_LEVELS)
-        assert tasks == [(3, "5 issues of type invalid date in start-date")]
+        tasks = _issue_tasks(task_log)
+        assert tasks == [("error", "5 issues of type invalid date in start-date")]
 
     def test_falls_back_to_generated_summary(self):
         task_log = [_issue_task("invalid geometry", "geometry")]
-        tasks = _issue_tasks(task_log, QUALITY_CRITERIA_LEVELS)
-        assert tasks == [(2, "1 issue of type invalid geometry in geometry")]
+        tasks = _issue_tasks(task_log)
+        assert tasks == [("error", "1 issue of type invalid geometry in geometry")]
 
     def test_ignores_non_dict_entries(self):
         task_log = [
             None,
             "not a task",
-            _issue_task("invalid geometry", "geometry", summary="Invalid geometry"),
+            _issue_task(
+                "invalid geometry",
+                "geometry",
+                summary="Invalid geometry",
+                severity="critical",
+            ),
         ]
-        assert _issue_tasks(task_log, QUALITY_CRITERIA_LEVELS) == [
-            (2, "Invalid geometry")
-        ]
+        assert _issue_tasks(task_log) == [("critical", "Invalid geometry")]
 
     def test_ignores_entries_with_unusable_details(self):
         task_log = [
@@ -161,7 +173,7 @@ class TestIssueTasks:
             {"task-source": "issue", "details": "", "summary": "x"},
             _issue_task("invalid geometry", "", summary="No field"),
         ]
-        assert _issue_tasks(task_log, QUALITY_CRITERIA_LEVELS) == []
+        assert _issue_tasks(task_log) == []
 
 
 class TestMissingColumnTasks:
@@ -275,3 +287,49 @@ class TestCheckResultsIncompleteDetails:
         assert response.status_code == 200
         assert b"not authorised to override" not in response.data
         assert b"govuk-button--warning" in response.data
+
+
+@pytest.mark.parametrize(
+    "task, allowed",
+    [
+        (_issue_task("invalid geometry", "geometry", severity="critical"), False),
+        (_issue_task("missing value", "reference", severity="error"), True),
+        (_column_field_task("reference"), False),
+        (
+            _issue_task(
+                "unknown entity",
+                "entity",
+                severity="critical",
+                responsibility="internal",
+            ),
+            True,
+        ),
+    ],
+)
+def test_submission_gate_uses_task_severity(app, task, allowed):
+    from application.blueprints.datamanager.controllers.check import (
+        handle_check_results,
+    )
+
+    result = {
+        **COMPLETED_CHECK_RESULT,
+        "response": {"data": {"task-log": [task], "column-mapping": []}},
+    }
+    module = "application.blueprints.datamanager.controllers.check"
+    with app.test_request_context(), patch(
+        f"{module}.fetch_response_details", return_value=[]
+    ), patch(f"{module}.fetch_boundary_geojson", return_value=None), patch(
+        f"{module}.get_field_names_for_dataset", return_value=[]
+    ), patch(
+        f"{module}.get_organisation_name", return_value="Test Org"
+    ), patch(
+        f"{module}.get_dataset_name", return_value="Brownfield Land"
+    ), patch(
+        f"{module}.render_template"
+    ) as render:
+        handle_check_results("severity-test", result)
+    context = render.call_args.kwargs
+    assert context["allow_add_data"] is allowed
+    if task.get("severity") == "error" and task["task-source"] == "issue":
+        assert context["should_fix"]
+        assert not context["must_fix"]

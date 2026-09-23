@@ -21,9 +21,6 @@ from ..services.dataset import (
 from ..services.dataset_field import (
     get_field_names_for_dataset,
 )
-from ..services.issue_type import (
-    get_quality_criteria_levels,
-)
 from ..services.organisation import (
     get_organisation_name,
 )
@@ -38,9 +35,9 @@ logger = logging.getLogger(__name__)
 
 _ROWS_PER_PAGE = 500
 
-# Quality criteria levels same as check for block/non block
-_BLOCKING_LEVEL = 2
-_NON_BLOCKING_LEVEL = 3
+# Task severities match the Check tool.
+_BLOCKING_SEVERITY = "critical"
+_NON_BLOCKING_SEVERITY = "error"
 
 
 def _assign_column_mapping(column_mapping, col_name, field_name):
@@ -85,13 +82,11 @@ def _missing_column_tasks(task_log):
     return tasks
 
 
-def _issue_tasks(task_log, quality_criteria_levels):
+def _issue_tasks(task_log):
     """Issues from the task log, aggregated by issue type and field.
 
-    Mirrors the check results in submit: internal issues are dropped, each
-    issue is given its quality criteria level from the issue_type table, and
-    only levels 2 and 3 are kept. Returns a list of
-    (quality_criteria_level, summary) tuples.
+    Internal issues are dropped. Critical issues block progress, while error
+    issues need improving but allow submission. Returns (severity, summary) tuples.
     """
     aggregated = {}
     for item in task_log:
@@ -110,11 +105,8 @@ def _issue_tasks(task_log, quality_criteria_levels):
         if not issue_type or not field:
             continue
 
-        level = quality_criteria_levels.get(issue_type)
-        # Field-specific override for 'missing value' issues on 'reference'
-        if issue_type == "missing value" and field == "reference":
-            level = _BLOCKING_LEVEL
-        if level not in (_BLOCKING_LEVEL, _NON_BLOCKING_LEVEL):
+        severity = item.get("severity")
+        if severity not in (_BLOCKING_SEVERITY, _NON_BLOCKING_SEVERITY):
             continue
 
         count = details.get("count") or 1
@@ -122,11 +114,13 @@ def _issue_tasks(task_log, quality_criteria_levels):
         existing = aggregated.get(key)
         if existing:
             existing["count"] += count
+            if severity == _BLOCKING_SEVERITY:
+                existing["severity"] = severity
         else:
             aggregated[key] = {
                 "issue_type": issue_type,
                 "field": field,
-                "level": level,
+                "severity": severity,
                 "count": count,
                 "summary": item.get("summary"),
             }
@@ -140,7 +134,7 @@ def _issue_tasks(task_log, quality_criteria_levels):
                 f"{task['count']} issue{plural} of type "
                 f"{task['issue_type']} in {task['field']}"
             )
-        tasks.append((task["level"], summary))
+        tasks.append((task["severity"], summary))
     return tasks
 
 
@@ -282,17 +276,19 @@ def handle_check_results(request_id, result):
         column_mapping, unmapped_columns, user_column_mapping, spec_fields
     )
 
-    # must_fix: missing columns, plus issues whose quality criteria level is
-    #           blocking (level 2) - these stop data being added
-    # should_fix: issues at the non-blocking level (level 3)
+    # must_fix: missing columns, plus issues whose severity level is
+    #           blocking (critical) - these stop data being added
+    # should_fix: issues at the non-blocking level (severity=error) - these don't
+    #             stop data being added, but should be fixed
     # passed_checks: every field that column-mapping confirms is present
-    quality_criteria_levels = get_quality_criteria_levels()
-    issue_tasks = _issue_tasks(task_log, quality_criteria_levels)
+    issue_tasks = _issue_tasks(task_log)
     must_fix = _missing_column_tasks(task_log) + [
-        summary for level, summary in issue_tasks if level == _BLOCKING_LEVEL
+        summary for severity, summary in issue_tasks if severity == _BLOCKING_SEVERITY
     ]
     should_fix = [
-        summary for level, summary in issue_tasks if level == _NON_BLOCKING_LEVEL
+        summary
+        for severity, summary in issue_tasks
+        if severity == _NON_BLOCKING_SEVERITY
     ]
     passed_checks = [
         f"Column mapped: {entry['field']}"
