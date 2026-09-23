@@ -21,7 +21,9 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   app:
-    build: .
+    build:
+      context: .
+      target: dev
     container_name: app
     depends_on:
         db:

@@ -19,3 +19,5 @@ tf
 #*.sqlite3
 .flaskenv
 .venv/
+node_modules
+application/static
