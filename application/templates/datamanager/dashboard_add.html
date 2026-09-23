@@ -43,7 +43,7 @@ endblock %}
         <h2 class="govuk-error-summary__title">There is a problem</h2>
         <div class="govuk-error-summary__body">
           <ul class="govuk-list govuk-error-summary__list">
-            {% if dataset_error %}<li><a href="#{% if is_magic_link_prefilled and form.dataset %}dataset-display{% else %}dataset-autocomplete{% endif %}">Select a dataset</a></li>{% endif %}
+            {% if dataset_error %}<li><a href="#{% if is_magic_link_prefilled and form.dataset %}dataset-display{% else %}dataset-autocomplete{% endif %}">{{ dataset_error if dataset_error is string else "Select a dataset" }}</a></li>{% endif %}
             {% if organisation_error %}<li><a href="#{% if is_magic_link_prefilled and form.organisation %}organisation-display{% else %}organisation{% endif %}">Enter your organisation</a></li>{% endif %}
             {% if environment_error %}<li><a href="#endpoint-url">Enter a valid endpoint URL</a></li>{% endif %}
             {% if documentation_error %}<li><a href="#documentation-url">Enter a valid documentation URL</a></li>{%
@@ -60,7 +60,7 @@ endblock %}
         <label class="govuk-label" for="{% if is_magic_link_prefilled and form.dataset %}dataset-display{% else %}dataset-autocomplete{% endif %}">Dataset name <span class="govuk-required">*</span></label>
         {% if dataset_error %}
         <p class="govuk-error-message">
-          <span class="govuk-visually-hidden">Error:</span> Select a dataset
+          <span class="govuk-visually-hidden">Error:</span> {{ dataset_error if dataset_error is string else "Select a dataset" }}
         </p>
         {% endif %}
         {% if is_magic_link_prefilled and form.dataset %}

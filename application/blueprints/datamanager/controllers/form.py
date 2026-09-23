@@ -226,7 +226,13 @@ def handle_dashboard_add():
     # Core required fields - check for errors
     errors.update(
         {
-            "dataset": not dataset_input,
+            "dataset": (
+                "Enter a dataset name"
+                if not dataset_input
+                else "Dataset not recognised — please select from the autocomplete list"
+                if dataset_id is None
+                else False
+            ),
             "organisation": (
                 org_warning
                 or (org_codes_set and org_code_input not in org_codes_set)
