@@ -72,6 +72,15 @@
             <dt class="govuk-summary-list__key">File name</dt>
             <dd class="govuk-summary-list__value">{{ result.params.url }}</dd>
           </div>
+          {% if authoritative_organisation %}
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Auth. organisation</dt>
+            <dd class="govuk-summary-list__value">
+              {{ authoritative_organisation_display }}
+              <span class="govuk-hint govuk-!-margin-bottom-0">({{ authoritative_organisation }})</span>
+            </dd>
+          </div>
+          {% endif %}
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">Date checked</dt>
             <dd class="govuk-summary-list__value">

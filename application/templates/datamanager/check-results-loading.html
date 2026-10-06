@@ -7,24 +7,35 @@
 
     <h1 class="govuk-heading-xl">Checking data</h1>
 
-    <p class="govuk-body-l govuk-!-margin-bottom-1">
-      Organisation: <strong>{{ result.params.organisation_display or result.params.organisation or 'Unknown' }}</strong>
-      <span class="govuk-body govuk-!-margin-left-1">({{ result.params.organisationName }})</span>
-    </p>
-    <p class="govuk-body-l">
-      Dataset: <strong>{{ result.params.dataset_display or result.params.dataset or 'Unknown' }}</strong>
-      <span class="govuk-body govuk-!-margin-left-1">({{ result.params.dataset }})</span>
-    </p>
-    <h2 class="govuk-heading-l">Checking data</h2>
-    <p class="govuk-body">Do not close this page</p>
+    <dl class="govuk-summary-list govuk-!-margin-bottom-6">
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Dataset</dt>
+        <dd class="govuk-summary-list__value">
+          {{ result.params.dataset_display or result.params.dataset or 'Unknown' }}
+          <span class="govuk-hint govuk-!-margin-bottom-0">({{ result.params.dataset }})</span>
+        </dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Source organisation</dt>
+        <dd class="govuk-summary-list__value">
+          {{ result.params.organisation_display or result.params.organisation or 'Unknown' }}
+          <span class="govuk-hint govuk-!-margin-bottom-0">({{ result.params.organisationName }})</span>
+        </dd>
+      </div>
+      {% if authoritative_organisation %}
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Auth. organisation</dt>
+        <dd class="govuk-summary-list__value">
+          {{ authoritative_organisation_display }}
+          <span class="govuk-hint govuk-!-margin-bottom-0">({{ authoritative_organisation }})</span>
+        </dd>
+      </div>
+      {% endif %}
+    </dl>
 
-    <div class="govuk-!-margin-top-6 govuk-!-margin-bottom-6" style="text-align:center;">
-      <div class="app-spinner" aria-label="Loading"></div>
-    </div>
-
-    <div class="govuk-inset-text govuk-!-margin-top-3">
-      <strong class="govuk-tag govuk-tag--blue">BETA</strong>
-      &nbsp;This is a new service – your <a href="#" class="govuk-link">feedback</a> will help us to improve it.
+    <div class="govuk-!-margin-bottom-6" role="status" style="text-align:center;">
+      <div class="app-spinner govuk-!-margin-bottom-4" aria-hidden="true"></div>
+      <p class="govuk-body govuk-!-margin-bottom-0">Please wait while we check your data. Do not close this page.</p>
     </div>
   </div>
 </div>

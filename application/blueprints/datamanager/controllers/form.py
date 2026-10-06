@@ -59,6 +59,25 @@ def _get_org_values_for_dataset(dataset_id: str) -> list:
         return []
 
 
+def _authoritative_organisation(form, org_values, errors, source_organisation):
+    """An optional owner must be provisioned for the selected dataset."""
+    if (form.get("authoritative") or "").strip().lower() != "no":
+        form["authoritative_organisation"] = ""
+        return None
+    code = (form.get("authoritative_organisation") or "").strip()
+    form["authoritative_organisation"] = code
+    if code and code not in {org["code"] for org in org_values}:
+        errors["authoritative_organisation"] = (
+            "Select an authoritative organisation that can provide this dataset, or leave blank"
+        )
+    elif code and code == (source_organisation or "").strip():
+        errors["authoritative_organisation"] = (
+            "Select an authoritative organisation different from the source organisation, "
+            "or leave blank"
+        )
+    return code or None
+
+
 def handle_dashboard_get():
     form = {}
     errors = {}
@@ -196,6 +215,9 @@ def handle_dashboard_add():
     doc_url = form.get("documentation_url", "").strip()
     licence = (form.get("licence") or "ogl3").strip().lower()
     authoritative = form.get("authoritative", "").strip().lower() or None
+    authoritative_organisation = _authoritative_organisation(
+        form, org_values, errors, org_code_input
+    )
     endpoint_parameters = {}
     max_page_size_raw = form.get("max_page_size", "").strip()
     page_size_raw = form.get("page_size", "").strip()
@@ -262,6 +284,7 @@ def handle_dashboard_add():
             "start_date": start_date_str,
             "column_mapping": {},
             "authoritative": authoritative == "yes",
+            "authoritative_organisation": authoritative_organisation,
             "github_new": form.get("github_new", "true").strip() != "false",
             "endpoint_parameters": endpoint_parameters,
         }
@@ -390,6 +413,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
         "licence": add_data_fields["licence"],
         "start_date": add_data_fields["start_date"],
         "authoritative": add_data_fields["authoritative"],
+        "authoritative_organisation": add_data_fields.get("authoritative_organisation"),
         "geom_type": check_params.get("geom_type"),
         "github_branch": (
             current_app.config.get("CONFIG_REPO_BRANCH") or None
@@ -445,15 +469,22 @@ def handle_add_data(request_id):
     if _has_all_add_data_fields(add_data_fields):
         return _submit_add_data_preview(request_id, add_data_fields)
 
+    check_params = fetch_request(request_id).get("params", {})
+    org_values = _get_org_values_for_dataset(check_params.get("dataset", ""))
+
     # GET — show the form pre-filled with whatever we have
     if request.method == "GET":
         return render_template(
             "datamanager/add-data.html",
             request_id=request_id,
+            org_values=org_values,
             form={
                 "documentation_url": add_data_fields.get("documentation_url", ""),
                 "licence": add_data_fields.get("licence", ""),
                 "authoritative": add_data_fields.get("authoritative"),
+                "authoritative_organisation": add_data_fields.get(
+                    "authoritative_organisation", ""
+                ),
                 "github_new": (
                     "false" if add_data_fields.get("github_new") is False else "true"
                 ),
@@ -474,6 +505,9 @@ def handle_add_data(request_id):
     start_date = f"{y}-{m.zfill(2)}-{d.zfill(2)}" if (d and m and y) else ""
 
     errors = {}
+    authoritative_organisation = _authoritative_organisation(
+        form, org_values, errors, check_params.get("organisationName")
+    )
     if authoritative not in ("yes", "no"):
         errors["authoritative"] = True
     if not doc_url:
@@ -485,7 +519,11 @@ def handle_add_data(request_id):
 
     if errors:
         return render_template(
-            "datamanager/add-data.html", request_id=request_id, form=form, errors=errors
+            "datamanager/add-data.html",
+            request_id=request_id,
+            form=form,
+            errors=errors,
+            org_values=org_values,
         )
 
     # Save to session and submit
@@ -495,6 +533,7 @@ def handle_add_data(request_id):
         "start_date": start_date,
         "column_mapping": session.get("add_data_fields", {}).get("column_mapping", {}),
         "authoritative": authoritative == "yes",
+        "authoritative_organisation": authoritative_organisation,
         "github_new": github_new_raw != "false",
     }
     session["add_data_fields"] = add_data_fields

@@ -5,6 +5,10 @@
 {% from "govuk_frontend_jinja/components/select/macro.html" import govukSelect %}
 {% from "datamanager/components/github-branch.html" import githubBranch %}
 
+{% block pageStylesheets %}
+<link rel="stylesheet" href="{{ url_for('static', filename='stylesheets/accessible-autocomplete.min.css') }}">
+{% endblock %}
+
 {# convenient flags for errors #}
 {% set documentation_error = errors.get('documentation_url') if errors else None %}
 {% set startdate_error = errors.get('start_date') if errors else None %}
@@ -18,7 +22,7 @@
 
     <form class="govuk-form" method="post" action="{{ url_for('datamanager.add_data', request_id=request_id) }}" novalidate>
       {# Error summary #}
-      {% if documentation_error or startdate_error or authoritative_error or github_new_error %}
+      {% if documentation_error or startdate_error or authoritative_error or github_new_error or (errors and errors.get('authoritative_organisation')) %}
       <div class="govuk-error-summary" role="alert" data-module="govuk-error-summary">
         <h2 class="govuk-error-summary__title">There is a problem</h2>
         <div class="govuk-error-summary__body">
@@ -35,6 +39,7 @@
             {% if github_new_error %}
             <li><a href="#github-branch">Select a GitHub branch option</a></li>
             {% endif %}
+            {% if errors and errors.get('authoritative_organisation') %}<li><a href="#authoritative-organisation">{{ errors.authoritative_organisation }}</a></li>{% endif %}
           </ul>
         </div>
       </div>
@@ -121,6 +126,21 @@
         }) }}
       </div>
 
+      {% set owner_error = errors.get('authoritative_organisation') if errors else None %}
+      <div id="authoritative-organisation-group" class="govuk-form-group{% if owner_error %} govuk-form-group--error{% endif %}">
+        <label class="govuk-label" for="authoritative-organisation">Authoritative organisation (optional)</label>
+        <div id="authoritative-organisation-hint" class="govuk-hint">Select the organisation the new entities belong to. Leave blank to make no organisation assignment.</div>
+        {% if owner_error %}
+        <p id="authoritative-organisation-error" class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ owner_error }}</p>
+        {% endif %}
+        <select class="govuk-select{% if owner_error %} govuk-select--error{% endif %}" id="authoritative-organisation" name="authoritative_organisation" aria-describedby="authoritative-organisation-hint{% if owner_error %} authoritative-organisation-error{% endif %}">
+          <option value="">No organisation assignment</option>
+          {% for org in org_values | default([]) %}
+          <option value="{{ org.code }}"{% if form.get('authoritative_organisation') == org.code %} selected{% endif %}>{{ org.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
       {# GitHub branch selection #}
       {{ githubBranch(form, config, legend_size="m") }}
 
@@ -131,4 +151,38 @@
 
   </div>
 </div>
+{% endblock %}
+{% block pageScripts %}
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}"{% endif %} src="{{ url_for('static', filename='javascripts/accessible-autocomplete.min.js') }}"></script>
+<script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}"{% endif %}>
+  document.addEventListener('DOMContentLoaded', function () {
+    const authoritative = document.getElementById('authoritative');
+    const ownerGroup = document.getElementById('authoritative-organisation-group');
+    const ownerSelect = document.getElementById('authoritative-organisation');
+    accessibleAutocomplete.enhanceSelectElement({
+      selectElement: ownerSelect,
+      defaultValue: '',
+      displayMenu: 'overlay',
+      placeholder: 'Type organisation name...',
+      confirmOnBlur: false,
+      autoselect: true,
+      onConfirm: function(value) {
+        const option = Array.from(ownerSelect.options).find(option => option.value && option.text === value);
+        ownerSelect.value = option ? option.value : '';
+      }
+    });
+    const ownerInput = document.getElementById('authoritative-organisation');
+    ownerInput.addEventListener('input', function() { ownerSelect.value = ''; });
+    function updateOwnerVisibility() {
+      ownerGroup.hidden = authoritative.value !== 'no';
+      ownerSelect.disabled = ownerGroup.hidden;
+      if (ownerGroup.hidden) {
+        ownerInput.value = '';
+        ownerInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+    authoritative.addEventListener('change', updateOwnerVisibility);
+    updateOwnerVisibility();
+  });
+</script>
 {% endblock %}

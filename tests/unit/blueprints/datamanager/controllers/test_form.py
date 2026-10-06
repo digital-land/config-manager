@@ -487,6 +487,17 @@ class TestDashboardAddImportPost:
 
 
 class TestHandleAddData:
+    @pytest.fixture(autouse=True)
+    def mock_form_lookups(self):
+        with patch(
+            "application.blueprints.datamanager.controllers.form.fetch_request",
+            return_value={"params": {"dataset": "brownfield-land"}},
+        ), patch(
+            "application.blueprints.datamanager.controllers.form._get_org_values_for_dataset",
+            return_value=[],
+        ):
+            yield
+
     def test_get_with_no_session_renders_form(self, client):
         with client.session_transaction() as sess:
             sess.pop("add_data_fields", None)

@@ -59,7 +59,7 @@ branch names (e.g. `test-config-manager-update`) open a normal PR that is never 
 | `collection/{collection}/source.csv` | `source-summary.new_source_entry` | `documentation_url_in_source_csv` is false |
 | `pipeline/{collection}/lookup.csv` | `pipeline-summary.new-entities` | array non-empty |
 | `pipeline/{collection}/column.csv` | `params.column_mapping` | mapping non-empty |
-| `pipeline/{collection}/entity-organisation.csv` | `pipeline-summary.entity-organisation` | `params.authoritative` true, and not an overlap/error |
+| `pipeline/{collection}/entity-organisation.csv` | `pipeline-summary.entity-organisation` | `params.authoritative` true or `params.authoritative_organisation` selected, with valid ranges |
 | `pipeline/{collection}/old-entity.csv` | `pipeline-summary.old-entity` | array non-empty |
 
 The workflow fails if `request_id` is empty, the request cannot be fetched, its status is not

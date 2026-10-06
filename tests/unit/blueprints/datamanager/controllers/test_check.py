@@ -22,22 +22,47 @@ PENDING_RESULT = {
 
 
 class TestCheckResultsRoute:
-    def test_renders_loading_template_when_pending(self, client):
-        with patch(
-            "application.blueprints.datamanager.router.fetch_request",
-            return_value=PENDING_RESULT,
-        ):
+    @pytest.mark.parametrize(
+        "authoritative,owner,shown",
+        [
+            (False, "local-authority:MAN", True),
+            (False, None, False),
+            (True, None, False),
+        ],
+    )
+    def test_loading_page_shows_selected_owner(
+        self, client, authoritative, owner, shown
+    ):
+        with client.session_transaction() as sess:
+            previous = sess.get("add_data_fields")
+            sess["add_data_fields"] = {
+                "authoritative": authoritative,
+                "authoritative_organisation": owner,
+            }
+        try:
             with patch(
+                "application.blueprints.datamanager.router.fetch_request",
+                return_value=PENDING_RESULT,
+            ), patch(
                 "application.blueprints.datamanager.controllers.check.get_organisation_name",
-                return_value="Test Org",
+                side_effect=lambda code: "Manchester" if code == owner else "Test Org",
+            ), patch(
+                "application.blueprints.datamanager.controllers.check.get_dataset_name",
+                return_value="Brownfield Land",
             ):
-                with patch(
-                    "application.blueprints.datamanager.controllers.check.get_dataset_name",
-                    return_value="Brownfield Land",
-                ):
-                    response = client.get("/datamanager/check-results/test-id")
-        assert response.status_code == 200
-        assert b"loading" in response.data.lower() or b"check" in response.data.lower()
+                response = client.get("/datamanager/check-results/test-id")
+            assert response.status_code == 200
+            assert b">Source organisation</dt>" in response.data
+            assert (b">Auth. organisation</dt>" in response.data) is shown
+            if shown:
+                assert b"Manchester" in response.data
+                assert b">(local-authority:MAN)</span>" in response.data
+        finally:
+            with client.session_transaction() as sess:
+                if previous is None:
+                    sess.pop("add_data_fields", None)
+                else:
+                    sess["add_data_fields"] = previous
 
     def test_returns_error_when_org_code_missing(self, client):
         result_no_org = {**PENDING_RESULT, "params": {}}
