@@ -64,6 +64,9 @@
             <tr class="govuk-table__row">
               <td class="govuk-table__cell">
                 <form method="post" action="{{ url_for('assign_entities.flagged_artifact_assign', artifact_id=artifact.id) }}" class="app-artifact-form" data-artifact-too-large="{{ 'true' if artifact.is_too_large else 'false' }}">
+                  {% if artifact.csv_member %}
+                    <input type="hidden" name="csv_member" value="{{ artifact.csv_member }}">
+                  {% endif %}
                   <button type="submit" class="govuk-link app-link-button"{% if artifact.is_too_large %} aria-describedby="artifact-too-large-{{ artifact.id }}"{% endif %}>{{ artifact.name }}</button>
                   {% if artifact.is_too_large %}
                     <span id="artifact-too-large-{{ artifact.id }}" class="govuk-hint govuk-!-margin-bottom-0">Too large to import. Download and upload the CSV instead.</span>
@@ -78,7 +81,7 @@
               {% endif %}
               <td class="govuk-table__cell">
                 {% if artifact.workflow_run_url %}
-                  <a class="govuk-link" href="{{ artifact.workflow_run_url }}" target="_blank" rel="noopener noreferrer">View workflow run<span class="govuk-visually-hidden"> for {{ artifact.name }} (opens in new tab)</span></a>
+                  <a class="govuk-link" href="{{ artifact.workflow_run_url }}" target="_blank" rel="noopener noreferrer">View workflow run<span class="govuk-visually-hidden"> for {{ artifact.artifact_name or artifact.name }} (opens in new tab)</span></a>
                 {% endif %}
               </td>
             </tr>

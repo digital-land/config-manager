@@ -408,6 +408,21 @@ def _artifact_page_context():
     github_org = current_app.config.get("GITHUB_ORG", "digital-land")
     display_artifacts = []
     for artifact in artifacts:
+        csv_members = []
+        if artifact.get("name") == "batch-assign-single-source-output":
+            size_in_bytes = artifact.get("size_in_bytes")
+            if not (
+                isinstance(size_in_bytes, (int, float))
+                and size_in_bytes >= MAX_ARTIFACT_ARCHIVE_BYTES
+            ):
+                try:
+                    archive_bytes = download_batch_assign_artifact(artifact["id"])
+                    csv_members = _list_artifact_csv_members(archive_bytes)
+                except (GitHubArtifactError, ValueError):
+                    logger.exception(
+                        "Unable to list CSV files in artifact %s", artifact["id"]
+                    )
+
         workflow_run = artifact.get("workflow_run") or {}
         run_id = workflow_run.get("id")
         created_at = artifact.get("created_at") or ""
@@ -433,22 +448,32 @@ def _artifact_page_context():
                     break
                 size /= 1024
 
-        display_artifacts.append(
-            {
-                **artifact,
-                "created_at_display": created_at_display,
-                "size_display": size_display,
-                "is_too_large": (
-                    isinstance(size_in_bytes, (int, float))
-                    and size_in_bytes >= MAX_ARTIFACT_ARCHIVE_BYTES
-                ),
-                "workflow_run_url": (
-                    f"https://github.com/{github_org}/config/actions/runs/{run_id}"
-                    if run_id
-                    else None
-                ),
-            }
-        )
+        display_artifact = {
+            **artifact,
+            "created_at_display": created_at_display,
+            "size_display": size_display,
+            "is_too_large": (
+                isinstance(size_in_bytes, (int, float))
+                and size_in_bytes >= MAX_ARTIFACT_ARCHIVE_BYTES
+            ),
+            "workflow_run_url": (
+                f"https://github.com/{github_org}/config/actions/runs/{run_id}"
+                if run_id
+                else None
+            ),
+        }
+        if csv_members:
+            display_artifacts.extend(
+                {
+                    **display_artifact,
+                    "artifact_name": artifact["name"],
+                    "name": member.rsplit("/", 1)[-1],
+                    "csv_member": member,
+                }
+                for member in csv_members
+            )
+        else:
+            display_artifacts.append(display_artifact)
 
     show_artifact_size = any(
         artifact["size_display"] is not None for artifact in display_artifacts
@@ -456,7 +481,26 @@ def _artifact_page_context():
     return display_artifacts, artifact_lookup_failed, show_artifact_size
 
 
-def _read_artifact_csv(archive_bytes):
+def _list_artifact_csv_members(archive_bytes):
+    """Return CSV member names from a batch-assign artifact ZIP."""
+    try:
+        archive = zipfile.ZipFile(BytesIO(archive_bytes))
+    except zipfile.BadZipFile as e:
+        raise ValueError("The GitHub artifact is not a valid ZIP file.") from e
+
+    try:
+        return [
+            member.filename
+            for member in archive.infolist()
+            if not member.is_dir() and member.filename.lower().endswith(".csv")
+        ]
+    except (zipfile.BadZipFile, EOFError, RuntimeError, zlib.error) as e:
+        raise ValueError("The GitHub artifact ZIP could not be read.") from e
+    finally:
+        archive.close()
+
+
+def _read_artifact_csv(archive_bytes, csv_member=None):
     """Read the batch-assign summary CSV from an artifact ZIP."""
     try:
         archive = zipfile.ZipFile(BytesIO(archive_bytes))
@@ -468,19 +512,23 @@ def _read_artifact_csv(archive_bytes):
             member
             for member in archive.infolist()
             if not member.is_dir()
-            and fnmatch(
-                member.filename.rsplit("/", 1)[-1].lower(),
-                "batch_assign_summary*.csv",
+            and (
+                member.filename == csv_member
+                if csv_member
+                else fnmatch(
+                    member.filename.rsplit("/", 1)[-1].lower(),
+                    "batch_assign_summary*.csv",
+                )
             )
         ]
         if not matching_files:
-            raise ValueError(
-                "The artifact does not contain a batch_assign_summary CSV file."
-            )
+            if csv_member:
+                raise ValueError("The selected CSV file is not in the artifact.")
+            raise ValueError("The artifact does not contain a batch_assign_summary CSV file.")
         if len(matching_files) > 1:
-            raise ValueError(
-                "The artifact contains more than one batch_assign_summary CSV file."
-            )
+            if csv_member:
+                raise ValueError("The selected CSV file appears more than once in the artifact.")
+            raise ValueError("The artifact contains more than one batch_assign_summary CSV file.")
 
         member = matching_files[0]
         if member.file_size >= MAX_ARTIFACT_ARCHIVE_BYTES:
@@ -545,7 +593,7 @@ def handle_flagged_resources_start(artifact_error=None):
 def handle_flagged_artifact_assign(artifact_id):
     try:
         archive_bytes = download_batch_assign_artifact(artifact_id)
-        df = _read_artifact_csv(archive_bytes)
+        df = _read_artifact_csv(archive_bytes, request.form.get("csv_member"))
     except (GitHubArtifactError, ValueError) as e:
         return _render_flagged_resources_start(artifact_error=str(e))
 

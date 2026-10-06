@@ -101,6 +101,40 @@ def test_flagged_resources_start_lists_latest_github_artifacts(client):
     assert b"govuk-button--secondary" not in response.data
 
 
+def test_flagged_resources_start_lists_single_source_csv_files_as_rows(client):
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, "w") as artifact_zip:
+        artifact_zip.writestr("single_source_output_batch_1.csv", CSV_INPUT)
+        artifact_zip.writestr("single_source_output_batch_2.csv", CSV_INPUT)
+        artifact_zip.writestr("readme.txt", "not a CSV")
+    artifacts = [
+        {
+            "id": 123,
+            "name": "batch-assign-single-source-output",
+            "created_at": "2026-08-10T09:30:00Z",
+            "size_in_bytes": len(archive.getvalue()),
+            "workflow_run": {"id": 456},
+        }
+    ]
+    with patch(
+        "application.blueprints.datamanager.controllers.flagged_resources.get_latest_batch_assign_artifacts",
+        return_value=artifacts,
+    ), patch(
+        "application.blueprints.datamanager.controllers.flagged_resources.download_batch_assign_artifact",
+        return_value=archive.getvalue(),
+    ):
+        response = client.get("/assign-entities")
+
+    assert response.status_code == 200
+    assert response.data.count(b"single_source_output_batch_1.csv") == 2
+    assert response.data.count(b"single_source_output_batch_2.csv") == 2
+    assert b'name="csv_member" value="single_source_output_batch_1.csv"' in response.data
+    assert b'name="csv_member" value="single_source_output_batch_2.csv"' in response.data
+    assert response.data.count(
+        b"https://github.com/digital-land/config/actions/runs/456"
+    ) == 2
+
+
 def test_oversized_github_artifact_is_marked_for_client_side_error(client):
     artifacts = [
         {
@@ -142,6 +176,31 @@ def test_assign_entities_from_github_artifact_processes_compatible_csv(client):
     assert summary.status_code == 200
     assert b"resource-a" in summary.data
     assert b"resource-b" in summary.data
+
+
+def test_assign_entities_from_single_source_artifact_processes_selected_csv(client):
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, "w") as artifact_zip:
+        artifact_zip.writestr("output_batch_1.csv", CSV_INPUT)
+        artifact_zip.writestr(
+            "output_batch_2.csv",
+            CSV_INPUT.replace("resource-a", "resource-selected"),
+        )
+
+    with patch(
+        "application.blueprints.datamanager.controllers.flagged_resources.download_batch_assign_artifact",
+        return_value=archive.getvalue(),
+    ):
+        response = client.post(
+            "/assign-entities/artifacts/123/assign",
+            data={"csv_member": "output_batch_2.csv"},
+        )
+
+    assert response.status_code == 302
+    summary = client.get(response.headers["Location"])
+    assert summary.status_code == 200
+    assert b"resource-selected" in summary.data
+    assert b"resource-a" not in summary.data
 
 
 def test_assign_entities_from_github_artifact_requires_batch_assign_summary_csv(client):
