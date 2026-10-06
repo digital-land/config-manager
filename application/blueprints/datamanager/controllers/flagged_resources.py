@@ -498,11 +498,7 @@ def _format_artifact_size(size_in_bytes):
     units = ("bytes", "KB", "MB", "GB")
     for unit in units:
         if size < 1024 or unit == units[-1]:
-            return (
-                f"{int(size)} {unit}"
-                if unit == "bytes"
-                else f"{size:.1f} {unit}"
-            )
+            return f"{int(size)} {unit}" if unit == "bytes" else f"{size:.1f} {unit}"
         size /= 1024
 
 
@@ -530,15 +526,23 @@ def _read_artifact_csv(archive_bytes, csv_member=None):
         if not matching_files:
             if csv_member:
                 raise ValueError("The selected CSV file is not in the artifact.")
-            raise ValueError("The artifact does not contain a batch_assign_summary CSV file.")
+            raise ValueError(
+                "The artifact does not contain a batch_assign_summary CSV file."
+            )
         if len(matching_files) > 1:
             if csv_member:
-                raise ValueError("The selected CSV file appears more than once in the artifact.")
-            raise ValueError("The artifact contains more than one batch_assign_summary CSV file.")
+                raise ValueError(
+                    "The selected CSV file appears more than once in the artifact."
+                )
+            raise ValueError(
+                "The artifact contains more than one batch_assign_summary CSV file."
+            )
 
         member = matching_files[0]
         if member.file_size >= MAX_ARTIFACT_ARCHIVE_BYTES:
-            raise ValueError("The CSV file in the artifact must be smaller than 20 MB. Please upload it manually")
+            raise ValueError(
+                "The CSV file in the artifact must be smaller than 20 MB. Please upload it manually"
+            )
         return _read_csv_upload(BytesIO(archive.read(member)))
     except (zipfile.BadZipFile, EOFError, RuntimeError, zlib.error) as e:
         raise ValueError("The GitHub artifact ZIP could not be read.") from e

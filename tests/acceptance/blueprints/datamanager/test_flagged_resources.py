@@ -128,13 +128,18 @@ def test_flagged_resources_start_lists_single_source_csv_files_as_rows(client):
     assert response.status_code == 200
     assert response.data.count(b"single_source_output_batch_1.csv") == 2
     assert response.data.count(b"single_source_output_batch_2.csv") == 2
-    assert b'name="csv_member" value="single_source_output_batch_1.csv"' in response.data
-    assert b'name="csv_member" value="single_source_output_batch_2.csv"' in response.data
+    assert (
+        b'name="csv_member" value="single_source_output_batch_1.csv"' in response.data
+    )
+    assert (
+        b'name="csv_member" value="single_source_output_batch_2.csv"' in response.data
+    )
     assert b"2 bytes" in response.data
     assert b"1.0 KB" in response.data
-    assert response.data.count(
-        b"https://github.com/digital-land/config/actions/runs/456"
-    ) == 2
+    assert (
+        response.data.count(b"https://github.com/digital-land/config/actions/runs/456")
+        == 2
+    )
 
 
 def test_oversized_github_artifact_is_marked_for_client_side_error(client):
