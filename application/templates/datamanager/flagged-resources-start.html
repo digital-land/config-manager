@@ -69,7 +69,7 @@
                   {% endif %}
                   <button type="submit" class="govuk-link app-link-button"{% if artifact.is_too_large %} aria-describedby="artifact-too-large-{{ artifact.id }}"{% endif %}>{{ artifact.name }}</button>
                   {% if artifact.is_too_large %}
-                    <span id="artifact-too-large-{{ artifact.id }}" class="govuk-hint govuk-!-margin-bottom-0 color: #FF0000">\n Too large to import. Download and upload the CSV instead.</span>
+                    <span id="artifact-too-large-{{ artifact.id }}" class="govuk-error-message govuk-!-margin-bottom-0">Too large to import. Download and upload the CSV instead.</span>
                   {% endif %}
                 </form>
               </td>
