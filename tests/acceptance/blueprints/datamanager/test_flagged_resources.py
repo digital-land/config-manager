@@ -104,8 +104,8 @@ def test_flagged_resources_start_lists_latest_github_artifacts(client):
 def test_flagged_resources_start_lists_single_source_csv_files_as_rows(client):
     archive = BytesIO()
     with zipfile.ZipFile(archive, "w") as artifact_zip:
-        artifact_zip.writestr("single_source_output_batch_1.csv", CSV_INPUT)
-        artifact_zip.writestr("single_source_output_batch_2.csv", CSV_INPUT)
+        artifact_zip.writestr("single_source_output_batch_1.csv", "a\n")
+        artifact_zip.writestr("single_source_output_batch_2.csv", "b" * 1024)
         artifact_zip.writestr("readme.txt", "not a CSV")
     artifacts = [
         {
@@ -130,6 +130,8 @@ def test_flagged_resources_start_lists_single_source_csv_files_as_rows(client):
     assert response.data.count(b"single_source_output_batch_2.csv") == 2
     assert b'name="csv_member" value="single_source_output_batch_1.csv"' in response.data
     assert b'name="csv_member" value="single_source_output_batch_2.csv"' in response.data
+    assert b"2 bytes" in response.data
+    assert b"1.0 KB" in response.data
     assert response.data.count(
         b"https://github.com/digital-land/config/actions/runs/456"
     ) == 2

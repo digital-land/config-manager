@@ -434,19 +434,7 @@ def _artifact_page_context():
             created_at_display = created_at
 
         size_in_bytes = artifact.get("size_in_bytes")
-        size_display = None
-        if isinstance(size_in_bytes, (int, float)) and size_in_bytes >= 0:
-            size = float(size_in_bytes)
-            units = ("bytes", "KB", "MB", "GB")
-            for unit in units:
-                if size < 1024 or unit == units[-1]:
-                    size_display = (
-                        f"{int(size)} {unit}"
-                        if unit == "bytes"
-                        else f"{size:.1f} {unit}"
-                    )
-                    break
-                size /= 1024
+        size_display = _format_artifact_size(size_in_bytes)
 
         display_artifact = {
             **artifact,
@@ -469,8 +457,10 @@ def _artifact_page_context():
                     "artifact_name": artifact["name"],
                     "name": member.rsplit("/", 1)[-1],
                     "csv_member": member,
+                    "size_display": _format_artifact_size(member_size),
+                    "is_too_large": member_size >= MAX_ARTIFACT_ARCHIVE_BYTES,
                 }
-                for member in csv_members
+                for member, member_size in csv_members
             )
         else:
             display_artifacts.append(display_artifact)
@@ -490,7 +480,7 @@ def _list_artifact_csv_members(archive_bytes):
 
     try:
         return [
-            member.filename
+            (member.filename, member.file_size)
             for member in archive.infolist()
             if not member.is_dir() and member.filename.lower().endswith(".csv")
         ]
@@ -498,6 +488,22 @@ def _list_artifact_csv_members(archive_bytes):
         raise ValueError("The GitHub artifact ZIP could not be read.") from e
     finally:
         archive.close()
+
+
+def _format_artifact_size(size_in_bytes):
+    if not isinstance(size_in_bytes, (int, float)) or size_in_bytes < 0:
+        return None
+
+    size = float(size_in_bytes)
+    units = ("bytes", "KB", "MB", "GB")
+    for unit in units:
+        if size < 1024 or unit == units[-1]:
+            return (
+                f"{int(size)} {unit}"
+                if unit == "bytes"
+                else f"{size:.1f} {unit}"
+            )
+        size /= 1024
 
 
 def _read_artifact_csv(archive_bytes, csv_member=None):
@@ -532,7 +538,7 @@ def _read_artifact_csv(archive_bytes, csv_member=None):
 
         member = matching_files[0]
         if member.file_size >= MAX_ARTIFACT_ARCHIVE_BYTES:
-            raise ValueError("The CSV file in the artifact must be smaller than 20 MB.")
+            raise ValueError("The CSV file in the artifact must be smaller than 20 MB. Please upload it manually")
         return _read_csv_upload(BytesIO(archive.read(member)))
     except (zipfile.BadZipFile, EOFError, RuntimeError, zlib.error) as e:
         raise ValueError("The GitHub artifact ZIP could not be read.") from e
