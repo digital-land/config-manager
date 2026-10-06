@@ -278,7 +278,7 @@ def handle_dashboard_add():
                 "endpoint_parameters": endpoint_parameters or None,
             }
         }
-        session["add_data_fields"] = {
+        add_data_fields = {
             "documentation_url": doc_url,
             "licence": licence,
             "start_date": start_date_str,
@@ -303,6 +303,8 @@ def handle_dashboard_add():
             else:
                 logger.info("Creating a new check request")
                 request_id = submit_request(payload["params"])
+            add_data_fields["check_request_id"] = request_id
+            session["add_data_fields"] = add_data_fields
             return redirect(
                 url_for(
                     "datamanager.check_results",
@@ -400,6 +402,30 @@ def _submit_add_data_preview(request_id, add_data_fields):
     check_req = fetch_request(request_id)
     check_params = check_req.get("params", {})
 
+    form = {
+        **add_data_fields,
+        **_parse_start_date(add_data_fields.get("start_date")),
+        "authoritative": "yes" if add_data_fields["authoritative"] else "no",
+        "github_new": "true" if add_data_fields.get("github_new", True) else "false",
+    }
+    errors = {}
+    org_values = (
+        _get_org_values_for_dataset(check_params.get("dataset", ""))
+        if add_data_fields.get("authoritative_organisation")
+        else []
+    )
+    owner = _authoritative_organisation(
+        form, org_values, errors, check_params.get("organisationName")
+    )
+    if errors:
+        return render_template(
+            "datamanager/add-data.html",
+            request_id=request_id,
+            form=form,
+            errors=errors,
+            org_values=org_values,
+        )
+
     params = {
         "type": "add_data",
         "preview": True,
@@ -413,7 +439,7 @@ def _submit_add_data_preview(request_id, add_data_fields):
         "licence": add_data_fields["licence"],
         "start_date": add_data_fields["start_date"],
         "authoritative": add_data_fields["authoritative"],
-        "authoritative_organisation": add_data_fields.get("authoritative_organisation"),
+        "authoritative_organisation": owner,
         "geom_type": check_params.get("geom_type"),
         "github_branch": (
             current_app.config.get("CONFIG_REPO_BRANCH") or None
@@ -464,9 +490,11 @@ def handle_add_data(request_id):
     This is to allow for future use where the check tool can be jumped directly in.
     """
     add_data_fields = session.get("add_data_fields", {})
+    if add_data_fields.get("check_request_id") != request_id:
+        add_data_fields = {}
 
     # If all fields already set in session, submit directly — no form needed
-    if _has_all_add_data_fields(add_data_fields):
+    if request.method == "GET" and _has_all_add_data_fields(add_data_fields):
         return _submit_add_data_preview(request_id, add_data_fields)
 
     check_params = fetch_request(request_id).get("params", {})
@@ -528,6 +556,7 @@ def handle_add_data(request_id):
 
     # Save to session and submit
     add_data_fields = {
+        "check_request_id": request_id,
         "documentation_url": doc_url,
         "licence": licence,
         "start_date": start_date,

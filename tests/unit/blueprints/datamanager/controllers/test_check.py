@@ -23,19 +23,22 @@ PENDING_RESULT = {
 
 class TestCheckResultsRoute:
     @pytest.mark.parametrize(
-        "authoritative,owner,shown",
+        "authoritative,owner,check_id,shown",
         [
-            (False, "local-authority:MAN", True),
-            (False, None, False),
-            (True, None, False),
+            (False, "local-authority:MAN", "test-id", True),
+            (False, "local-authority:MAN", "other-id", False),
+            (False, "local-authority:MAN", None, False),
+            (False, None, "test-id", False),
+            (True, None, "test-id", False),
         ],
     )
     def test_loading_page_shows_selected_owner(
-        self, client, authoritative, owner, shown
+        self, client, authoritative, owner, check_id, shown
     ):
         with client.session_transaction() as sess:
             previous = sess.get("add_data_fields")
             sess["add_data_fields"] = {
+                "check_request_id": check_id,
                 "authoritative": authoritative,
                 "authoritative_organisation": owner,
             }

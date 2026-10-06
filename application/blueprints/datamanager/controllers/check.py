@@ -162,6 +162,7 @@ def handle_check_results(request_id, result):
     authoritative_organisation = (
         add_data_fields.get("authoritative_organisation")
         if add_data_fields.get("authoritative") is False
+        and add_data_fields.get("check_request_id") == request_id
         else None
     )
     authoritative_organisation_display = (
@@ -411,6 +412,12 @@ def handle_check_resubmit(request_id):
 
     try:
         new_id = submit_request(payload_params)
+        add_data_fields = session.get("add_data_fields", {})
+        if add_data_fields.get("check_request_id") == request_id:
+            session["add_data_fields"] = {
+                **add_data_fields,
+                "check_request_id": new_id,
+            }
         return redirect(url_for("datamanager.check_results", request_id=new_id))
     except AsyncAPIError as e:
         return render_template(

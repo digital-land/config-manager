@@ -172,6 +172,14 @@
       }
     });
     const ownerInput = document.getElementById('authoritative-organisation');
+    function describeOwner() {
+      const current = ownerInput.getAttribute('aria-describedby') || '';
+      const describedBy = Array.from(new Set(`${current} ${ownerSelect.getAttribute('aria-describedby')}`.trim().split(/\s+/))).join(' ');
+      if (current !== describedBy) ownerInput.setAttribute('aria-describedby', describedBy);
+    }
+    // The autocomplete removes its assistive hint after typing; retain our field descriptions.
+    new MutationObserver(describeOwner).observe(ownerInput, { attributes: true, attributeFilter: ['aria-describedby'] });
+    describeOwner();
     ownerInput.addEventListener('input', function() { ownerSelect.value = ''; });
     function updateOwnerVisibility() {
       ownerGroup.hidden = authoritative.value !== 'no';

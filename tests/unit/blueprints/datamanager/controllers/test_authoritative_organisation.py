@@ -73,14 +73,67 @@ def test_owner_reaches_preview_without_changing_source(
     response = client.post(url, data=form_data(authoritative, owner))
     assert response.status_code == 302
     if initial:
-        # The check uses the source; the owner survives a check resubmission.
+        # The check uses the source; the owner is bound to the returned check ID.
         assert form_services.call_args.args[0]["organisationName"] == SOURCE
-        response = client.get("/datamanager/add-data/rechecked-id")
+        response = client.get("/datamanager/add-data/new-request")
         assert response.status_code == 302
     params = form_services.call_args.args[0]
     assert params["authoritative_organisation"] == expected
     assert params["authoritative"] is (authoritative == "yes")
     assert params["organisation"] == params["organisationName"] == SOURCE
+
+
+def test_other_check_does_not_reuse_owner(client, form_services):
+    client.post("/datamanager/", data=form_data())
+    form_services.reset_mock()
+    response = client.get("/datamanager/add-data/other-check")
+    assert response.status_code == 200
+    assert f'value="{OWNER}" selected'.encode() not in response.data
+    form_services.assert_not_called()
+
+
+@pytest.mark.parametrize("invalid", ["dataset", "source"])
+def test_preview_revalidates_owner_against_check(client, form_services, invalid):
+    client.post("/datamanager/", data=form_data())
+    form_services.reset_mock()
+    params = {**CHECK["params"]}
+    if invalid == "source":
+        params["organisationName"] = OWNER
+    else:
+        params["dataset"] = "another-dataset"
+    with patch(f"{FORM}.fetch_request", return_value={"params": params}), patch(
+        f"{FORM}._get_org_values_for_dataset",
+        side_effect=lambda dataset: ORGS if dataset == "conservation-area" else [],
+    ):
+        response = client.get("/datamanager/add-data/new-request")
+    assert response.status_code == 200
+    assert b"Select an authoritative organisation" in response.data
+    form_services.assert_not_called()
+    # A corrected POST must be processed even when session fields are complete.
+    response = client.post(
+        "/datamanager/add-data/new-request", data=form_data(owner="")
+    )
+    assert response.status_code == 302
+    assert form_services.call_args.args[0]["authoritative_organisation"] is None
+
+
+@pytest.mark.parametrize("original_id", ["new-request", "unrelated-check"])
+def test_recheck_only_transfers_its_own_form_data(client, form_services, original_id):
+    client.post("/datamanager/", data=form_data())
+    check_controller = "application.blueprints.datamanager.controllers.check"
+    with patch(f"{check_controller}.fetch_request", return_value=CHECK), patch(
+        f"{check_controller}.submit_request", return_value="rechecked-id"
+    ):
+        response = client.post(f"/datamanager/check-results/{original_id}")
+    assert response.status_code == 302
+    form_services.reset_mock()
+    response = client.get("/datamanager/add-data/rechecked-id")
+    if original_id == "new-request":
+        assert response.status_code == 302
+        assert form_services.call_args.args[0]["authoritative_organisation"] == OWNER
+    else:
+        assert response.status_code == 200
+        form_services.assert_not_called()
 
 
 @pytest.mark.parametrize("url", ["/datamanager/", "/datamanager/add-data/check-id"])
