@@ -224,9 +224,18 @@ def handle_dashboard_add():
     org_codes_set = {o["code"] for o in org_values} if org_values else set()
 
     # Core required fields - check for errors
+    if not dataset_input:
+        dataset_error = "Enter a dataset name"
+    elif dataset_id is None:
+        dataset_error = (
+            "Dataset not recognised — please select from the autocomplete list"
+        )
+    else:
+        dataset_error = False
+
     errors.update(
         {
-            "dataset": not dataset_input,
+            "dataset": dataset_error,
             "organisation": (
                 org_warning
                 or (org_codes_set and org_code_input not in org_codes_set)
