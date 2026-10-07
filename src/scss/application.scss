@@ -19,7 +19,6 @@
 @import "components/hero";
 @import "components/mapping";
 @import "components/select-datasets";
-@import "components/sticky-nav";
 @import "components/summary-card";
 @import "components/table";
 @import "components/tools-list";
@@ -302,5 +301,15 @@
     height: 14px;
     border: 2px solid;
     flex-shrink: 0;
+  }
+}
+
+// Sticky contents list on the roadmap page, matching the guidance navigation on
+// planning.data.gov.uk. Only sticky from desktop up: below that the grid columns
+// stack, so a sticky column would pin itself over the content as the page scrolls.
+@include govuk-media-query($from: desktop) {
+  .sticky-nav {
+    position: sticky;
+    top: 0;
   }
 }
