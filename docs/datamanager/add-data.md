@@ -30,7 +30,7 @@ dashboard -> initial form → check-results → add-data form (only if needed) �
 
 ### 1. Dashboard (`datamanager.dashboard_get` / `dashboard_add`, `controllers/form.py`)
 
-`GET /` renders `dashboard_add.html`: the operator picks a **dataset** and **organisation** and
+`GET /` renders `dashboard_add.html`: the operator picks a **dataset** and **source organisation** and
 enters the **endpoint URL** (or uses `GET/POST /import`, `handle_dashboard_add_import`, to paste a
 CSV). `POST /` validates the form and calls `submit_request` (`services/async_api.py`) to create a
 **check** request on the async API, then redirects to the check-results page for that `request_id`.
@@ -52,6 +52,9 @@ with an inline **column-mapping** UI. From here the operator can:
 
 `GET/POST /add-data/<request_id>` renders `add-data.html` to collect the remaining fields —
 `documentation_url`, `licence`, `start_date`, `authoritative`, and whether the endpoint is new.
+Both forms offer an optional **Authoritative organisation** when the source is not authoritative.
+Its choices use the same dataset provision list as the source organisation, validated on POST.
+The authoritative organisation must differ from the source organisation, or be left blank.
 These are held in `session["add_data_fields"]`; if they are already all present the form is skipped
 and submission happens directly. On submit, `_submit_add_data_preview` calls `submit_request` to
 create the **preview** request, records the config-branch baseline for the
@@ -121,8 +124,10 @@ landing page). The `datamanager` before-request guard redirects to the landing p
 - **Re-running the check makes a new id.** Resubmitting with corrected column mappings
   (`handle_check_resubmit`) creates a *new* check request and redirects to its id; the old id is
   left behind.
-- **`authoritative` must be `yes`/`no`.** It is validated on the form and decides whether
-  `entity-organisation.csv` rows are written by the commit workflow.
+- **Source organisation and entity owner are separate.** An authoritative source assigns new
+  entities to the source organisation. A non-authoritative source assigns them to the optional
+  authoritative organisation; leaving it blank makes no assignment. Source and lookup rows
+  continue to use the source organisation. Deploy async and config writer support before the form.
 - **`retire_endpoints` / `endpoints_to_unretire` are stored, not applied.** The check-transform POST
   saves the selected hashes on the `RequestMeta` row; the actual end-dating (retire) and end-date
   clearing (unretire) happen later in the commit workflow, not in config-manager.

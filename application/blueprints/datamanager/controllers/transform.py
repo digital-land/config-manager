@@ -910,6 +910,11 @@ def handle_check_transform(
     is_assign_entities = transform_endpoint == "assign_entities.flagged_resource_detail"
     resource_hash = params.get("resource", "")
     organisation_display = get_organisation_name(organisation_code)
+    authoritative_organisation = (
+        params.get("authoritative_organisation")
+        if params.get("authoritative") is False
+        else None
+    )
     dataset_display = get_dataset_name(dataset_id, default=dataset_id)
 
     endpoint_url = params.get("url", "")
@@ -1042,6 +1047,12 @@ def handle_check_transform(
 
     return render_template(
         template_name,
+        authoritative_organisation=authoritative_organisation,
+        authoritative_organisation_display=(
+            get_organisation_name(authoritative_organisation)
+            if authoritative_organisation
+            else None
+        ),
         request_id=request_id,
         transform_endpoint=transform_endpoint,
         organisation_display=organisation_display,

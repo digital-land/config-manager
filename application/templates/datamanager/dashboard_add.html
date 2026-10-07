@@ -38,7 +38,7 @@ endblock %}
       {% set environment_error = errors.get('endpoint_url') %}
       {% set authoritative_error = errors.get('authoritative') %}
 
-      {% if organisation_error or documentation_error or dataset_error or environment_error or errors.start_date or authoritative_error %}
+      {% if organisation_error or documentation_error or dataset_error or environment_error or errors.start_date or authoritative_error or errors.get('authoritative_organisation') %}
       <div class="govuk-error-summary" role="alert" data-module="govuk-error-summary">
         <h2 class="govuk-error-summary__title">There is a problem</h2>
         <div class="govuk-error-summary__body">
@@ -50,6 +50,7 @@ endblock %}
             endif %}
             {% if errors.start_date %}<li><a href="#start-day">Enter a valid start date</a></li>{% endif %}
             {% if authoritative_error %}<li><a href="#authoritative">Select whether this is the authoritative source</a></li>{% endif %}
+            {% if errors.get('authoritative_organisation') %}<li><a href="#authoritative-organisation">{{ errors.authoritative_organisation }}</a></li>{% endif %}
           </ul>
         </div>
       </div>
@@ -74,7 +75,7 @@ endblock %}
 
       <!-- Organisation autocomplete -->
       <div class="govuk-form-group {% if organisation_error %}govuk-form-group--error{% endif %}">
-        <label class="govuk-label" for="{% if is_magic_link_prefilled and form.organisation %}organisation-display{% else %}organisation{% endif %}">Organisation <span class="govuk-required">*</span></label>
+        <label class="govuk-label" for="{% if is_magic_link_prefilled and form.organisation %}organisation-display{% else %}org-autocomplete{% endif %}">Source organisation <span class="govuk-required">*</span></label>
         {% if organisation_error %}
         <p class="govuk-error-message">
           <span class="govuk-visually-hidden">Error:</span> Enter a valid organisation
@@ -226,6 +227,20 @@ endblock %}
         'errorMessage': ( { 'text': 'Select whether this is the authoritative source' } if errors.get('authoritative') else None )
         }) }}
       </div>
+      {% set owner_error = errors.get('authoritative_organisation') if errors else None %}
+      <div id="authoritative-organisation-group" class="govuk-form-group{% if owner_error %} govuk-form-group--error{% endif %}">
+        <label class="govuk-label" for="authoritative-organisation">Authoritative organisation (optional)</label>
+        <div id="authoritative-organisation-hint" class="govuk-hint">Select the organisation the new entities belong to. Leave blank to make no organisation assignment.</div>
+        {% if owner_error %}
+        <p id="authoritative-organisation-error" class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ owner_error }}</p>
+        {% endif %}
+        <select class="govuk-select{% if owner_error %} govuk-select--error{% endif %}" id="authoritative-organisation" name="authoritative_organisation" aria-describedby="authoritative-organisation-hint{% if owner_error %} authoritative-organisation-error{% endif %}">
+          <option value="">No organisation assignment</option>
+          {% for org in org_values | default([]) %}
+          <option value="{{ org.code }}"{% if form.get('authoritative_organisation') == org.code %} selected{% endif %}>{{ org.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
       {# GitHub branch selection #}
       {{ githubBranch(form, config) }}
@@ -272,6 +287,48 @@ endblock %}
 <script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %} src="{{ url_for('static', filename='javascripts/accessible-autocomplete.min.js') }}"></script>
 <script {% if config["ENV"]=="production" %}nonce="{{ csp_nonce() }}" {% endif %}>
   document.addEventListener("DOMContentLoaded", function() {
+    const authoritative = document.getElementById('authoritative');
+    const ownerGroup = document.getElementById('authoritative-organisation-group');
+    const ownerSelect = document.getElementById('authoritative-organisation');
+    accessibleAutocomplete.enhanceSelectElement({
+      selectElement: ownerSelect,
+      defaultValue: '',
+      displayMenu: 'overlay',
+      placeholder: 'Type organisation name...',
+      confirmOnBlur: false,
+      autoselect: true,
+      source: function(query, populateResults) {
+        populateResults(Array.from(ownerSelect.options)
+          .filter(option => option.value && option.text.toLowerCase().includes(query.toLowerCase()))
+          .map(option => option.text));
+      },
+      onConfirm: function(value) {
+        const option = Array.from(ownerSelect.options).find(option => option.value && option.text === value);
+        ownerSelect.value = option ? option.value : '';
+      }
+    });
+    const ownerInput = document.getElementById('authoritative-organisation');
+    function describeOwner() {
+      const current = ownerInput.getAttribute('aria-describedby') || '';
+      const describedBy = Array.from(new Set(`${current} ${ownerSelect.getAttribute('aria-describedby')}`.trim().split(/\s+/))).join(' ');
+      if (current !== describedBy) ownerInput.setAttribute('aria-describedby', describedBy);
+    }
+    // The autocomplete removes its assistive hint after typing; retain our field descriptions.
+    new MutationObserver(describeOwner).observe(ownerInput, { attributes: true, attributeFilter: ['aria-describedby'] });
+    describeOwner();
+    ownerInput.addEventListener('input', function() { ownerSelect.value = ''; });
+    function clearOwner() {
+      ownerSelect.value = '';
+      ownerInput.value = '';
+      ownerInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    function updateOwnerVisibility() {
+      ownerGroup.hidden = authoritative.value !== 'no';
+      ownerSelect.disabled = ownerGroup.hidden;
+      if (ownerGroup.hidden) clearOwner();
+    }
+    authoritative.addEventListener('change', updateOwnerVisibility);
+    updateOwnerVisibility();
     const datasetHidden = document.getElementById("dataset");
     const datasetContainer = document.getElementById("autocomplete-container");
     const orgWrapper = document.getElementById("org-autocomplete-wrapper");
@@ -355,13 +412,17 @@ endblock %}
         onConfirm: function(val) {
           datasetHidden.value = val;
           hiddenOrgInput.value = "";
+          clearOwner();
+          ownerSelect.replaceChildren(new Option('No organisation assignment', ''));
           if (geomTypeGroup) {
             geomTypeGroup.style.display = (val.toLowerCase() === 'tree') ? 'block' : 'none';
           }
           fetch(`{{ url_for('datamanager.dashboard_get') }}?get_orgs_for=${encodeURIComponent(val)}`)
             .then(res => res.json())
             .then(orgs => {
+              if (datasetHidden.value !== val) return;
               updateOrgAutocomplete(orgs, "", "Type organisation name...");
+              orgs.forEach(org => ownerSelect.add(new Option(org.label, org.code)));
             });
         }
       });

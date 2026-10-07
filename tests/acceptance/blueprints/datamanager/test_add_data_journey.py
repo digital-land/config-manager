@@ -300,6 +300,7 @@ class TestAddDataJourney:
         rsps.add(rsps.POST, ASYNC_BASE, json={"id": "preview-id-1"}, status=202)
         with client.session_transaction() as sess:
             sess["add_data_fields"] = {
+                "check_request_id": "check-id-2",
                 "documentation_url": "https://www.stockport.gov.uk/planning-development-open-datasets",
                 "licence": "ogl3",
                 "start_date": "2026-01-22",

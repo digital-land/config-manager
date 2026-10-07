@@ -23,7 +23,9 @@ from ..utils.csv_formats import (
 logger = logging.getLogger(__name__)
 
 
-def _build_entity_organisation_summary(new_entities, authoritative, pipeline_summary):
+def _build_entity_organisation_summary(
+    new_entities, authoritative, pipeline_summary, authoritative_organisation=None
+):
     """
     Build entity-organisation CSV preview context - only relevant when new
     entities were actually created; otherwise there is nothing to map.
@@ -46,7 +48,7 @@ def _build_entity_organisation_summary(new_entities, authoritative, pipeline_sum
             entity_org_error_warning,
         )
 
-    if not authoritative:
+    if not authoritative and not authoritative_organisation:
         entity_org_warning = "Non-authoritative data being submitted"
         return (
             entity_org_table_params,
@@ -280,7 +282,10 @@ def handle_entities_preview(request_id, req):
         entity_org_overlap_info,
         entity_org_error_warning,
     ) = _build_entity_organisation_summary(
-        new_entities, authoritative, pipeline_summary
+        new_entities,
+        authoritative,
+        pipeline_summary,
+        params.get("authoritative_organisation"),
     )
 
     return render_template(
