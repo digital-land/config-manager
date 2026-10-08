@@ -51,8 +51,10 @@ a flagged-resources CSV. The page also lists the most recent artifacts from `dig
 - `batch-assign-single-source-output`
 
 If none of those exist, it lists `generated-files` instead. Selecting an artifact downloads its ZIP
-and imports its single `batch_assign_summary*.csv` file. Artifacts of 20 MB or more are not
-imported; the operator must download and upload the CSV instead.
+and imports its single `batch_assign_summary*.csv` file.
+
+If there are multiple .csv files contained in the single-source ZIP then they are processed individually and the summary .csv files are suffixed by an incremental integer.  Artifacts of 20 MB or more are not
+imported and are flagged for the operator to download and upload the CSV instead.
 
 `controllers/flagged_resources.py` resolves:
 
