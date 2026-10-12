@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from flask import (
     Blueprint,
     current_app,
@@ -12,6 +10,7 @@ from flask import (
 
 from application.db.models import ServiceLock
 from application.extensions import db
+from application.utils import utcnow
 
 base = Blueprint("base", __name__)
 
@@ -65,7 +64,7 @@ def toggle_process_lock(process):
             ServiceLock(
                 name=process,
                 locked_by=username,
-                locked_at=datetime.utcnow(),
+                locked_at=utcnow(),
             )
         )
     db.session.commit()

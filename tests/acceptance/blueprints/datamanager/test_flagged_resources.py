@@ -10,6 +10,7 @@ import responses as rsps
 from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK
 from application.db.models import AssignEntityResource, RequestMeta, ServiceLock
 from application.extensions import db
+from application.utils import utcnow
 from config.config import get_request_api_endpoint
 from application.blueprints.datamanager.services.github import GitHubArtifactError
 
@@ -289,7 +290,7 @@ def test_add_data_lock_does_not_block_assign_entities(client):
         ServiceLock(
             name=ADD_DATA_LOCK,
             locked_by="someone",
-            locked_at=datetime.utcnow(),
+            locked_at=utcnow(),
         )
     )
     db.session.commit()
@@ -311,7 +312,7 @@ def test_assign_entities_uses_assign_entities_process_lock(client):
         ServiceLock(
             name=ASSIGN_ENTITIES_LOCK,
             locked_by="someone",
-            locked_at=datetime.utcnow(),
+            locked_at=utcnow(),
         )
     )
     db.session.commit()
@@ -377,7 +378,7 @@ def test_add_data_lock_does_not_block_assign_entities_preview(client):
     _seed_source_flow("assign-preview-1", "assign_entities")
     db.session.add(
         ServiceLock(
-            name=ADD_DATA_LOCK, locked_by="someone", locked_at=datetime.utcnow()
+            name=ADD_DATA_LOCK, locked_by="someone", locked_at=utcnow()
         )
     )
     db.session.commit()
@@ -396,7 +397,7 @@ def test_assign_entities_lock_blocks_assign_entities_preview(client):
     _seed_source_flow("assign-preview-2", "assign_entities")
     db.session.add(
         ServiceLock(
-            name=ASSIGN_ENTITIES_LOCK, locked_by="someone", locked_at=datetime.utcnow()
+            name=ASSIGN_ENTITIES_LOCK, locked_by="someone", locked_at=utcnow()
         )
     )
     db.session.commit()
@@ -417,7 +418,7 @@ def test_add_data_lock_still_blocks_add_data_preview(client):
     _seed_source_flow("add-preview-1", "add_data")
     db.session.add(
         ServiceLock(
-            name=ADD_DATA_LOCK, locked_by="someone", locked_at=datetime.utcnow()
+            name=ADD_DATA_LOCK, locked_by="someone", locked_at=utcnow()
         )
     )
     db.session.commit()
@@ -438,7 +439,7 @@ def test_assign_entities_card_can_unlock_assign_entities_process(client):
         ServiceLock(
             name=ASSIGN_ENTITIES_LOCK,
             locked_by="someone",
-            locked_at=datetime.utcnow(),
+            locked_at=utcnow(),
         )
     )
     db.session.commit()
