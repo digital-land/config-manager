@@ -28,30 +28,34 @@ def _selected_entity_checkbox(response_data, reference):
 
 CSV_INPUT = (
     "dataset,resource,organisation,reference,status,entities_created,error_code,message\n"
-    "tree,resource-a,local-authority:ABC,ref-1,error,12%,LARGE_NUMBER_OF_NEW_ENTITIES,Entity growth is 12%\n"
-    "tree,resource-a,local-authority:ABC,ref-2,passed,1,,\n"
-    "article-4-direction-area,resource-b,local-authority:XYZ,ref-3,error,0,CURRENT_RESOURCE_EMPTY,Missing reference\n"
-    "article-4-direction-area,resource-b,local-authority:XYZ,ref-4,error,0,"
+    # resource-a is warn-only (missing_organisation no longer blocks promotion) - it must
+    # not appear in the flagged list below, since there's nothing left for a reviewer to do.
+    "tree,resource-a,local-authority:ABC,ref-1,warn,12%,MISSING_ORGANISATION,Missing organisation\n"
+    "tree,resource-a,local-authority:ABC,ref-2,assigned,1,,\n"
+    # resource-b mixes every other blocking code with a failed and a skipped row, neither of
+    # which should surface as a tag (failed pages an engineer elsewhere; skipped is a no-op).
+    "article-4-direction-area,resource-b,local-authority:XYZ,ref-3,failed,0,CURRENT_RESOURCE_EMPTY,Resource empty\n"
+    "article-4-direction-area,resource-b,local-authority:XYZ,ref-4,skipped,0,"
     "CURRENT_RESOURCE_NO_NEW_ENTITIES,No new entities\n"
-    "article-4-direction-area,resource-b,local-authority:XYZ,ref-5,error,0,"
+    "article-4-direction-area,resource-b,local-authority:XYZ,ref-5,blocked,0,"
     "DUPLICATE_ENTITY_ALL_FIELDS,Duplicate entities\n"
-    "article-4-direction-area,resource-b,local-authority:XYZ,ref-6,error,0,"
+    "article-4-direction-area,resource-b,local-authority:XYZ,ref-6,blocked,0,"
     "DUPLICATE_REFERENCE_ORGANISATION_IN_NEW_RESOURCE,Duplicate new resource\n"
-    "article-4-direction-area,resource-b,local-authority:XYZ,ref-7,error,0,"
+    "article-4-direction-area,resource-b,local-authority:XYZ,ref-7,blocked,0,"
     "DUPLICATE_REFERENCE_ORGANISATION,Duplicate existing\n"
-    "article-4-direction-area,resource-b,local-authority:XYZ,ref-8,error,0,"
-    "MISSING_ORGANISATION,Missing organisation\n"
-    "article-4-direction-area,resource-b,local-authority:XYZ,ref-9,error,0,"
+    "article-4-direction-area,resource-b,local-authority:XYZ,ref-8,blocked,0,"
     "MISSING_REFERENCE,Missing reference\n"
-    "article-4-direction-area,resource-b,local-authority:XYZ,ref-10,error,0,"
+    "article-4-direction-area,resource-b,local-authority:XYZ,ref-9,blocked,0,"
     "INVALID_URI_ISSUE,Invalid URI\n"
-    "article-4-direction-area,resource-b,local-authority:XYZ,ref-11,error,0,"
+    "article-4-direction-area,resource-b,local-authority:XYZ,ref-10,blocked,0,"
     "PREVIOUS_RESOURCE_NOT_FOUND,Previous resource not found\n"
-    "article-4-direction-area,resource-b,local-authority:XYZ,ref-12,error,0,"
+    "article-4-direction-area,resource-b,local-authority:XYZ,ref-11,blocked,0,"
     "PREVIOUS_RESOURCE_EMPTY,Previous resource is empty\n"
-    "tree,resource-c,local-authority:ABC,ref-4,successful,0,,Success\n"
-    "tree,resource-d,local-authority:ABC,ref-5,error,12%,LARGE_NUMBER_OF_NEW_ENTITIES,Entity growth is 12%\n"
-    "tree,resource-d,local-authority:ABC,ref-6,error,0,CURRENT_RESOURCE_EMPTY,Missing reference\n"
+    "tree,resource-c,local-authority:ABC,ref-4,assigned,0,,Success\n"
+    # resource-d's only blocking row is low_entity_retention (sort order 0, ahead of every
+    # code on resource-b) - its warn row (fuzzy match) must not add a tag either.
+    "tree,resource-d,local-authority:ABC,ref-5,warn,12%,POSSIBLE_REFERENCE_CHURN_FUZZY_MATCH,Possible match\n"
+    "tree,resource-d,local-authority:ABC,ref-6,blocked,0,LOW_ENTITY_RETENTION,Low entity retention\n"
 )
 
 
@@ -181,7 +185,8 @@ def test_assign_entities_from_github_artifact_processes_compatible_csv(client):
 
     summary = client.get(response.headers["Location"])
     assert summary.status_code == 200
-    assert b"resource-a" in summary.data
+    # resource-a is warn-only (missing_organisation no longer blocks), so it never appears.
+    assert b"resource-a" not in summary.data
     assert b"resource-b" in summary.data
 
 
@@ -191,7 +196,7 @@ def test_assign_entities_from_single_source_artifact_processes_selected_csv(clie
         artifact_zip.writestr("output_batch_1.csv", CSV_INPUT)
         artifact_zip.writestr(
             "output_batch_2.csv",
-            CSV_INPUT.replace("resource-a", "resource-selected"),
+            CSV_INPUT.replace("resource-d", "resource-selected"),
         )
 
     with patch(
@@ -207,7 +212,7 @@ def test_assign_entities_from_single_source_artifact_processes_selected_csv(clie
     summary = client.get(response.headers["Location"])
     assert summary.status_code == 200
     assert b"resource-selected" in summary.data
-    assert b"resource-a" not in summary.data
+    assert b"resource-d" not in summary.data
 
 
 def test_assign_entities_from_github_artifact_requires_batch_assign_summary_csv(client):
@@ -499,18 +504,17 @@ def test_csv_upload_groups_resource_dataset_combinations(client):
     assert response.status_code == 200
     assert b"Assign Entities - Flagged Resources" in response.data
     assert b"CSV import results" not in response.data
-    assert response.data.count(b">resource-a</button>") == 1
+    # resource-a is warn-only and resource-c is assigned-only - neither blocked promotion,
+    # so neither needs a reviewer and neither is shown.
+    assert b"resource-a" not in response.data
+    assert b"resource-c" not in response.data
     assert b"resource-b" in response.data
-    assert response.data.index(b">resource-a</button>") < response.data.index(
-        b"resource-b"
-    )
-    assert response.data.index(b">resource-a</button>") < response.data.index(
-        b">resource-d</button>"
-    )
+    assert b">resource-d</button>" in response.data
+    # resource-d's only blocking code is low_entity_retention (sort order 0), ahead of every
+    # code on resource-b (whose lowest is duplicate_entity_all_fields, order 1).
     assert response.data.index(b">resource-d</button>") < response.data.index(
         b"resource-b"
     )
-    assert b"resource-c" not in response.data
     assert b"Tree" not in response.data
     assert b"Organisation ABC" not in response.data
     assert b"local-authority:ABC" in response.data
@@ -520,23 +524,28 @@ def test_csv_upload_groups_resource_dataset_combinations(client):
     assert b"Errors" in response.data
     assert b"No." in response.data
     assert b"govuk-tag--red" in response.data
-    assert b"govuk-tag--yellow" in response.data
+    assert b"govuk-tag--yellow" not in response.data
     assert b"govuk-tag--grey" in response.data
-    assert b'name="errors" value="LARGE_NUMBER_OF_NEW_ENTITIES"' in response.data
-    assert b">EG</strong>" in response.data
-    assert b">CRE</strong>" in response.data
-    assert b">NNE</strong>" in response.data
+    assert b'name="errors" value="LOW_ENTITY_RETENTION"' in response.data
+    assert b">LER</strong>" in response.data
     assert b">DEAF</strong>" in response.data
     assert b">DRON</strong>" in response.data
     assert b">DRO</strong>" in response.data
-    assert b">MO</strong>" in response.data
     assert b">MR</strong>" in response.data
     assert b">IUI</strong>" in response.data
     assert b">PRE</strong>" in response.data
     assert b">PRNF</strong>" in response.data
-    assert b"Entity growth is above threshold" in response.data
-    assert b"Resource empty" in response.data
-    assert b"No new entities" in response.data
+    # failed (current_resource_empty), skipped (current_resource_no_new_entities) and warn
+    # (missing_organisation, possible_reference_churn_fuzzy_match) rows never block
+    # promotion, so none of them should surface as a tag here.
+    assert b">CRE</strong>" not in response.data
+    assert b">NNE</strong>" not in response.data
+    assert b">MO</strong>" not in response.data
+    assert b">PRCFM</strong>" not in response.data
+    assert (
+        b"Too few of the previous resource&#39;s entities are still present"
+        in response.data
+    )
     assert (
         b"Resource contains duplicates with existing entities (all fields)"
         in response.data
@@ -549,23 +558,24 @@ def test_csv_upload_groups_resource_dataset_combinations(client):
         b"Resource contains duplicates with existing entities "
         b"(Reference and organisation only)" in response.data
     )
-    assert b"Resource contain entities with missing organisation value" in response.data
     assert b"Resource contain entities with missing reference values" in response.data
     assert b"Resource has known issues with invalid URIs" in response.data
     assert b"Previous resource is empty" in response.data
     assert b"Previous resource not found" in response.data
     assert b"Error key" in response.data
     error_key_html = response.data[response.data.index(b"Error key") :]
-    assert error_key_html.index(b">EG</strong>") < error_key_html.index(
-        b">CRE</strong>"
+    assert error_key_html.index(b">LER</strong>") < error_key_html.index(
+        b">DEAF</strong>"
     )
-    assert b"background-color: #fff7bf" in response.data
+    # Every flagged resource is now a hard block (red) - the old lenient entity-growth-only
+    # and growth-mixed (yellow) stat boxes are retired along with large_number_of_new_entities,
+    # leaving a single "Needs review" category (see _group_resources).
     assert b"background-color: #ffd8b0" in response.data
-    assert b"background-color: #d4edda" not in response.data
+    assert b"background-color: #fff7bf" not in response.data
     assert b'aria-label="Error summary"' in response.data
-    assert b"Entity growth" in response.data
+    assert b"Entity growth" not in response.data
     assert b"Needs review" in response.data
-    assert b"Other errors" in response.data
+    assert b"Other errors" not in response.data
     assert b"Multiple errors" not in response.data
     assert b"No code" not in response.data
 
@@ -573,7 +583,7 @@ def test_csv_upload_groups_resource_dataset_combinations(client):
 def test_csv_import_rejects_error_rows_without_error_code(client):
     csv_input = (
         "dataset,resource,organisation,reference,status,entities_created,error_code,message\n"
-        "tree,resource-a,local-authority:ABC,ref-1,error,12%,,Entity growth is 12%\n"
+        "tree,resource-a,local-authority:ABC,ref-1,blocked,0,,Low entity retention\n"
     )
 
     response = client.post(
@@ -583,14 +593,14 @@ def test_csv_import_rejects_error_rows_without_error_code(client):
 
     assert response.status_code == 200
     assert (
-        b"Rows with status &#39;error&#39; must include an error_code" in response.data
+        b"Rows with status &#39;blocked&#39; must include an error_code" in response.data
     )
 
 
 def test_csv_import_preserves_na_error_code(client):
     csv_input = (
         "dataset,resource,organisation,reference,status,entities_created,error_code,message\n"
-        "tree,resource-a,local-authority:ABC,ref-1,error,12%,NA,Missing thing\n"
+        "tree,resource-a,local-authority:ABC,ref-1,blocked,0,NA,Missing thing\n"
     )
 
     response = client.post(
@@ -655,7 +665,9 @@ def test_uploaded_csv_groups_resource_dataset_combinations(client):
 
     assert response.status_code == 200
     assert b"Select a resource" in response.data
-    assert response.data.count(b">resource-a</button>") == 1
+    # resource-a is warn-only (missing_organisation no longer blocks), so it never appears.
+    assert b"resource-a" not in response.data
+    assert response.data.count(b">resource-d</button>") == 1
     assert b"resource-b" in response.data
 
 
@@ -749,8 +761,8 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
                             response = client.get(
                                 "/assign-entities/check-results/assign-id-1"
                                 "?entity_search=Name+2"
-                                "&errors=large_number_of_new_entities,"
-                                "current_resource_empty"
+                                "&errors=low_entity_retention,"
+                                "previous_resource_empty"
                             )
 
     assert response.status_code == 200
@@ -771,7 +783,12 @@ def test_assign_entities_check_results_does_not_show_retire_endpoints(client):
     assert b"https://example.com/data.csv" in response.data
     assert b"endpoint-a" in response.data
     assert b"Errors" in response.data
-    assert b"Entity growth is above threshold, Resource empty" in response.data
+    # Jinja autoescapes the apostrophe in "resource's" to &#39; in rendered HTML.
+    assert (
+        b"Too few of the previous resource&#39;s entities are still present in the "
+        b"current resource (below the retention threshold), Previous resource is empty"
+        in response.data
+    )
     assert b"Retire endpoints" not in response.data
     assert b"retire_endpoints" not in response.data
     assert b'action="/assign-entities/check-results/assign-id-1"' in response.data
@@ -1545,14 +1562,14 @@ def test_resource_link_submits_assign_entities_request(client):
                             "dataset": "tree",
                             "resource": "resource-a",
                             "organisation": "local-authority:ABC",
-                            "errors": "large_number_of_new_entities,current_resource_empty",
+                            "errors": "low_entity_retention,previous_resource_empty",
                         },
                     )
 
     assert response.status_code == 302
     location = response.headers["Location"]
     assert "/assign-entities/check-results/assign-id-1" in location
-    assert "errors=large_number_of_new_entities,current_resource_empty" in location
+    assert "errors=low_entity_retention,previous_resource_empty" in location
     record_branch_baseline.assert_called_once_with(
         "assign-id-1", "config-manager-update"
     )
@@ -1588,9 +1605,11 @@ def test_flagged_resources_summary_shows_persisted_and_cleared_processing_status
         data={"csv_data": CSV_INPUT},
     )
     assert import_response.status_code == 302
+    # resource-d, not resource-a - resource-a is warn-only (missing_organisation no longer
+    # blocks) and never appears in this summary, so a status badge on it would never render.
     db.session.merge(
         AssignEntityResource(
-            resource="resource-a",
+            resource="resource-d",
             dataset="tree",
             organisation="local-authority:ABC",
             status="processed",
@@ -1608,7 +1627,7 @@ def test_flagged_resources_summary_shows_persisted_and_cleared_processing_status
     assert b"(test-user)" in response.data
 
     record = db.session.get(
-        AssignEntityResource, ("resource-a", "tree", "local-authority:ABC")
+        AssignEntityResource, ("resource-d", "tree", "local-authority:ABC")
     )
     record.status = None
     db.session.commit()

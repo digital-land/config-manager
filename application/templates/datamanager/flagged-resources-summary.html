@@ -17,10 +17,11 @@
       Only resources with errors are shown.
     </p>
 
+    {# Only one category now - every flagged resource has at least one blocking error;
+       the old entity-growth-only and growth-mixed (yellow) leniency was retired with
+       large_number_of_new_entities (see ERROR_ABBREVIATIONS in flagged_resources.py). #}
     {% set error_categories = [
-      {"id": "entity_growth", "label": "Entity growth", "hint": "above threshold", "bg": "#ffffff", "bar": "#505a5f"},
-      {"id": "yellow", "label": "Needs review", "hint": "entity growth and other errors", "bg": "#fff7bf", "bar": "#b59b00"},
-      {"id": "red", "label": "Other errors", "hint": "not an entity-growth-only error", "bg": "#ffd8b0", "bar": "#d4692a"}
+      {"id": "red", "label": "Needs review", "hint": "blocking error found", "bg": "#ffd8b0", "bar": "#d4692a"}
     ] %}
     <div class="app-stat-boxes govuk-!-margin-bottom-6" aria-label="Error summary">
       {% for category in error_categories %}
@@ -46,7 +47,9 @@
         </thead>
         <tbody class="govuk-table__body">
           {% for resource in resources %}
-          <tr class="govuk-table__row" {% if resource.row_colour == 'yellow' %}style="background-color: #fff7bf;"{% elif resource.row_colour == 'red' %}style="background-color: #ffd8b0;"{% endif %}>
+          {# Every resource here has at least one blocking error (see _group_resources),
+             so the row/tag colour is no longer conditional. #}
+          <tr class="govuk-table__row" style="background-color: #ffd8b0;">
             <td class="govuk-table__cell">{{ loop.index }}</td>
             <td class="govuk-table__cell">
               <form method="post" action="{{ url_for('assign_entities.flagged_resource_submit') }}" class="govuk-!-margin-bottom-0">
@@ -74,7 +77,7 @@
             <td class="govuk-table__cell">
               {% if resource.errors %}
                 {% for error in resource.errors %}
-                <strong class="govuk-tag {% if resource.row_colour == 'yellow' %}govuk-tag--yellow{% elif resource.row_colour == 'red' %}govuk-tag--red{% else %}govuk-tag--grey{% endif %} govuk-!-margin-right-1 govuk-!-margin-bottom-1">{{ error.abbreviation }}</strong>
+                <strong class="govuk-tag govuk-tag--red govuk-!-margin-right-1 govuk-!-margin-bottom-1">{{ error.abbreviation }}</strong>
                 {% endfor %}
               {% endif %}
             </td>
