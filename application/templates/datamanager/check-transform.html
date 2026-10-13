@@ -82,7 +82,7 @@
                   {% endif %}
                 </td>
                 <td class="govuk-table__cell">
-                  <code style="word-break: break-all;">{{ ep['endpoint-url'] }}</code>
+                  <code style="word-break: break-all;"><a href="{{ ep['endpoint-url'] }}" class="govuk-link" target="_blank" rel="noopener noreferrer">{{ ep['endpoint-url'] }}</a></code>
                   <span class="govuk-hint govuk-!-margin-bottom-0" style="font-size: 0.8rem; word-break: break-all;">{{ ep.endpoint }}</span>
                 </td>
                 <td class="govuk-table__cell">{{ ep['entry-date'] or "—" }}</td>

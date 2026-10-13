@@ -1,3 +1,13 @@
+{% macro tableValue(value, field='') -%}
+  {%- if value is string and value.lower().startswith(('http://', 'https://')) -%}
+    <a href="{{ value }}" class="govuk-link" target="_blank" rel="noopener noreferrer" title="{{ value }}">{% if value | length > 50 %}{{ value[:50] }}...{% else %}{{ value }}{% endif %}</a>
+  {%- elif field | lower not in ['reference', 'endpoint', 'endpoint-url'] and value | length > 50 -%}
+    {{ value[:50] }}...
+  {%- else -%}
+    {{ value }}
+  {%- endif -%}
+{%- endmacro %}
+
 {% macro table(params) %}
 <div class="app-scrollable-container dl-scrollable">
   <table class="govuk-table dl-table app-table">
@@ -26,16 +36,8 @@
           <div class="dl-ellipsis govuk-link-wrapper">
             {{ row.columns[field].html | safe }}
           </div>
-          {% elif row.columns[field].value is string and row.columns[field].value.startswith('http') %}
-          <a href="{{ row.columns[field].value }}" class="govuk-link" target="_blank" rel="noopener noreferrer">
-            {{ row.columns[field].value }}
-          </a>
           {% else %}
-          {% if row.columns[field].value | length > 50 %}
-          {{ row.columns[field].value[:50] }}...
-          {% else %}
-          {{ row.columns[field].value }}
-          {% endif %}
+          {{ tableValue(row.columns[field].value, field) }}
           {% endif %}
         </td>
 
