@@ -377,9 +377,7 @@ def test_add_data_lock_does_not_block_assign_entities_preview(client):
     _clear_locks_and_meta("assign-preview-1")
     _seed_source_flow("assign-preview-1", "assign_entities")
     db.session.add(
-        ServiceLock(
-            name=ADD_DATA_LOCK, locked_by="someone", locked_at=utcnow()
-        )
+        ServiceLock(name=ADD_DATA_LOCK, locked_by="someone", locked_at=utcnow())
     )
     db.session.commit()
 
@@ -396,9 +394,7 @@ def test_assign_entities_lock_blocks_assign_entities_preview(client):
     _clear_locks_and_meta("assign-preview-2")
     _seed_source_flow("assign-preview-2", "assign_entities")
     db.session.add(
-        ServiceLock(
-            name=ASSIGN_ENTITIES_LOCK, locked_by="someone", locked_at=utcnow()
-        )
+        ServiceLock(name=ASSIGN_ENTITIES_LOCK, locked_by="someone", locked_at=utcnow())
     )
     db.session.commit()
 
@@ -417,9 +413,7 @@ def test_add_data_lock_still_blocks_add_data_preview(client):
     _clear_locks_and_meta("add-preview-1")
     _seed_source_flow("add-preview-1", "add_data")
     db.session.add(
-        ServiceLock(
-            name=ADD_DATA_LOCK, locked_by="someone", locked_at=utcnow()
-        )
+        ServiceLock(name=ADD_DATA_LOCK, locked_by="someone", locked_at=utcnow())
     )
     db.session.commit()
 
@@ -594,7 +588,8 @@ def test_csv_import_rejects_error_rows_without_error_code(client):
 
     assert response.status_code == 200
     assert (
-        b"Rows with status &#39;blocked&#39; must include an error_code" in response.data
+        b"Rows with status &#39;blocked&#39; must include an error_code"
+        in response.data
     )
 
 
