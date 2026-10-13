@@ -46,15 +46,20 @@ REQUIRED_COLUMNS = [
 _CACHE_DIR = Path(tempfile.gettempdir()) / "config-manager-flagged-resources"
 logger = logging.getLogger(__name__)
 
+# Codes a resource's batch-assign status can be 'blocked' for - the only status this page
+# surfaces (see _has_error). Covers every status/error_code pair batch_assign_entities.py's
+# output_df can currently produce with status 'blocked':
+#   - 'assigned' / 'skipped' never carry an error_code worth flagging.
+#   - 'failed' (current_resource_empty, or an unhandled exception) is a pipeline/engineering
+#     problem, not something a data reviewer can action here - it pages an engineer via a
+#     separate Slack alert instead, so it's deliberately excluded from this dict.
+#   - 'warn' (missing_organisation, new_endpoint_no_history,
+#     possible_reference_churn_fuzzy_match, and invalid_uri_issue when specific entities were
+#     excluded) is logged but didn't block promotion, so it isn't in this reviewer queue
+#     either - the resource already succeeded.
+# large_number_of_new_entities (EG) is retired entirely (see config ticket #2956 section 3 -
+# replaced by low_entity_retention) and intentionally has no entry here.
 ERROR_ABBREVIATIONS = {
-    "current_resource_empty": {
-        "abbreviation": "CRE",
-        "description": "Resource empty",
-    },
-    "current_resource_no_new_entities": {
-        "abbreviation": "NNE",
-        "description": "No new entities",
-    },
     "duplicate_entity_all_fields": {
         "abbreviation": "DEAF",
         "description": "Resource contains duplicates with existing entities (all fields)",
@@ -72,23 +77,18 @@ ERROR_ABBREVIATIONS = {
             "(Reference and organisation only)"
         ),
     },
-    "missing_organisation": {
-        "abbreviation": "MO",
-        "description": ("Resource contain entities with missing organisation value"),
-    },
     "missing_reference": {
         "abbreviation": "MR",
         "description": "Resource contain entities with missing reference values",
     },
     "invalid_uri_issue": {
         "abbreviation": "IUI",
+        # Also used with status 'warn' when specific entities were excluded rather than the
+        # whole resource blocked - only the 'blocked' (fail-safe, whole-resource) case ever
+        # reaches this dict, since _has_error filters to 'blocked' rows only.
         "description": (
             "Resource has known issues with invalid URIs that require manual review."
         ),
-    },
-    "large_number_of_new_entities": {
-        "abbreviation": "EG",
-        "description": "Entity growth is above threshold",
     },
     "previous_resource_not_found": {
         "abbreviation": "PRNF",
@@ -98,20 +98,24 @@ ERROR_ABBREVIATIONS = {
         "abbreviation": "PRE",
         "description": "Previous resource is empty",
     },
+    "low_entity_retention": {
+        "abbreviation": "LER",
+        "description": (
+            "Too few of the previous resource's entities are still present in the "
+            "current resource (below the retention threshold)"
+        ),
+    },
 }
 
 ERROR_SORT_ORDER = {
-    "EG": 0,
-    "CRE": 1,
-    "NNE": 2,
-    "DEAF": 3,
-    "DRON": 4,
-    "DRO": 5,
-    "MO": 6,
-    "MR": 7,
-    "IUI": 8,
-    "PRE": 9,
-    "PRNF": 10,
+    "LER": 0,
+    "DEAF": 1,
+    "DRON": 2,
+    "DRO": 3,
+    "MR": 4,
+    "IUI": 5,
+    "PRE": 6,
+    "PRNF": 7,
 }
 
 
@@ -123,10 +127,10 @@ def _normalise_frame(df):
 
 
 def _validate_error_codes(df):
-    error_rows = df["status"].str.lower().eq("error")
+    error_rows = df["status"].str.lower().eq("blocked")
     missing_codes = error_rows & df["error_code"].eq("")
     if missing_codes.any():
-        raise ValueError("Rows with status 'error' must include an error_code")
+        raise ValueError("Rows with status 'blocked' must include an error_code")
 
 
 def _read_csv_upload(uploaded_file):
@@ -197,7 +201,10 @@ def _frame_from_session():
 
 
 def _has_error(row):
-    return str(row.get("status", "")).strip().lower() == "error"
+    # Only 'blocked' rows stop a resource promoting and need a reviewer's decision here.
+    # 'warn' rows are logged but already promoted; 'skipped' is a no-op; 'failed' is a
+    # pipeline/engineering problem flagged elsewhere (see ERROR_ABBREVIATIONS above).
+    return str(row.get("status", "")).strip().lower() == "blocked"
 
 
 def _error_abbreviation(error_code):
@@ -262,9 +269,7 @@ def _resource_error_sort_key(resource):
         ),
         default=99,
     )
-    row_order = {"entity_growth": 0, "yellow": 1, "red": 2}.get(resource["row_type"], 3)
     return (
-        row_order,
         error_order,
         resource["dataset"],
         resource["organisation"],
@@ -284,26 +289,17 @@ def _group_resources(df):
         if not any(_has_error(row) for row in rows):
             continue
 
-        error_abbreviations = {error["abbreviation"] for error in errors}
-        if error_abbreviations == {"EG"}:
-            row_type = "entity_growth"
-            row_colour = ""
-        elif "EG" in error_abbreviations:
-            row_type = "yellow"
-            row_colour = "yellow"
-        else:
-            row_type = "red"
-            row_colour = "red"
-
+        # Every resource reaching here has at least one 'blocked' row - there's no more
+        # lenient sub-category to distinguish (the old entity-growth-only leniency was
+        # retired along with large_number_of_new_entities, see ERROR_ABBREVIATIONS above),
+        # so there's nothing left for a row_type/row_colour field to vary - see the template,
+        # which now styles every row the same way.
         resources.append(
             {
                 "resource": resource,
                 "dataset": dataset,
                 "organisation": organisation,
                 "errors": errors,
-                "row_type": row_type,
-                "row_colour": row_colour,
-                "is_entity_growth_only": row_type == "entity_growth",
                 "rows": len(rows),
             }
         )
@@ -655,10 +651,9 @@ def handle_flagged_resources_summary():
         resource["processing"] = statuses.get(
             (resource["resource"], resource["dataset"], resource["organisation"])
         )
-    error_category_counts = {
-        row_type: sum(resource["row_type"] == row_type for resource in resources)
-        for row_type in ("entity_growth", "yellow", "red")
-    }
+    # Every resource in the list has at least one blocking error (see _group_resources) -
+    # "red" is the only category the template renders a stat box for.
+    error_category_counts = {"red": len(resources)}
     return render_template(
         "datamanager/flagged-resources-summary.html",
         resources=resources,

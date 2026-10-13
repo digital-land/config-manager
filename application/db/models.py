@@ -1,6 +1,5 @@
-from datetime import datetime
-
 from application.extensions import db
+from application.utils import utcnow
 
 
 class ServiceLock(db.Model):
@@ -8,7 +7,7 @@ class ServiceLock(db.Model):
 
     name = db.Column(db.Text, primary_key=True)
     locked_by = db.Column(db.Text, nullable=False)
-    locked_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    locked_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
 
 class RequestMeta(db.Model):
@@ -44,7 +43,7 @@ class EntityClaim(db.Model):
     entity = db.Column(db.BigInteger, nullable=False)
     branch = db.Column(db.Text, nullable=False)
     request_id = db.Column(db.Text, nullable=False)
-    claimed_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    claimed_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     __table_args__ = (
         db.UniqueConstraint(
@@ -66,7 +65,7 @@ class AssignEntityResource(db.Model):
     organisation = db.Column(db.Text, primary_key=True)
     status = db.Column(db.Text, nullable=True)
     actor_username = db.Column(db.Text, nullable=False)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     __table_args__ = (
         db.CheckConstraint(

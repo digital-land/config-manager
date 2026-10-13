@@ -14,20 +14,21 @@ to bridge assessment->commit; the branch compare takes over once the commit land
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
 
 from application.db.models import EntityClaim
 from application.extensions import db
+from application.utils import utcnow
 
 logger = logging.getLogger(__name__)
 
 
 def _cleanup_expired(collection: str, branch: str) -> None:
     ttl = current_app.config.get("ENTITY_CLAIM_TTL_SECONDS", 10 * 60)
-    cutoff = datetime.utcnow() - timedelta(seconds=ttl)
+    cutoff = utcnow() - timedelta(seconds=ttl)
     db.session.query(EntityClaim).filter(
         EntityClaim.collection == collection,
         EntityClaim.branch == branch,

@@ -8,13 +8,13 @@ and assign-entities flows.
 """
 
 import logging
-from datetime import datetime
 
 from flask import render_template, session, url_for
 from sqlalchemy.exc import IntegrityError
 
 from application.db.models import RequestMeta
 from application.extensions import db
+from application.utils import utcnow
 
 from . import ControllerError
 from .request_meta import load_json_list
@@ -278,7 +278,7 @@ def handle_add_data_confirm(
     won_slot = (
         db.session.query(RequestMeta)
         .filter_by(request_id=request_id, dispatched_at=None)
-        .update({"dispatched_at": datetime.utcnow()}, synchronize_session=False)
+        .update({"dispatched_at": utcnow()}, synchronize_session=False)
     )
     db.session.commit()
     if not won_slot:

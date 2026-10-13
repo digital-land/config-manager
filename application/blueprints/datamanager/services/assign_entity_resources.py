@@ -1,11 +1,10 @@
 """Persistent status tracking for Assign Entities resources."""
 
-from datetime import datetime
-
 from sqlalchemy import tuple_
 
 from application.db.models import AssignEntityResource
 from application.extensions import db
+from application.utils import utcnow
 
 IN_PROGRESS = "in_progress"
 PROCESSED = "processed"
@@ -31,7 +30,7 @@ def set_assign_entity_resource_status(
 
     record.status = status
     record.actor_username = actor_username
-    record.updated_at = datetime.utcnow()
+    record.updated_at = utcnow()
     db.session.commit()
     return record
 

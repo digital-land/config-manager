@@ -1,5 +1,4 @@
 import re
-from datetime import datetime
 from unittest.mock import patch
 
 from application.blueprints.datamanager.services.github import (
@@ -8,6 +7,7 @@ from application.blueprints.datamanager.services.github import (
 )
 from application.db.models import AssignEntityResource, EntityClaim, RequestMeta
 from application.extensions import db
+from application.utils import utcnow
 
 _CONFIRM = "application.blueprints.datamanager.controllers.confirm"
 
@@ -225,7 +225,7 @@ class TestAddDataConfirmRoute:
 
     def test_already_submitted_does_not_redispatch(self, client):
         db.session.add(
-            RequestMeta(request_id="idem-dispatched", dispatched_at=datetime.utcnow())
+            RequestMeta(request_id="idem-dispatched", dispatched_at=utcnow())
         )
         db.session.commit()
         with client.session_transaction() as sess:

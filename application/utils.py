@@ -9,6 +9,17 @@ from dateutil.relativedelta import relativedelta
 from requests import HTTPError
 
 
+def utcnow():
+    """Naive UTC timestamp, matching this project's naive (no-timezone) DB columns.
+
+    datetime.datetime.utcnow() is deprecated; this is the same value via the
+    non-deprecated datetime.now(timezone.utc), with tzinfo stripped so it stays
+    naive - swapping in an aware datetime here would break comparisons against the
+    naive values already in those columns.
+    """
+    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+
 def compute_hash(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
