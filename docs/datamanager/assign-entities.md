@@ -56,6 +56,19 @@ and imports its single `batch_assign_summary*.csv` file.
 If there are multiple .csv files contained in the single-source ZIP then they are processed individually and the summary .csv files are suffixed by an incremental integer.  Artifacts of 20 MB or more are not
 imported and are flagged for the operator to download and upload the CSV instead.
 
+#### Flagged resources: status and error codes
+
+`batch_assign_entities.py` (in `digital-land/config`) writes one row per finding to the imported CSV, with a `status` of `assigned`, `skipped`, `blocked`, `failed`, or the non-blocking severity `warn`. `_has_error()` in `flagged_resources.py` is the only thing that decides whether a resource appears in the flagged-resources list at all, and it matches **only** `blocked`:
+
+| Status | Shown in this list? | Why |
+| --- | --- | --- |
+| `blocked` | Yes | A data-quality finding stopped promotion — needs this review flow. |
+| `warn` | No | Logged, but the resource already succeeded — nothing to review. |
+| `skipped` | No | A no-op; nothing was ever going to be assigned. |
+| `failed` | No | A pipeline/engineering problem (e.g. `current_resource_empty`), not a data-quality finding — paged to an engineer separately, not routed here. |
+
+`ERROR_ABBREVIATIONS` and `ERROR_SORT_ORDER` in `flagged_resources.py` list every `error_code` that can currently carry status `blocked` (`DEAF`, `DRON`, `DRO`, `MR`, `IUI`, `PRNF`, `PRE`, `LER`) — this list must stay in sync with `batch_assign_entities.py`'s own blocking checks, or a code that script treats as blocking will render with no description and sort last. There used to be a separate lenient "entity growth" category (white) and a "growth mixed with other errors" category (yellow) for the now-retired `large_number_of_new_entities` check; both are gone — every resource that reaches this list today has a genuine blocking finding, so `_group_resources` always colours it red (`"needs review"`).
+
 `controllers/flagged_resources.py` resolves:
 
 - `dataset`
