@@ -76,7 +76,7 @@
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">Endpoint URL</dt>
             <dd class="govuk-summary-list__value" style="word-break: break-all">
-              {{ endpoint_url }}
+              <a href="{{ endpoint_url }}" class="govuk-link" target="_blank" rel="noopener noreferrer">{{ endpoint_url }}</a>
             </dd>
           </div>
           <div class="govuk-summary-list__row">
@@ -113,7 +113,7 @@
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">Documentation URL</dt>
             <dd class="govuk-summary-list__value" style="word-break: break-all">
-              {{ source_summary.documentation_url }}
+              <a href="{{ source_summary.documentation_url }}" class="govuk-link" target="_blank" rel="noopener noreferrer">{{ source_summary.documentation_url }}</a>
             </dd>
           </div>
         </dl>
@@ -196,7 +196,13 @@
             {% for ep in retire_summary %}
             <div class="govuk-summary-list__row">
               <dt class="govuk-summary-list__key">Endpoint to retire</dt>
-              <dd class="govuk-summary-list__value"><code>{{ ep['endpoint-url'] or ep.endpoint }}</code></dd>
+              <dd class="govuk-summary-list__value" style="word-break: break-all">
+                {% if ep['endpoint-url'] is string and ep['endpoint-url'].lower().startswith(('http://', 'https://')) %}
+                <a href="{{ ep['endpoint-url'] }}" class="govuk-link" target="_blank" rel="noopener noreferrer">{{ ep['endpoint-url'] }}</a>
+                {% else %}
+                {{ ep.endpoint }}
+                {% endif %}
+              </dd>
             </div>
             {% endfor %}
           </dl>
@@ -223,7 +229,13 @@
             {% for ep in unretire_summary %}
             <div class="govuk-summary-list__row">
               <dt class="govuk-summary-list__key">Endpoint to unretire</dt>
-              <dd class="govuk-summary-list__value"><code>{{ ep['endpoint-url'] or ep.endpoint }}</code></dd>
+              <dd class="govuk-summary-list__value" style="word-break: break-all">
+                {% if ep['endpoint-url'] is string and ep['endpoint-url'].lower().startswith(('http://', 'https://')) %}
+                <a href="{{ ep['endpoint-url'] }}" class="govuk-link" target="_blank" rel="noopener noreferrer">{{ ep['endpoint-url'] }}</a>
+                {% else %}
+                {{ ep.endpoint }}
+                {% endif %}
+              </dd>
             </div>
             {% endfor %}
           </dl>

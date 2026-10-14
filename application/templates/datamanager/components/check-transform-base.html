@@ -1,5 +1,5 @@
 {% extends 'layouts/base.html' %}
-{% from "components/table.html" import table %}
+{% from "components/table.html" import table, tableValue %}
 {% from "govuk_frontend_jinja/components/pagination/macro.html" import govukPagination %}
 
 {% block pageTitle %}{% endblock %}
@@ -200,8 +200,7 @@
                 {% for col in entities_data.columns %}
                 {% set _changed = row.changed_fields and col in row.changed_fields %}
                 <td class="govuk-table__cell app-wrap{% if _changed %} app-cell-changed{% endif %}"{% if _changed %} title="Platform value: {{ row.changed_fields[col] }}" data-platform-value="Platform value: {{ row.changed_fields[col] }}"{% endif %}>
-                  {% set val = row.fields[col] %}
-                  {% if val | length > 50 %}{{ val[:50] }}...{% else %}{{ val }}{% endif %}
+                  {{ tableValue(row.fields[col], col) }}
                 </td>
                 {% endfor %}
               </tr>
@@ -323,7 +322,7 @@
             <div class="govuk-summary-list__row">
               <dt class="govuk-summary-list__key">Endpoint URL</dt>
               <dd class="govuk-summary-list__value">
-                <code style="word-break: break-all;">{{ endpoint_url }}</code>
+                <a class="govuk-link" href="{{ endpoint_url }}" target="_blank" rel="noopener noreferrer" style="word-break: break-all;">{{ endpoint_url }}</a>
                 <strong class="govuk-tag {{ 'govuk-tag--green' if endpoint_is_gov_uk else 'govuk-tag--grey' }}" style="margin-left: 6px; vertical-align: middle; font-size: 0.75rem;">{{ 'gov.uk' if endpoint_is_gov_uk else 'non-gov.uk' }}</strong>
               </dd>
             </div>
