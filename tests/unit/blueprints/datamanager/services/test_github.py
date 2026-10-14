@@ -23,6 +23,49 @@ def _with_app_creds(app):
     app.config["GITHUB_APP_PRIVATE_KEY"] = "key"
 
 
+@pytest.mark.parametrize("status", [201, 204])
+def test_sync_config_branch_merges_main_without_replacing_pending_work(app, status):
+    from application.blueprints.datamanager.services import github
+
+    response = Mock(status_code=status)
+    response.json.return_value = {"sha": "merged-sha"}
+    with app.app_context(), patch.object(
+        github, "get_branch_head_sha", return_value="shared-sha"
+    ), patch.object(github, "_get_access_token", return_value="token"), patch.object(
+        github.requests, "post", return_value=response
+    ) as post:
+        github.sync_config_branch("shared")
+    assert post.call_args.args[0].endswith("/repos/digital-land/config/merges")
+    assert post.call_args.kwargs["json"] == {"base": "shared", "head": "main"}
+
+
+def test_sync_config_branch_leaves_missing_branch_for_lazy_creation(app):
+    from application.blueprints.datamanager.services import github
+
+    with app.app_context(), patch.object(
+        github, "get_branch_head_sha", return_value=None
+    ), patch.object(github.requests, "post") as post:
+        github.sync_config_branch("shared")
+    post.assert_not_called()
+
+
+@pytest.mark.parametrize("status", [403, 409, 422, 500])
+def test_sync_config_branch_fails_closed(app, status):
+    import requests
+    from application.blueprints.datamanager.services import github
+
+    response = Mock(status_code=status)
+    response.raise_for_status.side_effect = requests.HTTPError(response=response)
+    with app.app_context(), patch.object(
+        github, "get_branch_head_sha", return_value="shared-sha"
+    ), patch.object(github, "_get_access_token", return_value="token"), patch.object(
+        github.requests, "post", return_value=response
+    ), pytest.raises(
+        github.GitHubAppError
+    ):
+        github.sync_config_branch("shared")
+
+
 def _patch_token():
     return (
         patch(

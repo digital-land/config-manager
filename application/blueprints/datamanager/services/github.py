@@ -294,6 +294,35 @@ def get_branch_head_sha(branch: str) -> str | None:
         raise GitHubAppError(f"Failed to read HEAD SHA for branch '{branch}': {e}")
 
 
+def sync_config_branch(branch: str) -> None:
+    """Merge main into an existing assessment branch, preserving pending changes.
+
+    A missing branch is still created lazily by the commit workflow; the worker
+    reads main in that case. Never reset a shared branch or resolve conflicts
+    automatically: either would risk losing unmerged submissions.
+    """
+    if branch == "main" or get_branch_head_sha(branch) is None:
+        return
+
+    access_token = _get_access_token()
+    url = (
+        f"{current_app.config['GITHUB_API_BASE_URL']}/repos/digital-land/config/merges"
+    )
+    try:
+        response = requests.post(
+            url,
+            headers=_github_headers(access_token),
+            json={"base": branch, "head": "main"},
+            timeout=30,
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        raise GitHubAppError(
+            f"Could not update config branch '{branch}' from main. "
+            "Resolve any branch conflicts and retry the assessment."
+        ) from e
+
+
 def get_config_baseline_sha(branch: str) -> str | None:
     """
     Return the HEAD SHA to baseline an assessment against: the shared branch if it
