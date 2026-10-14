@@ -51,6 +51,11 @@ creation:
 Only a `config-manager-update → main` PR is auto-merged (`auto-merge-config-manager.yml`); other
 branch names (e.g. `test-config-manager-update`) open a normal PR that is never auto-merged.
 
+Before a shared-branch assessment, Manage Service merges `main` into the existing
+branch. The config add-data workflow merges `main` again before editing CSVs.
+Both preserve pending submissions and stop on merge conflicts. Missing shared
+branches retain the existing fallback to `main`.
+
 ## CSV files updated
 
 | File | Source | Condition |
