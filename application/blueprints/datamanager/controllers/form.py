@@ -428,7 +428,6 @@ def _submit_add_data_preview(request_id, add_data_fields):
 
     params = {
         "type": "add_data",
-        "preview": True,
         "collection": check_params.get("collection"),
         "dataset": check_params.get("dataset"),
         "url": check_params.get("url"),

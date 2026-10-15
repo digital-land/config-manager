@@ -82,7 +82,10 @@ class TestCheckResultsRoute:
             **PENDING_RESULT,
             "params": {
                 **PENDING_RESULT["params"],
+                "collection": "brownfield",
+                "url": "https://example.org/data.csv",
                 "column_mapping": {"OldColumn": "name"},
+                "endpoint_parameters": {"plugin": "wfs"},
             },
         }
         with patch(
@@ -99,7 +102,16 @@ class TestCheckResultsRoute:
         assert response.status_code == 302
         assert "new-check-id" in response.headers["Location"]
         submitted_params = submit_request.call_args.args[0]
-        assert submitted_params["column_mapping"] == {"MyColumn": "name"}
+        assert submitted_params == {
+            "type": "check_url",
+            "collection": "brownfield",
+            "dataset": "brownfield-land",
+            "url": "https://example.org/data.csv",
+            "column_mapping": {"MyColumn": "name"},
+            "geom_type": None,
+            "organisationName": "local-authority-eng:ABC",
+            "endpoint_parameters": {"plugin": "wfs"},
+        }
 
 
 def _issue_task(
