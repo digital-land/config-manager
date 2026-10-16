@@ -272,7 +272,42 @@ class TestCheckResultsIncompleteDetails:
 
         assert response.status_code == 200
         assert b"checked data could not be fetched" in response.data
-        assert b"Reload to try again" in response.data
+        assert b"Reload to try again" in response.data       
+
+    def test_displays_total_entry_count(self, client):
+        details = [
+            {
+                "entry_number": 1,
+                "converted_row": {"ref": "R1"},
+                "transformed_row": [
+                    {"entity": 100, "field": "reference", "value": "R1"}
+                ],
+                "issue_logs": [],
+            }
+        ]
+        with patch(
+            "application.blueprints.datamanager.router.fetch_request",
+            return_value=COMPLETED_CHECK_RESULT,
+        ), patch(
+            "application.blueprints.datamanager.controllers.check.get_organisation_name",
+            return_value="Test Org",
+        ), patch(
+            "application.blueprints.datamanager.controllers.check.get_dataset_name",
+            return_value="Brownfield Land",
+        ), patch(
+            "application.blueprints.datamanager.controllers.check.fetch_response_details",
+            return_value=(details, 42),
+        ), patch(
+            "application.blueprints.datamanager.controllers.check.fetch_boundary_geojson",
+            return_value=None,
+        ), patch(
+            "application.blueprints.datamanager.controllers.check.get_field_names_for_dataset",
+            return_value=[],
+        ):
+            response = client.get("/datamanager/check-results/total-id")
+
+        assert response.status_code == 200
+        assert b"Showing entries 1 to 1 of 42" in response.data
 
     def _run(self, client, request_id, is_admin):
         with client.session_transaction() as sess:
@@ -345,7 +380,7 @@ def test_submission_gate_uses_task_severity(app, task, allowed):
     }
     module = "application.blueprints.datamanager.controllers.check"
     with app.test_request_context(), patch(
-        f"{module}.fetch_response_details", return_value=[]
+        f"{module}.fetch_response_details", return_value=([], 0)
     ), patch(f"{module}.fetch_boundary_geojson", return_value=None), patch(
         f"{module}.get_field_names_for_dataset", return_value=[]
     ), patch(

@@ -1,4 +1,4 @@
-{% macro dataTables(converted_table, transformed_table, issue_log_table, pagination_params=none, page_start=none, page_end=none) %}
+{% macro dataTables(converted_table, transformed_table, issue_log_table, pagination_params=none, page_start=none, page_end=none, total_entries=none) %}
 {% from "components/table.html" import table %}
 {% from "govuk_frontend_jinja/components/pagination/macro.html" import govukPagination %}
 <div class="govuk-tabs" data-module="govuk-tabs">
@@ -22,7 +22,7 @@
       <p class="govuk-body">No rows to display</p>
     {% endif %}
     {% if pagination_params %}
-    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
+    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}{% if total_entries is not none %} of {{ total_entries }}{% endif %}</p>
     {{ govukPagination(pagination_params) }}
     {% endif %}
   </div>
@@ -35,7 +35,7 @@
       <p class="govuk-body">No rows to display</p>
     {% endif %}
     {% if pagination_params %}
-    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
+    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}{% if total_entries is not none %} of {{ total_entries }}{% endif %}</p>
     {{ govukPagination(pagination_params) }}
     {% endif %}
   </div>
@@ -48,7 +48,7 @@
       <p class="govuk-body">No issues on this page.</p>
     {% endif %}
     {% if pagination_params %}
-    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
+    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}{% if total_entries is not none %} of {{ total_entries }}{% endif %}</p>
     {{ govukPagination(pagination_params) }}
     {% endif %}
   </div>
