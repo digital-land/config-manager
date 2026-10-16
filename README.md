@@ -14,7 +14,30 @@ Create or update db schema
 
     make upgrade-db
 
-To run the application run:
+### Set up the async backend
+
+The add-data and assign-entities workflows need the async backend. With Docker
+running, clone the backend alongside config-manager and start its services:
+
+```sh
+cd ..
+git clone https://github.com/digital-land/async-request-backend.git
+cd async-request-backend
+docker compose up -d --build
+```
+
+This starts the request API, worker, database, and LocalStack for SQS/S3. No
+separate Python virtualenv is needed for this Docker setup.
+
+In config-manager's `.env` file, set:
+
+```dotenv
+REQUEST_API_BASE_URL=http://localhost:8000
+```
+
+### Run config-manager
+
+Return to the config-manager directory and run:
 
     make run
 
@@ -114,4 +137,3 @@ See the comments in package-scripts.js for details on why these overrides are ne
 ### Digital Land Frontend Configuration
 
 Frontend build paths are configured in [digital-land-frontend.config.json](digital-land-frontend.config.json).
-
