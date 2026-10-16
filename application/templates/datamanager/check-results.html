@@ -62,7 +62,7 @@
       "next": {"href": url_for('datamanager.check_results', request_id=request_id, page_number=page_number + 1)} if has_next_page else none,
       "items": pagination_items
     } %}
-    {{ dataTables(converted_table, transformed_table, issue_log_table, pagination_params=pagination_params, page_start=page_start, page_end=page_end) }}
+    {{ dataTables(converted_table, transformed_table, issue_log_table, pagination_params=pagination_params, page_start=page_start, page_end=page_end, total_entries=total_entries) }}
 
     <!-- Metadata & Results -->
     <div class="govuk-grid-row govuk-!-margin-top-6">
@@ -81,6 +81,12 @@
             </dd>
           </div>
           {% endif %}
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Entries</dt>
+            <dd class="govuk-summary-list__value">
+              {{ total_entries }}
+            </dd>
+          </div>
           <div class="govuk-summary-list__row">
             <dt class="govuk-summary-list__key">Date checked</dt>
             <dd class="govuk-summary-list__value">

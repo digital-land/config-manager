@@ -133,6 +133,18 @@ class TestFetchResponseDetails:
         assert len(result) == 12
         fetch_pages.assert_not_called()
 
+    def test_can_return_total_results_header(self, app):
+        with self._patch_first_page(_page_response(_rows(0, 12), total=42)), patch(
+            "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently"
+        ) as fetch_pages:
+            details, total = fetch_response_details(
+                "with-total", max_rows=12, include_total=True
+            )
+
+        assert len(details) == 12
+        assert total == 42
+        fetch_pages.assert_not_called()
+
     def test_max_rows_clamps_the_result(self, app):
         with self._patch_first_page(_page_response(_rows(0, 500), total=5000)), patch(
             "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently",
