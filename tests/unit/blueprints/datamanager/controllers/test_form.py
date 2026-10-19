@@ -591,7 +591,7 @@ class TestHandleAddData:
         ), patch(
             "application.blueprints.datamanager.controllers.form.submit_request",
             return_value="new-preview-request-id",
-        ):
+        ) as submit_request:
             response = client.post(
                 "/datamanager/add-data/test-request-id",
                 data={
@@ -607,3 +607,9 @@ class TestHandleAddData:
 
         assert response.status_code == 302
         assert "new-preview-request-id" in response.headers["Location"]
+        submitted_params = submit_request.call_args.args[0]
+        assert "preview" not in submitted_params
+        assert submitted_params["documentation_url"] == "https://example.gov.uk/docs"
+        assert submitted_params["licence"] == "ogl3"
+        assert submitted_params["start_date"] == "2024-06-01"
+        assert submitted_params["organisation"] == "local-authority:ABC"

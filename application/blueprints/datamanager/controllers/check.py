@@ -401,13 +401,10 @@ def handle_check_resubmit(request_id):
         "collection": params.get("collection"),
         "dataset": params.get("dataset"),
         "url": params.get("url"),
-        "documentation_url": params.get("documentation_url"),
-        "licence": params.get("licence"),
-        "start_date": params.get("start_date"),
         "column_mapping": column_mapping or None,
         "geom_type": params.get("geom_type"),
-        "organisation": params.get("organisation"),
         "organisationName": params.get("organisationName"),
+        "endpoint_parameters": params.get("endpoint_parameters"),
     }
 
     try:
