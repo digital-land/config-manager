@@ -272,7 +272,7 @@ class TestCheckResultsIncompleteDetails:
 
         assert response.status_code == 200
         assert b"checked data could not be fetched" in response.data
-        assert b"Reload to try again" in response.data       
+        assert b"Reload to try again" in response.data
 
     def test_displays_total_entry_count(self, client):
         details = [
