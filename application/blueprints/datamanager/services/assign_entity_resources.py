@@ -1,5 +1,8 @@
 """Persistent status tracking for Assign Entities resources."""
 
+from datetime import datetime, time, timezone
+from zoneinfo import ZoneInfo
+
 from sqlalchemy import tuple_
 
 from application.db.models import AssignEntityResource
@@ -56,7 +59,13 @@ def get_assign_entity_resource_statuses(
                 ).in_(keys[start : start + 300])
             ).all()
         )
+    uk_now = utcnow().replace(tzinfo=timezone.utc).astimezone(
+        ZoneInfo("Europe/London")
+    )
+    uk_cutoff = datetime.combine(uk_now.date(), time(6, 0), tzinfo=uk_now.tzinfo)
+    cutoff = uk_cutoff.astimezone(timezone.utc).replace(tzinfo=None)
     return {
         (record.resource, record.dataset, record.organisation): record
         for record in records
+        if record.status != IN_PROGRESS or record.updated_at >= cutoff
     }
