@@ -1,5 +1,3 @@
-from tests.auth import user_token
-
 import json
 import re
 import zipfile
@@ -462,18 +460,21 @@ def test_unknown_process_lock_redirects_home(client):
 
 
 def test_process_lock_toggle_allows_authenticated_non_admin(client, app):
+    previous_authentication_on = app.config["AUTHENTICATION_ON"]
+    app.config["AUTHENTICATION_ON"] = True
     db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
     db.session.commit()
 
     try:
         with client.session_transaction() as sess:
-            sess["auth_token"] = user_token({"login": "test-user", "is_admin": False})
+            sess["user"] = {"login": "test-user", "is_admin": False}
 
         response = client.post("/process-lock/add-data/toggle")
         assert response.status_code == 302
         assert response.headers["Location"] == "/index"
         assert db.session.get(ServiceLock, ADD_DATA_LOCK).locked_by == "test-user"
     finally:
+        app.config["AUTHENTICATION_ON"] = previous_authentication_on
         db.session.query(ServiceLock).filter_by(name=ADD_DATA_LOCK).delete()
         db.session.commit()
 
@@ -1518,9 +1519,7 @@ def test_assign_entities_check_results_post_resubmits_changed_redirect_selection
 
 
 @rsps.activate
-def test_resource_link_submits_assign_entities_request(client, authenticated_session):
-    with client.session_transaction() as sess:
-        sess.pop("user", None)
+def test_resource_link_submits_assign_entities_request(client, logged_in_user):
     import_response = client.post(
         "/assign-entities/import",
         data={"csv_data": CSV_INPUT},
@@ -1634,7 +1633,7 @@ def test_flagged_resources_summary_shows_persisted_and_cleared_processing_status
 
 
 @rsps.activate
-def test_direct_dataset_resource_skips_summary_page(client, authenticated_session):
+def test_direct_dataset_resource_skips_summary_page(client, logged_in_user):
     rsps.add(rsps.POST, ASYNC_BASE, json={"id": "assign-id-1"}, status=202)
 
     with patch(
@@ -1671,7 +1670,7 @@ def test_direct_dataset_resource_skips_summary_page(client, authenticated_sessio
 
 
 @rsps.activate
-def test_resource_submit_uses_selected_organisation(client, authenticated_session):
+def test_resource_submit_uses_selected_organisation(client, logged_in_user):
     rsps.add(rsps.POST, ASYNC_BASE, json={"id": "assign-id-1"}, status=202)
 
     with patch(

@@ -13,7 +13,6 @@ import pandas as pd
 from flask import current_app, redirect, render_template, request, session, url_for
 
 from application.data_access.overview.digital_land_queries import get_resource
-from application.blueprints.auth.auth_token import get_username
 
 from . import ControllerError
 from .request_meta import record_branch_baseline, record_source_flow
@@ -683,7 +682,7 @@ def handle_flagged_resource_submit():
     except AsyncAPIError as e:
         raise ControllerError(f"Assign entities submission failed: {e.detail}") from e
 
-    actor_username = get_username()
+    actor_username = (session.get("user") or {}).get("login", "unknown")
     try:
         set_assign_entity_resource_status(
             resource, dataset, organisation, IN_PROGRESS, actor_username

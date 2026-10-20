@@ -3,7 +3,6 @@ from unittest.mock import patch
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from tests.auth import user_token
 from application.extensions import db as _db
 from application.factory import create_app
 
@@ -27,16 +26,6 @@ def client(app):
 
 
 @pytest.fixture(autouse=True)
-def authenticated_session(app, client):
-    """A logged-in user's token for journeys with a mocked async API."""
-    with client.session_transaction() as sess:
-        sess["auth_token"] = user_token({"login": "test-user"})
-    yield
-    with client.session_transaction() as sess:
-        sess.pop("auth_token", None)
-
-
-@pytest.fixture(autouse=True)
 def mock_dataset_typology():
     """Prevent get_dataset_typology from making HTTP calls in tests.
 
@@ -48,3 +37,13 @@ def mock_dataset_typology():
         return_value="",
     ):
         yield
+
+
+@pytest.fixture
+def logged_in_user(client):
+    """A GitHub session for journeys exercising authenticated API calls."""
+    with client.session_transaction() as sess:
+        sess["user"] = {"id": 123, "login": "test-user", "is_admin": False}
+    yield
+    with client.session_transaction() as sess:
+        sess.pop("user", None)

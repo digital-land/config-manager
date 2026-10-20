@@ -1,5 +1,3 @@
-from tests.auth import user_token
-
 import json
 from unittest.mock import patch
 
@@ -199,7 +197,7 @@ class TestEntitiesPreviewRoute:
 class TestAddDataConfirmRoute:
     def test_success_renders_success_page(self, client):
         with client.session_transaction() as sess:
-            sess["auth_token"] = user_token({"login": "test-user"})
+            sess["user"] = {"login": "test-user"}
         with patch(
             "application.blueprints.datamanager.controllers.confirm.trigger_add_data_async_workflow",
             return_value={"success": True, "message": "Workflow triggered"},
@@ -212,7 +210,7 @@ class TestAddDataConfirmRoute:
 
     def test_workflow_failure_renders_error(self, client):
         with client.session_transaction() as sess:
-            sess["auth_token"] = user_token({"login": "test-user"})
+            sess["user"] = {"login": "test-user"}
         with patch(
             "application.blueprints.datamanager.controllers.confirm.trigger_add_data_async_workflow",
             return_value={"success": False, "message": "Dispatch rejected"},
@@ -229,7 +227,7 @@ class TestAddDataConfirmRoute:
         )
 
         with client.session_transaction() as sess:
-            sess["auth_token"] = user_token({"login": "test-user"})
+            sess["user"] = {"login": "test-user"}
         with patch(
             "application.blueprints.datamanager.controllers.confirm.trigger_add_data_async_workflow",
             side_effect=GitHubWorkflowError("credentials not configured"),
@@ -1250,7 +1248,7 @@ class TestComparisonUnavailableOverride:
 
     def _set_admin(self, client, is_admin):
         with client.session_transaction() as sess:
-            sess["auth_token"] = user_token({"name": "Tester", "is_admin": is_admin})
+            sess["user"] = {"name": "Tester", "is_admin": is_admin}
 
     def _incomplete_transform_page(self, client, request_id):
         rsps.add(

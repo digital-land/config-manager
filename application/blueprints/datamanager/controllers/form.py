@@ -15,7 +15,6 @@ from flask import (
 )
 
 from .request_meta import record_branch_baseline, record_source_flow
-from application.blueprints.auth.auth_token import has_role
 from ..services.async_api import (
     AsyncAPIError,
     fetch_request,
@@ -38,7 +37,9 @@ logger = logging.getLogger(__name__)
 
 
 def _is_admin():
-    return has_role("admin")
+    if not current_app.config.get("AUTHENTICATION_ON", True):
+        return True
+    return bool((session.get("user") or {}).get("is_admin"))
 
 
 def _organisation_display_name(org_code: str, org_values: list) -> str:

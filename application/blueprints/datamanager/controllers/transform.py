@@ -3,13 +3,12 @@ import logging
 import re
 
 import requests
-from flask import current_app, render_template, request as flask_request
+from flask import current_app, render_template, request as flask_request, session
 from shapely import wkt
 from shapely.geometry import mapping
 
 from . import ControllerError
 from application.utils import compute_hash
-from application.blueprints.auth.auth_token import has_role
 from ..services.async_api import ResponseDetailsIncomplete, fetch_response_details
 from ..services.dataset import get_dataset_name, get_dataset_typology
 from ..services.duplicates import REDIRECT_STATUSES
@@ -964,7 +963,7 @@ def handle_check_transform(
     # resource entities as new; missing resource rows would show platform entities as
     # platform-only. Either way, suppress it rather than render something wrong.
     comparison_unavailable = platform_fetch_failed or details_incomplete
-    can_override = has_role("admin")
+    can_override = bool((session.get("user") or {}).get("is_admin"))
 
     response_payload = req.get("response") or {}
     response_data = response_payload.get("data") or {}

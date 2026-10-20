@@ -1,66 +1,20 @@
 from http import HTTPStatus
 from unittest.mock import Mock, patch
 
-import jwt
-import pytest
 from flask import session
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 from application.blueprints.auth.views import _is_member_of_admin_team
+from application.blueprints.datamanager.router import _require_login
 
 
-@pytest.mark.parametrize("is_admin,role", [(True, "admin"), (False, "staff")])
-def test_authorize_issues_auth_token_and_logout_clears_it(
-    client, app, monkeypatch, is_admin, role
-):
-    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    monkeypatch.setitem(app.config, "AUTH_JWT_PRIVATE_KEY", key)
-    monkeypatch.setitem(app.config, "AUTH_JWT_ISSUER", "manage-test")
-    monkeypatch.setitem(app.config, "AUTH_JWT_AUDIENCE", "async-test")
-    user = Mock()
-    user.json.return_value = {"id": 123, "login": "alice"}
-    with patch(
-        "application.blueprints.auth.views.oauth.github.authorize_access_token",
-        return_value={"access_token": "github-token"},
-    ), patch(
-        "application.blueprints.auth.views.oauth.github.get", return_value=user
-    ), patch(
-        "application.blueprints.auth.views.requests.get",
-        return_value=Mock(status_code=204),
-    ), patch(
-        "application.blueprints.auth.views._is_member_of_admin_team",
-        return_value=is_admin,
-    ):
-        assert client.get("/auth/authorize").status_code == 302
-    with client.session_transaction() as session:
-        assert "auth_token" in session
-        claims = jwt.decode(
-            session["auth_token"],
-            key.public_key(),
-            algorithms=["RS256"],
-            issuer="manage-test",
-            audience="async-test",
-        )
-    assert claims["sub"] == "123"
-    assert claims["auth_provider"] == "github"
-    assert claims["role"] == role
-    assert claims["exp"] - claims["iat"] == 900
-    client.get("/auth/logout")
-    with client.session_transaction() as session:
-        assert "auth_token" not in session
-
-
-def test_expired_auth_token_requires_login(app, monkeypatch):
-    from application.blueprints.datamanager.router import _require_login
-
+def test_manage_guard_uses_login_session_not_api_token(app, monkeypatch):
     monkeypatch.setitem(app.config, "AUTHENTICATION_ON", True)
+    monkeypatch.setitem(app.config, "AUTH_JWT_PRIVATE_KEY", None)
     with app.test_request_context("/datamanager/"):
-        session["user"] = {"login": "alice"}
         session["auth_token"] = "expired"
-        session["auth_token_expires"] = 1
-        response = _require_login()
-    assert response.status_code == 302
-    assert "/auth/login?next=" in response.location
+        assert _require_login().status_code == 302
+        session["user"] = {"id": 123, "login": "alice", "is_admin": False}
+        assert _require_login() is None
 
 
 def test_is_member_of_admin_team_returns_true_for_active_membership(app):
@@ -146,6 +100,9 @@ def test_authorize_checks_configured_org_membership_with_timeout(client, app):
         response = client.get("/auth/authorize")
 
     assert response.status_code == 302
+    with client.session_transaction() as sess:
+        assert sess["user"] == {"id": 123, "login": "gibahjoe", "is_admin": False}
+        assert "auth_token" not in sess
     get.assert_called_once_with(
         f"{app.config['GITHUB_API_BASE_URL']}/orgs/custom-org/members/gibahjoe",
         headers={

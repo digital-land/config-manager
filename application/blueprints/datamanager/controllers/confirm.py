@@ -9,13 +9,12 @@ and assign-entities flows.
 
 import logging
 
-from flask import render_template, url_for
+from flask import render_template, session, url_for
 from sqlalchemy.exc import IntegrityError
 
 from application.db.models import RequestMeta
 from application.extensions import db
 from application.utils import utcnow
-from application.blueprints.auth.auth_token import get_username, has_role
 
 from . import ControllerError
 from .request_meta import load_json_list
@@ -49,11 +48,11 @@ def _default_return_url(source_flow):
 
 
 def _confirm_user_login():
-    return get_username()
+    return (session.get("user") or {}).get("login", "unknown")
 
 
 def _is_admin():
-    return has_role("admin")
+    return bool((session.get("user") or {}).get("is_admin"))
 
 
 def _new_entity_numbers(req):

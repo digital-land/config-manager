@@ -121,6 +121,7 @@ class DevelopmentConfig(Config):
 
 class TestConfig(Config):
     ENV = "test"
+    AUTHENTICATION_ON = False
     DEBUG = True
     TESTING = True
     SECRET_KEY = "testing"

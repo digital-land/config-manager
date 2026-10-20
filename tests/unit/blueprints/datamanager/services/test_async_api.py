@@ -1,8 +1,8 @@
 from unittest.mock import patch, Mock
 
 import pytest
+import jwt
 from flask import session
-from tests.auth import user_token
 
 from application.blueprints.datamanager.services.async_api import (
     fetch_response_details,
@@ -14,17 +14,55 @@ from application.blueprints.datamanager.services.async_api import (
 
 
 class TestSubmitRequest:
-    def test_add_data_sends_session_token(self, app):
+    @pytest.mark.parametrize("is_admin,role", [(False, "staff"), (True, "admin")])
+    def test_session_can_issue_another_token_after_previous_expiry(
+        self, app, is_admin, role
+    ):
+        from application.blueprints.auth.auth_token import get_auth_token
+
+        with app.test_request_context():
+            session["user"] = {"id": 123, "login": "alice", "is_admin": is_admin}
+            with patch(
+                "application.blueprints.auth.auth_token.time.time", return_value=1000
+            ):
+                first = get_auth_token()
+            with patch(
+                "application.blueprints.auth.auth_token.time.time", return_value=2000
+            ):
+                second = get_auth_token()
+            first_claims = jwt.decode(first, options={"verify_signature": False})
+            second_claims = jwt.decode(second, options={"verify_signature": False})
+            assert first_claims["exp"] < second_claims["iat"]
+            assert second_claims["role"] == role
+            assert "auth_token" not in session
+            session.pop("user")
+            assert get_auth_token() is None
+
+    def test_add_data_issues_fresh_token_from_github_session(self, app):
         response = Mock(status_code=202)
         response.json.return_value = {"id": "abc123"}
         with app.test_request_context(), patch(
             "application.blueprints.datamanager.services.async_api.requests.post",
             return_value=response,
         ) as post:
-            token = user_token({"login": "alice"})
-            session["auth_token"] = token
+            session["user"] = {"id": 123, "login": "alice", "is_admin": False}
+            session["auth_token"] = "expired-token"
             assert submit_request({"type": "add_data"}) == "abc123"
-        assert post.call_args.kwargs["headers"] == {"Authorization": f"Bearer {token}"}
+            token = post.call_args.kwargs["headers"]["Authorization"].removeprefix(
+                "Bearer "
+            )
+            claims = jwt.decode(
+                token,
+                app.config["AUTH_JWT_PRIVATE_KEY"].public_key(),
+                algorithms=["RS256"],
+                audience=app.config["AUTH_JWT_AUDIENCE"],
+                issuer=app.config["AUTH_JWT_ISSUER"],
+            )
+            assert claims["sub"] == "123"
+            assert claims["username"] == "alice"
+            assert claims["role"] == "staff"
+            assert claims["exp"] - claims["iat"] == 900
+            assert session["auth_token"] == "expired-token"
 
     @pytest.mark.parametrize("expires", [0, 1])
     def test_add_data_without_current_token_does_not_send(self, app, expires):

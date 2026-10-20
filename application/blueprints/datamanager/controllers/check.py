@@ -5,7 +5,6 @@ from datetime import datetime
 from flask import redirect, render_template, request, session, url_for
 from shapely import wkt
 from shapely.geometry import mapping
-from application.blueprints.auth.auth_token import has_role
 
 from . import ControllerError
 from .transform import _point_feature, fetch_boundary_geojson
@@ -321,7 +320,7 @@ def handle_check_results(request_id, result):
 
     can_override = False
     if not allow_add_data:
-        can_override = has_role("admin")
+        can_override = bool((session.get("user") or {}).get("is_admin"))
 
     return render_template(
         "datamanager/check-results.html",

@@ -3,10 +3,12 @@ import logging
 
 from flask import (
     Blueprint,
+    current_app,
     redirect,
     render_template,
     request,
     url_for,
+    session,
 )
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import RequestEntityTooLarge
@@ -15,7 +17,6 @@ from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOC
 from application.db.models import RequestMeta, ServiceLock
 from application.extensions import db
 from application.utils import compute_hash
-from application.blueprints.auth.auth_token import check_auth
 
 from .controllers.form import (
     handle_dashboard_get,
@@ -94,7 +95,9 @@ def handle_assign_entities_request_entity_too_large(e):
 
 
 def _require_login():
-    return check_auth()
+    if current_app.config.get("AUTHENTICATION_ON", True):
+        if session.get("user") is None:
+            return redirect(url_for("auth.login", next=request.url))
 
 
 def _require_add_data_unlocked():

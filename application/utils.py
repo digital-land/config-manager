@@ -2,6 +2,7 @@ import csv
 import datetime
 import hashlib
 import io
+from functools import wraps
 
 import requests
 from dateutil.relativedelta import relativedelta
@@ -38,9 +39,16 @@ def check_url_reachable(url):
 
 
 def login_required(f):
-    from application.blueprints.auth.auth_token import require_auth
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from flask import current_app, redirect, request, session, url_for
 
-    return require_auth()(f)
+        if current_app.config.get("AUTHENTICATION_ON", True):
+            if session.get("user") is None:
+                return redirect(url_for("auth.login", next=request.url))
+        return f(*args, **kwargs)
+
+    return decorated_function
 
 
 def csv_dict_to_string(csv_rows):
