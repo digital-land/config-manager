@@ -1,16 +1,15 @@
 from flask import (
     Blueprint,
-    current_app,
     redirect,
     render_template,
     request,
-    session,
     url_for,
 )
 
 from application.db.models import ServiceLock
 from application.extensions import db
 from application.utils import utcnow
+from application.blueprints.auth.auth_token import get_username, require_auth
 
 base = Blueprint("base", __name__)
 
@@ -22,7 +21,6 @@ PROCESS_LOCKS = [ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK]
 @base.route("/")
 @base.route("/index")
 def index():
-    authentication_on = current_app.config.get("AUTHENTICATION_ON", True)
     add_data_blocked_by = request.args.get("add_data_blocked_by")
     assign_entities_blocked_by = request.args.get("assign_entities_blocked_by")
     try:
@@ -35,7 +33,6 @@ def index():
         assign_entities_lock = None
     return render_template(
         "index.html",
-        authentication_on=authentication_on,
         add_data_lock=add_data_lock,
         add_data_blocked_by=add_data_blocked_by,
         assign_entities_lock=assign_entities_lock,
@@ -44,17 +41,12 @@ def index():
 
 
 @base.route("/process-lock/<process>/toggle", methods=["POST"])
+@require_auth()
 def toggle_process_lock(process):
     if process not in PROCESS_LOCKS:
         return redirect(url_for("base.index"))
 
-    user = session.get("user", {})
-    if current_app.config.get("AUTHENTICATION_ON", True):
-        if not user:
-            return redirect(url_for("auth.login", next=request.url))
-        username = user["login"]
-    else:
-        username = user.get("login", "development")
+    username = get_username()
 
     lock = db.session.get(ServiceLock, process)
     if lock:

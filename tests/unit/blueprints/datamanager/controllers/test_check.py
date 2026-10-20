@@ -1,3 +1,5 @@
+from tests.auth import user_token
+
 import json
 from unittest.mock import patch
 
@@ -276,7 +278,7 @@ class TestCheckResultsIncompleteDetails:
 
     def _run(self, client, request_id, is_admin):
         with client.session_transaction() as sess:
-            sess["user"] = {"name": "Tester", "is_admin": is_admin}
+            sess["auth_token"] = user_token({"name": "Tester", "is_admin": is_admin})
         partial = [
             {
                 "entry_number": 1,

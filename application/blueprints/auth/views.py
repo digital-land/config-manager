@@ -6,9 +6,16 @@ from flask import Blueprint, current_app, flash, redirect, request, session, url
 from is_safe_url import is_safe_url
 
 from application.extensions import oauth
+from .auth_token import get_request_principal, issue_auth_token
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 logger = logging.getLogger(__name__)
+
+
+@auth_bp.app_context_processor
+def authenticated_user():
+    principal = get_request_principal()
+    return {"auth_user": principal}
 
 
 def _admin_team_slugs():
@@ -63,6 +70,8 @@ def login():
 @auth_bp.get("/authorize")
 def authorize():
     next_url = session.pop("next", None)
+    session.pop("user", None)
+    session.pop("auth_token", None)
     token = oauth.github.authorize_access_token()
     resp = oauth.github.get("user", token=token)
     resp.raise_for_status()
@@ -81,10 +90,13 @@ def authorize():
         url = f"{github_api_base_url}/orgs/{org}/members/{user_profile['login']}"
         resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code == HTTPStatus.NO_CONTENT:
-            user_profile["is_admin"] = _is_member_of_admin_team(
-                user_profile["login"], headers
+            is_admin = _is_member_of_admin_team(user_profile["login"], headers)
+            issue_auth_token(
+                subject=user_profile["id"],
+                username=user_profile["login"],
+                role="admin" if is_admin else "staff",
+                auth_provider="github",
             )
-            session["user"] = user_profile
             next_url = _make_next_url_safe(next_url)
             return redirect(next_url)
         else:
@@ -112,6 +124,8 @@ def authorize():
 def logout():
     session.pop("user", None)
     session.pop("next", None)
+    session.pop("auth_token", None)
+    session.pop("auth_token_expires", None)
     return redirect(url_for("base.index"))
 
 

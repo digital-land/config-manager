@@ -1,6 +1,8 @@
 from unittest.mock import patch, Mock
 
 import pytest
+from flask import session
+from tests.auth import user_token
 
 from application.blueprints.datamanager.services.async_api import (
     fetch_response_details,
@@ -12,6 +14,31 @@ from application.blueprints.datamanager.services.async_api import (
 
 
 class TestSubmitRequest:
+    def test_add_data_sends_session_token(self, app):
+        response = Mock(status_code=202)
+        response.json.return_value = {"id": "abc123"}
+        with app.test_request_context(), patch(
+            "application.blueprints.datamanager.services.async_api.requests.post",
+            return_value=response,
+        ) as post:
+            token = user_token({"login": "alice"})
+            session["auth_token"] = token
+            assert submit_request({"type": "add_data"}) == "abc123"
+        assert post.call_args.kwargs["headers"] == {"Authorization": f"Bearer {token}"}
+
+    @pytest.mark.parametrize("expires", [0, 1])
+    def test_add_data_without_current_token_does_not_send(self, app, expires):
+        with app.test_request_context(), patch(
+            "application.blueprints.datamanager.services.async_api.requests.post"
+        ) as post:
+            session["auth_token_expires"] = expires
+            if expires:
+                session["auth_token"] = "expired-token"
+            with pytest.raises(AsyncAPIError) as error:
+                submit_request({"type": "add_data"})
+        assert error.value.status_code == 401
+        post.assert_not_called()
+
     def test_returns_request_id_on_202(self):
         mock_response = Mock()
         mock_response.status_code = 202

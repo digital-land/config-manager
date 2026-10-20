@@ -7,6 +7,7 @@ import requests
 from config.config import get_request_api_endpoint
 
 from application.extensions import cache
+from application.blueprints.auth.auth_token import get_auth_token
 
 from application.data_access.http import (
     fetch_pages_concurrently,
@@ -64,7 +65,15 @@ def submit_request(params: dict) -> str:
     logger.info("Submitting request to async API")
     logger.debug(json.dumps(payload, indent=2))
 
-    response = requests.post(_requests_url(), json=payload, timeout=REQUESTS_TIMEOUT)
+    kwargs = {}
+    if params.get("type") == "add_data":
+        token = get_auth_token()
+        if not token:
+            raise AsyncAPIError("Sign in again before adding data", status_code=401)
+        kwargs["headers"] = {"Authorization": f"Bearer {token}"}
+    response = requests.post(
+        _requests_url(), json=payload, timeout=REQUESTS_TIMEOUT, **kwargs
+    )
 
     logger.info(f"Async API responded with {response.status_code}")
     try:

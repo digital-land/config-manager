@@ -1,3 +1,5 @@
+from tests.auth import user_token
+
 import re
 from unittest.mock import patch
 
@@ -109,7 +111,7 @@ class TestEntitiesPreviewRoute:
 class TestAddDataConfirmRoute:
     def test_renders_success_when_workflow_triggered(self, client):
         with client.session_transaction() as sess:
-            sess["user"] = {"login": "test-user"}
+            sess["auth_token"] = user_token({"login": "test-user"})
         with patch(
             "application.blueprints.datamanager.controllers.confirm.trigger_add_data_async_workflow",
             return_value={"success": True, "message": "Workflow triggered"},
@@ -134,7 +136,7 @@ class TestAddDataConfirmRoute:
         )
         db.session.commit()
         with client.session_transaction() as sess:
-            sess["user"] = {"login": "test-user"}
+            sess["auth_token"] = user_token({"login": "test-user"})
         with patch(
             "application.blueprints.datamanager.controllers.confirm.trigger_add_data_async_workflow",
             return_value={"success": True, "message": "Workflow triggered"},
@@ -175,7 +177,7 @@ class TestAddDataConfirmRoute:
         )
         db.session.commit()
         with client.session_transaction() as sess:
-            sess["user"] = {"login": "test-user"}
+            sess["auth_token"] = user_token({"login": "test-user"})
 
         with patch(
             f"{_CONFIRM}.config_branch_changed_for_collection", return_value=True
@@ -198,7 +200,7 @@ class TestAddDataConfirmRoute:
 
     def test_returns_error_when_workflow_raises(self, client):
         with client.session_transaction() as sess:
-            sess["user"] = {"login": "test-user"}
+            sess["auth_token"] = user_token({"login": "test-user"})
         with patch(
             "application.blueprints.datamanager.controllers.confirm.trigger_add_data_async_workflow",
             side_effect=GitHubWorkflowError("GitHub App credentials not configured"),
@@ -211,7 +213,7 @@ class TestAddDataConfirmRoute:
 
     def test_confirm_does_not_pass_entity_redirects_to_workflow(self, client):
         with client.session_transaction() as sess:
-            sess["user"] = {"login": "test-user"}
+            sess["auth_token"] = user_token({"login": "test-user"})
         with patch(
             "application.blueprints.datamanager.controllers.confirm.trigger_add_data_async_workflow",
             return_value={"success": True, "message": "Workflow triggered"},
@@ -229,7 +231,7 @@ class TestAddDataConfirmRoute:
         )
         db.session.commit()
         with client.session_transaction() as sess:
-            sess["user"] = {"login": "test-user"}
+            sess["auth_token"] = user_token({"login": "test-user"})
         with patch(f"{_CONFIRM}.trigger_add_data_async_workflow") as trigger:
             response = client.post(
                 "/datamanager/add-data/idem-dispatched/confirm-async"
@@ -242,7 +244,7 @@ class TestAddDataConfirmRoute:
         db.session.add(RequestMeta(request_id="no-baseline-id"))  # branch_sha is None
         db.session.commit()
         with client.session_transaction() as sess:
-            sess["user"] = {"login": "test-user"}
+            sess["auth_token"] = user_token({"login": "test-user"})
         with patch(
             f"{_CONFIRM}.fetch_request",
             return_value={"params": {"collection": "local-plan"}},
@@ -258,7 +260,7 @@ class TestAddDataConfirmRoute:
         db.session.add(RequestMeta(request_id="gh-error-id", branch_sha="base-sha"))
         db.session.commit()
         with client.session_transaction() as sess:
-            sess["user"] = {"login": "test-user"}
+            sess["auth_token"] = user_token({"login": "test-user"})
         with patch(
             f"{_CONFIRM}.fetch_request",
             return_value={"params": {"collection": "local-plan"}},
@@ -295,7 +297,7 @@ class TestAddDataConfirmRoute:
 
         # non-admin: blocked with the clashing number shown, no dispatch
         with client.session_transaction() as sess:
-            sess["user"] = {"login": "user", "is_admin": False}
+            sess["auth_token"] = user_token({"login": "user", "is_admin": False})
         with patch(f"{_CONFIRM}.fetch_request", return_value=resp), patch(
             f"{_CONFIRM}.config_branch_changed_for_collection", return_value=False
         ), patch(f"{_CONFIRM}.trigger_add_data_async_workflow") as trigger:
@@ -309,7 +311,7 @@ class TestAddDataConfirmRoute:
 
         # admin override: dispatches
         with client.session_transaction() as sess:
-            sess["user"] = {"login": "admin", "is_admin": True}
+            sess["auth_token"] = user_token({"login": "admin", "is_admin": True})
         with patch(f"{_CONFIRM}.fetch_request", return_value=resp), patch(
             f"{_CONFIRM}.config_branch_changed_for_collection", return_value=False
         ), patch(
@@ -345,7 +347,7 @@ class TestAddDataConfirmRoute:
         }
         # a non-admin sending override=true is still blocked (enforced server-side)
         with client.session_transaction() as sess:
-            sess["user"] = {"login": "user", "is_admin": False}
+            sess["auth_token"] = user_token({"login": "user", "is_admin": False})
         with patch(f"{_CONFIRM}.fetch_request", return_value=resp), patch(
             f"{_CONFIRM}.config_branch_changed_for_collection", return_value=False
         ), patch(f"{_CONFIRM}.trigger_add_data_async_workflow") as trigger:
