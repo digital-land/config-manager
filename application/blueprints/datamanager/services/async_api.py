@@ -137,6 +137,7 @@ def fetch_response_details(
     limit: int = 500,
     start_offset: int = 0,
     max_rows: int = None,
+    include_total: bool = False,
 ) -> list:
     """
     Fetch response details for a request, handling pagination.
@@ -180,8 +181,10 @@ def fetch_response_details(
             "falling back to sequential paging"
         )
         if len(first_batch) < first_limit:
-            # Short page means there is nothing after it, so no need to page at all.
             return first_batch
+            # Short page means there is nothing after it, so no need to page at all.
+            # return (first_batch, len(first_batch)) if include_total else first_batch
+        # details = _fetch_response_details_sequentially(
         return _fetch_response_details_sequentially(
             request_id, limit, start_offset, max_rows, seed=first_batch
         )
@@ -214,7 +217,8 @@ def fetch_response_details(
         )
 
     logger.info(f"Total response details fetched: {len(all_details)}")
-    return all_details
+    return (all_details, total_available) 
+# if include_total else all_details
 
 
 def _fetch_response_details_sequentially(
