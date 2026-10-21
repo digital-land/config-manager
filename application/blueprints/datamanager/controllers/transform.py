@@ -410,9 +410,7 @@ def _dedup_dynamic_columns(candidates: list[dict]) -> list[str]:
 def _show_dedup_tab(
     is_assign_entities: bool, dataset_id: str, dataset_typology: str
 ) -> bool:
-    return is_assign_entities and (
-        dataset_id == "conservation-area" or dataset_typology != "geography"
-    )
+    return is_assign_entities
 
 
 def _prepare_duplicate_candidates(
