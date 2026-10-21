@@ -50,7 +50,7 @@ services:
       - 3000:3000
       - 3001:3001
     command: >
-      sh -c "npm install && make upgrade-db && npx concurrently -k 'make run' 'make watch'"
+      sh -c "npm ci && ./node_modules/.bin/npm-run-all --parallel flask watch"
     volumes:
       - .:/app
 
