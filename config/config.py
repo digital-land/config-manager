@@ -2,6 +2,10 @@
 import base64
 import os
 
+from cryptography.exceptions import UnsupportedAlgorithm
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -12,9 +16,7 @@ class Config:
     PROJECT_ROOT = os.path.abspath(os.path.join(APP_ROOT, os.pardir))
     SECRET_KEY = os.getenv("SECRET_KEY")
     # Dedicated base64-encoded PEM key; never reuse the GitHub App key.
-    AUTH_JWT_PRIVATE_KEY = base64.b64decode(
-        os.getenv("AUTH_JWT_PRIVATE_KEY", "")
-    ).decode("utf-8")
+    AUTH_JWT_PRIVATE_KEY = os.getenv("AUTH_JWT_PRIVATE_KEY", "")
     AUTH_JWT_ISSUER = os.getenv("AUTH_JWT_ISSUER", "manage")
     AUTH_JWT_AUDIENCE = os.getenv("AUTH_JWT_AUDIENCE", "async")
     DATABASE_URL = os.getenv("DATABASE_URL")
@@ -127,6 +129,29 @@ class TestConfig(Config):
     SECRET_KEY = "testing"
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     SENTRY_ENABLED = False
+
+
+def configure_auth_signing_key(config):
+    """Validate after selecting the config, so local auth bypass needs no key."""
+    encoded_key = config.get("AUTH_JWT_PRIVATE_KEY")
+    if not encoded_key:
+        if config.get("AUTHENTICATION_ON", True):
+            raise ValueError(
+                "AUTH_JWT_PRIVATE_KEY is required when authentication is enabled"
+            )
+        return
+    try:
+        key = load_pem_private_key(
+            base64.b64decode(encoded_key, validate=True), password=None
+        )
+        if not isinstance(key, RSAPrivateKey):
+            raise ValueError("Not an RSA private key")
+    except (ValueError, TypeError, UnsupportedAlgorithm):
+        raise ValueError(
+            "AUTH_JWT_PRIVATE_KEY must be a valid base64-encoded "
+            "unencrypted RSA private key in PEM format"
+        ) from None
+    config["AUTH_JWT_PRIVATE_KEY"] = key
 
 
 def get_request_api_endpoint():

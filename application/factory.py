@@ -84,6 +84,9 @@ def create_app(config_filename):
     """
     app = Flask(__name__)
     app.config.from_object(config_filename)
+    from config.config import configure_auth_signing_key
+
+    configure_auth_signing_key(app.config)
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 10
     app.config["DEBUG"] = True
 

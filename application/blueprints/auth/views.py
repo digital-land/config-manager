@@ -64,8 +64,6 @@ def login():
 def authorize():
     next_url = session.pop("next", None)
     session.pop("user", None)
-    session.pop("auth_token", None)
-    session.pop("auth_token_expires", None)
     token = oauth.github.authorize_access_token()
     resp = oauth.github.get("user", token=token)
     resp.raise_for_status()
@@ -115,8 +113,6 @@ def authorize():
 def logout():
     session.pop("user", None)
     session.pop("next", None)
-    session.pop("auth_token", None)
-    session.pop("auth_token_expires", None)
     return redirect(url_for("base.index"))
 
 
