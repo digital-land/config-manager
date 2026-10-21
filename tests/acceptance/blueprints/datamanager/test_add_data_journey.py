@@ -290,7 +290,7 @@ class TestAddDataJourney:
     # --- Step 5: Check Entities button → add_data preview submitted ---
 
     @rsps.activate
-    def test_check_entities_submits_preview_and_redirects(self, client):
+    def test_check_entities_submits_preview_and_redirects(self, client, logged_in_user):
         rsps.add(
             rsps.GET,
             f"{ASYNC_BASE}/check-id-2",
