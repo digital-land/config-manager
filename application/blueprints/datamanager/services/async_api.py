@@ -137,7 +137,6 @@ def fetch_response_details(
     limit: int = 500,
     start_offset: int = 0,
     max_rows: int = None,
-    include_total: bool = False,
 ) -> list:
     """
     Fetch response details for a request, handling pagination.
