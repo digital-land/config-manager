@@ -12,7 +12,7 @@ from application.blueprints.datamanager.services.async_api import (
 )
 
 PENDING_RESULT = {
-    "status": "PENDING",
+    "status": "NEW",
     "response": None,
     "params": {
         "organisationName": "local-authority-eng:ABC",
@@ -239,7 +239,7 @@ class TestMissingColumnTasks:
 
 
 COMPLETED_CHECK_RESULT = {
-    "status": "COMPLETED",
+    "status": "COMPLETE",
     "params": {
         "organisationName": "local-authority-eng:ABC",
         "dataset": "brownfield-land",

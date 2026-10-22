@@ -21,7 +21,7 @@ RESPONSE_DETAILS_URL = "http://localhost:8000/requests/test-id/response-details"
 
 COMPLETED_TRANSFORM_REQUEST = {
     "id": "test-id",
-    "status": "COMPLETED",
+    "status": "COMPLETE",
     "params": {
         "organisationName": "local-authority-eng:ABC",
         "dataset": "conservation-area",
@@ -61,7 +61,7 @@ RESPONSE_DETAILS = [
 
 PENDING_CHECK_RESULT = {
     "id": "test-id",
-    "status": "PENDING",
+    "status": "NEW",
     "response": None,
     "params": {
         "organisationName": "local-authority-eng:ABC",
@@ -71,7 +71,7 @@ PENDING_CHECK_RESULT = {
 
 PENDING_ADD_DATA_RESULT = {
     "id": "test-id",
-    "status": "PENDING",
+    "status": "NEW",
     "response": None,
     "params": {"dataset": "brownfield-land"},
 }
@@ -186,9 +186,9 @@ class TestEntitiesPreviewRoute:
         assert response.status_code == 404
 
     @rsps.activate
-    def test_queued_also_renders_loading(self, client):
-        queued = {**PENDING_ADD_DATA_RESULT, "status": "QUEUED"}
-        rsps.add(rsps.GET, f"{ASYNC_BASE}/test-id", json=queued, status=200)
+    def test_processing_also_renders_loading(self, client):
+        processing = {**PENDING_ADD_DATA_RESULT, "status": "PROCESSING"}
+        rsps.add(rsps.GET, f"{ASYNC_BASE}/test-id", json=processing, status=200)
         response = client.get("/datamanager/add-data/test-id/entities")
         assert response.status_code == 200
         assert b"Preparing entities preview" in response.data
@@ -245,7 +245,7 @@ class TestCheckTransformRoute:
         rsps.add(
             rsps.GET,
             f"{ASYNC_BASE}/test-id",
-            json={**COMPLETED_TRANSFORM_REQUEST, "status": "PENDING", "response": None},
+            json={**COMPLETED_TRANSFORM_REQUEST, "status": "NEW", "response": None},
             status=200,
         )
         with patch(
@@ -560,7 +560,7 @@ class TestCheckTransformRoute:
         rsps.add(
             rsps.GET,
             f"{ASYNC_BASE}/test-id",
-            json={**COMPLETED_TRANSFORM_REQUEST, "status": "PENDING", "response": None},
+            json={**COMPLETED_TRANSFORM_REQUEST, "status": "NEW", "response": None},
             status=200,
         )
         with patch(
