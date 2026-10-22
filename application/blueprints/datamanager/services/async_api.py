@@ -14,6 +14,7 @@ from application.data_access.http import (
     page_timeout,
 )
 from ..utils import REQUESTS_TIMEOUT
+from .github import GitHubAppError, sync_config_branch
 
 logger = logging.getLogger(__name__)
 TOTAL_RESULTS_HEADER = "X-Pagination-Total-Results"
@@ -60,6 +61,12 @@ def submit_request(params: dict) -> str:
     Returns the request ID on success.
     Raises AsyncAPIError on any other status.
     """
+    if params.get("type") == "add_data" and params.get("github_branch"):
+        try:
+            sync_config_branch(params["github_branch"])
+        except GitHubAppError as e:
+            raise AsyncAPIError(str(e), status_code=503, detail=str(e)) from e
+
     payload = {"params": {**params, "service": "manage"}}
     logger.info("Submitting request to async API")
     logger.debug(json.dumps(payload, indent=2))

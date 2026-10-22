@@ -12,6 +12,57 @@ from application.blueprints.datamanager.services.async_api import (
 
 
 class TestSubmitRequest:
+    @pytest.mark.parametrize(
+        "params",
+        [
+            {"type": "add_data"},
+            {"type": "check_url", "github_branch": "shared"},
+        ],
+    )
+    def test_only_shared_branch_allocations_update_github(self, params):
+        service = "application.blueprints.datamanager.services.async_api"
+        response = Mock(status_code=202)
+        response.json.return_value = {"id": "request"}
+        with patch(f"{service}.sync_config_branch") as sync, patch(
+            f"{service}.requests.post", return_value=response
+        ):
+            assert submit_request(params) == "request"
+        sync.assert_not_called()
+
+    def test_updates_shared_branch_before_submitting_assessment(self):
+        service = "application.blueprints.datamanager.services.async_api"
+        events = []
+        response = Mock(status_code=202)
+        response.json.return_value = {"id": "assessment"}
+        with patch(
+            f"{service}.sync_config_branch",
+            create=True,
+            side_effect=lambda branch: events.append(("sync", branch)),
+        ), patch(
+            f"{service}.requests.post",
+            side_effect=lambda *a, **kw: events.append(("submit", kw["json"]))
+            or response,
+        ):
+            assert (
+                submit_request({"type": "add_data", "github_branch": "shared"})
+                == "assessment"
+            )
+        assert events[0] == ("sync", "shared")
+        assert events[1][0] == "submit"
+
+    def test_sync_failure_prevents_assessment(self):
+        from application.blueprints.datamanager.services.github import GitHubAppError
+
+        service = "application.blueprints.datamanager.services.async_api"
+        with patch(
+            f"{service}.sync_config_branch",
+            create=True,
+            side_effect=GitHubAppError("Merge conflict"),
+        ), patch(f"{service}.requests.post") as post:
+            with pytest.raises(AsyncAPIError, match="Merge conflict"):
+                submit_request({"type": "add_data", "github_branch": "shared"})
+        post.assert_not_called()
+
     def test_returns_request_id_on_202(self):
         mock_response = Mock()
         mock_response.status_code = 202
