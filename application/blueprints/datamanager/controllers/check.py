@@ -195,12 +195,15 @@ def handle_check_results(request_id, result):
     start_offset = (page_number - 1) * _ROWS_PER_PAGE
     details_incomplete = False
     try:
-        resp_details = fetch_response_details(
-            request_id, start_offset=start_offset, max_rows=_ROWS_PER_PAGE
+        resp_details, total_entries = fetch_response_details(
+            request_id,
+            start_offset=start_offset,
+            max_rows=_ROWS_PER_PAGE,
         )
     except ResponseDetailsIncomplete as e:
         logger.error("Response details incomplete for %s: %s", request_id, e)
         resp_details = e.partial
+        total_entries = None
         details_incomplete = True
 
     has_next_page = len(resp_details) >= _ROWS_PER_PAGE
@@ -346,6 +349,7 @@ def handle_check_results(request_id, result):
         has_next_page=has_next_page,
         page_start=page_start,
         page_end=page_end,
+        total_entries=total_entries,
     )
 
 
