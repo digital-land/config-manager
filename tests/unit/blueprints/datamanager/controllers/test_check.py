@@ -345,7 +345,7 @@ def test_submission_gate_uses_task_severity(app, task, allowed):
     }
     module = "application.blueprints.datamanager.controllers.check"
     with app.test_request_context(), patch(
-        f"{module}.fetch_response_details", return_value=[]
+        f"{module}.fetch_response_details", return_value=([], 0)
     ), patch(f"{module}.fetch_boundary_geojson", return_value=None), patch(
         f"{module}.get_field_names_for_dataset", return_value=[]
     ), patch(
