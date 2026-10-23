@@ -22,7 +22,7 @@
       <p class="govuk-body">No rows to display</p>
     {% endif %}
     {% if pagination_params %}
-    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}{% if total_entries is not none %} of {{ total_entries }}{% endif %}</p>
+    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
     {{ govukPagination(pagination_params) }}
     {% endif %}
   </div>
@@ -35,7 +35,7 @@
       <p class="govuk-body">No rows to display</p>
     {% endif %}
     {% if pagination_params %}
-    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}{% if total_entries is not none %} of {{ total_entries }}{% endif %}</p>
+    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
     {{ govukPagination(pagination_params) }}
     {% endif %}
   </div>
@@ -48,7 +48,7 @@
       <p class="govuk-body">No issues on this page.</p>
     {% endif %}
     {% if pagination_params %}
-    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}{% if total_entries is not none %} of {{ total_entries }}{% endif %}</p>
+    <p class="govuk-body govuk-!-margin-top-4 govuk-!-margin-bottom-1">Showing entries {{ page_start }} to {{ page_end }}</p>
     {{ govukPagination(pagination_params) }}
     {% endif %}
   </div>

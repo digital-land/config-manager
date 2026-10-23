@@ -199,7 +199,6 @@ def handle_check_results(request_id, result):
             request_id,
             start_offset=start_offset,
             max_rows=_ROWS_PER_PAGE,
-            include_total=True,
         )
     except ResponseDetailsIncomplete as e:
         logger.error("Response details incomplete for %s: %s", request_id, e)
