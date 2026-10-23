@@ -117,7 +117,7 @@ class TestFetchResponseDetails:
             "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently",
             return_value=[_rows(500, 500), _rows(1000, 200)],
         ) as fetch_pages:
-            result = fetch_response_details("parallel-order")
+            result, total = fetch_response_details("parallel-order")
 
         assert len(result) == 1200
         assert [row["entry_number"] for row in result] == list(range(1200))
@@ -128,7 +128,7 @@ class TestFetchResponseDetails:
         with self._patch_first_page(_page_response(_rows(0, 12), total=12)), patch(
             "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently"
         ) as fetch_pages:
-            result = fetch_response_details("single-page")
+            result, total = fetch_response_details("single-page")
 
         assert len(result) == 12
         fetch_pages.assert_not_called()
@@ -138,7 +138,7 @@ class TestFetchResponseDetails:
             "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently",
             return_value=[_rows(500, 500)],
         ):
-            result = fetch_response_details("clamped", max_rows=750)
+            result, total = fetch_response_details("clamped", max_rows=750)
 
         assert len(result) == 750
         assert [row["entry_number"] for row in result] == list(range(750))
@@ -180,7 +180,7 @@ class TestFetchResponseDetails:
             "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently",
             return_value=[_rows(500, 500)],
         ):
-            result = fetch_response_details("flaky-request")
+            result, total = fetch_response_details("flaky-request")
 
         assert [row["entry_number"] for row in result] == list(range(1000))
 

@@ -214,7 +214,7 @@ def fetch_response_details(
         )
 
     logger.info(f"Total response details fetched: {len(all_details)}")
-    return all_details
+    return (all_details, total_available)
 
 
 def _fetch_response_details_sequentially(
