@@ -946,7 +946,7 @@ def handle_check_transform(
     # Fetch the response details and platform entities for the organisation and dataset.
     details_incomplete = False
     try:
-        all_resp_details = fetch_response_details(request_id)
+        all_resp_details, _total_entries = fetch_response_details(request_id)
     except ResponseDetailsIncomplete as e:
         logger.error("Response details incomplete for %s: %s", request_id, e)
         all_resp_details = e.partial

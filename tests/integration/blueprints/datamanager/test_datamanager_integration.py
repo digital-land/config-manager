@@ -966,7 +966,7 @@ class TestEntityPagination:
         )
         with patch(
             "application.blueprints.datamanager.controllers.transform.fetch_response_details",
-            return_value=details,
+            return_value=(details, len(details)),
         ):
             with patch(
                 "application.blueprints.datamanager.controllers.transform.get_organisation_name",
@@ -1016,7 +1016,7 @@ class TestEntityPagination:
         )
         with patch(
             "application.blueprints.datamanager.controllers.transform.fetch_response_details",
-            return_value=details,
+            return_value=(details, len(details)),
         ):
             with patch(
                 "application.blueprints.datamanager.controllers.transform.get_organisation_name",
@@ -1058,7 +1058,7 @@ class TestEntityPagination:
         )
         with patch(
             "application.blueprints.datamanager.controllers.transform.fetch_response_details",
-            return_value=details,
+            return_value=(details, len(details)),
         ):
             with patch(
                 "application.blueprints.datamanager.controllers.transform.get_organisation_name",
@@ -1106,7 +1106,7 @@ class TestEntityPagination:
         )
         with patch(
             "application.blueprints.datamanager.controllers.transform.fetch_response_details",
-            return_value=details,
+            return_value=(details, len(details)),
         ):
             with patch(
                 "application.blueprints.datamanager.controllers.transform.get_organisation_name",

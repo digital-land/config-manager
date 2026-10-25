@@ -146,11 +146,12 @@ class TestFetchResponseDetails:
     def test_falls_back_to_sequential_when_header_missing(self, app):
         with self._patch_first_page(_page_response(_rows(0, 500))), patch(
             "application.blueprints.datamanager.services.async_api._fetch_response_details_sequentially",
-            return_value=_rows(0, 900),
+            return_value=(_rows(0, 900), 900),
         ) as sequential:
-            result = fetch_response_details("no-header")
+            result, total = fetch_response_details("no-header")
 
         assert len(result) == 900
+        assert total == 900
         sequential.assert_called_once()
 
     def test_failed_page_raises_and_carries_the_rows_it_did_get(self, app):
@@ -200,9 +201,10 @@ class TestFetchResponseDetails:
         with self._patch_first_page(_page_response(_rows(0, 10))), patch(
             "application.blueprints.datamanager.services.async_api.requests.get"
         ) as sequential_get:
-            result = fetch_response_details("short-first-page")
+            result, total = fetch_response_details("short-first-page")
 
         assert len(result) == 10
+        assert total == 10
         sequential_get.assert_not_called()
 
     def test_transport_failure_during_sequential_fallback_raises_with_partial(
@@ -233,9 +235,10 @@ class TestFetchResponseDetails:
             "application.blueprints.datamanager.services.async_api.requests.get",
             return_value=second_page,
         ) as sequential_get:
-            result = fetch_response_details("seeded-sequential")
+            result, total = fetch_response_details("seeded-sequential")
 
         assert [row["entry_number"] for row in result] == list(range(510))
+        assert total == 510
         # One call only: the seeded first page is not requested a second time.
         assert sequential_get.call_count == 1
         assert sequential_get.call_args.kwargs["params"]["offset"] == 500
