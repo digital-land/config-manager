@@ -5,6 +5,7 @@ from datetime import datetime
 from io import BytesIO
 from unittest.mock import patch
 
+import pytest
 import responses as rsps
 
 from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK
@@ -1146,8 +1147,11 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
     assert b"entitySelectAllCheckbox.addEventListener" in response.data
 
 
+@pytest.mark.parametrize("typology", ["entity", "geography"])
 @rsps.activate
-def test_assign_entities_check_results_shows_dynamic_dedup_for_non_geography(client):
+def test_assign_entities_check_results_shows_dynamic_field_based_dedup(
+    client, typology
+):
     rsps.add(
         rsps.GET,
         f"{ASYNC_BASE}/assign-tree-id",
@@ -1205,7 +1209,7 @@ def test_assign_entities_check_results_shows_dynamic_dedup_for_non_geography(cli
             with patch(f"{transform_controller}.get_dataset_name", return_value="Tree"):
                 with patch(
                     f"{transform_controller}.get_dataset_typology",
-                    return_value="entity",
+                    return_value=typology,
                 ):
                     with patch(
                         f"{transform_controller}.get_entity_count_for_organisation_and_dataset",

@@ -88,7 +88,6 @@ def create_app(config_filename):
 
     configure_auth_signing_key(app.config)
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 10
-    app.config["DEBUG"] = True
 
     configure_logging(app)
     register_sentry(app)
@@ -176,7 +175,7 @@ def register_extensions(app):
 
     from flask_sslify import SSLify
 
-    sslify = SSLify(app)  # noqa
+    sslify = SSLify(app, skips=["health"])  # noqa
 
     oauth.register(
         name="github",

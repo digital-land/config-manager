@@ -13,6 +13,7 @@ from ..services.async_api import (
     ResponseDetailsIncomplete,
     fetch_request,
     fetch_response_details,
+    is_processing,
     submit_request,
 )
 from ..services.dataset import (
@@ -171,11 +172,12 @@ def handle_check_results(request_id, result):
         else None
     )
 
-    # Check If Still Processing
-    if (
-        result.get("status") in ["PENDING", "PROCESSING", "QUEUED"]
-        or result.get("response") is None
-    ):
+    try:
+        processing = is_processing(result)
+    except AsyncAPIError as e:
+        raise ControllerError(str(e)) from e
+
+    if processing:
         return render_template(
             "datamanager/check-results-loading.html",
             result=result,
@@ -401,13 +403,10 @@ def handle_check_resubmit(request_id):
         "collection": params.get("collection"),
         "dataset": params.get("dataset"),
         "url": params.get("url"),
-        "documentation_url": params.get("documentation_url"),
-        "licence": params.get("licence"),
-        "start_date": params.get("start_date"),
         "column_mapping": column_mapping or None,
         "geom_type": params.get("geom_type"),
-        "organisation": params.get("organisation"),
         "organisationName": params.get("organisationName"),
+        "endpoint_parameters": params.get("endpoint_parameters"),
     }
 
     try:

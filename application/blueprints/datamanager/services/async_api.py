@@ -18,6 +18,8 @@ from ..utils import REQUESTS_TIMEOUT
 
 logger = logging.getLogger(__name__)
 TOTAL_RESULTS_HEADER = "X-Pagination-Total-Results"
+PROCESSING_STATUSES = {"NEW", "PROCESSING"}
+KNOWN_STATUSES = PROCESSING_STATUSES | {"COMPLETE", "FAILED"}
 
 
 def _requests_url() -> str:
@@ -39,6 +41,17 @@ class AsyncAPIError(Exception):
         self.status_code = status_code
         self.detail = detail
         super().__init__(message)
+
+
+def is_processing(req: dict) -> bool:
+    """Return whether results are pending; raise AsyncAPIError for invalid/failed requests."""
+    status = req.get("status")
+    if status not in KNOWN_STATUSES:
+        raise AsyncAPIError(f"Unrecognised request status: {status!r}")
+    if status == "FAILED":
+        error = (req.get("response") or {}).get("error") or {}
+        raise AsyncAPIError(error.get("errMsg") or "Async processing failed")
+    return status in PROCESSING_STATUSES or req.get("response") is None
 
 
 class ResponseDetailsIncomplete(AsyncAPIError):

@@ -153,12 +153,11 @@ into the current full selection before it submits a replacement async request.
 
 ### 4. Select duplicate redirects
 
-The Dedup tab is shown for Assign Entities `conservation-area` requests and for
-datasets whose specification typology is not `geography`. Conservation Area uses
-the spatial matcher. Non-geography datasets use a DuckDB exact-match join against
-the full published dataset Parquet file. The Parquet file is downloaded to
-temporary storage for the check and removed afterwards. Other geography datasets
-do not currently run duplicate detection.
+The Dedup tab is shown for all Assign Entities requests. Conservation Area uses
+the spatial matcher. All other datasets, including other geography datasets,
+use a DuckDB exact-match join against the full published dataset Parquet file.
+The Parquet file is downloaded to temporary storage for the check and removed
+afterwards.
 
 Candidate rows come from `pipeline-summary.duplicate-candidates`. Initial checked state comes from
 `pipeline-summary.old-entity`, not from a score threshold in config-manager.
@@ -166,8 +165,8 @@ Candidate rows come from `pipeline-summary.duplicate-candidates`. Initial checke
 For a stable table order, config-manager sorts candidates numerically by old entity and then by new
 entity before rendering them. Non-numeric identifiers sort after numeric identifiers by text.
 
-Non-spatial candidates have `match_type: all_fields_match`. They compare every
-field supplied by the transformed resource except `reference` and `entry-date`,
+Field-based candidates have `match_type: all_fields_match`. They compare the
+`name`, `start-date`, `doc-url` and `document-url` fields present in the transformed resource,
 using trimmed, case-insensitive values. These candidates always start unchecked
 for manual review. Dataset-specific fields are appended to the Dedup table after
 the fixed columns, with resource values in green and platform values in orange.
