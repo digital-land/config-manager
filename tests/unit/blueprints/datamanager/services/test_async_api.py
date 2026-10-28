@@ -2,7 +2,10 @@ from unittest.mock import patch, Mock
 
 import pytest
 import jwt
-from flask import session
+from flask import Flask, session
+from werkzeug.exceptions import Unauthorized
+
+from application.blueprints.datamanager.utils import handle_error
 
 from application.blueprints.datamanager.services.async_api import (
     fetch_response_details,
@@ -72,9 +75,25 @@ class TestSubmitRequest:
             session["auth_token_expires"] = expires
             if expires:
                 session["auth_token"] = "expired-token"
-            with pytest.raises(AsyncAPIError) as error:
+            with pytest.raises(Unauthorized) as error:
                 submit_request({"type": "add_data"})
-        assert error.value.status_code == 401
+        assert error.value.code == 401
+        post.assert_not_called()
+
+    def test_missing_session_user_returns_http_401(self):
+        app = Flask(__name__)
+        app.config["SECRET_KEY"] = "test"
+        app.register_error_handler(Exception, handle_error)
+
+        @app.post("/add-data")
+        def add_data():
+            return submit_request({"type": "add_data"})
+
+        with patch(
+            "application.blueprints.datamanager.services.async_api.requests.post"
+        ) as post:
+            response = app.test_client().post("/add-data")
+        assert response.status_code == 401
         post.assert_not_called()
 
     def test_returns_request_id_on_202(self):

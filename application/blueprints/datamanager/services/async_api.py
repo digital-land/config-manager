@@ -3,6 +3,7 @@ import logging
 from urllib.parse import urlencode
 
 import requests
+from flask import abort
 
 from config.config import get_request_api_endpoint
 
@@ -82,7 +83,7 @@ def submit_request(params: dict) -> str:
     if params.get("type") == "add_data":
         token = get_auth_token()
         if not token:
-            raise AsyncAPIError("Sign in again before adding data", status_code=401)
+            abort(401, description="Sign in again before adding data")
         kwargs["headers"] = {"Authorization": f"Bearer {token}"}
     response = requests.post(
         _requests_url(), json=payload, timeout=REQUESTS_TIMEOUT, **kwargs

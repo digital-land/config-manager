@@ -41,8 +41,20 @@ def test_startup_rejects_non_rsa_key():
         create_app(AuthConfig)
 
 
-def test_startup_loads_signing_key():
-    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+def test_startup_rejects_weak_rsa_key():
+    class AuthConfig(TestConfig):
+        AUTHENTICATION_ON = True
+        AUTH_JWT_PRIVATE_KEY = encoded_key(
+            rsa.generate_private_key(public_exponent=65537, key_size=1024)
+        )
+
+    with pytest.raises(ValueError, match="2048"):
+        create_app(AuthConfig)
+
+
+@pytest.mark.parametrize("key_size", [2048, 3072])
+def test_startup_loads_signing_key(key_size):
+    key = rsa.generate_private_key(public_exponent=65537, key_size=key_size)
 
     class AuthConfig(TestConfig):
         AUTHENTICATION_ON = True

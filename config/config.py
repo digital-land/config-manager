@@ -145,12 +145,12 @@ def configure_auth_signing_key(config):
         key = load_pem_private_key(
             base64.b64decode(encoded_key, validate=True), password=None
         )
-        if not isinstance(key, RSAPrivateKey):
+        if not isinstance(key, RSAPrivateKey) or key.key_size < 2048:
             raise ValueError("Not an RSA private key")
     except (ValueError, TypeError, UnsupportedAlgorithm):
         raise ValueError(
             "AUTH_JWT_PRIVATE_KEY must be a valid base64-encoded "
-            "unencrypted RSA private key in PEM format"
+            "unencrypted RSA private key in PEM format of at least 2048 bits"
         ) from None
     config["AUTH_JWT_PRIVATE_KEY"] = key
 

@@ -34,6 +34,9 @@ services:
         FLASK_DEBUG: True
         FLASK_CONFIG: config.DevelopmentConfig
         FLASK_APP: application.wsgi:app
+        AUTH_JWT_PRIVATE_KEY: ${AUTH_JWT_PRIVATE_KEY:-}
+        AUTH_JWT_ISSUER: ${AUTH_JWT_ISSUER:-manage}
+        AUTH_JWT_AUDIENCE: ${AUTH_JWT_AUDIENCE:-async}
         SECRET_KEY: replaceinprod
         DATABASE_URL: postgres://postgres:postgres@db:5432/config_manager
         REQUEST_API_BASE_URL: http://request-api:8000
@@ -88,6 +91,9 @@ services:
       AWS_SECRET_ACCESS_KEY: example
       SQS_QUEUE_NAME: request-queue
       DATABASE_URL: postgresql://postgres:password@request-db/request_database
+      AUTH_JWT_PUBLIC_KEY: ${AUTH_JWT_PUBLIC_KEY:-}
+      AUTH_TRUSTED_ISSUERS: ${AUTH_TRUSTED_ISSUERS:-manage}
+      AUTH_JWT_AUDIENCE: ${AUTH_JWT_AUDIENCE:-async}
     restart: on-failure
     ports:
       - "8000:8000"
