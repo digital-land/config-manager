@@ -63,7 +63,7 @@ Then to install all the packages run:
 
 ## Frontend build
 
-This project uses the [@planning-data/digital-land-frontend](https://github.com/digital-land/digital-land-frontend) npm package to manage frontend asset compilation and copying.
+This project uses the [@digital-land-gov-uk/digital-land-frontend](https://github.com/digital-land/digital-land-frontend) npm package to manage frontend asset compilation and copying.
 
 ### How it works
 
@@ -105,13 +105,10 @@ These directories are git-ignored and should never be committed.
 ### Project-specific customizations
 
 The [package-scripts.js](package-scripts.js) file extends digital-land-frontend with:
-- Override for govuk-frontend v5 asset paths (fixes compatibility issue)
 - Custom vendor asset copying (accessible-autocomplete, MOJ components)
 - GOV.UK Frontend JavaScript bundle
 
-See the comments in package-scripts.js for details on why these overrides are necessary.
-
 ### Digital Land Frontend Configuration
 
-Frontend build paths are configured in [digital-land-frontend.config.json](digital-land-frontend.config.json).
+Frontend build paths are configured in [digital-land-frontend.config.json](digital-land-frontend.config.json). `govukOutputPath` is set to `application/static/` so GOV.UK Frontend fonts and images are copied to `application/static/govuk/assets/`, where the compiled styles expect them.
 
