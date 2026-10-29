@@ -773,11 +773,14 @@ def _build_geometry_features(
     }
     platform_entity_ids = set(platform_by_id)
     resource_entity_ids = set()
+    repeated_entity_ids = set()
     for item in all_resp_details:
         facts = item.get("transformed_row") or []
         if isinstance(facts, list) and facts:
             entity_id = _normalise_entity_id(facts[0].get("entity", ""))
             if entity_id:
+                if entity_id in resource_entity_ids:
+                    repeated_entity_ids.add(entity_id)
                 resource_entity_ids.add(entity_id)
 
     features = []
@@ -834,7 +837,9 @@ def _build_geometry_features(
             continue
         if not compare:
             status = None
-        elif entity_categories is not None:
+        elif entity_categories is not None and entity_id not in repeated_entity_ids:
+            # The table keeps the last row for each entity. Repeated resource
+            # rows need individual comparisons to colour their own geometries.
             status = entity_categories.get(entity_id, "new")
         elif entity_id in platform_entity_ids:
             resource_fields = {

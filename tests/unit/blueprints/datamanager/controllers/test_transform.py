@@ -511,3 +511,48 @@ def test_parallel_comparison_failure_is_propagated():
         side_effect=RuntimeError("comparison failed"),
     ), pytest.raises(RuntimeError, match="comparison failed"):
         _build_entities_data(details, platform)
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("compare", [False, True])
+def test_repeated_entity_geometries_keep_their_own_status(reverse, compare):
+    geometries = ["POINT (0 0)", "POINT (1 1)"]
+    statuses = ["in_both", "changed"]
+    if reverse:
+        geometries.reverse()
+        statuses.reverse()
+    # Normalised IDs must be treated as duplicates too.
+    details = [
+        _geometry_detail(100, geometries[0]),
+        _geometry_detail("100.0", geometries[1]),
+        _geometry_detail(101, "POINT (2 2)"),
+    ]
+    platform = [
+        {"entity": 100, "geometry": "POINT (0 0)"},
+        {"entity": 101, "geometry": "POINT (2 2)"},
+    ]
+    table = _build_entities_data(details, platform)
+    categories = {row["fields"]["entity"]: row["category"] for row in table["rows"]}
+    assert categories["100"] == statuses[-1]
+
+    with patch(
+        f"{TRANSFORM_MODULE}._geometries_differ", wraps=_geometries_differ
+    ) as geometry_compare:
+        features, points = _build_geometry_features(
+            platform,
+            details,
+            "green-belt",
+            compare=compare,
+            entity_categories=categories,
+        )
+
+    for collection in (features, points):
+        assert len(collection) == 3
+        if compare:
+            assert [feature["properties"]["status"] for feature in collection] == (
+                statuses + ["in_both"]
+            )
+        else:
+            assert all("status" not in feature["properties"] for feature in collection)
+    # Unique entity 101 reuses its result; only the repeated rows need comparing.
+    assert geometry_compare.call_count == (2 if compare else 0)
