@@ -204,7 +204,7 @@ def fetch_response_details(
         )
         if len(first_batch) < first_limit:
             # Short page means there is nothing after it, so no need to page at all.
-            return first_batch
+            return first_batch, len(first_batch)
         return _fetch_response_details_sequentially(
             request_id, limit, start_offset, max_rows, seed=first_batch
         )
@@ -237,7 +237,7 @@ def fetch_response_details(
         )
 
     logger.info(f"Total response details fetched: {len(all_details)}")
-    return all_details
+    return (all_details, total_available)
 
 
 def _fetch_response_details_sequentially(
@@ -316,4 +316,4 @@ def _fetch_response_details_sequentially(
             ) from e
 
     logger.info(f"Total response details fetched: {len(all_details)}")
-    return all_details
+    return all_details, len(all_details)
