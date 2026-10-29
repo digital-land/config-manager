@@ -3,7 +3,7 @@ import logging
 from urllib.parse import urlencode
 
 import requests
-from flask import abort, current_app
+from flask import abort
 
 from config.config import get_request_api_endpoint
 
@@ -80,9 +80,7 @@ def submit_request(params: dict) -> str:
     logger.debug(json.dumps(payload, indent=2))
 
     kwargs = {}
-    if params.get("type") == "add_data" and current_app.config.get(
-        "AUTHENTICATION_ON", True
-    ):
+    if params.get("type") == "add_data":
         token = get_auth_token()
         if not token:
             abort(401, description="Sign in again before adding data")
