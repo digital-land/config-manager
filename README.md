@@ -22,8 +22,9 @@ To run the application run:
 `make dev-up`. Production keeps authentication enabled.
 
 `make dev-up` pulls the published async API image and sets
-`AUTHENTICATION_ON=false`. For `make run`, start the async repository's local
-stack with `docker compose up -d --build`. Run one backend stack at a time.
+`AUTHENTICATION_ON=false`. For `make run`, first ensure the async repository's
+`request-api` service publishes `127.0.0.1:8000:8000`, then start that stack with
+`docker compose up -d --build`. Run one backend stack at a time.
 
 To test out github app integration locally you need to set the following in a `.env` file:
 

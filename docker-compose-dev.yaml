@@ -46,7 +46,7 @@ services:
         POSTGRES_DB: config_manager
         POSTGRES_PORT: 5432
     ports:
-      - 5001:5000
+      - "127.0.0.1:5001:5000"
       - 3000:3000
       - 3001:3001
     command: >
