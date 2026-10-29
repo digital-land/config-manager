@@ -18,12 +18,8 @@ To run the application run:
 
     make run
 
-`DevelopmentConfig` disables login and token signing for `make run` and
-`make dev-up`. Production keeps authentication enabled.
-
-`make dev-up` pulls the published async API image and sets
-`AUTHENTICATION_ON=false`. For `make run`, start the async repository's local
-stack with `docker compose up -d --build`. Run one backend stack at a time.
+Transform pages use comparisons prepared by async when available. Older requests
+fall back to a local comparison with a 10-second waiting limit.
 
 To test out github app integration locally you need to set the following in a `.env` file:
 

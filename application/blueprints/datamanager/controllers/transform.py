@@ -2,6 +2,8 @@ import json
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
+from threading import Event
+from time import monotonic
 
 import requests
 from flask import current_app, render_template, request as flask_request, session
@@ -14,6 +16,7 @@ from ..services.async_api import (
     AsyncAPIError,
     ResponseDetailsIncomplete,
     fetch_response_details,
+    fetch_platform_comparison,
     is_processing,
 )
 from ..services.dataset import get_dataset_name, get_dataset_typology
@@ -90,6 +93,7 @@ _DUPLICATE_FIXED_FIELDS = {
 _ROWS_PER_PAGE = 500
 _PLATFORM_ENTITY_LIMIT = 15000
 _ENTITY_COMPARISON_WORKERS = 4
+_ENTITY_COMPARISON_TIMEOUT = 10
 _GEO_FIELDS = {"geometry", "point"}
 _DATE_PREFIX_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})[T ]")
 _CHANGED_VALUE_MAX_LEN = 200
@@ -180,7 +184,47 @@ def _diff_entity_fields(resource_fields: dict, platform_entity: dict) -> dict:
     return changed
 
 
-def _build_entities_data(resp_details: list, platform_entities: list) -> dict:
+class ComparisonTimedOut(Exception):
+    """The request stopped waiting for a complete platform comparison."""
+
+
+def _compare_entity_fields(pairs, deadline=None):
+    """Compare a batch within a shared budget, discarding incomplete results.
+
+    Running native geometry calls cannot be interrupted. Stop queued comparisons
+    and return without waiting for those calls when the budget expires.
+    """
+    if not pairs:
+        return []
+    if deadline is None:
+        deadline = monotonic() + _ENTITY_COMPARISON_TIMEOUT
+    remaining = deadline - monotonic()
+    if remaining <= 0:
+        raise ComparisonTimedOut()
+    cancelled = Event()
+
+    def compare(pair):
+        if cancelled.is_set() or monotonic() >= deadline:
+            raise ComparisonTimedOut()
+        return _diff_entity_fields(*pair)
+
+    executor = ThreadPoolExecutor(
+        max_workers=min(_ENTITY_COMPARISON_WORKERS, len(pairs)),
+        thread_name_prefix="entity-comparison",
+    )
+    try:
+        return list(executor.map(compare, pairs, timeout=remaining))
+    except TimeoutError as exc:
+        raise ComparisonTimedOut() from exc
+    finally:
+        cancelled.set()
+        # A context manager would wait for running geometry calls on timeout.
+        executor.shutdown(wait=False, cancel_futures=True)
+
+
+def _build_entities_data(
+    resp_details: list, platform_entities: list, comparison_deadline=None
+) -> dict:
     """
     Pivot transformed facts from resp_details by entity and combine with
     platform entities. Returns a dict with 'columns' and 'rows', where each
@@ -209,23 +253,11 @@ def _build_entities_data(resp_details: list, platform_entities: list) -> dict:
     # Shapely 2 releases the GIL during GEOS operations. Bound concurrency per
     # request and keep Flask context access outside worker threads.
     matching_ids = [entity_id for entity_id in pivoted if entity_id in in_both_ids]
-    workers = min(_ENTITY_COMPARISON_WORKERS, len(matching_ids))
-    changes_by_id = {}
-    if workers > 1:
-        with ThreadPoolExecutor(
-            max_workers=workers, thread_name_prefix="entity-comparison"
-        ) as executor:
-            differences = executor.map(
-                _diff_entity_fields,
-                (pivoted[entity_id] for entity_id in matching_ids),
-                (platform_by_id[entity_id] for entity_id in matching_ids),
-            )
-            changes_by_id = dict(zip(matching_ids, differences))
-    elif matching_ids:
-        entity_id = matching_ids[0]
-        changes_by_id[entity_id] = _diff_entity_fields(
-            pivoted[entity_id], platform_by_id[entity_id]
-        )
+    differences = _compare_entity_fields(
+        [(pivoted[entity_id], platform_by_id[entity_id]) for entity_id in matching_ids],
+        deadline=comparison_deadline,
+    )
+    changes_by_id = dict(zip(matching_ids, differences))
 
     all_col_keys = set(_ENTITY_COL_PRIORITY)
     for fields in pivoted.values():
@@ -270,6 +302,83 @@ def _build_entities_data(resp_details: list, platform_entities: list) -> dict:
             )
 
     return {"columns": columns, "rows": rows}
+
+
+def _build_prepared_entities_data(resp_details, comparison_rows, columns=()):
+    """Join persisted async comparisons to resource facts, without comparing them."""
+    entries = {}
+    for item in resp_details:
+        facts = item.get("transformed_row") or []
+        if not isinstance(facts, list) or not facts:
+            continue
+        entity = _normalise_entity_id(facts[0].get("entity"))
+        if entity:
+            entries[str(item["entry_number"])] = {
+                "entity": entity,
+                "fields": {
+                    f["field"]: f.get("value", "") for f in facts if f.get("field")
+                },
+            }
+    resource_ids = {entry["entity"] for entry in entries.values()}
+    resource_comparisons, platform_by_id = {}, {}
+    for row in comparison_rows:
+        entity = _normalise_entity_id(row["entity"])
+        if row["source"] == "resource":
+            entry_number = str(row["entry_number"])
+            if (
+                entry_number not in entries
+                or entries[entry_number]["entity"] != entity
+                or entry_number in resource_comparisons
+                or row["category"] not in {"new", "changed", "in_both"}
+                or not isinstance(row["changed_fields"], dict)
+            ):
+                raise ValueError("Invalid prepared resource comparison")
+            resource_comparisons[entry_number] = row
+        elif row["source"] == "platform":
+            fields = row["fields"]
+            if (
+                entity in resource_ids
+                or entity in platform_by_id
+                or row["category"] != "existing"
+                or not isinstance(fields, dict)
+                or _normalise_entity_id(fields.get("entity")) != entity
+            ):
+                raise ValueError("Invalid prepared platform entity")
+            platform_by_id[entity] = fields
+        else:
+            raise ValueError("Unknown prepared comparison source")
+    if resource_comparisons.keys() != entries.keys():
+        raise ValueError("Prepared comparison does not cover every resource entry")
+    pivoted = {}
+    entry_categories = {}
+    for entry_number, entry in entries.items():
+        comparison = resource_comparisons[entry_number]
+        entry_categories[entry_number] = comparison["category"]
+        pivoted[entry["entity"]] = {
+            "fields": {**entry["fields"], "entity": entry["entity"]},
+            "category": comparison["category"],
+            "changed_fields": comparison["changed_fields"],
+        }
+    for entity, fields in platform_by_id.items():
+        pivoted[entity] = {
+            "fields": fields,
+            "category": "existing",
+            "changed_fields": {},
+        }
+    all_columns = set(columns) | set(_ENTITY_COL_PRIORITY)
+    for row in pivoted.values():
+        all_columns.update(row["fields"])
+    all_columns -= _ENTITY_COL_EXCLUDE
+    columns = _ENTITY_COL_PRIORITY + sorted(all_columns - set(_ENTITY_COL_PRIORITY))
+    rows = [
+        {**row, "fields": {col: str(row["fields"].get(col, "")) for col in columns}}
+        for row in pivoted.values()
+    ]
+    return (
+        {"columns": columns, "rows": rows},
+        list(platform_by_id.values()),
+        entry_categories,
+    )
 
 
 def _normalise_excluded_references(excluded_references) -> set:
@@ -756,6 +865,8 @@ def _build_geometry_features(
     dataset_id: str,
     compare: bool = True,
     entity_categories: dict | None = None,
+    comparison_deadline=None,
+    entry_categories=None,
 ) -> tuple:
     """Return (polygon_features, point_features).
 
@@ -782,6 +893,36 @@ def _build_geometry_features(
                 if entity_id in resource_entity_ids:
                     repeated_entity_ids.add(entity_id)
                 resource_entity_ids.add(entity_id)
+
+    # Unique rows reuse the table comparison. Repeated IDs retain per-row
+    # statuses, but their extra comparisons share the same request deadline.
+    comparison_rows = []
+    comparison_pairs = []
+    if compare and entry_categories is None:
+        for row_index, item in enumerate(all_resp_details):
+            facts = item.get("transformed_row") or []
+            if not isinstance(facts, list) or not facts:
+                continue
+            entity_id = _normalise_entity_id(facts[0].get("entity", ""))
+            if entity_id not in platform_entity_ids:
+                continue
+            if entity_categories is not None and entity_id not in repeated_entity_ids:
+                continue
+            resource_fields = {
+                f.get("field", ""): f.get("value", "")
+                for f in facts
+                if isinstance(f, dict) and f.get("field")
+            }
+            if not (resource_fields.get("geometry") or resource_fields.get("point")):
+                continue
+            comparison_rows.append(row_index)
+            comparison_pairs.append((resource_fields, platform_by_id[entity_id]))
+    row_changes = dict(
+        zip(
+            comparison_rows,
+            _compare_entity_fields(comparison_pairs, deadline=comparison_deadline),
+        )
+    )
 
     features = []
     points = []
@@ -810,7 +951,7 @@ def _build_geometry_features(
                 "Error parsing geometry for platform entity %s: %s", entity_id, e
             )
 
-    for item in all_resp_details:
+    for row_index, item in enumerate(all_resp_details):
         converted_row = item.get("converted_row") or {}
         transformed_row = item.get("transformed_row") or []
         if not isinstance(transformed_row, list) or not transformed_row:
@@ -837,21 +978,14 @@ def _build_geometry_features(
             continue
         if not compare:
             status = None
+        elif entry_categories is not None:
+            status = entry_categories[str(item["entry_number"])]
         elif entity_categories is not None and entity_id not in repeated_entity_ids:
             # The table keeps the last row for each entity. Repeated resource
             # rows need individual comparisons to colour their own geometries.
             status = entity_categories.get(entity_id, "new")
         elif entity_id in platform_entity_ids:
-            resource_fields = {
-                f.get("field", ""): f.get("value", "")
-                for f in transformed_row
-                if isinstance(f, dict) and f.get("field")
-            }
-            # Same four categories as the entities table: a resource entity
-            # already on the platform is "changed" if a field differs, else
-            # "in_both" (present but unchanged).
-            changed = _diff_entity_fields(resource_fields, platform_by_id[entity_id])
-            status = "changed" if changed else "in_both"
+            status = "changed" if row_changes[row_index] else "in_both"
         else:
             status = "new"
         try:
@@ -975,12 +1109,42 @@ def handle_check_transform(
         all_resp_details = e.partial
         details_incomplete = True
 
-    (
-        platform_entities,
-        platform_too_large,
-        existing_count,
-        platform_fetch_failed,
-    ) = _fetch_platform_entities(organisation_code, dataset_id)
+    response_data = (req.get("response") or {}).get("data") or {}
+    prepared_summary = (response_data.get("pipeline-summary") or {}).get(
+        "platform-comparison"
+    )
+    has_prepared_comparison = prepared_summary is not None
+    prepared_rows = None
+    if has_prepared_comparison:
+        platform_entities = []
+        platform_too_large = False
+        existing_count = 0
+        platform_fetch_failed = True
+        if isinstance(prepared_summary, dict) and prepared_summary.get("version") == 1:
+            existing_count = prepared_summary.get("existing_count", 0)
+            platform_too_large = prepared_summary.get("status") == "too-large"
+            if platform_too_large:
+                platform_fetch_failed = False
+            elif (
+                prepared_summary.get("status") == "complete" and not details_incomplete
+            ):
+                try:
+                    prepared_rows = fetch_platform_comparison(
+                        request_id, prepared_summary["row_count"]
+                    )
+                    platform_fetch_failed = False
+                except (AsyncAPIError, KeyError):
+                    logger.warning(
+                        "Prepared platform comparison unavailable for %s", request_id
+                    )
+    else:
+        # Older async responses retain the bounded comparison fallback.
+        (
+            platform_entities,
+            platform_too_large,
+            existing_count,
+            platform_fetch_failed,
+        ) = _fetch_platform_entities(organisation_code, dataset_id)
 
     # The comparison needs both sides complete. Missing platform entities would show
     # resource entities as new; missing resource rows would show platform entities as
@@ -1026,12 +1190,62 @@ def handle_check_transform(
     entity_search = flask_request.args.get("entity_search", "").strip()
     entity_filter = flask_request.args.get("entity_filter", "").strip()
 
-    # Build three paginated tables: transformed facts, issue logs, and entities.
-    # The entities table is built from the transformed facts and the platform entities.
-    entities_data_full = _build_entities_data(all_resp_details, platform_entities)
-    entity_categories = {
-        row["fields"]["entity"]: row["category"] for row in entities_data_full["rows"]
-    }
+    comparison_timed_out = False
+    comparison_deadline = monotonic() + _ENTITY_COMPARISON_TIMEOUT
+    entry_categories = None
+    try:
+        if has_prepared_comparison:
+            entities_data_full = {"columns": [], "rows": []}
+            if not comparison_unavailable and not platform_too_large:
+                try:
+                    entities_data_full, platform_entities, entry_categories = (
+                        _build_prepared_entities_data(
+                            all_resp_details,
+                            prepared_rows,
+                            prepared_summary.get("columns", []),
+                        )
+                    )
+                except (ValueError, KeyError, TypeError):
+                    logger.warning(
+                        "Invalid prepared platform comparison for %s", request_id
+                    )
+                    comparison_unavailable = True
+                    platform_fetch_failed = True
+        else:
+            entities_data_full = _build_entities_data(
+                all_resp_details,
+                platform_entities,
+                comparison_deadline=comparison_deadline,
+            )
+        entity_categories = {
+            row["fields"]["entity"]: row["category"]
+            for row in entities_data_full["rows"]
+        }
+        if dataset_typology == "geography":
+            geometries, geometry_points = _build_geometry_features(
+                platform_entities,
+                all_resp_details,
+                dataset_id,
+                compare=not comparison_unavailable and not platform_too_large,
+                entity_categories=entity_categories,
+                comparison_deadline=comparison_deadline,
+                entry_categories=entry_categories,
+            )
+        else:
+            geometries, geometry_points = [], []
+    except ComparisonTimedOut:
+        comparison_timed_out = True
+        comparison_unavailable = True
+        # Discard partial comparisons. The resource remains available in the
+        # transformed/issue tabs and on a neutral map, without platform colours.
+        entities_data_full = {"columns": [], "rows": []}
+        if dataset_typology == "geography":
+            geometries, geometry_points = _build_geometry_features(
+                [], all_resp_details, dataset_id, compare=False
+            )
+        else:
+            geometries, geometry_points = [], []
+
     (
         entities_data,
         has_next_entity_page,
@@ -1050,24 +1264,7 @@ def handle_check_transform(
     )
     transformed_table = _build_transform_table(resp_details)
     issue_log_table = _build_issue_log_table(resp_details)
-
-    # Build a GeoJSON feature collection for the map if needed, including any platform entities not in the resource,
-    # and any new or updated resource entities with geometry.
-    if dataset_typology == "geography":
-        geometries, geometry_points = _build_geometry_features(
-            platform_entities,
-            all_resp_details,
-            dataset_id,
-            compare=not comparison_unavailable,
-            entity_categories=entity_categories,
-        )
-        boundary_geojson = (
-            fetch_boundary_geojson(organisation_code) if geometries else None
-        )
-    else:
-        geometries = []
-        geometry_points = []
-        boundary_geojson = None
+    boundary_geojson = fetch_boundary_geojson(organisation_code) if geometries else None
 
     # Checks for whether endpoint is found in documentation url
     endpoint_in_doc = check_endpoint_in_doc(documentation_url, endpoint_url)
@@ -1093,6 +1290,8 @@ def handle_check_transform(
         entities_data=entities_data,
         platform_too_large=platform_too_large,
         comparison_unavailable=comparison_unavailable,
+        has_prepared_comparison=has_prepared_comparison,
+        comparison_timed_out=comparison_timed_out,
         can_override=can_override,
         details_incomplete=details_incomplete,
         platform_fetch_failed=platform_fetch_failed,

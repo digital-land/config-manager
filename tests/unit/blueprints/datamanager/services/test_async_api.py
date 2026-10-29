@@ -41,8 +41,7 @@ class TestSubmitRequest:
             session.pop("user")
             assert get_auth_token() is None
 
-    def test_add_data_issues_fresh_token_from_github_session(self, app, monkeypatch):
-        monkeypatch.setitem(app.config, "AUTHENTICATION_ON", True)
+    def test_add_data_issues_fresh_token_from_github_session(self, app):
         response = Mock(status_code=202)
         response.json.return_value = {"id": "abc123"}
         with app.test_request_context(), patch(
@@ -69,10 +68,7 @@ class TestSubmitRequest:
             assert session["auth_token"] == "expired-token"
 
     @pytest.mark.parametrize("expires", [0, 1])
-    def test_add_data_without_current_token_does_not_send(
-        self, app, expires, monkeypatch
-    ):
-        monkeypatch.setitem(app.config, "AUTHENTICATION_ON", True)
+    def test_add_data_without_current_token_does_not_send(self, app, expires):
         with app.test_request_context(), patch(
             "application.blueprints.datamanager.services.async_api.requests.post"
         ) as post:
@@ -83,27 +79,6 @@ class TestSubmitRequest:
                 submit_request({"type": "add_data"})
         assert error.value.code == 401
         post.assert_not_called()
-
-    @pytest.mark.parametrize("with_session", [False, True])
-    def test_local_add_data_needs_no_session_or_signing_key(
-        self, app, monkeypatch, with_session
-    ):
-        monkeypatch.setitem(app.config, "AUTHENTICATION_ON", False)
-        monkeypatch.setitem(app.config, "AUTH_JWT_PRIVATE_KEY", "")
-        response = Mock(status_code=202)
-        response.json.return_value = {"id": "local-request"}
-        with app.test_request_context(), patch(
-            "application.blueprints.datamanager.services.async_api.requests.post",
-            return_value=response,
-        ) as post:
-            if with_session:
-                session["user"] = {"id": 123, "login": "alice"}
-            assert submit_request({"type": "add_data"}) == "local-request"
-        assert "headers" not in post.call_args.kwargs
-        assert post.call_args.kwargs["json"]["params"] == {
-            "type": "add_data",
-            "service": "manage",
-        }
 
     def test_missing_session_user_returns_http_401(self):
         app = Flask(__name__)
@@ -351,3 +326,64 @@ class TestFetchResponseDetails:
         # One call only: the seeded first page is not requested a second time.
         assert sequential_get.call_count == 1
         assert sequential_get.call_args.kwargs["params"]["offset"] == 500
+
+
+@pytest.mark.parametrize("expected_count", [2, 3])
+def test_fetch_platform_comparison_checks_summary_count(app, expected_count):
+    from application.blueprints.datamanager.services.async_api import (
+        fetch_platform_comparison,
+    )
+
+    rows = [
+        {"source": "resource", "entry_number": "1"},
+        {"source": "platform", "entity": "999"},
+    ]
+    with app.app_context(), patch(
+        "application.blueprints.datamanager.services.async_api.fetch_response_details",
+        return_value=(rows, 2),
+    ) as fetch:
+        if expected_count == 2:
+            assert fetch_platform_comparison("test-comparison", expected_count) == rows
+        else:
+            with pytest.raises(ResponseDetailsIncomplete):
+                fetch_platform_comparison("test-comparison", expected_count)
+    fetch.assert_called_once_with("test-comparison", comparison=True)
+
+
+@pytest.mark.parametrize("has_total_header", [False, True])
+def test_comparison_pagination_keeps_its_endpoint(app, has_total_header):
+    first_rows = [{"entity": "1"}, {"entity": "2"}]
+    second_rows = [{"entity": "3"}]
+    first = Mock(status_code=200, content=b"[]")
+    first.json.return_value = first_rows
+    first.headers = {"X-Pagination-Total-Results": "3"} if has_total_header else {}
+    second = Mock(status_code=200, content=b"[]")
+    second.json.return_value = second_rows
+    second.headers = {}
+    request_id = f"comparison-pages-{has_total_header}"
+    with app.app_context(), patch(
+        "application.blueprints.datamanager.services.async_api.get_http_session"
+    ) as http, patch(
+        "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently",
+        return_value=[second_rows],
+    ) as parallel, patch(
+        "application.blueprints.datamanager.services.async_api.requests.get",
+        return_value=second,
+    ) as sequential:
+        http.return_value.get.return_value = first
+        rows, total = fetch_response_details(request_id, limit=2, comparison=True)
+    assert rows == first_rows + second_rows
+    assert total == 3
+    assert http.return_value.get.call_args.args[0].endswith(
+        f"/{request_id}/platform-comparison"
+    )
+    if has_total_header:
+        assert parallel.call_args.args[0][0].endswith(
+            f"/{request_id}/platform-comparison?offset=2&limit=2"
+        )
+        sequential.assert_not_called()
+    else:
+        assert sequential.call_args.args[0].endswith(
+            f"/{request_id}/platform-comparison"
+        )
+        parallel.assert_not_called()
