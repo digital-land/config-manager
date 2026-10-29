@@ -1,10 +1,16 @@
 import json
+from threading import Barrier, get_ident
+
+import pytest
 from unittest.mock import patch
 
 from application.utils import compute_hash
 from application.blueprints.datamanager.controllers.transform import (
     _dedup_candidate_form_value,
     _build_geometry_features,
+    _build_entities_data,
+    _geometries_differ,
+    handle_check_transform,
     _dedup_dynamic_columns,
     _fetch_platform_entities,
     _prepare_duplicate_candidates,
@@ -405,3 +411,103 @@ class TestGeometryFeaturesWithoutComparison:
 
         statuses = sorted(f["properties"]["status"] for f in features)
         assert statuses == ["existing", "new"]
+
+
+def _geometry_detail(entity, geometry):
+    return {
+        "entry_number": entity,
+        "transformed_row": [
+            {"entity": entity, "field": "geometry", "value": geometry},
+        ],
+    }
+
+
+def test_results_compare_once_and_reuse_all_categories_after_filtering(app):
+    details = [
+        _geometry_detail(100, "POINT (0 0)"),
+        _geometry_detail(101, "POINT (1 1)"),
+        _geometry_detail(102, "POINT (2 2)"),
+    ]
+    platform = [
+        {"entity": 100, "geometry": "POINT (0 0)"},
+        {"entity": 101, "geometry": "POINT (5 5)"},
+        {"entity": 103, "geometry": "POINT (3 3)"},
+    ]
+    with app.test_request_context("/?entity_filter=new"), patch.multiple(
+        TRANSFORM_MODULE,
+        get_organisation_name=lambda code: "Test Org",
+        get_dataset_name=lambda code, default: "Green belt",
+        get_dataset_typology=lambda code: "geography",
+        is_processing=lambda req: False,
+        fetch_response_details=lambda request_id: (details, len(details)),
+        _fetch_platform_entities=lambda org, dataset: (platform, False, 3, False),
+        _resolve_existing_endpoints=lambda summary, url: [],
+        fetch_boundary_geojson=lambda org: {},
+        check_endpoint_in_doc=lambda doc, url: {},
+        render_template=lambda name, **context: context,
+    ), patch(
+        f"{TRANSFORM_MODULE}._geometries_differ", wraps=_geometries_differ
+    ) as compare:
+        context = handle_check_transform(
+            "reuse-test",
+            {
+                "params": {
+                    "dataset": "green-belt",
+                    "organisation": "local-authority:ABC",
+                }
+            },
+        )
+
+    # Only two shared entities need comparing; map construction must not repeat it.
+    assert compare.call_count == 2
+    assert [row["fields"]["entity"] for row in context["entities_data"]["rows"]] == [
+        "102"
+    ]
+    assert context["category_counts"] == {
+        "new": 1,
+        "changed": 1,
+        "in_both": 1,
+        "existing": 1,
+    }
+    expected = {"100": "in_both", "101": "changed", "102": "new", "103": "existing"}
+    for features in (context["geometries"], context["geometry_points"]):
+        assert {
+            feature["properties"]["entity"]: feature["properties"]["status"]
+            for feature in features
+        } == expected
+
+
+def test_entity_geometry_comparisons_overlap_with_bounded_workers():
+    # Every group of four has to enter before any can finish. Serial execution
+    # would fail the barrier rather than pass due to a timing assumption.
+    barrier = Barrier(4, timeout=5)
+    worker_ids = []
+    details = [_geometry_detail(entity, f"POINT ({entity} 0)") for entity in range(8)]
+    platform = [
+        {"entity": entity, "geometry": f"POINT ({entity} 0)"} for entity in range(8)
+    ]
+
+    def compare(resource, existing):
+        worker_ids.append(get_ident())
+        barrier.wait()
+        return _geometries_differ(resource, existing)
+
+    with patch(f"{TRANSFORM_MODULE}._geometries_differ", side_effect=compare):
+        result = _build_entities_data(details, platform)
+
+    assert len(set(worker_ids)) == 4
+    assert get_ident() not in worker_ids
+    assert [row["fields"]["entity"] for row in result["rows"]] == list(
+        map(str, range(8))
+    )
+    assert all(row["category"] == "in_both" for row in result["rows"])
+
+
+def test_parallel_comparison_failure_is_propagated():
+    details = [_geometry_detail(entity, "POINT (0 0)") for entity in (100, 101)]
+    platform = [{"entity": entity, "geometry": "POINT (0 0)"} for entity in (100, 101)]
+    with patch(
+        f"{TRANSFORM_MODULE}._geometries_differ",
+        side_effect=RuntimeError("comparison failed"),
+    ), pytest.raises(RuntimeError, match="comparison failed"):
+        _build_entities_data(details, platform)

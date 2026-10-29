@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from flask import current_app, render_template, request as flask_request, session
@@ -88,6 +89,7 @@ _DUPLICATE_FIXED_FIELDS = {
 }
 _ROWS_PER_PAGE = 500
 _PLATFORM_ENTITY_LIMIT = 15000
+_ENTITY_COMPARISON_WORKERS = 4
 _GEO_FIELDS = {"geometry", "point"}
 _DATE_PREFIX_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})[T ]")
 _CHANGED_VALUE_MAX_LEN = 200
@@ -204,6 +206,27 @@ def _build_entities_data(resp_details: list, platform_entities: list) -> dict:
     platform_entity_ids = set(platform_by_id)
     in_both_ids = set(pivoted.keys()) & platform_entity_ids
 
+    # Shapely 2 releases the GIL during GEOS operations. Bound concurrency per
+    # request and keep Flask context access outside worker threads.
+    matching_ids = [entity_id for entity_id in pivoted if entity_id in in_both_ids]
+    workers = min(_ENTITY_COMPARISON_WORKERS, len(matching_ids))
+    changes_by_id = {}
+    if workers > 1:
+        with ThreadPoolExecutor(
+            max_workers=workers, thread_name_prefix="entity-comparison"
+        ) as executor:
+            differences = executor.map(
+                _diff_entity_fields,
+                (pivoted[entity_id] for entity_id in matching_ids),
+                (platform_by_id[entity_id] for entity_id in matching_ids),
+            )
+            changes_by_id = dict(zip(matching_ids, differences))
+    elif matching_ids:
+        entity_id = matching_ids[0]
+        changes_by_id[entity_id] = _diff_entity_fields(
+            pivoted[entity_id], platform_by_id[entity_id]
+        )
+
     all_col_keys = set(_ENTITY_COL_PRIORITY)
     for fields in pivoted.values():
         all_col_keys.update(fields.keys())
@@ -215,11 +238,7 @@ def _build_entities_data(resp_details: list, platform_entities: list) -> dict:
     rows = []
     for entity_id, fields in pivoted.items():
         entity_on_platform = entity_id in in_both_ids
-        changed_fields = (
-            _diff_entity_fields(fields, platform_by_id[entity_id])
-            if entity_on_platform
-            else {}
-        )
+        changed_fields = changes_by_id.get(entity_id, {})
         # Category drives both the row colour and the table filter:
         #   new      - only in this resource (green)
         #   changed  - on the platform and in this resource, with a difference (orange)
@@ -617,26 +636,25 @@ def _paginate_entity_data(
     entity_filter: str = "",
     include_selection: bool = False,
     excluded_references=None,
+    entities_data_full=None,
 ) -> tuple:
     entity_start_offset = (entity_page - 1) * _ROWS_PER_PAGE
-    entities_data_full = _build_entities_data(all_resp_details, platform_entities)
+    if entities_data_full is None:
+        entities_data_full = _build_entities_data(all_resp_details, platform_entities)
 
     # Counts cover every entity, independent of the current search/filter, so the
     # summary boxes always show the full picture.
     category_counts = _count_categories(entities_data_full["rows"])
+    rows = entities_data_full["rows"]
     if entity_search or entity_filter:
-        entities_data_full["rows"] = [
+        rows = [
             row
-            for row in entities_data_full["rows"]
+            for row in rows
             if _entity_row_matches_search(row, entity_search)
             and _entity_row_matches_filter(row, entity_filter)
         ]
-    has_next_entity_page = (
-        len(entities_data_full["rows"]) > entity_start_offset + _ROWS_PER_PAGE
-    )
-    entity_page_rows = entities_data_full["rows"][
-        entity_start_offset : entity_start_offset + _ROWS_PER_PAGE
-    ]
+    has_next_entity_page = len(rows) > entity_start_offset + _ROWS_PER_PAGE
+    entity_page_rows = rows[entity_start_offset : entity_start_offset + _ROWS_PER_PAGE]
     entity_page_start = (
         entity_page_rows[0]["fields"].get("entity", "") if entity_page_rows else ""
     )
@@ -737,6 +755,7 @@ def _build_geometry_features(
     all_resp_details: list,
     dataset_id: str,
     compare: bool = True,
+    entity_categories: dict | None = None,
 ) -> tuple:
     """Return (polygon_features, point_features).
 
@@ -815,6 +834,8 @@ def _build_geometry_features(
             continue
         if not compare:
             status = None
+        elif entity_categories is not None:
+            status = entity_categories.get(entity_id, "new")
         elif entity_id in platform_entity_ids:
             resource_fields = {
                 f.get("field", ""): f.get("value", "")
@@ -979,7 +1000,7 @@ def handle_check_transform(
         show_dedup_tab,
     )
     duplicate_candidates = _prepare_duplicate_candidates(
-        pipeline_summary.get("duplicate-candidates") or [] if show_dedup_tab else [],
+        (pipeline_summary.get("duplicate-candidates") or [] if show_dedup_tab else []),
         pipeline_summary.get("old-entity") or [],
         excluded_references=excluded_references,
         selected_redirects=params.get("selected_redirects"),
@@ -1002,6 +1023,10 @@ def handle_check_transform(
 
     # Build three paginated tables: transformed facts, issue logs, and entities.
     # The entities table is built from the transformed facts and the platform entities.
+    entities_data_full = _build_entities_data(all_resp_details, platform_entities)
+    entity_categories = {
+        row["fields"]["entity"]: row["category"] for row in entities_data_full["rows"]
+    }
     (
         entities_data,
         has_next_entity_page,
@@ -1016,6 +1041,7 @@ def handle_check_transform(
         entity_filter,
         include_selection=is_assign_entities,
         excluded_references=excluded_references,
+        entities_data_full=entities_data_full,
     )
     transformed_table = _build_transform_table(resp_details)
     issue_log_table = _build_issue_log_table(resp_details)
@@ -1028,6 +1054,7 @@ def handle_check_transform(
             all_resp_details,
             dataset_id,
             compare=not comparison_unavailable,
+            entity_categories=entity_categories,
         )
         boundary_geojson = (
             fetch_boundary_geojson(organisation_code) if geometries else None
