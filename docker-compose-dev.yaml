@@ -98,7 +98,7 @@ services:
       AUTH_JWT_AUDIENCE: ${AUTH_JWT_AUDIENCE:-async}
     restart: on-failure
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
         request-db:
           condition: service_healthy
