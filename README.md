@@ -53,6 +53,9 @@ Return to the config-manager directory and run:
 
     make run
 
+Transform pages use comparisons prepared by async when available. Older requests
+fall back to a local comparison with a 10-second waiting limit.
+
 `DevelopmentConfig` disables login and token signing for `make run` and
 `make dev-up`. Production keeps authentication enabled.
 
