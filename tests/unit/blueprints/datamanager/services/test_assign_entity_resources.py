@@ -16,8 +16,8 @@ from application.extensions import db
 @pytest.mark.parametrize(
     ("now", "cutoff"),
     [
-        (datetime(2026, 1, 15, 6, 30), datetime(2026, 1, 15, 13, 30)),
-        (datetime(2026, 7, 15, 5, 30), datetime(2026, 7, 15, 12, 30)),
+        (datetime(2026, 1, 15, 6, 30), datetime(2026, 1, 15, 6, 0)),
+        (datetime(2026, 7, 15, 5, 30), datetime(2026, 7, 15, 5, 0)),
     ],
 )
 def test_get_statuses_expires_previous_day_in_progress_but_keeps_processed(

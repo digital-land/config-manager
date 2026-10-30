@@ -62,7 +62,7 @@ def get_assign_entity_resource_statuses(
     uk_now = utcnow().replace(tzinfo=timezone.utc).astimezone(
         ZoneInfo("Europe/London")
     )
-    uk_cutoff = datetime.combine(uk_now.date(), time(13, 30), tzinfo=uk_now.tzinfo)
+    uk_cutoff = datetime.combine(uk_now.date(), time(6, 0), tzinfo=uk_now.tzinfo)
     cutoff = uk_cutoff.astimezone(timezone.utc).replace(tzinfo=None)
     return {
         (record.resource, record.dataset, record.organisation): record
