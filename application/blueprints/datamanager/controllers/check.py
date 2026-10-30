@@ -13,6 +13,7 @@ from ..services.async_api import (
     ResponseDetailsIncomplete,
     fetch_request,
     fetch_response_details,
+    is_processing,
     submit_request,
 )
 from ..services.dataset import (
@@ -171,11 +172,12 @@ def handle_check_results(request_id, result):
         else None
     )
 
-    # Check If Still Processing
-    if (
-        result.get("status") in ["PENDING", "PROCESSING", "QUEUED"]
-        or result.get("response") is None
-    ):
+    try:
+        processing = is_processing(result)
+    except AsyncAPIError as e:
+        raise ControllerError(str(e)) from e
+
+    if processing:
         return render_template(
             "datamanager/check-results-loading.html",
             result=result,
@@ -195,12 +197,15 @@ def handle_check_results(request_id, result):
     start_offset = (page_number - 1) * _ROWS_PER_PAGE
     details_incomplete = False
     try:
-        resp_details = fetch_response_details(
-            request_id, start_offset=start_offset, max_rows=_ROWS_PER_PAGE
+        resp_details, total_entries = fetch_response_details(
+            request_id,
+            start_offset=start_offset,
+            max_rows=_ROWS_PER_PAGE,
         )
     except ResponseDetailsIncomplete as e:
         logger.error("Response details incomplete for %s: %s", request_id, e)
         resp_details = e.partial
+        total_entries = None
         details_incomplete = True
 
     has_next_page = len(resp_details) >= _ROWS_PER_PAGE
@@ -346,6 +351,7 @@ def handle_check_results(request_id, result):
         has_next_page=has_next_page,
         page_start=page_start,
         page_end=page_end,
+        total_entries=total_entries,
     )
 
 
@@ -401,13 +407,10 @@ def handle_check_resubmit(request_id):
         "collection": params.get("collection"),
         "dataset": params.get("dataset"),
         "url": params.get("url"),
-        "documentation_url": params.get("documentation_url"),
-        "licence": params.get("licence"),
-        "start_date": params.get("start_date"),
         "column_mapping": column_mapping or None,
         "geom_type": params.get("geom_type"),
-        "organisation": params.get("organisation"),
         "organisationName": params.get("organisationName"),
+        "endpoint_parameters": params.get("endpoint_parameters"),
     }
 
     try:

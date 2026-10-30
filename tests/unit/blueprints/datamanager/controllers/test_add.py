@@ -12,7 +12,7 @@ from application.utils import utcnow
 _CONFIRM = "application.blueprints.datamanager.controllers.confirm"
 
 PENDING_ADD_DATA_RESULT = {
-    "status": "PENDING",
+    "status": "NEW",
     "response": None,
     "params": {"dataset": "brownfield-land"},
 }

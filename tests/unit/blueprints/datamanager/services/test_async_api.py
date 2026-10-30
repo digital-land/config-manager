@@ -1,6 +1,11 @@
 from unittest.mock import patch, Mock
 
 import pytest
+import jwt
+from flask import Flask, session
+from werkzeug.exceptions import Unauthorized
+
+from application.blueprints.datamanager.utils import handle_error
 
 from application.blueprints.datamanager.services.async_api import (
     fetch_response_details,
@@ -12,6 +17,110 @@ from application.blueprints.datamanager.services.async_api import (
 
 
 class TestSubmitRequest:
+    @pytest.mark.parametrize("is_admin,role", [(False, "staff"), (True, "admin")])
+    def test_session_can_issue_another_token_after_previous_expiry(
+        self, app, is_admin, role
+    ):
+        from application.blueprints.auth.auth_token import get_auth_token
+
+        with app.test_request_context():
+            session["user"] = {"id": 123, "login": "alice", "is_admin": is_admin}
+            with patch(
+                "application.blueprints.auth.auth_token.time.time", return_value=1000
+            ):
+                first = get_auth_token()
+            with patch(
+                "application.blueprints.auth.auth_token.time.time", return_value=2000
+            ):
+                second = get_auth_token()
+            first_claims = jwt.decode(first, options={"verify_signature": False})
+            second_claims = jwt.decode(second, options={"verify_signature": False})
+            assert first_claims["exp"] < second_claims["iat"]
+            assert second_claims["role"] == role
+            assert "auth_token" not in session
+            session.pop("user")
+            assert get_auth_token() is None
+
+    def test_add_data_issues_fresh_token_from_github_session(self, app, monkeypatch):
+        monkeypatch.setitem(app.config, "AUTHENTICATION_ON", True)
+        response = Mock(status_code=202)
+        response.json.return_value = {"id": "abc123"}
+        with app.test_request_context(), patch(
+            "application.blueprints.datamanager.services.async_api.requests.post",
+            return_value=response,
+        ) as post:
+            session["user"] = {"id": 123, "login": "alice", "is_admin": False}
+            session["auth_token"] = "expired-token"
+            assert submit_request({"type": "add_data"}) == "abc123"
+            token = post.call_args.kwargs["headers"]["Authorization"].removeprefix(
+                "Bearer "
+            )
+            claims = jwt.decode(
+                token,
+                app.config["AUTH_JWT_PRIVATE_KEY"].public_key(),
+                algorithms=["RS256"],
+                audience=app.config["AUTH_JWT_AUDIENCE"],
+                issuer=app.config["AUTH_JWT_ISSUER"],
+            )
+            assert claims["sub"] == "123"
+            assert claims["username"] == "alice"
+            assert claims["role"] == "staff"
+            assert claims["exp"] - claims["iat"] == 900
+            assert session["auth_token"] == "expired-token"
+
+    @pytest.mark.parametrize("expires", [0, 1])
+    def test_add_data_without_current_token_does_not_send(
+        self, app, expires, monkeypatch
+    ):
+        monkeypatch.setitem(app.config, "AUTHENTICATION_ON", True)
+        with app.test_request_context(), patch(
+            "application.blueprints.datamanager.services.async_api.requests.post"
+        ) as post:
+            session["auth_token_expires"] = expires
+            if expires:
+                session["auth_token"] = "expired-token"
+            with pytest.raises(Unauthorized) as error:
+                submit_request({"type": "add_data"})
+        assert error.value.code == 401
+        post.assert_not_called()
+
+    @pytest.mark.parametrize("with_session", [False, True])
+    def test_local_add_data_needs_no_session_or_signing_key(
+        self, app, monkeypatch, with_session
+    ):
+        monkeypatch.setitem(app.config, "AUTHENTICATION_ON", False)
+        monkeypatch.setitem(app.config, "AUTH_JWT_PRIVATE_KEY", "")
+        response = Mock(status_code=202)
+        response.json.return_value = {"id": "local-request"}
+        with app.test_request_context(), patch(
+            "application.blueprints.datamanager.services.async_api.requests.post",
+            return_value=response,
+        ) as post:
+            if with_session:
+                session["user"] = {"id": 123, "login": "alice"}
+            assert submit_request({"type": "add_data"}) == "local-request"
+        assert "headers" not in post.call_args.kwargs
+        assert post.call_args.kwargs["json"]["params"] == {
+            "type": "add_data",
+            "service": "manage",
+        }
+
+    def test_missing_session_user_returns_http_401(self):
+        app = Flask(__name__)
+        app.config["SECRET_KEY"] = "test"
+        app.register_error_handler(Exception, handle_error)
+
+        @app.post("/add-data")
+        def add_data():
+            return submit_request({"type": "add_data"})
+
+        with patch(
+            "application.blueprints.datamanager.services.async_api.requests.post"
+        ) as post:
+            response = app.test_client().post("/add-data")
+        assert response.status_code == 401
+        post.assert_not_called()
+
     def test_returns_request_id_on_202(self):
         mock_response = Mock()
         mock_response.status_code = 202
@@ -117,7 +226,7 @@ class TestFetchResponseDetails:
             "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently",
             return_value=[_rows(500, 500), _rows(1000, 200)],
         ) as fetch_pages:
-            result = fetch_response_details("parallel-order")
+            result, total = fetch_response_details("parallel-order")
 
         assert len(result) == 1200
         assert [row["entry_number"] for row in result] == list(range(1200))
@@ -128,7 +237,7 @@ class TestFetchResponseDetails:
         with self._patch_first_page(_page_response(_rows(0, 12), total=12)), patch(
             "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently"
         ) as fetch_pages:
-            result = fetch_response_details("single-page")
+            result, total = fetch_response_details("single-page")
 
         assert len(result) == 12
         fetch_pages.assert_not_called()
@@ -138,7 +247,7 @@ class TestFetchResponseDetails:
             "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently",
             return_value=[_rows(500, 500)],
         ):
-            result = fetch_response_details("clamped", max_rows=750)
+            result, total = fetch_response_details("clamped", max_rows=750)
 
         assert len(result) == 750
         assert [row["entry_number"] for row in result] == list(range(750))
@@ -146,11 +255,12 @@ class TestFetchResponseDetails:
     def test_falls_back_to_sequential_when_header_missing(self, app):
         with self._patch_first_page(_page_response(_rows(0, 500))), patch(
             "application.blueprints.datamanager.services.async_api._fetch_response_details_sequentially",
-            return_value=_rows(0, 900),
+            return_value=(_rows(0, 900), 900),
         ) as sequential:
-            result = fetch_response_details("no-header")
+            result, total = fetch_response_details("no-header")
 
         assert len(result) == 900
+        assert total == 900
         sequential.assert_called_once()
 
     def test_failed_page_raises_and_carries_the_rows_it_did_get(self, app):
@@ -180,7 +290,7 @@ class TestFetchResponseDetails:
             "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently",
             return_value=[_rows(500, 500)],
         ):
-            result = fetch_response_details("flaky-request")
+            result, total = fetch_response_details("flaky-request")
 
         assert [row["entry_number"] for row in result] == list(range(1000))
 
@@ -200,9 +310,10 @@ class TestFetchResponseDetails:
         with self._patch_first_page(_page_response(_rows(0, 10))), patch(
             "application.blueprints.datamanager.services.async_api.requests.get"
         ) as sequential_get:
-            result = fetch_response_details("short-first-page")
+            result, total = fetch_response_details("short-first-page")
 
         assert len(result) == 10
+        assert total == 10
         sequential_get.assert_not_called()
 
     def test_transport_failure_during_sequential_fallback_raises_with_partial(
@@ -233,9 +344,10 @@ class TestFetchResponseDetails:
             "application.blueprints.datamanager.services.async_api.requests.get",
             return_value=second_page,
         ) as sequential_get:
-            result = fetch_response_details("seeded-sequential")
+            result, total = fetch_response_details("seeded-sequential")
 
         assert [row["entry_number"] for row in result] == list(range(510))
+        assert total == 510
         # One call only: the seeded first page is not requested a second time.
         assert sequential_get.call_count == 1
         assert sequential_get.call_args.kwargs["params"]["offset"] == 500

@@ -3,10 +3,12 @@ import logging
 from urllib.parse import urlencode
 
 import requests
+from flask import abort, current_app
 
 from config.config import get_request_api_endpoint
 
 from application.extensions import cache
+from application.blueprints.auth.auth_token import get_auth_token
 
 from application.data_access.http import (
     fetch_pages_concurrently,
@@ -17,6 +19,8 @@ from ..utils import REQUESTS_TIMEOUT
 
 logger = logging.getLogger(__name__)
 TOTAL_RESULTS_HEADER = "X-Pagination-Total-Results"
+PROCESSING_STATUSES = {"NEW", "PROCESSING"}
+KNOWN_STATUSES = PROCESSING_STATUSES | {"COMPLETE", "FAILED"}
 
 
 def _requests_url() -> str:
@@ -38,6 +42,17 @@ class AsyncAPIError(Exception):
         self.status_code = status_code
         self.detail = detail
         super().__init__(message)
+
+
+def is_processing(req: dict) -> bool:
+    """Return whether results are pending; raise AsyncAPIError for invalid/failed requests."""
+    status = req.get("status")
+    if status not in KNOWN_STATUSES:
+        raise AsyncAPIError(f"Unrecognised request status: {status!r}")
+    if status == "FAILED":
+        error = (req.get("response") or {}).get("error") or {}
+        raise AsyncAPIError(error.get("errMsg") or "Async processing failed")
+    return status in PROCESSING_STATUSES or req.get("response") is None
 
 
 class ResponseDetailsIncomplete(AsyncAPIError):
@@ -64,7 +79,17 @@ def submit_request(params: dict) -> str:
     logger.info("Submitting request to async API")
     logger.debug(json.dumps(payload, indent=2))
 
-    response = requests.post(_requests_url(), json=payload, timeout=REQUESTS_TIMEOUT)
+    kwargs = {}
+    if params.get("type") == "add_data" and current_app.config.get(
+        "AUTHENTICATION_ON", True
+    ):
+        token = get_auth_token()
+        if not token:
+            abort(401, description="Sign in again before adding data")
+        kwargs["headers"] = {"Authorization": f"Bearer {token}"}
+    response = requests.post(
+        _requests_url(), json=payload, timeout=REQUESTS_TIMEOUT, **kwargs
+    )
 
     logger.info(f"Async API responded with {response.status_code}")
     try:
@@ -181,7 +206,7 @@ def fetch_response_details(
         )
         if len(first_batch) < first_limit:
             # Short page means there is nothing after it, so no need to page at all.
-            return first_batch
+            return first_batch, len(first_batch)
         return _fetch_response_details_sequentially(
             request_id, limit, start_offset, max_rows, seed=first_batch
         )
@@ -214,7 +239,7 @@ def fetch_response_details(
         )
 
     logger.info(f"Total response details fetched: {len(all_details)}")
-    return all_details
+    return (all_details, total_available)
 
 
 def _fetch_response_details_sequentially(
@@ -293,4 +318,4 @@ def _fetch_response_details_sequentially(
             ) from e
 
     logger.info(f"Total response details fetched: {len(all_details)}")
-    return all_details
+    return all_details, len(all_details)
