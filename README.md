@@ -2,6 +2,9 @@
 
 ## Getting started
 
+`make dev-up` starts the full development stack in Docker, including the async
+backend. The steps below are for running Config Manager directly on your machine.
+
 Create a python virtualenv then run:
 
     make init
@@ -14,7 +17,39 @@ Create or update db schema
 
     make upgrade-db
 
-To run the application run:
+### Optional: work on the async backend locally
+
+A separate checkout is useful when developing Config Manager and async together;
+`make dev-up` does not need one. To use a separate backend, run Config Manager
+with `make run` and start the backend from its own checkout:
+
+```sh
+cd ..
+git clone https://github.com/digital-land/async-request-backend.git
+cd async-request-backend
+```
+
+Before starting it, check that `request-api` publishes `127.0.0.1:8000:8000` in
+its `docker-compose.yml`. With Docker running:
+
+```sh
+docker compose up -d --build
+```
+
+This builds the API and worker from your checkout and starts the database and
+LocalStack. Rerun the command after backend changes to rebuild it. Run one backend
+stack at a time to avoid port and container-name conflicts.
+
+`make run` uses `http://localhost:8000` by default. You can also set the endpoint
+explicitly in Config Manager's `.env`:
+
+```dotenv
+REQUEST_API_BASE_URL=http://localhost:8000
+```
+
+### Run config-manager
+
+Return to the config-manager directory and run:
 
     make run
 
@@ -22,9 +57,8 @@ To run the application run:
 `make dev-up`. Production keeps authentication enabled.
 
 `make dev-up` pulls the published async API image and sets
-`AUTHENTICATION_ON=false`. For `make run`, first ensure the async repository's
-`request-api` service publishes `127.0.0.1:8000:8000`, then start that stack with
-`docker compose up -d --build`. Run one backend stack at a time.
+`AUTHENTICATION_ON=false`. To develop the backend too, use the optional checkout
+steps above.
 
 To test out github app integration locally you need to set the following in a `.env` file:
 
@@ -118,4 +152,3 @@ The [package-scripts.js](package-scripts.js) file extends digital-land-frontend 
 ### Digital Land Frontend Configuration
 
 Frontend build paths are configured in [digital-land-frontend.config.json](digital-land-frontend.config.json). `govukOutputPath` is set to `application/static/` so GOV.UK Frontend fonts and images are copied to `application/static/govuk/assets/`, where the compiled styles expect them.
-
