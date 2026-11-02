@@ -17,7 +17,15 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
-      - run: make init
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+      - name: Install dependencies
+        run: |
+          mkdir -p application/static/javascripts application/static/stylesheets
+          npm ci
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements/requirements.txt -r requirements/dev-requirements.txt
       - run: make lint
 
   test:
@@ -47,7 +55,16 @@ jobs:
         with:
           python-version: '3.13'
 
-      - run: make init
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install dependencies
+        run: |
+          mkdir -p application/static/javascripts application/static/stylesheets
+          npm ci
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements/requirements.txt -r requirements/dev-requirements.txt
 
       - name: Setup database
         run: |

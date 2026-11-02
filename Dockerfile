@@ -1,5 +1,8 @@
+ARG NODE_VERSION=24.22.1
+FROM node:${NODE_VERSION}-trixie-slim AS node
+
 # Build frontend assets (postinstall runs the copy and build scripts into application/static)
-FROM node:16-slim AS frontend
+FROM node AS frontend
 
 WORKDIR /app
 
@@ -9,7 +12,7 @@ COPY src ./src
 RUN npm ci
 
 # Runtime image shared by dev and production
-FROM python:3.13-slim AS base
+FROM python:3.13-slim-trixie AS base
 
 # Working dir
 WORKDIR /app
@@ -49,13 +52,20 @@ EXPOSE 5000
 ENTRYPOINT ["sh", "./docker-entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--access-logfile", "-", "application.wsgi:app"]
 
-# Local development image (docker-compose.yaml) - adds Node.js for npm install and asset watching
+# Local development image (docker-compose.yaml) - adds Node.js for npm ci and asset watching
 FROM base AS dev
 
+# chokidar-cli uses SHELL when running asset rebuild commands.
+ENV SHELL=/bin/bash
+
 RUN apt-get update && \
-    curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && \
-    apt-get install -y --no-install-recommends nodejs && \
+    apt-get install -y --no-install-recommends libstdc++6 && \
     rm -rf /var/lib/apt/lists/*
+
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
+    ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 USER appuser
 

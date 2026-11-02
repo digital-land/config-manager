@@ -5,6 +5,14 @@
 `make dev-up` starts the full development stack in Docker, including the async
 backend. The steps below are for running Config Manager directly on your machine.
 
+From the repository directory, install and activate the Node.js version pinned
+in `.nvmrc` using nvm:
+
+```sh
+nvm install
+nvm use
+```
+
 Create a python virtualenv then run:
 
     make init
@@ -105,6 +113,27 @@ Then to install all the packages run:
 ## Frontend build
 
 This project uses the [@digital-land-gov-uk/digital-land-frontend](https://github.com/digital-land/digital-land-frontend) npm package to manage frontend asset compilation and copying.
+
+`make init` uses `npm install`; CI and Docker use `npm ci`. Both run the
+post-install asset build. After changing
+dependencies, run `npm install` with the pinned Node version and commit the
+updated `package-lock.json` alongside `package.json`.
+
+CI and deployment builds read `.nvmrc`. The main Dockerfile and
+`docker-compose.yaml` default to Node 24.22.1. Keep these defaults, `.nvmrc`,
+and the package engine requirements aligned when upgrading. Both the frontend
+and dev Docker stages use the same official Node image; production uses Python
+and contains only the generated frontend assets, without Node or `node_modules`.
+
+To explicitly use the pinned version for Docker or Compose:
+
+```sh
+docker build --build-arg NODE_VERSION="$(cat .nvmrc)" -t config-manager .
+NODE_VERSION="$(cat .nvmrc)" docker compose up --build
+```
+
+The separate `Dockerfile.dev` used by `make dev-up` and
+`docker-compose-dev.yaml` is a legacy setup and is not covered by this upgrade.
 
 ### How it works
 
