@@ -41,7 +41,8 @@ class TestSubmitRequest:
             session.pop("user")
             assert get_auth_token() is None
 
-    def test_add_data_issues_fresh_token_from_github_session(self, app):
+    def test_add_data_issues_fresh_token_from_github_session(self, app, monkeypatch):
+        monkeypatch.setitem(app.config, "AUTHENTICATION_ON", True)
         response = Mock(status_code=202)
         response.json.return_value = {"id": "abc123"}
         with app.test_request_context(), patch(
@@ -68,7 +69,10 @@ class TestSubmitRequest:
             assert session["auth_token"] == "expired-token"
 
     @pytest.mark.parametrize("expires", [0, 1])
-    def test_add_data_without_current_token_does_not_send(self, app, expires):
+    def test_add_data_without_current_token_does_not_send(
+        self, app, expires, monkeypatch
+    ):
+        monkeypatch.setitem(app.config, "AUTHENTICATION_ON", True)
         with app.test_request_context(), patch(
             "application.blueprints.datamanager.services.async_api.requests.post"
         ) as post:
@@ -79,6 +83,27 @@ class TestSubmitRequest:
                 submit_request({"type": "add_data"})
         assert error.value.code == 401
         post.assert_not_called()
+
+    @pytest.mark.parametrize("with_session", [False, True])
+    def test_local_add_data_needs_no_session_or_signing_key(
+        self, app, monkeypatch, with_session
+    ):
+        monkeypatch.setitem(app.config, "AUTHENTICATION_ON", False)
+        monkeypatch.setitem(app.config, "AUTH_JWT_PRIVATE_KEY", "")
+        response = Mock(status_code=202)
+        response.json.return_value = {"id": "local-request"}
+        with app.test_request_context(), patch(
+            "application.blueprints.datamanager.services.async_api.requests.post",
+            return_value=response,
+        ) as post:
+            if with_session:
+                session["user"] = {"id": 123, "login": "alice"}
+            assert submit_request({"type": "add_data"}) == "local-request"
+        assert "headers" not in post.call_args.kwargs
+        assert post.call_args.kwargs["json"]["params"] == {
+            "type": "add_data",
+            "service": "manage",
+        }
 
     def test_missing_session_user_returns_http_401(self):
         app = Flask(__name__)

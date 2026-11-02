@@ -79,7 +79,7 @@ datasette==0.65.2
     # via digital-land
 digital-land @ git+https://github.com/digital-land/pipeline.git
     # via -r requirements/requirements.in
-digital-land-frontend @ git+https://github.com/digital-land/digital-land-frontend.git
+digital-land-frontend==0.8.1
     # via -r requirements/requirements.in
 duckdb==1.4.4
     # via digital-land
@@ -118,7 +118,7 @@ fsspec==2026.2.0
     # via dask
 geojson==3.2.0
     # via digital-land
-govuk-frontend-jinja==4.0.0
+govuk-frontend-jinja==3.10.0
     # via
     #   -r requirements/requirements.in
     #   digital-land-frontend

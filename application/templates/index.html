@@ -18,7 +18,8 @@
 </header>
 {% endblock mastHead %}
 
-{% block container %}
+{# govuk-frontend-jinja 3.x: "main" wraps the width container and <main> (4.x calls this block "container") #}
+{% block main %}
 <div class="govuk-width-container app-before-content-container">
   {% block beforeContent %}{{ super() }}{% endblock %}
 </div>
@@ -230,4 +231,4 @@
   </section>
 
 </main>
-{% endblock container %}
+{% endblock main %}

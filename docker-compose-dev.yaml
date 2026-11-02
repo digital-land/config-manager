@@ -46,7 +46,7 @@ services:
         POSTGRES_DB: config_manager
         POSTGRES_PORT: 5432
     ports:
-      - 5001:5000
+      - "127.0.0.1:5001:5000"
       - 3000:3000
       - 3001:3001
     command: >
@@ -82,6 +82,7 @@ services:
   request-api:
     container_name: request-api
     image: public.ecr.aws/l6z6v3j6/development-pub-async-request-api:main
+    pull_policy: always
     environment:
       PYTHONUNBUFFERED: 1
       AWS_ENDPOINT_URL: http://localstack:4566
@@ -91,12 +92,13 @@ services:
       AWS_SECRET_ACCESS_KEY: example
       SQS_QUEUE_NAME: request-queue
       DATABASE_URL: postgresql://postgres:password@request-db/request_database
+      AUTHENTICATION_ON: "false"
       AUTH_JWT_PUBLIC_KEY: ${AUTH_JWT_PUBLIC_KEY:-}
       AUTH_TRUSTED_ISSUERS: ${AUTH_TRUSTED_ISSUERS:-manage}
       AUTH_JWT_AUDIENCE: ${AUTH_JWT_AUDIENCE:-async}
     restart: on-failure
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
         request-db:
           condition: service_healthy
