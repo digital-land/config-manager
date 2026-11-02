@@ -10,6 +10,7 @@ from application.extensions import db
 
 from . import ControllerError
 from .request_meta import load_json_list
+from ..services.async_api import AsyncAPIError, is_processing
 from ..services.dataset import get_dataset_name
 from ..services.organisation import get_organisation_name
 from ..utils.csv_formats import (
@@ -165,19 +166,12 @@ def build_old_entity_redirect_table(old_entity_rows: list[dict]) -> dict | None:
 
 
 def handle_entities_preview(request_id, req):
-    # Check State
-    status = req.get("status")
+    try:
+        processing = is_processing(req)
+    except AsyncAPIError as e:
+        raise ControllerError(str(e)) from e
 
-    if status == "FAILED":
-        response_payload = req.get("response") or {}
-        response_error = response_payload.get("error")
-        raise ControllerError(
-            response_error.get("errMsg")
-            if response_error
-            else "Async Failed processing for this task with no error information"
-        )
-
-    if status in {"PENDING", "PROCESSING", "QUEUED"} or req.get("response") is None:
+    if processing:
         return render_template(
             "datamanager/add-data-preview-loading.html", request_id=request_id
         )

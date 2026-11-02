@@ -2,14 +2,24 @@
 import base64
 import os
 
+from cryptography.exceptions import UnsupportedAlgorithm
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
     ENV = "production"
+    AUTHENTICATION_ON = True
+    DEBUG = False
     APP_ROOT = os.path.abspath(os.path.dirname(__file__))
     PROJECT_ROOT = os.path.abspath(os.path.join(APP_ROOT, os.pardir))
     SECRET_KEY = os.getenv("SECRET_KEY")
+    # Dedicated base64-encoded PEM key; never reuse the GitHub App key.
+    AUTH_JWT_PRIVATE_KEY = os.getenv("AUTH_JWT_PRIVATE_KEY", "")
+    AUTH_JWT_ISSUER = os.getenv("AUTH_JWT_ISSUER", "manage")
+    AUTH_JWT_AUDIENCE = os.getenv("AUTH_JWT_AUDIENCE", "async")
     DATABASE_URL = os.getenv("DATABASE_URL")
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://")
@@ -28,7 +38,6 @@ class Config:
         "GITHUB_ADMIN_TEAM_SLUGS", "manage-service-admins"
     )
     SAFE_URLS = set(os.getenv("SAFE_URLS", "").split(","))
-    AUTHENTICATION_ON = True
     S3_BUCKET_URL = (
         "https://digital-land-production-collection-dataset.s3.eu-west-2.amazonaws.com"
     )
@@ -97,9 +106,9 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
     ENV = "development"
+    AUTHENTICATION_ON = False
     WTF_CSRF_ENABLED = False
     SAFE_URLS = {"localhost:5000"}
-    AUTHENTICATION_ON = False
 
     # Commit dev submissions to a separate long-lived branch so they never touch the
     # production config-manager-update branch (which auto-merges to main). Still
@@ -115,12 +124,35 @@ class DevelopmentConfig(Config):
 
 class TestConfig(Config):
     ENV = "test"
+    AUTHENTICATION_ON = False
     DEBUG = True
     TESTING = True
-    AUTHENTICATION_ON = False
     SECRET_KEY = "testing"
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     SENTRY_ENABLED = False
+
+
+def configure_auth_signing_key(config):
+    """Validate after selecting the config, so local auth bypass needs no key."""
+    encoded_key = config.get("AUTH_JWT_PRIVATE_KEY")
+    if not encoded_key:
+        if config.get("AUTHENTICATION_ON", True):
+            raise ValueError(
+                "AUTH_JWT_PRIVATE_KEY is required when authentication is enabled"
+            )
+        return
+    try:
+        key = load_pem_private_key(
+            base64.b64decode(encoded_key, validate=True), password=None
+        )
+        if not isinstance(key, RSAPrivateKey) or key.key_size < 2048:
+            raise ValueError("Not an RSA private key")
+    except (ValueError, TypeError, UnsupportedAlgorithm):
+        raise ValueError(
+            "AUTH_JWT_PRIVATE_KEY must be a valid base64-encoded "
+            "unencrypted RSA private key in PEM format of at least 2048 bits"
+        ) from None
+    config["AUTH_JWT_PRIVATE_KEY"] = key
 
 
 def get_request_api_endpoint():

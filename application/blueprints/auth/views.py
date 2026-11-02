@@ -63,6 +63,7 @@ def login():
 @auth_bp.get("/authorize")
 def authorize():
     next_url = session.pop("next", None)
+    session.pop("user", None)
     token = oauth.github.authorize_access_token()
     resp = oauth.github.get("user", token=token)
     resp.raise_for_status()

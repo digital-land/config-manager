@@ -11,6 +11,7 @@ tests
 tf
 .pytest_cache
 .env
+*.pem
 .DS_Store
 .github
 .vscode

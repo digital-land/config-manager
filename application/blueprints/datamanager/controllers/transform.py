@@ -9,7 +9,12 @@ from shapely.geometry import mapping
 
 from . import ControllerError
 from application.utils import compute_hash
-from ..services.async_api import ResponseDetailsIncomplete, fetch_response_details
+from ..services.async_api import (
+    AsyncAPIError,
+    ResponseDetailsIncomplete,
+    fetch_response_details,
+    is_processing,
+)
 from ..services.dataset import get_dataset_name, get_dataset_typology
 from ..services.duplicates import REDIRECT_STATUSES
 from ..services.organisation import get_org_entity, get_organisation_name
@@ -410,9 +415,7 @@ def _dedup_dynamic_columns(candidates: list[dict]) -> list[str]:
 def _show_dedup_tab(
     is_assign_entities: bool, dataset_id: str, dataset_typology: str
 ) -> bool:
-    return is_assign_entities and (
-        dataset_id == "conservation-area" or dataset_typology != "geography"
-    )
+    return is_assign_entities
 
 
 def _prepare_duplicate_candidates(
@@ -920,18 +923,12 @@ def handle_check_transform(
     endpoint_url = params.get("url", "")
     documentation_url = params.get("documentation_url", "")
 
-    status = req.get("status")
+    try:
+        processing = is_processing(req)
+    except AsyncAPIError as e:
+        raise ControllerError(str(e)) from e
 
-    if status == "FAILED":
-        response_payload = req.get("response") or {}
-        response_error = response_payload.get("error")
-        raise ControllerError(
-            response_error.get("errMsg")
-            if response_error
-            else "Async job failed with no error information"
-        )
-
-    if status in {"PENDING", "PROCESSING", "QUEUED"} or req.get("response") is None:
+    if processing:
         # Pre-warm the cache so the result is ready when the job completes.
         if endpoint_url and documentation_url:
             check_endpoint_in_doc(documentation_url, endpoint_url)
@@ -946,7 +943,7 @@ def handle_check_transform(
     # Fetch the response details and platform entities for the organisation and dataset.
     details_incomplete = False
     try:
-        all_resp_details = fetch_response_details(request_id)
+        all_resp_details, _total_entries = fetch_response_details(request_id)
     except ResponseDetailsIncomplete as e:
         logger.error("Response details incomplete for %s: %s", request_id, e)
         all_resp_details = e.partial
