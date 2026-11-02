@@ -254,6 +254,17 @@ COMPLETED_CHECK_RESULT = {
 
 
 class TestCheckResultsIncompleteDetails:
+    @pytest.fixture(autouse=True)
+    def mock_reference_data(self):
+        with patch(
+            "application.blueprints.datamanager.controllers.check.get_field_names_for_dataset",
+            return_value=["reference"],
+        ), patch(
+            "application.blueprints.datamanager.controllers.check.fetch_boundary_geojson",
+            return_value=None,
+        ):
+            yield
+
     def test_incomplete_details_warns_instead_of_erroring(self, client):
         # check.py shares fetch_response_details with transform.py, so it has to
         # honour the same contract - otherwise a transient page failure 500s.
@@ -314,19 +325,31 @@ class TestCheckResultsIncompleteDetails:
         ):
             return client.get(f"/datamanager/check-results/{request_id}")
 
-    def test_non_admin_cannot_transform_on_incomplete_details(self, client):
-        # Incomplete rows block the same way blocking issues do.
-        response = self._run(client, "incomplete-no-admin", is_admin=False)
+    @pytest.mark.parametrize(
+        "authentication_on,is_admin,allowed",
+        [
+            (True, False, False),
+            (True, True, True),
+            (False, False, True),
+            (False, True, True),
+            (None, False, False),
+        ],
+    )
+    def test_override_button_permissions(
+        self, client, monkeypatch, authentication_on, is_admin, allowed
+    ):
+        if authentication_on is None:
+            monkeypatch.delitem(client.application.config, "AUTHENTICATION_ON")
+        else:
+            monkeypatch.setitem(
+                client.application.config, "AUTHENTICATION_ON", authentication_on
+            )
+        response = self._run(client, "incomplete-permissions", is_admin=is_admin)
 
         assert response.status_code == 200
-        assert b"not authorised to override" in response.data
-
-    def test_admin_gets_the_override_button(self, client):
-        response = self._run(client, "incomplete-admin", is_admin=True)
-
-        assert response.status_code == 200
-        assert b"not authorised to override" not in response.data
-        assert b"govuk-button--warning" in response.data
+        assert (b"not authorised to override" not in response.data) == allowed
+        if allowed:
+            assert b"govuk-button--warning" in response.data
 
 
 @pytest.mark.parametrize(
