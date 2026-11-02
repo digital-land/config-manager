@@ -59,9 +59,7 @@ def get_assign_entity_resource_statuses(
                 ).in_(keys[start : start + 300])
             ).all()
         )
-    uk_now = utcnow().replace(tzinfo=timezone.utc).astimezone(
-        ZoneInfo("Europe/London")
-    )
+    uk_now = utcnow().replace(tzinfo=timezone.utc).astimezone(ZoneInfo("Europe/London"))
     uk_cutoff = datetime.combine(uk_now.date(), time(6, 0), tzinfo=uk_now.tzinfo)
     cutoff = uk_cutoff.astimezone(timezone.utc).replace(tzinfo=None)
     return {
