@@ -283,11 +283,13 @@ def test_prepare_duplicate_candidates_keeps_generic_field_maps_and_columns():
     assert _dedup_dynamic_columns(candidates) == ["category"]
 
 
-def test_show_dedup_tab_uses_typology_but_keeps_conservation_area_spatial_flow():
+def test_show_dedup_tab_for_all_datasets_when_assigning_entities():
     assert _show_dedup_tab(True, "tree-preservation-order", "legal-instrument")
     assert _show_dedup_tab(True, "conservation-area", "geography")
-    assert not _show_dedup_tab(True, "article-4-direction-area", "geography")
+    assert _show_dedup_tab(True, "article-4-direction-area", "geography")
     assert not _show_dedup_tab(False, "tree-preservation-order", "legal-instrument")
+    assert not _show_dedup_tab(False, "article-4-direction-area", "geography")
+    assert not _show_dedup_tab(False, "conservation-area", "geography")
 
 
 class TestFetchPlatformEntitiesFailure:

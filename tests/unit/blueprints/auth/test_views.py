@@ -1,7 +1,20 @@
 from http import HTTPStatus
 from unittest.mock import Mock, patch
 
+from flask import session
+
 from application.blueprints.auth.views import _is_member_of_admin_team
+from application.blueprints.datamanager.router import _require_login
+
+
+def test_manage_guard_uses_login_session_not_api_token(app, monkeypatch):
+    monkeypatch.setitem(app.config, "AUTHENTICATION_ON", True)
+    monkeypatch.setitem(app.config, "AUTH_JWT_PRIVATE_KEY", None)
+    with app.test_request_context("/datamanager/"):
+        session["auth_token"] = "expired"
+        assert _require_login().status_code == 302
+        session["user"] = {"id": 123, "login": "alice", "is_admin": False}
+        assert _require_login() is None
 
 
 def test_is_member_of_admin_team_returns_true_for_active_membership(app):
@@ -68,7 +81,7 @@ def test_authorize_checks_configured_org_membership_with_timeout(client, app):
     app.config["GITHUB_API_BASE_URL"] = "https://api.github.com"
     token = {"access_token": "token"}
     user_response = Mock()
-    user_response.json.return_value = {"login": "gibahjoe"}
+    user_response.json.return_value = {"id": 123, "login": "gibahjoe"}
     membership_response = Mock(status_code=HTTPStatus.NO_CONTENT)
 
     with patch(
@@ -87,6 +100,9 @@ def test_authorize_checks_configured_org_membership_with_timeout(client, app):
         response = client.get("/auth/authorize")
 
     assert response.status_code == 302
+    with client.session_transaction() as sess:
+        assert sess["user"] == {"id": 123, "login": "gibahjoe", "is_admin": False}
+        assert "auth_token" not in sess
     get.assert_called_once_with(
         f"{app.config['GITHUB_API_BASE_URL']}/orgs/custom-org/members/gibahjoe",
         headers={

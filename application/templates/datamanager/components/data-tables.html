@@ -1,4 +1,4 @@
-{% macro dataTables(converted_table, transformed_table, issue_log_table, pagination_params=none, page_start=none, page_end=none) %}
+{% macro dataTables(converted_table, transformed_table, issue_log_table, pagination_params=none, page_start=none, page_end=none, total_entries=none) %}
 {% from "components/table.html" import table %}
 {% from "govuk_frontend_jinja/components/pagination/macro.html" import govukPagination %}
 <div class="govuk-tabs" data-module="govuk-tabs">

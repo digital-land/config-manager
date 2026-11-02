@@ -9,7 +9,7 @@ from flask import (
 )
 
 from application.db.models import ServiceLock
-from application.extensions import db
+from application.extensions import db, talisman
 from application.utils import utcnow
 
 base = Blueprint("base", __name__)
@@ -79,5 +79,6 @@ def roadmap():
 
 
 @base.route("/health", strict_slashes=False)
+@talisman(force_https=False)
 def healthz():
     return "OK", 200

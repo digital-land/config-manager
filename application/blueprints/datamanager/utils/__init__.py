@@ -7,6 +7,7 @@ import requests
 from dotenv import load_dotenv
 from flask import current_app, render_template
 from markupsafe import escape
+from werkzeug.exceptions import HTTPException
 
 # Load .env file for this module
 load_dotenv()
@@ -30,6 +31,8 @@ def issue_severity_cell(value):
 
 
 def handle_error(e):
+    if isinstance(e, HTTPException):
+        return e
     logger.exception(f"Error: {e}")
     return render_template("datamanager/error.html", message=str(e)), 500
 

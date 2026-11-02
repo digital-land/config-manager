@@ -5,6 +5,7 @@ from datetime import datetime
 from io import BytesIO
 from unittest.mock import patch
 
+import pytest
 import responses as rsps
 
 from application.blueprints.base.views import ADD_DATA_LOCK, ASSIGN_ENTITIES_LOCK
@@ -1146,8 +1147,11 @@ def test_assign_entities_check_results_shows_duplicate_candidates(client):
     assert b"entitySelectAllCheckbox.addEventListener" in response.data
 
 
+@pytest.mark.parametrize("typology", ["entity", "geography"])
 @rsps.activate
-def test_assign_entities_check_results_shows_dynamic_dedup_for_non_geography(client):
+def test_assign_entities_check_results_shows_dynamic_field_based_dedup(
+    client, typology
+):
     rsps.add(
         rsps.GET,
         f"{ASYNC_BASE}/assign-tree-id",
@@ -1205,7 +1209,7 @@ def test_assign_entities_check_results_shows_dynamic_dedup_for_non_geography(cli
             with patch(f"{transform_controller}.get_dataset_name", return_value="Tree"):
                 with patch(
                     f"{transform_controller}.get_dataset_typology",
-                    return_value="entity",
+                    return_value=typology,
                 ):
                     with patch(
                         f"{transform_controller}.get_entity_count_for_organisation_and_dataset",
@@ -1651,7 +1655,7 @@ def test_flagged_resources_summary_shows_persisted_and_expired_processing_status
 
 
 @rsps.activate
-def test_direct_dataset_resource_skips_summary_page(client):
+def test_direct_dataset_resource_skips_summary_page(client, logged_in_user):
     rsps.add(rsps.POST, ASYNC_BASE, json={"id": "assign-id-1"}, status=202)
 
     with patch(
@@ -1688,7 +1692,7 @@ def test_direct_dataset_resource_skips_summary_page(client):
 
 
 @rsps.activate
-def test_resource_submit_uses_selected_organisation(client):
+def test_resource_submit_uses_selected_organisation(client, logged_in_user):
     rsps.add(rsps.POST, ASYNC_BASE, json={"id": "assign-id-1"}, status=202)
 
     with patch(

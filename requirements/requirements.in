@@ -1,5 +1,5 @@
-digital_land_frontend @ git+https://github.com/digital-land/digital-land-frontend.git#egg=digital_land_frontend
-govuk-frontend-jinja>=4.0.0,<5
+digital-land-frontend==0.8.1
+govuk-frontend-jinja~=3.10.0
 Flask
 Flask-WTF
 gunicorn

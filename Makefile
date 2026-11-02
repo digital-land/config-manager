@@ -18,15 +18,15 @@ clean:
 	@echo "Clean complete! Run 'make init' or 'npm install' to rebuild."
 
 reqs:
-	python -m piptools compile requirements/requirements.in
-	python -m piptools compile requirements/dev-requirements.in
+	python -m piptools compile --strip-extras --output-file=requirements/requirements.txt requirements/requirements.in
+	python -m piptools compile --strip-extras --output-file=requirements/dev-requirements.txt requirements/dev-requirements.in
 
 sync:
 	python -m piptools sync requirements/requirements.txt requirements/dev-requirements.txt
 
 upgrade:
-	python -m piptools compile --upgrade requirements/requirements.in
-	python -m piptools compile --upgrade requirements/dev-requirements.in
+	python -m piptools compile --strip-extras --upgrade --output-file=requirements/requirements.txt requirements/requirements.in
+	python -m piptools compile --strip-extras --upgrade --output-file=requirements/dev-requirements.txt requirements/dev-requirements.in
 	python -m piptools sync requirements/requirements.txt requirements/dev-requirements.txt
 
 black:

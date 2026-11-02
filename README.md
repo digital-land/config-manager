@@ -2,6 +2,17 @@
 
 ## Getting started
 
+`make dev-up` starts the full development stack in Docker, including the async
+backend. The steps below are for running Config Manager directly on your machine.
+
+From the repository directory, install and activate the Node.js version pinned
+in `.nvmrc` using nvm:
+
+```sh
+nvm install
+nvm use
+```
+
 Create a python virtualenv then run:
 
     make init
@@ -14,10 +25,48 @@ Create or update db schema
 
     make upgrade-db
 
-To run the application run:
+### Optional: work on the async backend locally
+
+A separate checkout is useful when developing Config Manager and async together;
+`make dev-up` does not need one. To use a separate backend, run Config Manager
+with `make run` and start the backend from its own checkout:
+
+```sh
+cd ..
+git clone https://github.com/digital-land/async-request-backend.git
+cd async-request-backend
+```
+
+Before starting it, check that `request-api` publishes `127.0.0.1:8000:8000` in
+its `docker-compose.yml`. With Docker running:
+
+```sh
+docker compose up -d --build
+```
+
+This builds the API and worker from your checkout and starts the database and
+LocalStack. Rerun the command after backend changes to rebuild it. Run one backend
+stack at a time to avoid port and container-name conflicts.
+
+`make run` uses `http://localhost:8000` by default. You can also set the endpoint
+explicitly in Config Manager's `.env`:
+
+```dotenv
+REQUEST_API_BASE_URL=http://localhost:8000
+```
+
+### Run config-manager
+
+Return to the config-manager directory and run:
 
     make run
 
+`DevelopmentConfig` disables login and token signing for `make run` and
+`make dev-up`. Production keeps authentication enabled.
+
+`make dev-up` pulls the published async API image and sets
+`AUTHENTICATION_ON=false`. To develop the backend too, use the optional checkout
+steps above.
 
 To test out github app integration locally you need to set the following in a `.env` file:
 
@@ -63,7 +112,28 @@ Then to install all the packages run:
 
 ## Frontend build
 
-This project uses the [@planning-data/digital-land-frontend](https://github.com/digital-land/digital-land-frontend) npm package to manage frontend asset compilation and copying.
+This project uses the [@digital-land-gov-uk/digital-land-frontend](https://github.com/digital-land/digital-land-frontend) npm package to manage frontend asset compilation and copying.
+
+`make init` uses `npm install`; CI and Docker use `npm ci`. Both run the
+post-install asset build. After changing
+dependencies, run `npm install` with the pinned Node version and commit the
+updated `package-lock.json` alongside `package.json`.
+
+CI and deployment builds read `.nvmrc`. The main Dockerfile and
+`docker-compose.yaml` default to Node 24.22.1. Keep these defaults, `.nvmrc`,
+and the package engine requirements aligned when upgrading. Both the frontend
+and dev Docker stages use the same official Node image; production uses Python
+and contains only the generated frontend assets, without Node or `node_modules`.
+
+To explicitly use the pinned version for Docker or Compose:
+
+```sh
+docker build --build-arg NODE_VERSION="$(cat .nvmrc)" -t config-manager .
+NODE_VERSION="$(cat .nvmrc)" docker compose up --build
+```
+
+The separate `Dockerfile.dev` used by `make dev-up` and
+`docker-compose-dev.yaml` is a legacy setup and is not covered by this upgrade.
 
 ### How it works
 
@@ -105,13 +175,9 @@ These directories are git-ignored and should never be committed.
 ### Project-specific customizations
 
 The [package-scripts.js](package-scripts.js) file extends digital-land-frontend with:
-- Override for govuk-frontend v5 asset paths (fixes compatibility issue)
 - Custom vendor asset copying (accessible-autocomplete, MOJ components)
 - GOV.UK Frontend JavaScript bundle
 
-See the comments in package-scripts.js for details on why these overrides are necessary.
-
 ### Digital Land Frontend Configuration
 
-Frontend build paths are configured in [digital-land-frontend.config.json](digital-land-frontend.config.json).
-
+Frontend build paths are configured in [digital-land-frontend.config.json](digital-land-frontend.config.json). `govukOutputPath` is set to `application/static/` so GOV.UK Frontend fonts and images are copied to `application/static/govuk/assets/`, where the compiled styles expect them.
