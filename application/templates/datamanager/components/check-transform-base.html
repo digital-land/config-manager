@@ -20,8 +20,12 @@
       <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
       <strong class="govuk-warning-text__text">
         <span class="govuk-warning-text__assistive">Warning</span>
-        {% if details_incomplete %}
+        {% if comparison_timed_out %}
+          Comparison took too long. This resource has not been compared with the platform. The transformed data and issues are still available, and the map shows the submitted data without comparison colours.
+        {% elif details_incomplete %}
           Some of the transformed data could not be fetched, so the tables below are incomplete and this resource has not been compared with the platform.
+        {% elif has_prepared_comparison %}
+          The platform comparison could not be prepared, so this resource has not been compared with the platform.
         {% else %}
           The platform data could not be fetched, so this resource has not been compared with the platform.
         {% endif %}
@@ -116,8 +120,12 @@
         {% elif comparison_unavailable %}
         <div class="govuk-inset-text">
           <p class="govuk-body">
-            {% if details_incomplete %}
+            {% if comparison_timed_out %}
+              Comparison took too long. This resource has not been compared with the platform.
+            {% elif details_incomplete %}
               Some of the transformed data could not be fetched, so this resource cannot be compared with the platform.
+            {% elif has_prepared_comparison %}
+              The platform comparison could not be prepared, so this resource cannot be compared with the platform.
             {% else %}
               The platform data could not be fetched, so this resource cannot be compared with the platform.
             {% endif %}

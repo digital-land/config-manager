@@ -162,6 +162,7 @@ def fetch_response_details(
     limit: int = 500,
     start_offset: int = 0,
     max_rows: int = None,
+    comparison: bool = False,
 ) -> list:
     """
     Fetch response details for a request, handling pagination.
@@ -176,7 +177,11 @@ def fetch_response_details(
         f"Fetching response details for request_id: {request_id}, "
         f"start_offset={start_offset}, max_rows={max_rows}"
     )
-    url = _response_details_url(request_id)
+    url = (
+        f"{_request_url(request_id)}/platform-comparison"
+        if comparison
+        else _response_details_url(request_id)
+    )
     first_limit = min(limit, max_rows) if max_rows is not None else limit
 
     try:
@@ -208,7 +213,7 @@ def fetch_response_details(
             # Short page means there is nothing after it, so no need to page at all.
             return first_batch, len(first_batch)
         return _fetch_response_details_sequentially(
-            request_id, limit, start_offset, max_rows, seed=first_batch
+            request_id, limit, start_offset, max_rows, seed=first_batch, source_url=url
         )
 
     wanted = max(total_available - start_offset, 0)
@@ -248,6 +253,7 @@ def _fetch_response_details_sequentially(
     start_offset: int,
     max_rows: int,
     seed: list = None,
+    source_url: str = None,
 ) -> list:
     """
     Page through response details one request at a time, following batch sizes.
@@ -272,7 +278,7 @@ def _fetch_response_details_sequentially(
         # failure leaves it unassigned.
         response = None
         try:
-            url = _response_details_url(request_id)
+            url = source_url or _response_details_url(request_id)
             params = {"offset": offset, "limit": fetch_limit}
             logger.debug(f"Fetching batch - URL: {url}, Params: {params}")
 
@@ -319,3 +325,13 @@ def _fetch_response_details_sequentially(
 
     logger.info(f"Total response details fetched: {len(all_details)}")
     return all_details, len(all_details)
+
+
+def fetch_platform_comparison(request_id: str, expected_count: int) -> list:
+    """Read the immutable, paginated comparison produced by async, in full."""
+    rows, total = fetch_response_details(request_id, comparison=True)
+    if total != expected_count or len(rows) != expected_count:
+        raise ResponseDetailsIncomplete(
+            "Prepared comparison row count does not match its summary"
+        )
+    return rows
