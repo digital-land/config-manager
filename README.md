@@ -5,6 +5,14 @@
 `make dev-up` starts the full development stack in Docker, including the async
 backend. The steps below are for running Config Manager directly on your machine.
 
+From the repository directory, install and activate the Node.js version pinned
+in `.nvmrc` using nvm:
+
+```sh
+nvm install
+nvm use
+```
+
 Create a python virtualenv then run:
 
     make init
