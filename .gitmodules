@@ -1,3 +1,0 @@
-[submodule "async-request-backend"]
-	path = async-request-backend
-	url = https://github.com/digital-land/async-request-backend.git
