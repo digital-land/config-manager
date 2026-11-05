@@ -1523,12 +1523,26 @@ def test_assign_entities_check_results_post_resubmits_changed_redirect_selection
 
 
 @rsps.activate
-def test_resource_link_submits_assign_entities_request(client, logged_in_user):
+def test_resource_link_submits_assign_entities_request(client):
+    with client.session_transaction() as sess:
+        sess["user"] = {"login": "test-user", "is_admin": False}
     import_response = client.post(
         "/assign-entities/import",
         data={"csv_data": CSV_INPUT},
     )
     assert import_response.status_code == 302
+    expired_at = datetime(2020, 1, 1, 0, 0)
+    db.session.merge(
+        AssignEntityResource(
+            resource="resource-a",
+            dataset="tree",
+            organisation="local-authority:ABC",
+            status="in_progress",
+            actor_username="expired-user",
+            updated_at=expired_at,
+        )
+    )
+    db.session.commit()
     rsps.add(rsps.POST, ASYNC_BASE, json={"id": "assign-id-1"}, status=202)
 
     with patch(
@@ -1576,6 +1590,7 @@ def test_resource_link_submits_assign_entities_request(client, logged_in_user):
     )
     assert status.status == "in_progress"
     assert status.actor_username == "test-user"
+    assert status.updated_at > expired_at
     assert len(rsps.calls) == 1
     assert rsps.calls[0].request.url == ASYNC_BASE
     assert rsps.calls[0].request.headers["Content-Type"] == "application/json"
@@ -1595,7 +1610,7 @@ def test_resource_link_submits_assign_entities_request(client, logged_in_user):
     }
 
 
-def test_flagged_resources_summary_shows_persisted_and_cleared_processing_status(
+def test_flagged_resources_summary_shows_persisted_and_expired_processing_status(
     client,
 ):
     import_response = client.post(
@@ -1627,13 +1642,16 @@ def test_flagged_resources_summary_shows_persisted_and_cleared_processing_status
     record = db.session.get(
         AssignEntityResource, ("resource-d", "tree", "local-authority:ABC")
     )
-    record.status = None
+    record.status = "in_progress"
+    record.actor_username = "expired-user"
+    record.updated_at = datetime(2020, 1, 1, 0, 0)
     db.session.commit()
 
     response = client.get("/assign-entities/resources")
 
     assert response.status_code == 200
     assert b"Not started" in response.data
+    assert b"(expired-user)" not in response.data
 
 
 @rsps.activate
