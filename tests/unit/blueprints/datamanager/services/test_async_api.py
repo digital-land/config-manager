@@ -351,3 +351,64 @@ class TestFetchResponseDetails:
         # One call only: the seeded first page is not requested a second time.
         assert sequential_get.call_count == 1
         assert sequential_get.call_args.kwargs["params"]["offset"] == 500
+
+
+@pytest.mark.parametrize("expected_count", [2, 3])
+def test_fetch_platform_comparison_checks_summary_count(app, expected_count):
+    from application.blueprints.datamanager.services.async_api import (
+        fetch_platform_comparison,
+    )
+
+    rows = [
+        {"source": "resource", "entry_number": "1"},
+        {"source": "platform", "entity": "999"},
+    ]
+    with app.app_context(), patch(
+        "application.blueprints.datamanager.services.async_api.fetch_response_details",
+        return_value=(rows, 2),
+    ) as fetch:
+        if expected_count == 2:
+            assert fetch_platform_comparison("test-comparison", expected_count) == rows
+        else:
+            with pytest.raises(ResponseDetailsIncomplete):
+                fetch_platform_comparison("test-comparison", expected_count)
+    fetch.assert_called_once_with("test-comparison", comparison=True)
+
+
+@pytest.mark.parametrize("has_total_header", [False, True])
+def test_comparison_pagination_keeps_its_endpoint(app, has_total_header):
+    first_rows = [{"entity": "1"}, {"entity": "2"}]
+    second_rows = [{"entity": "3"}]
+    first = Mock(status_code=200, content=b"[]")
+    first.json.return_value = first_rows
+    first.headers = {"X-Pagination-Total-Results": "3"} if has_total_header else {}
+    second = Mock(status_code=200, content=b"[]")
+    second.json.return_value = second_rows
+    second.headers = {}
+    request_id = f"comparison-pages-{has_total_header}"
+    with app.app_context(), patch(
+        "application.blueprints.datamanager.services.async_api.get_http_session"
+    ) as http, patch(
+        "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently",
+        return_value=[second_rows],
+    ) as parallel, patch(
+        "application.blueprints.datamanager.services.async_api.requests.get",
+        return_value=second,
+    ) as sequential:
+        http.return_value.get.return_value = first
+        rows, total = fetch_response_details(request_id, limit=2, comparison=True)
+    assert rows == first_rows + second_rows
+    assert total == 3
+    assert http.return_value.get.call_args.args[0].endswith(
+        f"/{request_id}/platform-comparison"
+    )
+    if has_total_header:
+        assert parallel.call_args.args[0][0].endswith(
+            f"/{request_id}/platform-comparison?offset=2&limit=2"
+        )
+        sequential.assert_not_called()
+    else:
+        assert sequential.call_args.args[0].endswith(
+            f"/{request_id}/platform-comparison"
+        )
+        parallel.assert_not_called()

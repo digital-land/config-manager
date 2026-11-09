@@ -1,6 +1,6 @@
 init:
 	mkdir -p application/static/javascripts application/static/stylesheets
-	npm install
+	npm ci
 	python -m pip install --upgrade pip setuptools wheel
 	python -m pip install -r requirements/requirements.txt -r requirements/dev-requirements.txt
 
