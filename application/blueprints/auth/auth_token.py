@@ -8,6 +8,7 @@ from flask import abort, current_app, has_request_context, session
 
 JWT_ISSUER = "manage"
 
+
 def _signing_key():
     key = current_app.config.get("AUTH_JWT_PRIVATE_KEY")
     if not key:
