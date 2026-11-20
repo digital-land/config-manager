@@ -16,6 +16,13 @@ from application.blueprints.datamanager.services.async_api import (
 )
 
 
+@pytest.fixture(autouse=True)
+def authenticated_context(app):
+    with app.test_request_context():
+        session["user"] = {"id": 123, "login": "alice"}
+        yield
+
+
 class TestSubmitRequest:
     @pytest.mark.parametrize("is_admin,role", [(False, "staff"), (True, "admin")])
     def test_session_can_issue_another_token_after_previous_expiry(
@@ -41,7 +48,10 @@ class TestSubmitRequest:
             session.pop("user")
             assert get_auth_token() is None
 
-    def test_add_data_issues_fresh_token_from_github_session(self, app, monkeypatch):
+    @pytest.mark.parametrize("kind", ["add_data", "check_url", "check_file"])
+    def test_requests_issue_fresh_token_from_github_session(
+        self, app, monkeypatch, kind
+    ):
         monkeypatch.setitem(app.config, "AUTHENTICATION_ON", True)
         response = Mock(status_code=202)
         response.json.return_value = {"id": "abc123"}
@@ -51,7 +61,7 @@ class TestSubmitRequest:
         ) as post:
             session["user"] = {"id": 123, "login": "alice", "is_admin": False}
             session["auth_token"] = "expired-token"
-            assert submit_request({"type": "add_data"}) == "abc123"
+            assert submit_request({"type": kind}) == "abc123"
             token = post.call_args.kwargs["headers"]["Authorization"].removeprefix(
                 "Bearer "
             )
@@ -60,7 +70,7 @@ class TestSubmitRequest:
                 app.config["AUTH_JWT_PRIVATE_KEY"].public_key(),
                 algorithms=["RS256"],
                 audience=app.config["AUTH_JWT_AUDIENCE"],
-                issuer=app.config["AUTH_JWT_ISSUER"],
+                issuer="manage",
             )
             assert claims["sub"] == "123"
             assert claims["username"] == "alice"
@@ -156,6 +166,25 @@ class TestSubmitRequest:
 
 
 class TestFetchRequest:
+    def test_read_sends_session_token(self, app, monkeypatch):
+        monkeypatch.setitem(app.config, "AUTHENTICATION_ON", True)
+        response = Mock(status_code=200)
+        response.json.return_value = {"id": "abc123"}
+        with app.test_request_context(), patch(
+            "application.blueprints.datamanager.services.async_api.requests.get",
+            return_value=response,
+        ) as get:
+            session["user"] = {"id": 123, "login": "alice"}
+            assert fetch_request("abc123")["id"] == "abc123"
+            token = get.call_args.kwargs["headers"]["Authorization"].split()[1]
+            claims = jwt.decode(
+                token,
+                app.config["AUTH_JWT_PRIVATE_KEY"].public_key(),
+                algorithms=["RS256"],
+                audience=app.config["AUTH_JWT_AUDIENCE"],
+            )
+            assert claims["username"] == "alice"
+
     def test_returns_json_on_200(self):
         mock_response = Mock()
         mock_response.status_code = 200
@@ -196,8 +225,8 @@ def _rows(start, count):
     ]
 
 
-def _page_response(payload, total=None):
-    response = Mock()
+def _page_response(payload, total=None, status=200):
+    response = Mock(status_code=status, content=b"[]", text="[]")
     response.json.return_value = payload
     response.raise_for_status.return_value = None
     response.headers = (
@@ -220,6 +249,65 @@ class TestFetchResponseDetails:
             "application.blueprints.datamanager.services.async_api.get_http_session",
             return_value=session,
         )
+
+    @pytest.mark.parametrize("status", [204, 206, 302, 401, 500])
+    def test_non_200_first_page_is_incomplete_and_not_cached(self, status):
+        response = _page_response(_rows(0, 1), total=1, status=status)
+        request_id = f"first-status-{status}"
+        with self._patch_first_page(response) as http_session:
+            with pytest.raises(ResponseDetailsIncomplete) as error:
+                fetch_response_details(request_id)
+            assert error.value.partial == []
+            response.json.assert_not_called()
+            assert (
+                http_session.return_value.get.call_args.kwargs["allow_redirects"]
+                is False
+            )
+
+        with self._patch_first_page(_page_response(_rows(0, 1), total=1)):
+            assert fetch_response_details(request_id) == (_rows(0, 1), 1)
+
+    @pytest.mark.parametrize("status", [204, 206, 302, 401, 500])
+    def test_non_200_sequential_page_preserves_only_successful_rows(self, status):
+        response = _page_response(_rows(1, 1), status=status)
+        with self._patch_first_page(_page_response(_rows(0, 1))), patch(
+            "application.blueprints.datamanager.services.async_api.requests.get",
+            side_effect=[response, _page_response([])],
+        ) as get:
+            with pytest.raises(ResponseDetailsIncomplete) as error:
+                fetch_response_details(f"sequential-status-{status}", limit=1)
+        assert error.value.partial == _rows(0, 1)
+        response.json.assert_not_called()
+        assert get.call_args.kwargs["allow_redirects"] is False
+
+    @pytest.mark.parametrize("status", [204, 206, 302, 401, 500])
+    def test_non_200_concurrent_page_preserves_only_successful_rows(self, status):
+        response = _page_response(_rows(1, 1), status=status)
+        http_session = Mock()
+        http_session.get.return_value = response
+        with self._patch_first_page(_page_response(_rows(0, 1), total=2)), patch(
+            "application.data_access.http.get_http_session", return_value=http_session
+        ):
+            with pytest.raises(ResponseDetailsIncomplete) as error:
+                fetch_response_details(f"concurrent-status-{status}", limit=1)
+        assert error.value.partial == _rows(0, 1)
+        response.json.assert_not_called()
+        assert http_session.get.call_args.kwargs["allow_redirects"] is False
+
+    def test_authentication_reaches_parallel_pages(self, app, monkeypatch):
+        monkeypatch.setitem(app.config, "AUTHENTICATION_ON", True)
+        with app.test_request_context(), self._patch_first_page(
+            _page_response(_rows(0, 1), total=2)
+        ) as http_session, patch(
+            "application.blueprints.datamanager.services.async_api.fetch_pages_concurrently",
+            return_value=[_rows(1, 1)],
+        ) as pages:
+            session["user"] = {"id": 123, "login": "alice"}
+            rows, total = fetch_response_details("authenticated-pages", limit=1)
+            assert len(rows) == total == 2
+            first_headers = http_session.return_value.get.call_args.kwargs["headers"]
+            assert first_headers["Authorization"].startswith("Bearer ")
+            assert pages.call_args.kwargs["headers"] == first_headers
 
     def test_fetches_remaining_pages_in_parallel_and_keeps_offset_order(self, app):
         with self._patch_first_page(_page_response(_rows(0, 500), total=1200)), patch(

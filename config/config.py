@@ -18,7 +18,6 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY")
     # Dedicated base64-encoded PEM key; never reuse the GitHub App key.
     AUTH_JWT_PRIVATE_KEY = os.getenv("AUTH_JWT_PRIVATE_KEY", "")
-    AUTH_JWT_ISSUER = os.getenv("AUTH_JWT_ISSUER", "manage")
     AUTH_JWT_AUDIENCE = os.getenv("AUTH_JWT_AUDIENCE", "async")
     DATABASE_URL = os.getenv("DATABASE_URL")
     if DATABASE_URL.startswith("postgres://"):

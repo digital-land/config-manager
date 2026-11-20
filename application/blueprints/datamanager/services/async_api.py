@@ -35,6 +35,15 @@ def _response_details_url(request_id: str) -> str:
     return f"{get_request_api_endpoint()}/requests/{request_id}/response-details"
 
 
+def _auth_kwargs():
+    if not current_app.config.get("AUTHENTICATION_ON", True):
+        return {}
+    token = get_auth_token()
+    if not token:
+        abort(401, description="Sign in again to use the request API")
+    return {"headers": {"Authorization": f"Bearer {token}"}}
+
+
 class AsyncAPIError(Exception):
     """Raised when the async request API returns an error."""
 
@@ -79,16 +88,12 @@ def submit_request(params: dict) -> str:
     logger.info("Submitting request to async API")
     logger.debug(json.dumps(payload, indent=2))
 
-    kwargs = {}
-    if params.get("type") == "add_data" and current_app.config.get(
-        "AUTHENTICATION_ON", True
-    ):
-        token = get_auth_token()
-        if not token:
-            abort(401, description="Sign in again before adding data")
-        kwargs["headers"] = {"Authorization": f"Bearer {token}"}
     response = requests.post(
-        _requests_url(), json=payload, timeout=REQUESTS_TIMEOUT, **kwargs
+        _requests_url(),
+        json=payload,
+        timeout=REQUESTS_TIMEOUT,
+        allow_redirects=False,
+        **_auth_kwargs(),
     )
 
     logger.info(f"Async API responded with {response.status_code}")
@@ -121,7 +126,12 @@ def fetch_request(request_id: str) -> dict:
     Returns the parsed JSON response on 200.
     Raises AsyncAPIError on non-200 status.
     """
-    response = requests.get(_request_url(request_id), timeout=REQUESTS_TIMEOUT)
+    response = requests.get(
+        _request_url(request_id),
+        timeout=REQUESTS_TIMEOUT,
+        allow_redirects=False,
+        **_auth_kwargs(),
+    )
 
     if response.status_code != 200:
         raise AsyncAPIError(
@@ -178,14 +188,18 @@ def fetch_response_details(
     )
     url = _response_details_url(request_id)
     first_limit = min(limit, max_rows) if max_rows is not None else limit
+    auth_kwargs = _auth_kwargs()
 
     try:
         response = get_http_session().get(
             url,
             params={"offset": start_offset, "limit": first_limit},
             timeout=page_timeout(),
+            allow_redirects=False,
+            **auth_kwargs,
         )
-        response.raise_for_status()
+        if response.status_code != 200:
+            raise AsyncAPIError(f"Unexpected page status: {response.status_code}")
         first_batch = response.json() or []
     except Exception as e:
         # Returning [] here would cache "this resource has no rows" for the full
@@ -223,7 +237,10 @@ def fetch_response_details(
             f"{url}?{urlencode({'offset': offset, 'limit': limit})}"
             for offset in offsets
         ]
-        for offset, page in zip(offsets, fetch_pages_concurrently(urls)):
+        for offset, page in zip(
+            offsets,
+            fetch_pages_concurrently(urls, allow_redirects=False, **auth_kwargs),
+        ):
             if page is None:
                 failed_offsets.append(offset)
                 continue
@@ -276,7 +293,13 @@ def _fetch_response_details_sequentially(
             params = {"offset": offset, "limit": fetch_limit}
             logger.debug(f"Fetching batch - URL: {url}, Params: {params}")
 
-            response = requests.get(url, params=params, timeout=REQUESTS_TIMEOUT)
+            response = requests.get(
+                url,
+                params=params,
+                timeout=REQUESTS_TIMEOUT,
+                allow_redirects=False,
+                **_auth_kwargs(),
+            )
             content_length = getattr(response, "content", None)
             content_length = (
                 len(content_length) if content_length is not None else "N/A"
@@ -285,7 +308,8 @@ def _fetch_response_details_sequentially(
                 f"Batch response - Status: {response.status_code}, Content-Length: {content_length}"
             )
 
-            response.raise_for_status()
+            if response.status_code != 200:
+                raise AsyncAPIError(f"Unexpected page status: {response.status_code}")
             batch = response.json() or []
             logger.info(f"Batch parsed - Items: {len(batch)}")
 

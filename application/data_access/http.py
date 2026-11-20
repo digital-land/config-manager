@@ -52,6 +52,7 @@ def fetch_pages_concurrently(
     max_workers: int = None,
     timeout: int = None,
     headers: dict = None,
+    allow_redirects: bool = True,
 ) -> list:
     """
     GET every url and return the parsed JSON bodies in the order the urls were given.
@@ -70,8 +71,13 @@ def fetch_pages_concurrently(
 
     def _get(url):
         try:
-            response = session.get(url, timeout=timeout, headers=headers)
-            response.raise_for_status()
+            response = session.get(
+                url, timeout=timeout, headers=headers, allow_redirects=allow_redirects
+            )
+            if response.status_code != 200:
+                raise requests.HTTPError(
+                    f"Unexpected page status: {response.status_code}"
+                )
             return response.json()
         except Exception as e:
             logger.error(f"Failed to fetch page {url}: {e}", exc_info=True)
