@@ -6,6 +6,8 @@ import jwt
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from flask import abort, current_app, has_request_context, session
 
+JWT_ISSUER = "manage"
+
 
 def _signing_key():
     key = current_app.config.get("AUTH_JWT_PRIVATE_KEY")
@@ -24,7 +26,7 @@ def _signing_key():
 def issue_auth_token(*, subject, role, username, auth_provider=None):
     issued = int(time.time())
     claims = {
-        "iss": current_app.config["AUTH_JWT_ISSUER"],
+        "iss": JWT_ISSUER,
         "aud": current_app.config["AUTH_JWT_AUDIENCE"],
         "sub": str(subject),
         "username": username,

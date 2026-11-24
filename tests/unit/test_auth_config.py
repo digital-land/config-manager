@@ -70,7 +70,7 @@ def test_startup_loads_signing_key(key_size):
         key.public_key(),
         algorithms=["RS256"],
         audience=app.config["AUTH_JWT_AUDIENCE"],
-        issuer=app.config["AUTH_JWT_ISSUER"],
+        issuer="manage",
     )
     assert claims["sub"] == "123"
 
